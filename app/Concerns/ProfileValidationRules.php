@@ -16,7 +16,7 @@ trait ProfileValidationRules
     {
         return [
             'name' => $this->nameRules(),
-            'email' => $this->emailRules($userId),
+            'birthdate' => $this->birthdateRules(),
         ];
     }
 
@@ -28,6 +28,16 @@ trait ProfileValidationRules
     protected function nameRules(): array
     {
         return ['required', 'string', 'max:255'];
+    }
+
+    /**
+     * Get the validation rules used to validate user birthdates.
+     *
+     * @return array<int, \Illuminate\Contracts\Validation\Rule|array<mixed>|string>
+     */
+    protected function birthdateRules(): array
+    {
+        return ['required', 'date', 'before:today'];
     }
 
     /**

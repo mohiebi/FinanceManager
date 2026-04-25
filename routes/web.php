@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\EmailAuthPageController;
 use App\Http\Controllers\Auth\WebEmailAuthController;
+use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -35,7 +36,8 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    Route::get('dashboard', [TransactionController::class, 'index'])->name('dashboard');
+    Route::resource('transactions', TransactionController::class)->only(['store', 'update', 'destroy']);
 });
 
 require __DIR__.'/settings.php';

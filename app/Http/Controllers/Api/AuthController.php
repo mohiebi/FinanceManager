@@ -1,0 +1,93 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Actions\Auth\EmailAuthBroker;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\CodeVerificationRequest;
+use App\Http\Requests\Auth\CompleteSignupRequest;
+use App\Http\Requests\Auth\PasswordLoginRequest;
+use App\Http\Requests\Auth\StartEmailAuthRequest;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class AuthController extends Controller
+{
+    public function __construct(private readonly EmailAuthBroker $broker) {}
+
+    public function start(StartEmailAuthRequest $request): JsonResponse
+    {
+        return response()->json($this->broker->start(
+            $request->string('email')->toString(),
+            $request->ip(),
+        ));
+    }
+
+    public function passwordLogin(PasswordLoginRequest $request): JsonResponse
+    {
+        $user = $this->broker->validatePasswordLogin(
+            $request->string('email')->toString(),
+            $request->string('password')->toString(),
+        );
+
+        return $this->authenticatedResponse($user, $request->string('device_name')->toString());
+    }
+
+    public function sendRecovery(StartEmailAuthRequest $request): JsonResponse
+    {
+        $this->broker->sendRecoveryChallenge(
+            $request->string('email')->toString(),
+            $request->ip(),
+        );
+
+        return response()->json(['message' => __('A login code has been sent.')]);
+    }
+
+    public function verifyRecovery(CodeVerificationRequest $request): JsonResponse
+    {
+        $user = $this->broker->verifyRecoveryCode(
+            $request->string('email')->toString(),
+            $request->string('code')->toString(),
+        );
+
+        return $this->authenticatedResponse($user, $request->string('device_name')->toString());
+    }
+
+    public function verifySignup(CodeVerificationRequest $request): JsonResponse
+    {
+        return response()->json($this->broker->verifySignupCode(
+            $request->string('email')->toString(),
+            $request->string('code')->toString(),
+        ));
+    }
+
+    public function completeSignup(CompleteSignupRequest $request): JsonResponse
+    {
+        $user = $this->broker->completeSignup(
+            $request->string('signup_token')->toString(),
+            $request->safe()->only(['name', 'birthdate', 'password']),
+        );
+
+        return $this->authenticatedResponse($user, $request->string('device_name')->toString());
+    }
+
+    public function me(Request $request): JsonResponse
+    {
+        return response()->json(['user' => $request->user()]);
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        $request->user()?->currentAccessToken()?->delete();
+
+        return response()->json(['message' => __('Logged out.')]);
+    }
+
+    protected function authenticatedResponse(mixed $user, string $deviceName): JsonResponse
+    {
+        return response()->json([
+            'user' => $user,
+            'token' => $this->broker->issueToken($user, $deviceName !== '' ? $deviceName : null),
+        ]);
+    }
+}

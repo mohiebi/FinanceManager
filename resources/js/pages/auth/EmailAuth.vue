@@ -2,6 +2,7 @@
 import { Form, Head } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import WebEmailAuthController from '@/actions/App/Http/Controllers/Auth/WebEmailAuthController';
+import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
@@ -252,13 +253,7 @@ const returnToEmail = () => {
 
             <div class="grid gap-2">
                 <Label for="birthdate">Birthdate</Label>
-                <Input
-                    id="birthdate"
-                    type="date"
-                    name="birthdate"
-                    required
-                    autocomplete="bday"
-                />
+                <BirthdatePicker name="birthdate" />
                 <InputError :message="errors.birthdate" />
             </div>
 

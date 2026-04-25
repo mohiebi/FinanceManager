@@ -4,12 +4,9 @@ use App\Http\Controllers\Auth\EmailAuthPageController;
 use App\Http\Controllers\Auth\WebEmailAuthController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome', [
-    'canRegister' => true,
-])->name('home');
+Route::inertia('/', 'Welcome')->name('home');
 
 Route::middleware('guest')->group(function () {
-    Route::get('register', EmailAuthPageController::class)->name('register');
     Route::get('forgot-password', EmailAuthPageController::class)->name('password.request');
 
     Route::post('auth/email/start', [WebEmailAuthController::class, 'start'])

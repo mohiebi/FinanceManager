@@ -19,7 +19,7 @@ test('profile information can be updated', function () {
         ->actingAs($user)
         ->patch(route('profile.update'), [
             'name' => 'Test User',
-            'email' => 'test@example.com',
+            'birthdate' => '1990-01-15',
         ]);
 
     $response
@@ -29,18 +29,19 @@ test('profile information can be updated', function () {
     $user->refresh();
 
     expect($user->name)->toBe('Test User');
-    expect($user->email)->toBe('test@example.com');
-    expect($user->email_verified_at)->toBeNull();
+    expect($user->birthdate->toDateString())->toBe('1990-01-15');
+    expect($user->email)->not->toBe('test@example.com');
+    expect($user->email_verified_at)->not->toBeNull();
 });
 
-test('email verification status is unchanged when the email address is unchanged', function () {
+test('email verification status is unchanged when profile details are updated', function () {
     $user = User::factory()->create();
 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
             'name' => 'Test User',
-            'email' => $user->email,
+            'birthdate' => '1990-01-15',
         ]);
 
     $response

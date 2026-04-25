@@ -1,200 +1,3 @@
-<script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-import { dashboard } from '@/routes';
-
-type TransactionType = 'cost' | 'income';
-type Currency = 'toman' | 'usd' | 'eur';
-
-type Category = {
-    id: number;
-    name: string;
-    slug: string;
-    type: TransactionType;
-    is_default: boolean;
-};
-
-type Transaction = {
-    id: number;
-    type: TransactionType;
-    amount: string;
-    currency: Currency;
-    title: string;
-    description: string | null;
-    occurred_at: string;
-    category: Category | null;
-    category_id: number;
-};
-
-type CurrencyOption = {
-    label: string;
-    value: Currency;
-};
-
-const props = defineProps<{
-    transactions: {
-        costs: Transaction[];
-        incomes: Transaction[];
-    };
-    categories: Record<TransactionType, Category[]>;
-    currencies: CurrencyOption[];
-}>();
-
-defineOptions({
-    layout: {
-        breadcrumbs: [
-            {
-                title: 'Dashboard',
-                href: dashboard(),
-            },
-        ],
-    },
-});
-
-const isDialogOpen = ref(false);
-const editingTransactionId = ref<number | null>(null);
-
-const today = () => new Date().toISOString().slice(0, 10);
-
-const form = useForm({
-    type: 'cost' as TransactionType,
-    category_id: '',
-    amount: '',
-    currency: 'toman' as Currency,
-    title: '',
-    description: '',
-    occurred_at: today(),
-});
-
-const selectedCategories = computed(() => props.categories[form.type] ?? []);
-const isEditing = computed(() => editingTransactionId.value !== null);
-const dialogTitle = computed(() =>
-    isEditing.value
-        ? `Edit ${form.type === 'cost' ? 'cost' : 'income'}`
-        : `Add ${form.type === 'cost' ? 'cost' : 'income'}`,
-);
-
-const costTotals = computed(() => totalsByCurrency(props.transactions.costs));
-const incomeTotals = computed(() =>
-    totalsByCurrency(props.transactions.incomes),
-);
-const balanceTotals = computed(() => {
-    const totals = emptyCurrencyTotals();
-
-    props.currencies.forEach((currency) => {
-        totals[currency.value] =
-            incomeTotals.value[currency.value] -
-            costTotals.value[currency.value];
-    });
-
-    return totals;
-});
-
-const resetForm = (type: TransactionType) => {
-    const categories = props.categories[type] ?? [];
-
-    form.clearErrors();
-    form.reset();
-    form.type = type;
-    form.category_id = categories[0]?.id.toString() ?? '';
-    form.amount = '';
-    form.currency = 'toman';
-    form.title = '';
-    form.description = '';
-    form.occurred_at = today();
-};
-
-const openCreateForm = (type: TransactionType) => {
-    editingTransactionId.value = null;
-    resetForm(type);
-    isDialogOpen.value = true;
-};
-
-const openEditForm = (transaction: Transaction) => {
-    editingTransactionId.value = transaction.id;
-    form.clearErrors();
-    form.type = transaction.type;
-    form.category_id = transaction.category_id.toString();
-    form.amount = transaction.amount;
-    form.currency = transaction.currency;
-    form.title = transaction.title;
-    form.description = transaction.description ?? '';
-    form.occurred_at = transaction.occurred_at;
-    isDialogOpen.value = true;
-};
-
-const submitTransaction = () => {
-    const options = {
-        preserveScroll: true,
-        onSuccess: () => {
-            isDialogOpen.value = false;
-            editingTransactionId.value = null;
-            resetForm(form.type);
-        },
-    };
-
-    if (editingTransactionId.value) {
-        form.patch(`/transactions/${editingTransactionId.value}`, options);
-
-        return;
-    }
-
-    form.post('/transactions', options);
-};
-
-const deleteTransaction = (transaction: Transaction) => {
-    if (!window.confirm(`Delete "${transaction.title}"?`)) {
-        return;
-    }
-
-    router.delete(`/transactions/${transaction.id}`, {
-        preserveScroll: true,
-    });
-};
-
-function emptyCurrencyTotals(): Record<Currency, number> {
-    return {
-        toman: 0,
-        usd: 0,
-        eur: 0,
-    };
-}
-
-function totalsByCurrency(
-    transactions: Transaction[],
-): Record<Currency, number> {
-    return transactions.reduce((totals, transaction) => {
-        totals[transaction.currency] += Number(transaction.amount);
-
-        return totals;
-    }, emptyCurrencyTotals());
-}
-
-function formatMoney(amount: string | number, currency: Currency): string {
-    const number = Number(amount);
-    const value = new Intl.NumberFormat('en-US', {
-        maximumFractionDigits: 2,
-        minimumFractionDigits: number % 1 === 0 ? 0 : 2,
-    }).format(number);
-
-    return `${value} ${currency.toUpperCase()}`;
-}
-</script>
-
 <template>
     <Head title="Dashboard" />
 
@@ -337,13 +140,25 @@ function formatMoney(amount: string | number, currency: Currency): string {
                             <tr
                                 class="border-b text-left text-xs tracking-wide text-neutral-500 uppercase dark:border-neutral-800"
                             >
-                                <th class="px-3 py-3 font-medium sm:px-5">Title</th>
-                                <th class="px-3 py-3 font-medium sm:px-5">Category</th>
-                                <th class="hidden px-3 py-3 font-medium sm:table-cell sm:px-5">Date</th>
-                                <th class="px-3 py-3 text-right font-medium sm:px-5">
+                                <th class="px-3 py-3 font-medium sm:px-5">
+                                    Title
+                                </th>
+                                <th class="px-3 py-3 font-medium sm:px-5">
+                                    Category
+                                </th>
+                                <th
+                                    class="hidden px-3 py-3 font-medium sm:table-cell sm:px-5"
+                                >
+                                    Date
+                                </th>
+                                <th
+                                    class="px-3 py-3 text-right font-medium sm:px-5"
+                                >
                                     Amount
                                 </th>
-                                <th class="px-3 py-3 text-right font-medium sm:px-5">
+                                <th
+                                    class="px-3 py-3 text-right font-medium sm:px-5"
+                                >
                                     Actions
                                 </th>
                             </tr>
@@ -355,7 +170,7 @@ function formatMoney(amount: string | number, currency: Currency): string {
                                 class="border-b last:border-0 hover:bg-rose-50/50 dark:border-neutral-800 dark:hover:bg-rose-950/10"
                             >
                                 <td class="px-3 py-4 sm:px-5">
-                                    <div class="font-medium text-xs sm:text-sm">
+                                    <div class="text-xs font-medium sm:text-sm">
                                         {{ transaction.title }}
                                     </div>
                                     <div
@@ -381,7 +196,7 @@ function formatMoney(amount: string | number, currency: Currency): string {
                                     {{ transaction.occurred_at }}
                                 </td>
                                 <td
-                                    class="px-3 py-4 text-right font-semibold text-xs text-rose-700 sm:px-5 sm:text-sm dark:text-rose-300"
+                                    class="px-3 py-4 text-right text-xs font-semibold text-rose-700 sm:px-5 sm:text-sm dark:text-rose-300"
                                 >
                                     {{
                                         formatMoney(
@@ -391,7 +206,9 @@ function formatMoney(amount: string | number, currency: Currency): string {
                                     }}
                                 </td>
                                 <td class="px-3 py-4 sm:px-5">
-                                    <div class="flex justify-end gap-1 sm:gap-2">
+                                    <div
+                                        class="flex justify-end gap-1 sm:gap-2"
+                                    >
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -459,13 +276,25 @@ function formatMoney(amount: string | number, currency: Currency): string {
                             <tr
                                 class="border-b text-left text-xs tracking-wide text-neutral-500 uppercase dark:border-neutral-800"
                             >
-                                <th class="px-3 py-3 font-medium sm:px-5">Title</th>
-                                <th class="px-3 py-3 font-medium sm:px-5">Category</th>
-                                <th class="hidden px-3 py-3 font-medium sm:table-cell sm:px-5">Date</th>
-                                <th class="px-3 py-3 text-right font-medium sm:px-5">
+                                <th class="px-3 py-3 font-medium sm:px-5">
+                                    Title
+                                </th>
+                                <th class="px-3 py-3 font-medium sm:px-5">
+                                    Category
+                                </th>
+                                <th
+                                    class="hidden px-3 py-3 font-medium sm:table-cell sm:px-5"
+                                >
+                                    Date
+                                </th>
+                                <th
+                                    class="px-3 py-3 text-right font-medium sm:px-5"
+                                >
                                     Amount
                                 </th>
-                                <th class="px-3 py-3 text-right font-medium sm:px-5">
+                                <th
+                                    class="px-3 py-3 text-right font-medium sm:px-5"
+                                >
                                     Actions
                                 </th>
                             </tr>
@@ -478,7 +307,7 @@ function formatMoney(amount: string | number, currency: Currency): string {
                                 class="border-b last:border-0 hover:bg-emerald-50/50 dark:border-neutral-800 dark:hover:bg-emerald-950/10"
                             >
                                 <td class="px-3 py-4 sm:px-5">
-                                    <div class="font-medium text-xs sm:text-sm">
+                                    <div class="text-xs font-medium sm:text-sm">
                                         {{ transaction.title }}
                                     </div>
                                     <div
@@ -504,7 +333,7 @@ function formatMoney(amount: string | number, currency: Currency): string {
                                     {{ transaction.occurred_at }}
                                 </td>
                                 <td
-                                    class="px-3 py-4 text-right font-semibold text-xs text-emerald-700 sm:px-5 sm:text-sm dark:text-emerald-300"
+                                    class="px-3 py-4 text-right text-xs font-semibold text-emerald-700 sm:px-5 sm:text-sm dark:text-emerald-300"
                                 >
                                     {{
                                         formatMoney(
@@ -514,7 +343,9 @@ function formatMoney(amount: string | number, currency: Currency): string {
                                     }}
                                 </td>
                                 <td class="px-3 py-4 sm:px-5">
-                                    <div class="flex justify-end gap-1 sm:gap-2">
+                                    <div
+                                        class="flex justify-end gap-1 sm:gap-2"
+                                    >
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -636,12 +467,79 @@ function formatMoney(amount: string | number, currency: Currency): string {
 
                         <div class="grid gap-2">
                             <Label for="occurred_at">Date</Label>
-                            <Input
+                            <input
                                 id="occurred_at"
-                                v-model="form.occurred_at"
-                                required
-                                type="date"
+                                type="hidden"
+                                :value="form.occurred_at"
                             />
+                            <div
+                                class="grid grid-cols-[1.25fr_0.85fr_0.9fr] gap-2"
+                            >
+                                <Select v-model="selectedDateMonth" required>
+                                    <SelectTrigger class="w-full">
+                                        <SelectValue placeholder="Month" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            v-for="month in months"
+                                            :key="month.value"
+                                            :value="month.value"
+                                        >
+                                            {{ month.label }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                <Select v-model="selectedDateDay" required>
+                                    <SelectTrigger class="w-full">
+                                        <SelectValue placeholder="Day" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            v-for="day in transactionDays"
+                                            :key="day"
+                                            :value="day"
+                                        >
+                                            {{ Number(day) }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                <Select v-model="selectedDateYear" required>
+                                    <SelectTrigger class="w-full">
+                                        <SelectValue placeholder="Year" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            v-for="year in transactionYears"
+                                            :key="year"
+                                            :value="year"
+                                        >
+                                            {{ year }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div class="flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="sm"
+                                    class="rounded-full"
+                                    @click="selectRelativeDate(0)"
+                                >
+                                    Today
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="sm"
+                                    class="rounded-full"
+                                    @click="selectRelativeDate(-1)"
+                                >
+                                    Yesterday
+                                </Button>
+                            </div>
                             <InputError :message="form.errors.occurred_at" />
                         </div>
                     </div>
@@ -682,3 +580,289 @@ function formatMoney(amount: string | number, currency: Currency): string {
         </Dialog>
     </div>
 </template>
+
+<script setup lang="ts">
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+import InputError from '@/components/InputError.vue';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
+import { dashboard } from '@/routes';
+
+type TransactionType = 'cost' | 'income';
+type Currency = 'toman' | 'usd' | 'eur';
+
+type Category = {
+    id: number;
+    name: string;
+    slug: string;
+    type: TransactionType;
+    is_default: boolean;
+};
+
+type Transaction = {
+    id: number;
+    type: TransactionType;
+    amount: string;
+    currency: Currency;
+    title: string;
+    description: string | null;
+    occurred_at: string;
+    category: Category | null;
+    category_id: number;
+};
+
+type CurrencyOption = {
+    label: string;
+    value: Currency;
+};
+
+const props = defineProps<{
+    transactions: {
+        costs: Transaction[];
+        incomes: Transaction[];
+    };
+    categories: Record<TransactionType, Category[]>;
+    currencies: CurrencyOption[];
+}>();
+
+defineOptions({
+    layout: {
+        breadcrumbs: [
+            {
+                title: 'Dashboard',
+                href: dashboard(),
+            },
+        ],
+    },
+});
+
+const isDialogOpen = ref(false);
+const editingTransactionId = ref<number | null>(null);
+const selectedDateYear = ref('');
+const selectedDateMonth = ref('');
+const selectedDateDay = ref('');
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+const transactionYears = computed(() => {
+    const currentYear = new Date().getFullYear();
+
+    return Array.from({ length: 17 }, (_, index) =>
+        String(currentYear + 1 - index),
+    );
+});
+
+const months = [
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' },
+];
+
+const transactionDays = computed(() => {
+    const year = Number(selectedDateYear.value || new Date().getFullYear());
+    const month = Number(selectedDateMonth.value || 1);
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    return Array.from({ length: daysInMonth }, (_, index) =>
+        String(index + 1).padStart(2, '0'),
+    );
+});
+
+const form = useForm({
+    type: 'cost' as TransactionType,
+    category_id: '',
+    amount: '',
+    currency: 'toman' as Currency,
+    title: '',
+    description: '',
+    occurred_at: today(),
+});
+
+const selectedCategories = computed(() => props.categories[form.type] ?? []);
+const isEditing = computed(() => editingTransactionId.value !== null);
+const dialogTitle = computed(() =>
+    isEditing.value
+        ? `Edit ${form.type === 'cost' ? 'cost' : 'income'}`
+        : `Add ${form.type === 'cost' ? 'cost' : 'income'}`,
+);
+
+const costTotals = computed(() => totalsByCurrency(props.transactions.costs));
+const incomeTotals = computed(() =>
+    totalsByCurrency(props.transactions.incomes),
+);
+const balanceTotals = computed(() => {
+    const totals = emptyCurrencyTotals();
+
+    props.currencies.forEach((currency) => {
+        totals[currency.value] =
+            incomeTotals.value[currency.value] -
+            costTotals.value[currency.value];
+    });
+
+    return totals;
+});
+
+const resetForm = (type: TransactionType) => {
+    const categories = props.categories[type] ?? [];
+
+    form.clearErrors();
+    form.reset();
+    form.type = type;
+    form.category_id = categories[0]?.id.toString() ?? '';
+    form.amount = '';
+    form.currency = 'toman';
+    form.title = '';
+    form.description = '';
+    form.occurred_at = today();
+    syncDatePicker(form.occurred_at);
+};
+
+const openCreateForm = (type: TransactionType) => {
+    editingTransactionId.value = null;
+    resetForm(type);
+    isDialogOpen.value = true;
+};
+
+const openEditForm = (transaction: Transaction) => {
+    editingTransactionId.value = transaction.id;
+    form.clearErrors();
+    form.type = transaction.type;
+    form.category_id = transaction.category_id.toString();
+    form.amount = transaction.amount;
+    form.currency = transaction.currency;
+    form.title = transaction.title;
+    form.description = transaction.description ?? '';
+    form.occurred_at = transaction.occurred_at;
+    syncDatePicker(transaction.occurred_at);
+    isDialogOpen.value = true;
+};
+
+const submitTransaction = () => {
+    const options = {
+        preserveScroll: true,
+        onSuccess: () => {
+            isDialogOpen.value = false;
+            editingTransactionId.value = null;
+            resetForm(form.type);
+        },
+    };
+
+    if (editingTransactionId.value) {
+        form.patch(`/transactions/${editingTransactionId.value}`, options);
+
+        return;
+    }
+
+    form.post('/transactions', options);
+};
+
+const deleteTransaction = (transaction: Transaction) => {
+    if (!window.confirm(`Delete "${transaction.title}"?`)) {
+        return;
+    }
+
+    router.delete(`/transactions/${transaction.id}`, {
+        preserveScroll: true,
+    });
+};
+
+const selectRelativeDate = (dayOffset: number) => {
+    const date = new Date();
+
+    date.setDate(date.getDate() + dayOffset);
+    form.occurred_at = date.toISOString().slice(0, 10);
+    syncDatePicker(form.occurred_at);
+};
+
+watch(
+    [selectedDateYear, selectedDateMonth, selectedDateDay],
+    updateOccurredAtFromPicker,
+);
+
+watch(transactionDays, (availableDays) => {
+    if (
+        selectedDateDay.value &&
+        !availableDays.includes(selectedDateDay.value)
+    ) {
+        selectedDateDay.value = availableDays.at(-1) ?? '';
+    }
+});
+
+function syncDatePicker(date: string): void {
+    const [year, month, day] = date.split('-');
+
+    selectedDateYear.value = year ?? '';
+    selectedDateMonth.value = month ?? '';
+    selectedDateDay.value = day ?? '';
+}
+
+function updateOccurredAtFromPicker(): void {
+    if (
+        !selectedDateYear.value ||
+        !selectedDateMonth.value ||
+        !selectedDateDay.value
+    ) {
+        return;
+    }
+
+    form.occurred_at = `${selectedDateYear.value}-${selectedDateMonth.value}-${selectedDateDay.value}`;
+}
+
+function emptyCurrencyTotals(): Record<Currency, number> {
+    return {
+        toman: 0,
+        usd: 0,
+        eur: 0,
+    };
+}
+
+function totalsByCurrency(
+    transactions: Transaction[],
+): Record<Currency, number> {
+    return transactions.reduce((totals, transaction) => {
+        totals[transaction.currency] += Number(transaction.amount);
+
+        return totals;
+    }, emptyCurrencyTotals());
+}
+
+function formatMoney(amount: string | number, currency: Currency): string {
+    const number = Number(amount);
+    const value = new Intl.NumberFormat('en-US', {
+        maximumFractionDigits: 2,
+        minimumFractionDigits: number % 1 === 0 ? 0 : 2,
+    }).format(number);
+
+    return `${value} ${currency.toUpperCase()}`;
+}
+
+syncDatePicker(form.occurred_at);
+</script>

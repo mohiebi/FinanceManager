@@ -46,7 +46,7 @@ class EmailAuthBroker
 
         if (! User::query()->where('email', $email)->exists()) {
             throw ValidationException::withMessages([
-                'email' => __('We could not find an account with that email address.'),
+                'email' => __('auth.account_not_found'),
             ]);
         }
 
@@ -101,7 +101,7 @@ class EmailAuthBroker
 
         if (! $user instanceof User) {
             throw ValidationException::withMessages([
-                'email' => __('We could not find an account with that email address.'),
+                'email' => __('auth.account_not_found'),
             ]);
         }
 
@@ -117,7 +117,7 @@ class EmailAuthBroker
 
         if (User::query()->where('email', $challenge->email)->exists()) {
             throw ValidationException::withMessages([
-                'email' => __('An account already exists for this email address.'),
+                'email' => __('auth.account_already_exists'),
             ]);
         }
 
@@ -141,7 +141,7 @@ class EmailAuthBroker
 
         if (! $user instanceof User || ! Hash::check($password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => __('These credentials do not match our records.'),
+                'email' => __('auth.credentials_mismatch'),
             ]);
         }
 
@@ -173,19 +173,19 @@ class EmailAuthBroker
 
         if (! $challenge instanceof AuthChallenge) {
             throw ValidationException::withMessages([
-                'code' => __('Request a new code before continuing.'),
+                'code' => __('auth.request_new_code'),
             ]);
         }
 
         if ($challenge->expires_at->isPast()) {
             throw ValidationException::withMessages([
-                'code' => __('This code has expired.'),
+                'code' => __('auth.code_expired'),
             ]);
         }
 
         if ($challenge->attempts >= self::MaxAttempts) {
             throw ValidationException::withMessages([
-                'code' => __('Too many attempts. Request a new code.'),
+                'code' => __('auth.too_many_attempts'),
             ]);
         }
 
@@ -193,7 +193,7 @@ class EmailAuthBroker
             $challenge->increment('attempts');
 
             throw ValidationException::withMessages([
-                'code' => __('The code is invalid.'),
+                'code' => __('auth.code_invalid'),
             ]);
         }
 
@@ -208,7 +208,7 @@ class EmailAuthBroker
             $challengeId = Crypt::decryptString($signupToken);
         } catch (\Throwable) {
             throw ValidationException::withMessages([
-                'signup_token' => __('Verify your email before completing signup.'),
+                'signup_token' => __('auth.verify_email_before_signup'),
             ]);
         }
 
@@ -221,7 +221,7 @@ class EmailAuthBroker
 
         if (! $challenge instanceof AuthChallenge || $challenge->expires_at->isPast()) {
             throw ValidationException::withMessages([
-                'signup_token' => __('Verify your email before completing signup.'),
+                'signup_token' => __('auth.verify_email_before_signup'),
             ]);
         }
 

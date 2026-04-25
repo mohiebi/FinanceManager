@@ -40,7 +40,7 @@ class AuthController extends Controller
             $request->ip(),
         );
 
-        return response()->json(['message' => __('A login code has been sent.')]);
+        return response()->json(['message' => __('auth.login_code_sent')]);
     }
 
     public function verifyRecovery(CodeVerificationRequest $request): JsonResponse
@@ -80,7 +80,7 @@ class AuthController extends Controller
     {
         $request->user()?->currentAccessToken()?->delete();
 
-        return response()->json(['message' => __('Logged out.')]);
+        return response()->json(['message' => __('auth.logged_out')]);
     }
 
     protected function authenticatedResponse(mixed $user, string $deviceName): JsonResponse

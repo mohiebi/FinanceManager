@@ -54,6 +54,24 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * @return HasMany<SocialAccount, User>
+     */
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
+    public function hasPassword(): bool
+    {
+        return filled($this->password);
+    }
+
+    public function requiresProfileCompletion(): bool
+    {
+        return blank($this->birthdate);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

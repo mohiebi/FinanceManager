@@ -74,6 +74,7 @@ test('new users can verify a code complete signup and become authenticated', fun
 
     $response = $this->post(route('auth.signup.complete'), [
         'signup_token' => $signupToken,
+        'email' => 'fresh@example.com',
         'name' => 'Fresh User',
         'birthdate' => '1991-04-25',
         'password' => 'password',
@@ -90,6 +91,143 @@ test('new users can verify a code complete signup and become authenticated', fun
     ]);
 
     expect(User::where('email', 'fresh@example.com')->first()->email_verified_at)->not->toBeNull();
+});
+
+test('verified signup flow can complete using the session token', function () {
+    Notification::fake();
+
+    $this->post(route('auth.email.start'), [
+        'email' => 'session.signup@example.com',
+    ]);
+
+    $code = null;
+
+    Notification::assertSentOnDemand(
+        AuthChallengeCodeNotification::class,
+        function (AuthChallengeCodeNotification $notification) use (&$code) {
+            $code = $notification->code;
+
+            return $notification->purpose === AuthChallenge::PurposeSignup;
+        },
+    );
+
+    $this->post(route('auth.signup.verify'), [
+        'email' => 'session.signup@example.com',
+        'code' => $code,
+    ])->assertRedirect();
+
+    $response = $this->post(route('auth.signup.complete'), [
+        'signup_token' => '',
+        'email' => 'session.signup@example.com',
+        'name' => 'Session Signup User',
+        'birthdate' => '1997-02-24',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ]);
+
+    $response->assertRedirect(route('dashboard', absolute: false));
+    $this->assertAuthenticated();
+
+    $this->assertDatabaseHas('users', [
+        'name' => 'Session Signup User',
+        'email' => 'session.signup@example.com',
+        'birthdate' => '1997-02-24',
+    ]);
+});
+
+test('verified signup flow can complete using the posted email when the session token is unavailable', function () {
+    Notification::fake();
+
+    $this->post(route('auth.email.start'), [
+        'email' => 'fallback.signup@example.com',
+    ]);
+
+    $code = null;
+
+    Notification::assertSentOnDemand(
+        AuthChallengeCodeNotification::class,
+        function (AuthChallengeCodeNotification $notification) use (&$code) {
+            $code = $notification->code;
+
+            return $notification->purpose === AuthChallenge::PurposeSignup;
+        },
+    );
+
+    $this->post(route('auth.signup.verify'), [
+        'email' => 'fallback.signup@example.com',
+        'code' => $code,
+    ])->assertRedirect();
+
+    session()->forget('auth_flow');
+
+    $response = $this->post(route('auth.signup.complete'), [
+        'signup_token' => '',
+        'email' => 'fallback.signup@example.com',
+        'name' => 'Fallback Signup User',
+        'birthdate' => '1994-11-12',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ]);
+
+    $response->assertRedirect(route('dashboard', absolute: false));
+    $this->assertAuthenticated();
+
+    $this->assertDatabaseHas('users', [
+        'name' => 'Fallback Signup User',
+        'email' => 'fallback.signup@example.com',
+        'birthdate' => '1994-11-12',
+    ]);
+});
+
+test('verified signup flow can complete after the code expiry window has passed', function () {
+    Notification::fake();
+
+    $this->post(route('auth.email.start'), [
+        'email' => 'verified.window@example.com',
+    ]);
+
+    $code = null;
+
+    Notification::assertSentOnDemand(
+        AuthChallengeCodeNotification::class,
+        function (AuthChallengeCodeNotification $notification) use (&$code) {
+            $code = $notification->code;
+
+            return $notification->purpose === AuthChallenge::PurposeSignup;
+        },
+    );
+
+    $this->post(route('auth.signup.verify'), [
+        'email' => 'verified.window@example.com',
+        'code' => $code,
+    ])->assertRedirect();
+
+    $challenge = AuthChallenge::query()
+        ->where('email', 'verified.window@example.com')
+        ->latest()
+        ->firstOrFail();
+
+    $challenge->forceFill([
+        'expires_at' => now()->subMinute(),
+    ])->save();
+
+    $response = $this->post(route('auth.signup.complete'), [
+        'signup_token' => '',
+        'email' => 'verified.window@example.com',
+        'name' => 'Verified Window User',
+        'birthdate' => '1990-06-18',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ]);
+
+    $response->assertRedirect(route('dashboard', absolute: false));
+    $this->assertAuthenticated();
+
+    $this->assertDatabaseHas('users', [
+        'name' => 'Verified Window User',
+        'email' => 'verified.window@example.com',
+        'birthdate' => '1990-06-18',
+    ]);
 });
 
 test('signup verification rejects invalid and expired codes', function () {

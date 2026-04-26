@@ -15,7 +15,8 @@ class CompleteSignupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'signup_token' => 'required|string',
+            'signup_token' => 'nullable|string',
+            'email' => 'required|email',
             'name' => 'required|string|max:255',
             'birthdate' => 'required|date|before:today',
             'password' => $this->passwordRules(),

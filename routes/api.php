@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\TransactionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +27,8 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::patch('profile', [ProfileController::class, 'update'])->name('api.profile.update');
+Route::middleware('auth:sanctum')->name('api.')->group(function () {
+    Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::apiResource('transactions', TransactionController::class);
+    Route::apiResource('categories', CategoryController::class)->only(['index']);
 });

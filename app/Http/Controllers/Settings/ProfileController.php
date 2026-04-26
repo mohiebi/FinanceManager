@@ -20,6 +20,8 @@ class ProfileController extends Controller
     {
         return Inertia::render('settings/Profile', [
             'mustVerifyEmail' => false,
+            'hasPassword' => $request->user()?->hasPassword() ?? false,
+            'requiresProfileCompletion' => $request->user()?->requiresProfileCompletion() ?? false,
             'status' => $request->session()->get('status'),
         ]);
     }
@@ -29,9 +31,14 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $requiresProfileCompletion = $request->user()->requiresProfileCompletion();
 
+        $request->user()->fill($request->validated());
         $request->user()->save();
+
+        if ($requiresProfileCompletion && ! $request->user()->requiresProfileCompletion()) {
+            return to_route('dashboard');
+        }
 
         return to_route('profile.edit');
     }

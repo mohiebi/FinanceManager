@@ -8,6 +8,7 @@ use App\Http\Requests\Auth\CodeVerificationRequest;
 use App\Http\Requests\Auth\CompleteSignupRequest;
 use App\Http\Requests\Auth\PasswordLoginRequest;
 use App\Http\Requests\Auth\StartEmailAuthRequest;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -73,7 +74,14 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        return response()->json(['user' => $request->user()]);
+        /** @var User|null $user */
+        $user = $request->user();
+
+        return response()->json([
+            'user' => $user,
+            'has_password' => $user?->hasPassword() ?? false,
+            'requires_profile_completion' => $user?->requiresProfileCompletion() ?? false,
+        ]);
     }
 
     public function logout(Request $request): JsonResponse
@@ -83,11 +91,14 @@ class AuthController extends Controller
         return response()->json(['message' => __('auth.logged_out')]);
     }
 
-    protected function authenticatedResponse(mixed $user, string $deviceName): JsonResponse
+    protected function authenticatedResponse(User $user, string $deviceName): JsonResponse
     {
         return response()->json([
             'user' => $user,
             'token' => $this->broker->issueToken($user, $deviceName !== '' ? $deviceName : null),
+            'has_password' => $user->hasPassword(),
+            'requires_profile_completion' => $user->requiresProfileCompletion(),
+            'next_step' => $user->requiresProfileCompletion() ? 'complete_profile' : null,
         ]);
     }
 }

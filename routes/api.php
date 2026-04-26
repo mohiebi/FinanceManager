@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\GoogleAuthController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\TransactionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -9,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->name('api.auth.')->group(function () {
     Route::post('email/start', [AuthController::class, 'start'])->middleware('throttle:10,1')->name('email.start');
     Route::post('login/password', [AuthController::class, 'passwordLogin'])->middleware('throttle:login')->name('login.password');
+    Route::post('login/google', [GoogleAuthController::class, 'login'])->middleware('throttle:login')->name('login.google');
     Route::post('recovery/send', [AuthController::class, 'sendRecovery'])->middleware('throttle:5,1')->name('recovery.send');
     Route::post('recovery/verify', [AuthController::class, 'verifyRecovery'])->middleware('throttle:10,1')->name('recovery.verify');
     Route::post('signup/verify', [AuthController::class, 'verifySignup'])->middleware('throttle:10,1')->name('signup.verify');
@@ -25,6 +28,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::middleware('auth:sanctum')->name('api.')->group(function () {
+    Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::apiResource('transactions', TransactionController::class);
     Route::apiResource('categories', CategoryController::class)->only(['index']);
 });

@@ -58,4 +58,15 @@ class UserFactory extends Factory
             'two_factor_confirmed_at' => now(),
         ]);
     }
+
+    /**
+     * Indicate that the model should not have a password.
+     */
+    public function passwordless(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'password' => null,
+            'remember_token' => null,
+        ]);
+    }
 }

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->timestamp('verified_at')->nullable();
             $table->timestamp('consumed_at')->nullable();
             $table->unsignedTinyInteger('attempts')->default(0);
-            $table->timestamp('last_sent_at');
+            $table->timestamp('last_sent_at')->nullable();
             $table->string('ip_address', 45)->nullable();
             $table->timestamps();
 

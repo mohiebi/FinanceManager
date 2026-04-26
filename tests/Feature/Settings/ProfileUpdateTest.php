@@ -84,3 +84,18 @@ test('correct password must be provided to delete account', function () {
 
     expect($user->fresh())->not->toBeNull();
 });
+
+test('passwordless users can delete their account without a password', function () {
+    $user = User::factory()->passwordless()->create();
+
+    $response = $this
+        ->actingAs($user)
+        ->delete(route('profile.destroy'));
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('home'));
+
+    $this->assertGuest();
+    expect($user->fresh())->toBeNull();
+});

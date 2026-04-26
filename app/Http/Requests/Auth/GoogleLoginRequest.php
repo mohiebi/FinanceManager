@@ -1,18 +1,15 @@
 <?php
 
-namespace App\Http\Requests\Settings;
+namespace App\Http\Requests\Auth;
 
-use App\Concerns\PasswordValidationRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class PasswordUpdateRequest extends FormRequest
+class GoogleLoginRequest extends FormRequest
 {
-    use PasswordValidationRules;
-
     public function authorize(): bool
     {
-        return $this->user()?->hasPassword() ?? false;
+        return true;
     }
 
     /**
@@ -23,8 +20,8 @@ class PasswordUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'current_password' => $this->currentPasswordRules(),
-            'password' => $this->passwordRules(),
+            'token' => 'required|string|max:4096',
+            'device_name' => 'nullable|string|max:255',
         ];
     }
 }

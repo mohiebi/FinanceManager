@@ -112,3 +112,35 @@ test('correct password must be provided to update password', function () {
         ->assertSessionHasErrors('current_password')
         ->assertRedirect(route('security.edit'));
 });
+
+test('passwordless users can view the security page without password confirmation', function () {
+    $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
+
+    Features::twoFactorAuthentication([
+        'confirm' => true,
+        'confirmPassword' => true,
+    ]);
+
+    $user = User::factory()->passwordless()->create();
+
+    $this->actingAs($user)
+        ->get(route('security.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/Security')
+            ->where('hasPassword', false),
+        );
+});
+
+test('passwordless users can not submit a password update', function () {
+    $user = User::factory()->passwordless()->create();
+
+    $response = $this
+        ->actingAs($user)
+        ->put(route('user-password.update'), [
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ]);
+
+    $response->assertForbidden();
+});

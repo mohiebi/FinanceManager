@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\ConfirmPasswordIfAvailable;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
 use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +22,7 @@ class SecurityController extends Controller implements HasMiddleware
     {
         return Features::canManageTwoFactorAuthentication()
             && Features::optionEnabled(Features::twoFactorAuthentication(), 'confirmPassword')
-                ? [new Middleware('password.confirm', only: ['edit'])]
+                ? [new Middleware(ConfirmPasswordIfAvailable::class, only: ['edit'])]
                 : [];
     }
 
@@ -32,6 +33,7 @@ class SecurityController extends Controller implements HasMiddleware
     {
         $props = [
             'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
+            'hasPassword' => $request->user()->hasPassword(),
         ];
 
         if (Features::canManageTwoFactorAuthentication()) {

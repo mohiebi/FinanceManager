@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import WebEmailAuthController from '@/actions/App/Http/Controllers/Auth/WebEmailAuthController';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
@@ -10,8 +10,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { redirect as googleRedirect } from '@/routes/auth/google';
 
-type AuthStep = 'email' | 'password' | 'signup_code' | 'complete_signup' | 'recovery_code';
+type AuthStep =
+    | 'email'
+    | 'password'
+    | 'signup_code'
+    | 'complete_signup'
+    | 'recovery_code';
 
 type AuthFlow = {
     email?: string;
@@ -24,6 +30,8 @@ const props = defineProps<{
     authFlow?: AuthFlow;
     status?: string;
 }>();
+
+const page = usePage<{ errors: Record<string, string> }>();
 
 defineOptions({
     layout: {
@@ -51,7 +59,8 @@ const stepCopy = computed(() => {
         case 'complete_signup':
             return {
                 title: 'Finish your profile',
-                description: 'Add the details you will use in your finance dashboard.',
+                description:
+                    'Add the details you will use in your finance dashboard.',
             };
         case 'recovery_code':
             return {
@@ -92,6 +101,8 @@ const returnToEmail = () => {
     step.value = 'email';
     signupToken.value = '';
 };
+
+const googleError = computed(() => page.props.errors.google);
 </script>
 
 <template>
@@ -112,6 +123,24 @@ const returnToEmail = () => {
             class="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700"
         >
             {{ props.status }}
+        </div>
+
+        <div
+            v-if="googleError"
+            class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
+            {{ googleError }}
+        </div>
+
+        <div v-if="step === 'email' || step === 'password'" class="grid gap-3">
+            <Button as-child variant="outline" class="w-full">
+                <a :href="googleRedirect.url()"> Continue with Google </a>
+            </Button>
+            <div
+                class="relative text-center text-xs text-muted-foreground uppercase"
+            >
+                <span class="bg-background px-2">Or continue with email</span>
+            </div>
         </div>
 
         <Form
@@ -167,7 +196,12 @@ const returnToEmail = () => {
                     <Checkbox id="remember" name="remember" />
                     <span>Remember me</span>
                 </Label>
-                <Button type="button" variant="ghost" size="sm" @click="returnToEmail">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    @click="returnToEmail"
+                >
                     Use another email
                 </Button>
             </div>
@@ -186,7 +220,12 @@ const returnToEmail = () => {
         >
             <input type="hidden" name="email" :value="email" />
             <InputError :message="errors.email" />
-            <Button type="submit" variant="link" size="sm" :disabled="processing">
+            <Button
+                type="submit"
+                variant="link"
+                size="sm"
+                :disabled="processing"
+            >
                 <Spinner v-if="processing" />
                 Send me a code instead
             </Button>

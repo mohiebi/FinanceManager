@@ -16,12 +16,14 @@ import { disable, enable } from '@/routes/two-factor';
 
 type Props = {
     canManageTwoFactor?: boolean;
+    hasPassword?: boolean;
     requiresConfirmation?: boolean;
     twoFactorEnabled?: boolean;
 };
 
 withDefaults(defineProps<Props>(), {
     canManageTwoFactor: false,
+    hasPassword: false,
     requiresConfirmation: false,
     twoFactorEnabled: false,
 });
@@ -51,11 +53,14 @@ onUnmounted(() => clearTwoFactorAuthData());
     <div class="space-y-6">
         <Heading
             variant="small"
-            title="Update password"
-            description="Ensure your account is using a long, random password to stay secure"
+            title="Password login"
+            :description="hasPassword
+                ? 'Ensure your account is using a long, random password to stay secure'
+                : 'This account signs in with Google only and does not use a local password.'"
         />
 
         <Form
+            v-if="hasPassword"
             v-bind="SecurityController.update.form()"
             :options="{
                 preserveScroll: true,
@@ -128,6 +133,14 @@ onUnmounted(() => clearTwoFactorAuthData());
                 </Transition>
             </div>
         </Form>
+
+        <div
+            v-else
+            class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+        >
+            Password-based login is disabled for this account. Continue using
+            Google sign-in.
+        </div>
     </div>
 
     <div v-if="canManageTwoFactor" class="space-y-6">

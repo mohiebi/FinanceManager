@@ -13,6 +13,8 @@ import { edit } from '@/routes/profile';
 
 type Props = {
     mustVerifyEmail: boolean;
+    hasPassword: boolean;
+    requiresProfileCompletion: boolean;
     status?: string;
 };
 
@@ -39,10 +41,19 @@ const user = computed(() => page.props.auth.user);
     <h1 class="sr-only">Profile settings</h1>
 
     <div class="flex flex-col space-y-6">
+        <div
+            v-if="requiresProfileCompletion"
+            class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700"
+        >
+            Finish your profile to start using the dashboard.
+        </div>
+
         <Heading
             variant="small"
-            title="Profile information"
-            description="Update your personal information"
+            :title="requiresProfileCompletion ? 'Complete your profile' : 'Profile information'"
+            :description="requiresProfileCompletion
+                ? 'We already verified your Google account. Add the last details to continue.'
+                : 'Update your personal information'"
         />
 
         <Form
@@ -111,5 +122,8 @@ const user = computed(() => page.props.auth.user);
         </Form>
     </div>
 
-    <DeleteUser />
+    <DeleteUser
+        v-if="!requiresProfileCompletion"
+        :has-password="hasPassword"
+    />
 </template>

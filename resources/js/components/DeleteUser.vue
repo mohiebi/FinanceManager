@@ -19,6 +19,12 @@ import {
 import { Label } from '@/components/ui/label';
 
 const passwordInput = useTemplateRef('passwordInput');
+
+withDefaults(defineProps<{
+    hasPassword?: boolean;
+}>(), {
+    hasPassword: true,
+});
 </script>
 
 <template>
@@ -62,13 +68,16 @@ const passwordInput = useTemplateRef('passwordInput');
                             <DialogDescription>
                                 Once your account is deleted, all of its
                                 resources and data will also be permanently
-                                deleted. Please enter your password to confirm
-                                you would like to permanently delete your
-                                account.
+                                deleted.
+                                {{
+                                    hasPassword
+                                        ? ' Please enter your password to confirm you would like to permanently delete your account.'
+                                        : ' Confirm below to permanently delete your account.'
+                                }}
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div class="grid gap-2">
+                        <div v-if="hasPassword" class="grid gap-2">
                             <Label for="password" class="sr-only"
                                 >Password</Label
                             >

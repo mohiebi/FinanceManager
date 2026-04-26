@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head, Link, usePage } from '@inertiajs/vue3';
+import { Form, Head, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import WebEmailAuthController from '@/actions/App/Http/Controllers/Auth/WebEmailAuthController';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
@@ -12,7 +12,12 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { redirect as googleRedirect } from '@/routes/auth/google';
 
-type AuthStep = 'email' | 'password' | 'signup_code' | 'complete_signup' | 'recovery_code';
+type AuthStep =
+    | 'email'
+    | 'password'
+    | 'signup_code'
+    | 'complete_signup'
+    | 'recovery_code';
 
 type AuthFlow = {
     email?: string;
@@ -54,7 +59,8 @@ const stepCopy = computed(() => {
         case 'complete_signup':
             return {
                 title: 'Finish your profile',
-                description: 'Add the details you will use in your finance dashboard.',
+                description:
+                    'Add the details you will use in your finance dashboard.',
             };
         case 'recovery_code':
             return {
@@ -126,16 +132,13 @@ const googleError = computed(() => page.props.errors.google);
             {{ googleError }}
         </div>
 
-        <div
-            v-if="step === 'email' || step === 'password'"
-            class="grid gap-3"
-        >
+        <div v-if="step === 'email' || step === 'password'" class="grid gap-3">
             <Button as-child variant="outline" class="w-full">
-                <Link :href="googleRedirect()">
-                    Continue with Google
-                </Link>
+                <a :href="googleRedirect.url()"> Continue with Google </a>
             </Button>
-            <div class="relative text-center text-xs uppercase text-muted-foreground">
+            <div
+                class="relative text-center text-xs text-muted-foreground uppercase"
+            >
                 <span class="bg-background px-2">Or continue with email</span>
             </div>
         </div>
@@ -193,7 +196,12 @@ const googleError = computed(() => page.props.errors.google);
                     <Checkbox id="remember" name="remember" />
                     <span>Remember me</span>
                 </Label>
-                <Button type="button" variant="ghost" size="sm" @click="returnToEmail">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    @click="returnToEmail"
+                >
                     Use another email
                 </Button>
             </div>
@@ -212,7 +220,12 @@ const googleError = computed(() => page.props.errors.google);
         >
             <input type="hidden" name="email" :value="email" />
             <InputError :message="errors.email" />
-            <Button type="submit" variant="link" size="sm" :disabled="processing">
+            <Button
+                type="submit"
+                variant="link"
+                size="sm"
+                :disabled="processing"
+            >
                 <Spinner v-if="processing" />
                 Send me a code instead
             </Button>

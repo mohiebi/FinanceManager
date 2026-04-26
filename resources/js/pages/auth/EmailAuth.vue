@@ -275,6 +275,7 @@ const googleError = computed(() => page.props.errors.google);
             class="grid gap-5"
         >
             <input type="hidden" name="signup_token" :value="signupToken" />
+            <input type="hidden" name="email" :value="email" />
 
             <div class="grid gap-2">
                 <Label for="name">Name</Label>

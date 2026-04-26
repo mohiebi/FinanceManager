@@ -16,6 +16,8 @@ class EmailAuthBroker
 {
     public const MaxAttempts = 5;
 
+    public const SignupCompletionMinutes = 30;
+
     /**
      * @return array{email: string, status: string, next_step: string}
      */
@@ -111,9 +113,9 @@ class EmailAuthBroker
     /**
      * @param  array{name: string, birthdate: string, password: string}  $attributes
      */
-    public function completeSignup(string $signupToken, array $attributes): User
+    public function completeSignup(string $signupToken, array $attributes, ?string $email = null): User
     {
-        $challenge = $this->challengeFromSignupToken($signupToken);
+        $challenge = $this->challengeFromSignupToken($signupToken, $email);
 
         if (User::query()->where('email', $challenge->email)->exists()) {
             throw ValidationException::withMessages([
@@ -202,14 +204,12 @@ class EmailAuthBroker
         return $challenge;
     }
 
-    protected function challengeFromSignupToken(string $signupToken): AuthChallenge
+    protected function challengeFromSignupToken(string $signupToken, ?string $email = null): AuthChallenge
     {
         try {
             $challengeId = Crypt::decryptString($signupToken);
         } catch (\Throwable) {
-            throw ValidationException::withMessages([
-                'signup_token' => __('auth.verify_email_before_signup'),
-            ]);
+            return $this->challengeFromVerifiedEmail($email);
         }
 
         $challenge = AuthChallenge::query()
@@ -219,12 +219,49 @@ class EmailAuthBroker
             ->whereNull('consumed_at')
             ->first();
 
-        if (! $challenge instanceof AuthChallenge || $challenge->expires_at->isPast()) {
+        if (! $challenge instanceof AuthChallenge || $this->signupCompletionWindowExpired($challenge)) {
+            return $this->challengeFromVerifiedEmail($email);
+        }
+
+        return $challenge;
+    }
+
+    protected function challengeFromVerifiedEmail(?string $email): AuthChallenge
+    {
+        $normalizedEmail = $email ? $this->normalizeEmail($email) : '';
+
+        if ($normalizedEmail === '') {
+            throw ValidationException::withMessages([
+                'signup_token' => __('auth.verify_email_before_signup'),
+            ]);
+        }
+
+        $challenge = AuthChallenge::query()
+            ->where('email', $normalizedEmail)
+            ->where('purpose', AuthChallenge::PurposeSignup)
+            ->whereNotNull('verified_at')
+            ->whereNull('consumed_at')
+            ->latest()
+            ->first();
+
+        if (! $challenge instanceof AuthChallenge || $this->signupCompletionWindowExpired($challenge)) {
             throw ValidationException::withMessages([
                 'signup_token' => __('auth.verify_email_before_signup'),
             ]);
         }
 
         return $challenge;
+    }
+
+    protected function signupCompletionWindowExpired(AuthChallenge $challenge): bool
+    {
+        if ($challenge->verified_at) {
+            return $challenge->verified_at
+                ->copy()
+                ->addMinutes(self::SignupCompletionMinutes)
+                ->isPast();
+        }
+
+        return $challenge->expires_at->isPast();
     }
 }

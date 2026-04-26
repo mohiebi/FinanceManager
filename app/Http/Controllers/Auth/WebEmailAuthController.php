@@ -17,10 +17,14 @@ class WebEmailAuthController extends Controller
 
     public function start(StartEmailAuthRequest $request): RedirectResponse
     {
-        return back()->with('auth_flow', $this->broker->start(
+        $flow = $this->broker->start(
             $request->string('email')->toString(),
             $request->ip(),
-        ));
+        );
+
+        $request->session()->put('auth_flow', $flow);
+
+        return back();
     }
 
     public function login(PasswordLoginRequest $request): RedirectResponse
@@ -29,6 +33,8 @@ class WebEmailAuthController extends Controller
             $request->string('email')->toString(),
             $request->string('password')->toString(),
         );
+
+        $request->session()->forget('auth_flow');
 
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
@@ -42,11 +48,13 @@ class WebEmailAuthController extends Controller
 
         $this->broker->sendRecoveryChallenge($email, $request->ip());
 
-        return back()->with('auth_flow', [
+        $request->session()->put('auth_flow', [
             'email' => $this->broker->normalizeEmail($email),
             'status' => 'recovery_code_sent',
             'next_step' => 'recovery_code',
         ]);
+
+        return back();
     }
 
     public function verifyRecovery(CodeVerificationRequest $request): RedirectResponse
@@ -55,6 +63,8 @@ class WebEmailAuthController extends Controller
             $request->string('email')->toString(),
             $request->string('code')->toString(),
         );
+
+        $request->session()->forget('auth_flow');
 
         Auth::login($user);
         $request->session()->regenerate();
@@ -69,19 +79,30 @@ class WebEmailAuthController extends Controller
             $request->string('code')->toString(),
         );
 
-        return back()->with('auth_flow', [
+        $request->session()->put('auth_flow', [
             ...$flow,
             'status' => 'signup_verified',
             'next_step' => 'complete_signup',
         ]);
+
+        return back();
     }
 
     public function completeSignup(CompleteSignupRequest $request): RedirectResponse
     {
         $user = $this->broker->completeSignup(
-            $request->string('signup_token')->toString(),
+            (string) $request->session()->get(
+                'auth_flow.signup_token',
+                $request->string('signup_token')->toString(),
+            ),
             $request->safe()->only(['name', 'birthdate', 'password']),
+            (string) $request->session()->get(
+                'auth_flow.email',
+                $request->string('email')->toString(),
+            ),
         );
+
+        $request->session()->forget('auth_flow');
 
         Auth::login($user);
         $request->session()->regenerate();

@@ -56,11 +56,10 @@ onUnmounted(() => clearTwoFactorAuthData());
             title="Password login"
             :description="hasPassword
                 ? 'Ensure your account is using a long, random password to stay secure'
-                : 'This account signs in with Google only and does not use a local password.'"
+                : 'This account signs in with Google only right now. Add a password if you want email and password login too.'"
         />
 
         <Form
-            v-if="hasPassword"
             v-bind="SecurityController.update.form()"
             :options="{
                 preserveScroll: true,
@@ -74,7 +73,7 @@ onUnmounted(() => clearTwoFactorAuthData());
             class="space-y-6"
             v-slot="{ errors, processing, recentlySuccessful }"
         >
-            <div class="grid gap-2">
+            <div v-if="hasPassword" class="grid gap-2">
                 <Label for="current_password">Current password</Label>
                 <PasswordInput
                     id="current_password"
@@ -87,7 +86,7 @@ onUnmounted(() => clearTwoFactorAuthData());
             </div>
 
             <div class="grid gap-2">
-                <Label for="password">New password</Label>
+                <Label for="password">{{ hasPassword ? 'New password' : 'Password' }}</Label>
                 <PasswordInput
                     id="password"
                     name="password"
@@ -99,7 +98,9 @@ onUnmounted(() => clearTwoFactorAuthData());
             </div>
 
             <div class="grid gap-2">
-                <Label for="password_confirmation">Confirm password</Label>
+                <Label for="password_confirmation">
+                    {{ hasPassword ? 'Confirm password' : 'Confirm your password' }}
+                </Label>
                 <PasswordInput
                     id="password_confirmation"
                     name="password_confirmation"
@@ -115,7 +116,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                     :disabled="processing"
                     data-test="update-password-button"
                 >
-                    Save password
+                    {{ hasPassword ? 'Save password' : 'Add password' }}
                 </Button>
 
                 <Transition
@@ -133,14 +134,6 @@ onUnmounted(() => clearTwoFactorAuthData());
                 </Transition>
             </div>
         </Form>
-
-        <div
-            v-else
-            class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
-        >
-            Password-based login is disabled for this account. Continue using
-            Google sign-in.
-        </div>
     </div>
 
     <div v-if="canManageTwoFactor" class="space-y-6">

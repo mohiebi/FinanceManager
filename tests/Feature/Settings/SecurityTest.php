@@ -132,7 +132,7 @@ test('passwordless users can view the security page without password confirmatio
         );
 });
 
-test('passwordless users can not submit a password update', function () {
+test('passwordless users can add a password without providing a current password', function () {
     $user = User::factory()->passwordless()->create();
 
     $response = $this
@@ -142,5 +142,28 @@ test('passwordless users can not submit a password update', function () {
             'password_confirmation' => 'new-password',
         ]);
 
-    $response->assertForbidden();
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    expect(Hash::check('new-password', $user->refresh()->password))->toBeTrue();
+});
+
+test('passwordless users do not need to submit current password when adding a password', function () {
+    $user = User::factory()->passwordless()->create();
+
+    $response = $this
+        ->actingAs($user)
+        ->from(route('security.edit'))
+        ->put(route('user-password.update'), [
+            'current_password' => '',
+            'password' => 'another-new-password',
+            'password_confirmation' => 'another-new-password',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('security.edit'));
+
+    expect(Hash::check('another-new-password', $user->refresh()->password))->toBeTrue();
 });

@@ -12,7 +12,7 @@ class PasswordUpdateRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()?->hasPassword() ?? false;
+        return $this->user() !== null;
     }
 
     /**
@@ -22,9 +22,11 @@ class PasswordUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'current_password' => $this->currentPasswordRules(),
+        return array_filter([
+            'current_password' => $this->user()?->hasPassword()
+                ? $this->currentPasswordRules()
+                : null,
             'password' => $this->passwordRules(),
-        ];
+        ]);
     }
 }

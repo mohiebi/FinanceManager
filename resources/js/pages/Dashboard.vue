@@ -30,8 +30,8 @@
                     </div>
                 </div>
 
-                <div class="flex flex-col gap-4 lg:min-w-xl">
-                    <div class="flex flex-col gap-2 sm:max-w-xs">
+                <div class="flex flex-col gap-4 lg:min-w-lg">
+                    <div class="flex flex-col gap-2 lg:max-w-3xs sm:max-w-xs">
                         <Label
                             for="display_currency"
                             class="text-xs font-semibold tracking-[0.2em] text-neutral-500 uppercase dark:text-neutral-400"
@@ -190,12 +190,7 @@
                                 <td
                                     class="px-3 py-4 text-right text-xs font-semibold text-rose-700 sm:px-5 sm:text-sm dark:text-rose-300"
                                 >
-                                    {{
-                                        formatMoney(
-                                            transaction.display_amount,
-                                            transaction.display_currency,
-                                        )
-                                    }}
+                                    {{ formatAmount(transaction.display_amount) }}
                                 </td>
                                 <td class="px-3 py-4 sm:px-5">
                                     <div
@@ -327,12 +322,7 @@
                                 <td
                                     class="px-3 py-4 text-right text-xs font-semibold text-emerald-700 sm:px-5 sm:text-sm dark:text-emerald-300"
                                 >
-                                    {{
-                                        formatMoney(
-                                            transaction.display_amount,
-                                            transaction.display_currency,
-                                        )
-                                    }}
+                                    {{ formatAmount(transaction.display_amount) }}
                                 </td>
                                 <td class="px-3 py-4 sm:px-5">
                                     <div
@@ -844,13 +834,18 @@ function updateOccurredAtFromPicker(): void {
 }
 
 function formatMoney(amount: string | number, currency: Currency): string {
+    const value = formatAmount(amount);
+
+    return `${value} ${currency.toUpperCase()}`;
+}
+
+function formatAmount(amount: string | number): string {
     const number = Number(amount);
-    const value = new Intl.NumberFormat('en-US', {
+
+    return new Intl.NumberFormat('en-US', {
         maximumFractionDigits: 2,
         minimumFractionDigits: number % 1 === 0 ? 0 : 2,
     }).format(number);
-
-    return `${value} ${currency.toUpperCase()}`;
 }
 
 syncDatePicker(form.occurred_at);

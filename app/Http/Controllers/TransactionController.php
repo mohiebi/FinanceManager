@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Transactions\CurrencyConverter;
 use App\Actions\Transactions\SaveTransaction;
 use App\Enums\Currency;
 use App\Enums\TransactionType;
@@ -21,9 +22,10 @@ class TransactionController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): Response
+    public function index(Request $request, CurrencyConverter $currencyConverter): Response
     {
         $user = $request->user();
+        $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
 
         $transactions = $user->transactions()
             ->with('category:id,name,type')
@@ -37,16 +39,36 @@ class TransactionController extends Controller
             ->orderBy('name')
             ->get();
 
+        $costs = $transactions
+            ->where('type', TransactionType::Cost)
+            ->values();
+
+        $incomes = $transactions
+            ->where('type', TransactionType::Income)
+            ->values();
+
         return Inertia::render('Dashboard', [
             'transactions' => [
-                'costs' => $transactions
-                    ->where('type', TransactionType::Cost)
-                    ->values()
-                    ->map(fn (Transaction $transaction) => (new TransactionResource($transaction))->resolve($request)),
-                'incomes' => $transactions
-                    ->where('type', TransactionType::Income)
-                    ->values()
-                    ->map(fn (Transaction $transaction) => (new TransactionResource($transaction))->resolve($request)),
+                'costs' => $costs
+                    ->map(fn (Transaction $transaction) => [
+                        ...(new TransactionResource($transaction))->resolve($request),
+                        'display_amount' => $currencyConverter->format(
+                            $transaction->amount,
+                            $transaction->currency,
+                            $selectedCurrency,
+                        ),
+                        'display_currency' => $selectedCurrency->value,
+                    ]),
+                'incomes' => $incomes
+                    ->map(fn (Transaction $transaction) => [
+                        ...(new TransactionResource($transaction))->resolve($request),
+                        'display_amount' => $currencyConverter->format(
+                            $transaction->amount,
+                            $transaction->currency,
+                            $selectedCurrency,
+                        ),
+                        'display_currency' => $selectedCurrency->value,
+                    ]),
             ],
             'categories' => [
                 'cost' => $categories
@@ -63,6 +85,11 @@ class TransactionController extends Controller
                     'label' => strtoupper($currency->value),
                     'value' => $currency->value,
                 ]),
+            'selectedCurrency' => $selectedCurrency->value,
+            'summary' => [
+                'cost' => $currencyConverter->sumFormatted($costs, $selectedCurrency),
+                'income' => $currencyConverter->sumFormatted($incomes, $selectedCurrency),
+            ],
         ]);
     }
 
@@ -73,7 +100,7 @@ class TransactionController extends Controller
     {
         $saveTransaction->handle($request->user(), $request->transactionData());
 
-        return to_route('dashboard');
+        return redirect()->to($request->headers->get('referer') ?: route('dashboard'));
     }
 
     /**
@@ -88,7 +115,7 @@ class TransactionController extends Controller
 
         $saveTransaction->handle($request->user(), $request->transactionData(), $transaction);
 
-        return to_route('dashboard');
+        return redirect()->to($request->headers->get('referer') ?: route('dashboard'));
     }
 
     /**
@@ -100,6 +127,6 @@ class TransactionController extends Controller
 
         $transaction->delete();
 
-        return to_route('dashboard');
+        return redirect()->to($request->headers->get('referer') ?: route('dashboard'));
     }
 }

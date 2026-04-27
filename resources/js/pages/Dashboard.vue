@@ -23,83 +23,75 @@
                         <p
                             class="text-sm text-neutral-600 dark:text-neutral-300"
                         >
-                            Costs and incomes live side by side, each with quick
-                            actions for adding, editing, and cleaning up
-                            records.
+                            Costs and incomes live side by side with one shared
+                            display currency, so every amount stays easy to
+                            compare.
                         </p>
                     </div>
                 </div>
 
-                <div class="grid gap-3 sm:grid-cols-3 lg:min-w-xl">
-                    <div
-                        class="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-xs backdrop-blur dark:border-white/10 dark:bg-white/5"
-                    >
-                        <p
-                            class="text-xs text-neutral-500 dark:text-neutral-400"
+                <div class="flex flex-col gap-4 lg:min-w-lg">
+                    <div class="flex flex-col gap-2 lg:max-w-3xs sm:max-w-xs">
+                        <Label
+                            for="display_currency"
+                            class="text-xs font-semibold tracking-[0.2em] text-neutral-500 uppercase dark:text-neutral-400"
                         >
-                            Income
-                        </p>
-                        <div class="mt-2 space-y-1">
+                            Display currency
+                        </Label>
+                        <Select v-model="selectedCurrency">
+                            <SelectTrigger
+                                id="display_currency"
+                                class="w-full rounded-2xl border-white/70 bg-white/80 dark:border-white/10 dark:bg-white/10"
+                            >
+                                <SelectValue placeholder="Select currency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="currency in props.currencies"
+                                    :key="currency.value"
+                                    :value="currency.value"
+                                >
+                                    {{ currency.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div
+                            class="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-xs backdrop-blur dark:border-white/10 dark:bg-white/5"
+                        >
                             <p
-                                v-for="currency in props.currencies"
-                                :key="currency.value"
-                                class="text-sm font-semibold text-emerald-700 dark:text-emerald-300"
+                                class="text-xs text-neutral-500 dark:text-neutral-400"
+                            >
+                                Income
+                            </p>
+                            <p
+                                class="mt-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300"
                             >
                                 {{
                                     formatMoney(
-                                        incomeTotals[currency.value],
-                                        currency.value,
+                                        props.summary.income,
+                                        props.selectedCurrency,
                                     )
                                 }}
                             </p>
                         </div>
-                    </div>
-                    <div
-                        class="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-xs backdrop-blur dark:border-white/10 dark:bg-white/5"
-                    >
-                        <p
-                            class="text-xs text-neutral-500 dark:text-neutral-400"
+                        <div
+                            class="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-xs backdrop-blur dark:border-white/10 dark:bg-white/5"
                         >
-                            Costs
-                        </p>
-                        <div class="mt-2 space-y-1">
                             <p
-                                v-for="currency in props.currencies"
-                                :key="currency.value"
-                                class="text-sm font-semibold text-rose-700 dark:text-rose-300"
+                                class="text-xs text-neutral-500 dark:text-neutral-400"
                             >
-                                {{
-                                    formatMoney(
-                                        costTotals[currency.value],
-                                        currency.value,
-                                    )
-                                }}
+                                Costs
                             </p>
-                        </div>
-                    </div>
-                    <div
-                        class="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-xs backdrop-blur dark:border-white/10 dark:bg-white/5"
-                    >
-                        <p
-                            class="text-xs text-neutral-500 dark:text-neutral-400"
-                        >
-                            Balance
-                        </p>
-                        <div class="mt-2 space-y-1">
                             <p
-                                v-for="currency in props.currencies"
-                                :key="currency.value"
-                                class="text-sm font-semibold"
-                                :class="
-                                    balanceTotals[currency.value] >= 0
-                                        ? 'text-slate-900 dark:text-slate-100'
-                                        : 'text-amber-700 dark:text-amber-300'
-                                "
+                                class="mt-2 text-sm font-semibold text-rose-700 dark:text-rose-300"
                             >
                                 {{
                                     formatMoney(
-                                        balanceTotals[currency.value],
-                                        currency.value,
+                                        props.summary.cost,
+                                        props.selectedCurrency,
                                     )
                                 }}
                             </p>
@@ -198,12 +190,7 @@
                                 <td
                                     class="px-3 py-4 text-right text-xs font-semibold text-rose-700 sm:px-5 sm:text-sm dark:text-rose-300"
                                 >
-                                    {{
-                                        formatMoney(
-                                            transaction.amount,
-                                            transaction.currency,
-                                        )
-                                    }}
+                                    {{ formatAmount(transaction.display_amount) }}
                                 </td>
                                 <td class="px-3 py-4 sm:px-5">
                                     <div
@@ -335,12 +322,7 @@
                                 <td
                                     class="px-3 py-4 text-right text-xs font-semibold text-emerald-700 sm:px-5 sm:text-sm dark:text-emerald-300"
                                 >
-                                    {{
-                                        formatMoney(
-                                            transaction.amount,
-                                            transaction.currency,
-                                        )
-                                    }}
+                                    {{ formatAmount(transaction.display_amount) }}
                                 </td>
                                 <td class="px-3 py-4 sm:px-5">
                                     <div
@@ -623,6 +605,8 @@ type Transaction = {
     type: TransactionType;
     amount: string;
     currency: Currency;
+    display_amount: string;
+    display_currency: Currency;
     title: string;
     description: string | null;
     occurred_at: string;
@@ -642,6 +626,11 @@ const props = defineProps<{
     };
     categories: Record<TransactionType, Category[]>;
     currencies: CurrencyOption[];
+    selectedCurrency: Currency;
+    summary: {
+        cost: string;
+        income: string;
+    };
 }>();
 
 defineOptions({
@@ -660,6 +649,7 @@ const editingTransactionId = ref<number | null>(null);
 const selectedDateYear = ref('');
 const selectedDateMonth = ref('');
 const selectedDateDay = ref('');
+const selectedCurrency = ref<Currency>(props.selectedCurrency);
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -713,22 +703,6 @@ const dialogTitle = computed(() =>
         ? `Edit ${form.type === 'cost' ? 'cost' : 'income'}`
         : `Add ${form.type === 'cost' ? 'cost' : 'income'}`,
 );
-
-const costTotals = computed(() => totalsByCurrency(props.transactions.costs));
-const incomeTotals = computed(() =>
-    totalsByCurrency(props.transactions.incomes),
-);
-const balanceTotals = computed(() => {
-    const totals = emptyCurrencyTotals();
-
-    props.currencies.forEach((currency) => {
-        totals[currency.value] =
-            incomeTotals.value[currency.value] -
-            costTotals.value[currency.value];
-    });
-
-    return totals;
-});
 
 const resetForm = (type: TransactionType) => {
     const categories = props.categories[type] ?? [];
@@ -807,6 +781,29 @@ watch(
     updateOccurredAtFromPicker,
 );
 
+watch(
+    () => props.selectedCurrency,
+    (value) => {
+        selectedCurrency.value = value;
+    },
+);
+
+watch(selectedCurrency, (value) => {
+    if (value === props.selectedCurrency) {
+        return;
+    }
+
+    router.get(
+        dashboard.url(),
+        { currency: value },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        },
+    );
+});
+
 watch(transactionDays, (availableDays) => {
     if (
         selectedDateDay.value &&
@@ -836,32 +833,19 @@ function updateOccurredAtFromPicker(): void {
     form.occurred_at = `${selectedDateYear.value}-${selectedDateMonth.value}-${selectedDateDay.value}`;
 }
 
-function emptyCurrencyTotals(): Record<Currency, number> {
-    return {
-        toman: 0,
-        usd: 0,
-        eur: 0,
-    };
-}
-
-function totalsByCurrency(
-    transactions: Transaction[],
-): Record<Currency, number> {
-    return transactions.reduce((totals, transaction) => {
-        totals[transaction.currency] += Number(transaction.amount);
-
-        return totals;
-    }, emptyCurrencyTotals());
-}
-
 function formatMoney(amount: string | number, currency: Currency): string {
+    const value = formatAmount(amount);
+
+    return `${value} ${currency.toUpperCase()}`;
+}
+
+function formatAmount(amount: string | number): string {
     const number = Number(amount);
-    const value = new Intl.NumberFormat('en-US', {
+
+    return new Intl.NumberFormat('en-US', {
         maximumFractionDigits: 2,
         minimumFractionDigits: number % 1 === 0 ? 0 : 2,
     }).format(number);
-
-    return `${value} ${currency.toUpperCase()}`;
 }
 
 syncDatePicker(form.occurred_at);

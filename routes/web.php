@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\EmailAuthPageController;
 use App\Http\Controllers\Auth\WebEmailAuthController;
 use App\Http\Controllers\Auth\WebGoogleAuthController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Middleware\EnsureProfileIsComplete;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +46,7 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(function () {
     Route::get('dashboard', [TransactionController::class, 'index'])->name('dashboard');
+    Route::get('reports', ReportController::class)->name('report');
     Route::resource('transactions', TransactionController::class)->only(['store', 'update', 'destroy']);
 });
 

@@ -12,6 +12,7 @@
         Instrument Sans, ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+    --font-auth: var(--auth-font-family);
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -59,6 +60,27 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+    --color-auth-page: var(--auth-page-bg);
+    --color-auth-frame: var(--auth-frame-bg);
+    --color-auth-surface: var(--auth-surface-bg);
+    --color-auth-surface-foreground: var(--auth-surface-foreground);
+    --color-auth-label: var(--auth-label);
+    --color-auth-copy: var(--auth-copy);
+    --color-auth-copy-muted: var(--auth-copy-muted);
+    --color-auth-input: var(--auth-input-bg);
+    --color-auth-input-border: var(--auth-input-border);
+    --color-auth-input-placeholder: var(--auth-input-placeholder);
+    --color-auth-button: var(--auth-button-bg);
+    --color-auth-button-foreground: var(--auth-button-foreground);
+    --color-auth-outline: var(--auth-outline-border);
+    --color-auth-success: var(--auth-color-green);
+    --color-auth-success-soft: var(--auth-color-green-light);
+    --color-auth-success-tint: var(--auth-color-green-tint);
+    --color-auth-accent: var(--auth-color-purple);
+    --color-auth-accent-soft: var(--auth-color-purple-light);
+    --color-auth-accent-tint: var(--auth-color-purple-tint);
+    --color-auth-neutral: var(--auth-color-gray);
+    --color-auth-danger: var(--auth-color-red);
 }
 
 /*
@@ -124,6 +146,41 @@
     --sidebar-border: hsl(0 0% 91%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
     --sidebar: hsl(0 0% 98%);
+    --auth-font-family:
+        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+    --auth-color-dark-gray: #0B191D;
+;
+    --auth-color-green: #02cd86;
+    --auth-color-green-light: #e1fff5;
+    --auth-color-green-tint: #effffa;
+    --auth-color-gray: #989898;
+    --auth-color-purple: #6c4ee9;
+    --auth-color-purple-light: #947bff;
+    --auth-color-purple-tint: #dad1fe;
+    --auth-color-light: #f0ecff;
+    --auth-color-red: #e94e50;
+    --auth-color-ink: #07161c;
+    --auth-page-bg: var(--auth-color-dark-gray);
+    --auth-frame-bg: var(--auth-color-ink);
+    --auth-surface-bg: #ffffff;
+    --auth-surface-foreground: #121212;
+    --auth-label: #34343c;
+    --auth-copy: #2f2f32;
+    --auth-copy-muted: #5a5a65;
+    --auth-copy-caption: #6e6d77;
+    --auth-input-bg: var(--auth-color-light);
+    --auth-input-border: #ece7ff;
+    --auth-input-placeholder: #9e98b6;
+    --auth-outline-border: #d9d9df;
+    --auth-button-bg: var(--auth-color-dark-gray);
+    --auth-button-foreground: #ffffff;
+    --auth-radius-frame: 2rem;
+    --auth-radius-panel: 2rem;
+    --auth-radius-control: 0.75rem;
+    --auth-control-height: 2.625rem;
+    --auth-shadow-frame: 0 32px 80px rgb(0 0 0 / 28%);
 }
 
 .dark {
@@ -168,5 +225,110 @@
     }
     body {
         @apply bg-background text-foreground;
+    }
+}
+
+@layer components {
+    .auth-theme {
+        font-family: var(--font-auth);
+    }
+
+    .auth-surface {
+        background-color: var(--auth-surface-bg);
+        color: var(--auth-surface-foreground);
+        border-radius: var(--auth-radius-panel);
+    }
+
+    .auth-copy-muted {
+        color: var(--auth-copy-muted);
+    }
+
+    .auth-copy-caption {
+        color: var(--auth-copy-caption);
+    }
+
+    .auth-label {
+        color: var(--auth-label);
+    }
+
+    .auth-field {
+        height: var(--auth-control-height);
+        border-radius: var(--auth-radius-control);
+        border-color: var(--auth-input-border);
+        background-color: var(--auth-input-bg);
+        color: #191723;
+        box-shadow: none;
+        padding-inline: 1rem;
+    }
+
+    .auth-field::placeholder {
+        color: var(--auth-input-placeholder);
+    }
+
+    .auth-field:focus-visible {
+        border-color: var(--auth-color-purple-light);
+        --tw-ring-color: color-mix(
+            in srgb,
+            var(--auth-color-purple-light) 25%,
+            transparent
+        );
+    }
+
+    .auth-primary-button {
+        height: var(--auth-control-height);
+        border-radius: 0.5rem;
+        background-color: var(--auth-button-bg);
+        color: var(--auth-button-foreground);
+    }
+
+    .auth-primary-button:hover {
+        background-color: color-mix(in srgb, var(--auth-button-bg) 88%, black);
+    }
+
+    .auth-secondary-button {
+        height: var(--auth-control-height);
+        border-radius: 0.5rem;
+        border-color: var(--auth-outline-border);
+        background-color: var(--auth-surface-bg);
+        color: var(--auth-copy);
+        box-shadow: none;
+    }
+
+    .auth-secondary-button:hover {
+        background-color: #f8f8fb;
+    }
+
+    .auth-inline-link {
+        color: var(--auth-copy);
+    }
+
+    .auth-otp-slot {
+        height: 2.75rem;
+        width: 2.75rem;
+        border-radius: 0.5rem;
+        border-color: #e7e0ff;
+        background-color: var(--auth-input-bg);
+        color: #6f6890;
+    }
+
+    .auth-otp-slot:focus {
+        border-color: var(--auth-color-purple-light);
+        box-shadow: 0 0 0 2px rgb(148 123 255 / 20%);
+    }
+
+    .auth-otp-slot[aria-invalid='true'] {
+        border-color: #f2a9ab;
+    }
+
+    .auth-status-success {
+        border-color: color-mix(in srgb, var(--auth-color-green) 30%, white);
+        background-color: var(--auth-color-green-light);
+        color: color-mix(in srgb, var(--auth-color-green) 65%, black);
+    }
+
+    .auth-status-error {
+        border-color: color-mix(in srgb, var(--auth-color-red) 30%, white);
+        background-color: color-mix(in srgb, var(--auth-color-red) 8%, white);
+        color: color-mix(in srgb, var(--auth-color-red) 78%, black);
     }
 }

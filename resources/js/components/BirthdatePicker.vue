@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { cn } from '@/lib/utils';
 import {
     Select,
     SelectContent,
@@ -12,10 +13,12 @@ const props = withDefaults(
     defineProps<{
         name?: string;
         defaultValue?: string | null;
+        triggerClass?: string;
     }>(),
     {
         name: 'birthdate',
         defaultValue: null,
+        triggerClass: '',
     },
 );
 
@@ -89,7 +92,7 @@ watch(days, (availableDays) => {
 
     <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1.2fr_1fr_1fr]">
         <Select v-model="selectedMonth" required>
-            <SelectTrigger class="w-full">
+            <SelectTrigger :class="cn('w-full', triggerClass)">
                 <SelectValue placeholder="Month" />
             </SelectTrigger>
             <SelectContent>
@@ -104,7 +107,7 @@ watch(days, (availableDays) => {
         </Select>
 
         <Select v-model="selectedDay" required>
-            <SelectTrigger class="w-full">
+            <SelectTrigger :class="cn('w-full', triggerClass)">
                 <SelectValue placeholder="Day" />
             </SelectTrigger>
             <SelectContent>
@@ -115,7 +118,7 @@ watch(days, (availableDays) => {
         </Select>
 
         <Select v-model="selectedYear" required>
-            <SelectTrigger class="w-full">
+            <SelectTrigger :class="cn('w-full', triggerClass)">
                 <SelectValue placeholder="Year" />
             </SelectTrigger>
             <SelectContent>

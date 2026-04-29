@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { home } from '@/routes';
+import authIllustration from '../../../img/auth/investor-illustration-dark.png';
+import authLogo from '../../../img/auth/logo.png';
 
 withDefaults(
     defineProps<{
@@ -22,10 +24,10 @@ withDefaults(
             class="mx-auto flex min-h-[calc(100svh-2rem)] max-w-[1230px] items-center"
         >
             <div
-                class="bg-white grid w-full gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(31rem,0.92fr)] border-[11px] border-white rounded-[2rem]"
+                class="grid w-full gap-4 rounded-[2rem] border-[11px] border-white bg-white lg:grid-cols-[minmax(0,1fr)_minmax(31rem,0.92fr)]"
             >
                 <aside
-                    class="auth-surface bg-[#0B191D] flex min-h-[20rem] flex-col p-6 text-white sm:p-8 lg:min-h-[41rem] lg:p-10"
+                    class="auth-surface flex min-h-[20rem] flex-col bg-[#0B191D] p-6 text-white sm:p-8 lg:min-h-[41rem] lg:p-10"
                 >
                     <p class="text-[0.95rem] font-medium text-white/90">
                         All in one simple, powerful place
@@ -35,7 +37,7 @@ withDefaults(
                         class="flex flex-1 items-center justify-center py-6 lg:py-8"
                     >
                         <img
-                            src="/images/auth/investor-illustration-dark.png"
+                            :src="authIllustration"
                             alt="Investor illustration"
                             class="w-full max-w-[25rem] object-contain"
                         />
@@ -65,7 +67,7 @@ withDefaults(
                             class="mx-auto inline-flex items-center"
                         >
                             <img
-                                src="/images/auth/logo.png"
+                                :src="authLogo"
                                 alt="App logo"
                                 class="h-8 w-auto sm:h-9"
                             />

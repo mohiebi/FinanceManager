@@ -2,7 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import { home } from '@/routes';
 import authIllustration from '../../../img/auth/investor-illustration-dark.png';
-import authLogo from '../../../img/auth/logo.png';
+import authLogo from '../../../img/logo-dark.svg';
 
 withDefaults(
     defineProps<{
@@ -69,7 +69,7 @@ withDefaults(
                             <img
                                 :src="authLogo"
                                 alt="App logo"
-                                class="h-8 w-auto sm:h-9"
+                                class="h-8 w-auto sm:h-9 fill-black "
                             />
                             <span class="sr-only">{{ title }}</span>
                         </Link>

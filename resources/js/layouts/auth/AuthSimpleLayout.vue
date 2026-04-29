@@ -2,7 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import { home } from '@/routes';
 import authIllustration from '../../../img/auth/investor-illustration-dark.png';
-import authLogo from '../../../img/logo-dark.svg';
+import authLogo from '../../../img/Logo-dark.svg';
 
 withDefaults(
     defineProps<{

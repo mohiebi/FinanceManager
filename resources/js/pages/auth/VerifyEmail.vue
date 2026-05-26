@@ -6,7 +6,8 @@ import { login } from '@/routes';
 defineOptions({
     layout: {
         title: 'Verify your email',
-        description: 'Email verification now happens with a 6-digit code during signup.',
+        description:
+            'Email verification now happens with a 6-digit code during signup.',
     },
 });
 </script>
@@ -14,7 +15,7 @@ defineOptions({
 <template>
     <Head title="Verify email" />
 
-    <div class="text-center text-sm text-muted-foreground">
+    <div class="auth-copy-muted text-center text-base font-normal">
         Return to
         <TextLink :href="login()">sign in</TextLink>
         to continue verification.

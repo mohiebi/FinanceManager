@@ -42,6 +42,19 @@ test('existing email starts password login', function () {
         ->assertSessionHas('auth_flow.email', 'known@example.com');
 });
 
+test('users can return to email entry and clear the auth flow', function () {
+    $user = User::factory()->create(['email' => 'known@example.com']);
+
+    $this->post(route('auth.email.start'), [
+        'email' => $user->email,
+    ])->assertSessionHas('auth_flow.next_step', 'password');
+
+    $response = $this->post(route('auth.email.reset'));
+
+    $response->assertRedirect(route('login', absolute: false));
+    $response->assertSessionMissing('auth_flow');
+});
+
 test('new users can verify a code complete signup and become authenticated', function () {
     Notification::fake();
 

@@ -6,7 +6,8 @@ import { login } from '@/routes';
 defineOptions({
     layout: {
         title: 'Use email sign in',
-        description: 'Password recovery now happens from the email-first sign-in flow.',
+        description:
+            'Password recovery now happens from the email-first sign-in flow.',
     },
 });
 </script>
@@ -14,7 +15,7 @@ defineOptions({
 <template>
     <Head title="Forgot password" />
 
-    <div class="text-center text-sm text-muted-foreground">
+    <div class="auth-copy-muted text-center text-base font-normal">
         Return to
         <TextLink :href="login()">sign in</TextLink>
         and choose “send me a code instead”.

@@ -9,6 +9,7 @@ use App\Http\Requests\Auth\CompleteSignupRequest;
 use App\Http\Requests\Auth\PasswordLoginRequest;
 use App\Http\Requests\Auth\StartEmailAuthRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class WebEmailAuthController extends Controller
@@ -25,6 +26,13 @@ class WebEmailAuthController extends Controller
         $request->session()->put('auth_flow', $flow);
 
         return back();
+    }
+
+    public function reset(Request $request): RedirectResponse
+    {
+        $request->session()->forget('auth_flow');
+
+        return to_route('login');
     }
 
     public function login(PasswordLoginRequest $request): RedirectResponse

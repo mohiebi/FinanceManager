@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head, setLayoutProps, usePage } from '@inertiajs/vue3';
+import { Form, Head, router, setLayoutProps, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch, watchEffect } from 'vue';
 import WebEmailAuthController from '@/actions/App/Http/Controllers/Auth/WebEmailAuthController';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
@@ -114,6 +114,14 @@ const returnToEmail = () => {
     signupToken.value = '';
     signupCode.value = '';
     recoveryCode.value = '';
+
+    router.post(
+        WebEmailAuthController.reset.url(),
+        {},
+        {
+            preserveScroll: true,
+        },
+    );
 };
 
 const googleError = computed(() => page.props.errors.google);

@@ -17,6 +17,9 @@ Route::middleware('guest')->group(function () {
         ->middleware('throttle:10,1')
         ->name('auth.email.start');
 
+    Route::post('auth/email/reset', [WebEmailAuthController::class, 'reset'])
+        ->name('auth.email.reset');
+
     Route::post('auth/login/password', [WebEmailAuthController::class, 'login'])
         ->middleware('throttle:login')
         ->name('auth.login.password');

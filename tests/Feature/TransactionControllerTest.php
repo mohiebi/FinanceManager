@@ -39,6 +39,60 @@ test('dashboard shows separated cost and income transactions', function () {
         );
 });
 
+test('transactions page filters by type category date and search', function () {
+    $user = User::factory()->create();
+    $costCategory = Category::factory()->cost()->forUser($user)->create(['name' => 'Rent']);
+    $incomeCategory = Category::factory()->income()->forUser($user)->create(['name' => 'Salary']);
+
+    Transaction::factory()
+        ->cost()
+        ->for($user)
+        ->for($costCategory)
+        ->create([
+            'title' => 'May apartment rent',
+            'description' => 'Downtown lease',
+            'occurred_at' => '2026-05-03',
+        ]);
+
+    Transaction::factory()
+        ->cost()
+        ->for($user)
+        ->for($costCategory)
+        ->create([
+            'title' => 'June apartment rent',
+            'occurred_at' => '2026-06-03',
+        ]);
+
+    Transaction::factory()
+        ->income()
+        ->for($user)
+        ->for($incomeCategory)
+        ->create([
+            'title' => 'May paycheck',
+            'occurred_at' => '2026-05-10',
+        ]);
+
+    $this->actingAs($user)
+        ->get(route('transactions.index', [
+            'type' => TransactionType::Cost->value,
+            'category' => $costCategory->id,
+            'from' => '2026-05-01',
+            'to' => '2026-05-31',
+            'search' => 'lease',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Transactions')
+            ->where('filters.type', 'cost')
+            ->where('filters.category', $costCategory->id)
+            ->where('filters.search', 'lease')
+            ->has('transactions.costs', 1)
+            ->where('transactions.costs.0.title', 'May apartment rent')
+            ->has('transactions.incomes', 0)
+            ->where('summary.count', 1),
+        );
+});
+
 test('users can create transactions from an available category', function () {
     $user = User::factory()->create();
     $category = Category::factory()->cost()->forUser($user)->create();

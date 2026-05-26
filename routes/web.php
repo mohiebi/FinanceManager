@@ -48,9 +48,9 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(function () {
-    Route::get('dashboard', [TransactionController::class, 'index'])->name('dashboard');
+    Route::get('dashboard', [TransactionController::class, 'dashboard'])->name('dashboard');
     Route::get('reports', ReportController::class)->name('report');
-    Route::resource('transactions', TransactionController::class)->only(['store', 'update', 'destroy']);
+    Route::resource('transactions', TransactionController::class)->only(['index', 'store', 'update', 'destroy']);
 });
 
 require __DIR__.'/settings.php';

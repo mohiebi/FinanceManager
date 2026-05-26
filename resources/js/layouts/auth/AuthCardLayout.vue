@@ -35,8 +35,14 @@ defineProps<{
             <div class="flex flex-col gap-6">
                 <Card class="rounded-xl">
                     <CardHeader class="px-10 pt-8 pb-0 text-center">
-                        <CardTitle class="text-xl">{{ title }}</CardTitle>
-                        <CardDescription>
+                        <CardTitle
+                            class="text-[2.2rem] font-semibold tracking-[-0.05em]"
+                        >
+                            {{ title }}
+                        </CardTitle>
+                        <CardDescription
+                            class="auth-copy-muted text-base leading-6 font-normal"
+                        >
                             {{ description }}
                         </CardDescription>
                     </CardHeader>

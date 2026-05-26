@@ -24,7 +24,7 @@ const inputRefs = ref<Array<HTMLInputElement | null>>([]);
 
 const slotClass = computed(() =>
     cn(
-        'auth-otp-slot text-center text-sm font-medium transition outline-none',
+        'auth-otp-slot text-center text-base font-normal transition outline-none',
         props.invalid ? 'border-red-300' : 'border-[#e7e0ff]',
     ),
 );
@@ -134,7 +134,10 @@ const handlePaste = async (event: ClipboardEvent): Promise<void> => {
 </script>
 
 <template>
-    <div class="flex items-center justify-center gap-2" @paste="handlePaste">
+    <div
+        class="grid w-full grid-cols-6 items-center gap-2"
+        @paste="handlePaste"
+    >
         <input
             v-for="(_, index) in digits"
             :key="index"

@@ -33,10 +33,16 @@ defineProps<{
                 class="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]"
             >
                 <div class="flex flex-col space-y-2 text-center">
-                    <h1 class="text-xl font-medium tracking-tight" v-if="title">
+                    <h1
+                        class="text-[2.2rem] font-semibold tracking-[-0.05em]"
+                        v-if="title"
+                    >
                         {{ title }}
                     </h1>
-                    <p class="text-sm text-muted-foreground" v-if="description">
+                    <p
+                        class="auth-copy-muted text-base leading-6 font-normal"
+                        v-if="description"
+                    >
                         {{ description }}
                     </p>
                 </div>

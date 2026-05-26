@@ -46,6 +46,12 @@ const toggleRecoveryMode = (clearErrors: () => void): void => {
 };
 
 const code = ref<string>('');
+const formClass = 'auth-login-form mx-auto w-full max-w-[420px] space-y-3';
+const fieldClass = 'auth-field text-xs';
+const primaryButtonClass = 'auth-primary-button w-full text-base font-medium';
+const helperTextClass = 'auth-copy-muted text-center text-base font-normal';
+const inlineButtonClass =
+    'auth-inline-link underline decoration-transparent underline-offset-4 transition hover:decoration-current';
 </script>
 
 <template>
@@ -55,7 +61,7 @@ const code = ref<string>('');
         <template v-if="!showRecoveryInput">
             <Form
                 v-bind="store.form()"
-                class="space-y-4"
+                :class="formClass"
                 reset-on-error
                 @error="code = ''"
                 #default="{ errors, processing, clearErrors }"
@@ -83,14 +89,18 @@ const code = ref<string>('');
                     </div>
                     <InputError :message="errors.code" />
                 </div>
-                <Button type="submit" class="w-full" :disabled="processing"
-                    >Continue</Button
+                <Button
+                    type="submit"
+                    :class="primaryButtonClass"
+                    :disabled="processing"
                 >
-                <div class="text-center text-sm text-muted-foreground">
+                    Continue
+                </Button>
+                <div :class="helperTextClass">
                     <span>or you can </span>
                     <button
                         type="button"
-                        class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                        :class="inlineButtonClass"
                         @click="() => toggleRecoveryMode(clearErrors)"
                     >
                         {{ authConfigContent.buttonText }}
@@ -102,7 +112,7 @@ const code = ref<string>('');
         <template v-else>
             <Form
                 v-bind="store.form()"
-                class="space-y-4"
+                :class="formClass"
                 reset-on-error
                 #default="{ errors, processing, clearErrors }"
             >
@@ -111,18 +121,23 @@ const code = ref<string>('');
                     type="text"
                     placeholder="Enter recovery code"
                     :autofocus="showRecoveryInput"
+                    :class="fieldClass"
                     required
                 />
                 <InputError :message="errors.recovery_code" />
-                <Button type="submit" class="w-full" :disabled="processing"
-                    >Continue</Button
+                <Button
+                    type="submit"
+                    :class="primaryButtonClass"
+                    :disabled="processing"
                 >
+                    Continue
+                </Button>
 
-                <div class="text-center text-sm text-muted-foreground">
+                <div :class="helperTextClass">
                     <span>or you can </span>
                     <button
                         type="button"
-                        class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                        :class="inlineButtonClass"
                         @click="() => toggleRecoveryMode(clearErrors)"
                     >
                         {{ authConfigContent.buttonText }}

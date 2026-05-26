@@ -14,6 +14,11 @@ defineOptions({
             'This is a secure area of the application. Please confirm your password before continuing.',
     },
 });
+
+const formClass = 'auth-login-form mx-auto w-full max-w-[420px]';
+const fieldClass = 'auth-field text-xs';
+const labelClass = 'auth-label text-base font-normal';
+const primaryButtonClass = 'auth-primary-button w-full text-base font-medium';
 </script>
 
 <template>
@@ -23,14 +28,15 @@ defineOptions({
         v-bind="store.form()"
         reset-on-success
         v-slot="{ errors, processing }"
+        :class="formClass"
     >
-        <div class="space-y-6">
-            <div class="grid gap-2">
-                <Label htmlFor="password">Password</Label>
+        <div class="space-y-3">
+            <div class="grid gap-1.5">
+                <Label for="password" :class="labelClass">Password</Label>
                 <PasswordInput
                     id="password"
                     name="password"
-                    class="mt-1 block w-full"
+                    :class="fieldClass"
                     required
                     autocomplete="current-password"
                     autofocus
@@ -41,7 +47,7 @@ defineOptions({
 
             <div class="flex items-center">
                 <Button
-                    class="w-full"
+                    :class="primaryButtonClass"
                     :disabled="processing"
                     data-test="confirm-password-button"
                 >

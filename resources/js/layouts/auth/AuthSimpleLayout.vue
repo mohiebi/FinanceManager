@@ -45,15 +45,17 @@ withDefaults(
 
                     <div class="max-w-sm space-y-4">
                         <h2
-                            class="max-w-[17rem] text-[clamp(3.1rem,6vw,4.4rem)] leading-[0.9] font-semibold tracking-[-0.06em]"
+                            class="text-[70px] leading-[0.9] font-[500] tracking-[-0.06em]"
                         >
-                            Your Money, on Autopilot
+                            Your <br />
+                            Money, <br />
+                            on Autopilot
                         </h2>
                         <p
-                            class="max-w-[20rem] text-sm leading-6 text-white/82 sm:text-base"
+                            class="text-[20px] leading-6 font-[400] text-white/82"
                         >
-                            See your finances clearly, stay in control, and make
-                            smarter decisions without the guesswork.
+                            See your finances clearly, stay in control, <br />
+                            and make smarter decisions without the guesswork.
                         </p>
                     </div>
                 </aside>
@@ -69,7 +71,7 @@ withDefaults(
                             <img
                                 :src="authLogo"
                                 alt="App logo"
-                                class="h-8 w-auto sm:h-9 fill-black "
+                                class="h-8 w-auto fill-black sm:h-9"
                             />
                             <span class="sr-only">{{ title }}</span>
                         </Link>
@@ -84,7 +86,7 @@ withDefaults(
                                     {{ title }}
                                 </h1>
                                 <p
-                                    class="auth-copy-muted text-sm leading-6 sm:text-[0.98rem]"
+                                    class="auth-copy-muted text-base leading-6 font-normal"
                                 >
                                     {{ description }}
                                 </p>
@@ -97,7 +99,7 @@ withDefaults(
 
                         <p
                             v-if="caption"
-                            class="auth-copy-caption pt-4 text-center text-sm font-medium"
+                            class="auth-copy-caption pt-4 text-center text-base font-normal"
                         >
                             {{ caption }}
                         </p>

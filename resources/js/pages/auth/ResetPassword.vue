@@ -14,7 +14,7 @@ defineOptions({
 <template>
     <Head title="Reset password" />
 
-    <div class="text-center text-sm text-muted-foreground">
+    <div class="auth-copy-muted text-center text-base font-normal">
         Return to
         <TextLink :href="login()">sign in</TextLink>
         and request a recovery code.

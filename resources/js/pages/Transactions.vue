@@ -236,12 +236,22 @@
                             </h2>
                         </div>
                         <Button
-                            class="h-14 rounded-md bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-3.5 text-[22px] leading-none font-bold text-white shadow-[0_10px_20px_rgba(108,78,233,0.22)] transition hover:brightness-105"
+                            class="h-14 w-max justify-between rounded-md bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-3.5 text-[22px] leading-none font-bold text-white shadow-[0_10px_20px_rgba(108,78,233,0.22)] transition hover:brightness-105"
                             @click="openCreateForm('cost')"
                         >
-                            Add Cost
+                            <span class="grid text-left">
+                                <span class="col-start-1 row-start-1">
+                                    Add Cost
+                                </span>
+                                <span
+                                    class="invisible col-start-1 row-start-1"
+                                    aria-hidden="true"
+                                >
+                                    Add Income
+                                </span>
+                            </span>
                             <span
-                                class="grid size-9 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_42%,rgba(45,45,45,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
+                                class="grid h-[1.65em] w-[1.65em] min-w-[1.65em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_42%,rgba(45,45,45,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
                             >
                                 <Plus class="size-6" />
                             </span>
@@ -357,12 +367,22 @@
                             </h2>
                         </div>
                         <Button
-                            class="h-14 rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00A96F_100%)] px-3.5 text-[22px] leading-none font-bold text-white shadow-[0_10px_20px_rgba(2,205,134,0.22)] transition hover:brightness-105"
+                            class="h-14 w-max justify-between rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00A96F_100%)] px-3.5 text-[22px] leading-none font-bold text-white shadow-[0_10px_20px_rgba(2,205,134,0.22)] transition hover:brightness-105"
                             @click="openCreateForm('income')"
                         >
-                            Add Income
+                            <span class="grid text-left">
+                                <span class="col-start-1 row-start-1">
+                                    Add Income
+                                </span>
+                                <span
+                                    class="invisible col-start-1 row-start-1"
+                                    aria-hidden="true"
+                                >
+                                    Add Income
+                                </span>
+                            </span>
                             <span
-                                class="grid size-9 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_42%,rgba(45,45,45,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
+                                class="grid h-[1.65em] w-[1.65em] min-w-[1.65em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_42%,rgba(45,45,45,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
                             >
                                 <Plus class="size-6" />
                             </span>

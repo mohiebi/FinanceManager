@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { cn } from '@/lib/utils';
 import {
     Select,
     SelectContent,
@@ -8,27 +7,38 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 const props = withDefaults(
     defineProps<{
         name?: string;
         defaultValue?: string | null;
         triggerClass?: string;
+        required?: boolean;
+        yearsBack?: number;
+        yearsForward?: number;
     }>(),
     {
         name: 'birthdate',
         defaultValue: null,
         triggerClass: '',
+        required: true,
+        yearsBack: 120,
+        yearsForward: 0,
     },
 );
 
+const modelValue = defineModel<string>({ default: '' });
 const currentYear = new Date().getFullYear();
 const selectedYear = ref('');
 const selectedMonth = ref('');
 const selectedDay = ref('');
 
 const years = computed(() =>
-    Array.from({ length: 121 }, (_, index) => String(currentYear - index)),
+    Array.from(
+        { length: props.yearsBack + props.yearsForward + 1 },
+        (_, index) => String(currentYear + props.yearsForward - index),
+    ),
 );
 
 const months = [
@@ -67,31 +77,55 @@ const birthdate = computed(() => {
 watch(
     () => props.defaultValue,
     (value) => {
-        if (!value) {
+        if (!value || modelValue.value) {
             return;
         }
 
-        const [year, month, day] = value.split('-');
-
-        selectedYear.value = year ?? '';
-        selectedMonth.value = month ?? '';
-        selectedDay.value = day ?? '';
+        syncDate(value);
     },
     { immediate: true },
 );
+
+watch(
+    modelValue,
+    (value) => {
+        syncDate(value);
+    },
+    { immediate: true },
+);
+
+watch(birthdate, (value) => {
+    modelValue.value = value;
+});
 
 watch(days, (availableDays) => {
     if (selectedDay.value && !availableDays.includes(selectedDay.value)) {
         selectedDay.value = availableDays.at(-1) ?? '';
     }
 });
+
+function syncDate(value: string): void {
+    if (!value) {
+        selectedYear.value = '';
+        selectedMonth.value = '';
+        selectedDay.value = '';
+
+        return;
+    }
+
+    const [year, month, day] = value.split('-');
+
+    selectedYear.value = year ?? '';
+    selectedMonth.value = month ?? '';
+    selectedDay.value = day ?? '';
+}
 </script>
 
 <template>
     <input type="hidden" :name="name" :value="birthdate" />
 
     <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1.2fr_1fr_1fr]">
-        <Select v-model="selectedMonth" required>
+        <Select v-model="selectedMonth" :required="required">
             <SelectTrigger :class="cn('w-full', triggerClass)">
                 <SelectValue placeholder="Month" />
             </SelectTrigger>
@@ -106,7 +140,7 @@ watch(days, (availableDays) => {
             </SelectContent>
         </Select>
 
-        <Select v-model="selectedDay" required>
+        <Select v-model="selectedDay" :required="required">
             <SelectTrigger :class="cn('w-full', triggerClass)">
                 <SelectValue placeholder="Day" />
             </SelectTrigger>
@@ -117,7 +151,7 @@ watch(days, (availableDays) => {
             </SelectContent>
         </Select>
 
-        <Select v-model="selectedYear" required>
+        <Select v-model="selectedYear" :required="required">
             <SelectTrigger :class="cn('w-full', triggerClass)">
                 <SelectValue placeholder="Year" />
             </SelectTrigger>

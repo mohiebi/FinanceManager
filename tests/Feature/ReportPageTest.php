@@ -141,3 +141,59 @@ test('report supports seasonal yearly and custom date filters', function () {
 
     Carbon::setTestNow();
 });
+
+test('report filters transactions by type category and search', function () {
+    Carbon::setTestNow('2026-05-26');
+
+    $user = User::factory()->create();
+    $costCategory = Category::factory()->cost()->forUser($user)->create(['name' => 'Utilities']);
+    $incomeCategory = Category::factory()->income()->forUser($user)->create(['name' => 'Invoices']);
+
+    Transaction::factory()
+        ->cost()
+        ->for($user)
+        ->for($costCategory)
+        ->create([
+            'title' => 'Internet bill',
+            'description' => 'Fiber office connection',
+            'occurred_at' => '2026-05-12',
+        ]);
+
+    Transaction::factory()
+        ->cost()
+        ->for($user)
+        ->for($costCategory)
+        ->create([
+            'title' => 'Water bill',
+            'occurred_at' => '2026-05-13',
+        ]);
+
+    Transaction::factory()
+        ->income()
+        ->for($user)
+        ->for($incomeCategory)
+        ->create([
+            'title' => 'Client invoice',
+            'occurred_at' => '2026-05-15',
+        ]);
+
+    $this->actingAs($user)
+        ->get(route('report', [
+            'type' => 'cost',
+            'category' => $costCategory->id,
+            'search' => 'fiber',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Report')
+            ->where('filters.type', 'cost')
+            ->where('filters.category', $costCategory->id)
+            ->where('filters.search', 'fiber')
+            ->has('transactions.costs', 1)
+            ->where('transactions.costs.0.title', 'Internet bill')
+            ->has('transactions.incomes', 0)
+            ->where('summary.count', 1),
+        );
+
+    Carbon::setTestNow();
+});

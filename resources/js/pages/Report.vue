@@ -25,8 +25,8 @@
                             class="text-sm text-neutral-600 dark:text-neutral-300"
                         >
                             Each filter refreshes the transaction list and
-                            totals so you can compare what came in and what
-                            went out over the period you care about.
+                            totals so you can compare what came in and what went
+                            out over the period you care about.
                         </p>
                     </div>
                 </div>
@@ -40,7 +40,9 @@
                         >
                             Range
                         </p>
-                        <p class="mt-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                        <p
+                            class="mt-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100"
+                        >
                             {{ props.period.label }}
                         </p>
                     </div>
@@ -53,7 +55,9 @@
                         >
                             Transactions
                         </p>
-                        <p class="mt-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                        <p
+                            class="mt-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100"
+                        >
                             {{ props.summary.count }}
                         </p>
                     </div>
@@ -103,6 +107,66 @@
                     </div>
                 </div>
 
+                <div class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.9fr_auto]">
+                    <div class="grid gap-2">
+                        <Label for="report_search">Search</Label>
+                        <Input
+                            id="report_search"
+                            v-model="search"
+                            placeholder="Title or note"
+                            @keyup.enter="applyFilters()"
+                        />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="report_type">Type</Label>
+                        <select
+                            id="report_type"
+                            v-model="selectedType"
+                            class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            @change="applyTypeFilter"
+                        >
+                            <option value="all">All types</option>
+                            <option value="cost">Costs</option>
+                            <option value="income">Incomes</option>
+                        </select>
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="report_category">Category</Label>
+                        <select
+                            id="report_category"
+                            v-model="selectedCategory"
+                            class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            @change="applyFilters()"
+                        >
+                            <option value="all">All categories</option>
+                            <option
+                                v-for="category in reportCategories"
+                                :key="category.id"
+                                :value="category.id.toString()"
+                            >
+                                {{ category.name }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-end gap-2">
+                        <Button class="rounded-full" @click="applyFilters()">
+                            <Search class="size-4" />
+                            Filter
+                        </Button>
+                        <Button
+                            variant="outline"
+                            class="rounded-full"
+                            @click="clearTransactionFilters"
+                        >
+                            <RotateCcw class="size-4" />
+                            <span class="sr-only">Reset filters</span>
+                        </Button>
+                    </div>
+                </div>
+
                 <div
                     :class="
                         selectedRange === 'custom'
@@ -113,24 +177,31 @@
                     <template v-if="selectedRange === 'custom'">
                         <div class="grid gap-2">
                             <Label for="from_date">From</Label>
-                            <Input
-                                id="from_date"
+                            <BirthdatePicker
                                 v-model="fromDate"
-                                type="date"
+                                name="from_date"
+                                :required="false"
+                                :years-back="16"
+                                :years-forward="1"
                             />
                         </div>
 
                         <div class="grid gap-2">
                             <Label for="to_date">To</Label>
-                            <Input
-                                id="to_date"
+                            <BirthdatePicker
                                 v-model="toDate"
-                                type="date"
+                                name="to_date"
+                                :required="false"
+                                :years-back="16"
+                                :years-forward="1"
                             />
                         </div>
                     </template>
 
-                    <div v-if="selectedRange === 'custom'" class="flex items-end">
+                    <div
+                        v-if="selectedRange === 'custom'"
+                        class="flex items-end"
+                    >
                         <Button
                             class="w-full rounded-full lg:w-auto"
                             @click="applyFilters()"
@@ -151,7 +222,9 @@
                 >
                     Income
                 </p>
-                <p class="mt-3 text-2xl font-semibold text-neutral-950 dark:text-neutral-50">
+                <p
+                    class="mt-3 text-2xl font-semibold text-neutral-950 dark:text-neutral-50"
+                >
                     {{
                         formatMoney(
                             props.summary.income,
@@ -169,20 +242,26 @@
                 >
                     Costs
                 </p>
-                <p class="mt-3 text-2xl font-semibold text-neutral-950 dark:text-neutral-50">
-                    {{ formatMoney(props.summary.cost, props.selectedCurrency) }}
+                <p
+                    class="mt-3 text-2xl font-semibold text-neutral-950 dark:text-neutral-50"
+                >
+                    {{
+                        formatMoney(props.summary.cost, props.selectedCurrency)
+                    }}
                 </p>
             </article>
 
             <article
-                class="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 md:col-span-2 xl:col-span-1"
+                class="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm md:col-span-2 xl:col-span-1 dark:border-neutral-800 dark:bg-neutral-950"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-neutral-500 uppercase dark:text-neutral-400"
                 >
                     Balance
                 </p>
-                <p class="mt-3 text-2xl font-semibold text-neutral-950 dark:text-neutral-50">
+                <p
+                    class="mt-3 text-2xl font-semibold text-neutral-950 dark:text-neutral-50"
+                >
                     {{ balanceLabel }}
                 </p>
             </article>
@@ -203,7 +282,9 @@
                         </p>
                         <h2 class="text-lg font-semibold">Money going out</h2>
                     </div>
-                    <span class="text-xs text-neutral-500 dark:text-neutral-400">
+                    <span
+                        class="text-xs text-neutral-500 dark:text-neutral-400"
+                    >
                         {{ props.transactions.costs.length }} entries
                     </span>
                 </div>
@@ -302,7 +383,9 @@
                         </p>
                         <h2 class="text-lg font-semibold">Money coming in</h2>
                     </div>
-                    <span class="text-xs text-neutral-500 dark:text-neutral-400">
+                    <span
+                        class="text-xs text-neutral-500 dark:text-neutral-400"
+                    >
                         {{ props.transactions.incomes.length }} entries
                     </span>
                 </div>
@@ -333,7 +416,8 @@
                         </thead>
                         <tbody>
                             <tr
-                                v-for="transaction in props.transactions.incomes"
+                                v-for="transaction in props.transactions
+                                    .incomes"
                                 :key="transaction.id"
                                 class="border-b last:border-0 hover:bg-emerald-50/50 dark:border-neutral-800 dark:hover:bg-emerald-950/10"
                             >
@@ -392,7 +476,9 @@
 
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { RotateCcw, Search } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -407,6 +493,7 @@ import { dashboard, report } from '@/routes';
 
 type ReportRange = 'this_month' | 'this_season' | 'yearly' | 'custom';
 type TransactionType = 'cost' | 'income';
+type FilterType = TransactionType | 'all';
 type Currency = 'toman' | 'usd' | 'eur';
 
 type Category = {
@@ -441,6 +528,9 @@ const props = defineProps<{
         range: ReportRange;
         from: string;
         to: string;
+        search: string;
+        type: FilterType;
+        category: number | null;
     };
     period: {
         label: string;
@@ -449,6 +539,7 @@ const props = defineProps<{
         costs: Transaction[];
         incomes: Transaction[];
     };
+    categories: Record<TransactionType, Category[]>;
     currencies: CurrencyOption[];
     selectedCurrency: Currency;
     summary: {
@@ -483,6 +574,9 @@ const ranges: Array<{ label: string; value: ReportRange }> = [
 const selectedRange = ref<ReportRange>(props.filters.range);
 const fromDate = ref(props.filters.from);
 const toDate = ref(props.filters.to);
+const search = ref(props.filters.search);
+const selectedType = ref<FilterType>(props.filters.type);
+const selectedCategory = ref(props.filters.category?.toString() ?? 'all');
 const selectedCurrency = ref<Currency>(props.selectedCurrency);
 
 const balanceLabel = computed(() => {
@@ -492,12 +586,23 @@ const balanceLabel = computed(() => {
     return formatMoney((income - cost).toFixed(2), props.selectedCurrency);
 });
 
+const reportCategories = computed(() => {
+    if (selectedType.value === 'cost' || selectedType.value === 'income') {
+        return props.categories[selectedType.value] ?? [];
+    }
+
+    return [...props.categories.cost, ...props.categories.income];
+});
+
 watch(
     () => props.filters,
     (filters) => {
         selectedRange.value = filters.range;
         fromDate.value = filters.from;
         toDate.value = filters.to;
+        search.value = filters.search;
+        selectedType.value = filters.type;
+        selectedCategory.value = filters.category?.toString() ?? 'all';
     },
     { deep: true },
 );
@@ -515,6 +620,17 @@ watch(selectedCurrency, (value) => {
     }
 
     applyFilters(selectedRange.value, value);
+});
+
+watch(selectedType, () => {
+    if (
+        selectedCategory.value !== 'all' &&
+        !reportCategories.value.some(
+            (category) => category.id.toString() === selectedCategory.value,
+        )
+    ) {
+        selectedCategory.value = 'all';
+    }
 });
 
 function selectRange(range: ReportRange): void {
@@ -537,6 +653,12 @@ function applyFilters(
             range,
             from: fromDate.value,
             to: toDate.value,
+            search: search.value || null,
+            type: selectedType.value === 'all' ? null : selectedType.value,
+            category:
+                selectedCategory.value === 'all'
+                    ? null
+                    : selectedCategory.value,
             currency,
         },
         {
@@ -545,6 +667,26 @@ function applyFilters(
             replace: true,
         },
     );
+}
+
+function applyTypeFilter(): void {
+    if (
+        selectedCategory.value !== 'all' &&
+        !reportCategories.value.some(
+            (category) => category.id.toString() === selectedCategory.value,
+        )
+    ) {
+        selectedCategory.value = 'all';
+    }
+
+    applyFilters();
+}
+
+function clearTransactionFilters(): void {
+    search.value = '';
+    selectedType.value = 'all';
+    selectedCategory.value = 'all';
+    applyFilters();
 }
 
 function formatMoney(amount: string | number, currency: Currency): string {

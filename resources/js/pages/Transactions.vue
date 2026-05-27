@@ -72,7 +72,7 @@
                     <div class="flex items-center gap-4">
                         <img :src="logoGreen" alt="" class="h-9 w-8 shrink-0" />
                         <div class="flex items-center gap-3 text-xl">
-                            <span class="font-bold">Cashoilot</span>
+                            <span class="font-bold">CashPilot</span>
                             <span class="text-white/55">|</span>
                             <span>Transaction</span>
                         </div>

@@ -31,7 +31,7 @@
                 </div>
 
                 <div class="flex flex-col gap-4 lg:min-w-lg">
-                    <div class="flex flex-col gap-2 lg:max-w-3xs sm:max-w-xs">
+                    <div class="flex flex-col gap-2 sm:max-w-xs lg:max-w-3xs">
                         <Label
                             for="display_currency"
                             class="text-xs font-semibold tracking-[0.2em] text-neutral-500 uppercase dark:text-neutral-400"
@@ -190,7 +190,9 @@
                                 <td
                                     class="px-3 py-4 text-right text-xs font-semibold text-rose-700 sm:px-5 sm:text-sm dark:text-rose-300"
                                 >
-                                    {{ formatAmount(transaction.display_amount) }}
+                                    {{
+                                        formatAmount(transaction.display_amount)
+                                    }}
                                 </td>
                                 <td class="px-3 py-4 sm:px-5">
                                     <div
@@ -322,7 +324,9 @@
                                 <td
                                     class="px-3 py-4 text-right text-xs font-semibold text-emerald-700 sm:px-5 sm:text-sm dark:text-emerald-300"
                                 >
-                                    {{ formatAmount(transaction.display_amount) }}
+                                    {{
+                                        formatAmount(transaction.display_amount)
+                                    }}
                                 </td>
                                 <td class="px-3 py-4 sm:px-5">
                                     <div
@@ -367,98 +371,101 @@
         </div>
 
         <Dialog v-model:open="isDialogOpen">
-            <DialogContent class="sm:max-w-xl">
-                <DialogHeader>
-                    <DialogTitle>{{ dialogTitle }}</DialogTitle>
-                    <DialogDescription>
-                        The same form handles both tables. The transaction type
-                        follows the table action you selected.
-                    </DialogDescription>
-                </DialogHeader>
+            <DialogContent
+                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-white p-0 text-[#2d2d2d] shadow-2xl sm:min-h-[654px] sm:max-w-[618px]"
+                :show-close-button="false"
+            >
+                <form
+                    class="px-6 pt-16 pb-12 sm:px-[100px] sm:pt-[83px]"
+                    @submit.prevent="submitTransaction"
+                >
+                    <DialogHeader class="mb-7 space-y-2 text-left">
+                        <DialogTitle
+                            class="text-[20px] leading-normal font-medium text-[#2d2d2d]"
+                        >
+                            {{ dialogTitle }}
+                        </DialogTitle>
+                        <DialogDescription
+                            class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#2d2d2d]"
+                        >
+                            The same form handles both tables. The transaction
+                            type follows the table action you selected.
+                        </DialogDescription>
+                    </DialogHeader>
 
-                <form class="grid gap-4" @submit.prevent="submitTransaction">
                     <input type="hidden" name="type" :value="form.type" />
 
-                    <div class="grid gap-2">
-                        <Label for="title">Title</Label>
-                        <Input
-                            id="title"
-                            v-model="form.title"
-                            required
-                            placeholder="Groceries, salary, rent..."
-                        />
-                        <InputError :message="form.errors.title" />
-                    </div>
-
-                    <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="space-y-5">
                         <div class="grid gap-2">
-                            <Label for="amount">Amount</Label>
-                            <Input
-                                id="amount"
-                                v-model="form.amount"
-                                required
-                                type="number"
-                                min="0.01"
-                                step="0.01"
-                                placeholder="0.00"
-                            />
-                            <InputError :message="form.errors.amount" />
-                        </div>
-
-                        <div class="grid gap-2">
-                            <Label for="currency">Currency</Label>
-                            <select
-                                id="currency"
-                                v-model="form.currency"
-                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs ring-offset-background transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
-                            >
-                                <option
-                                    v-for="currency in props.currencies"
-                                    :key="currency.value"
-                                    :value="currency.value"
+                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
+                                <Label class="finance-dialog-label" for="title">
+                                    Subject
+                                </Label>
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="category"
                                 >
-                                    {{ currency.label }}
-                                </option>
-                            </select>
-                            <InputError :message="form.errors.currency" />
-                        </div>
-                    </div>
+                                    Category
+                                </Label>
+                            </div>
+                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
+                                <div>
+                                    <Input
+                                        id="title"
+                                        v-model="form.title"
+                                        :class="fieldControlClass"
+                                        required
+                                        placeholder="Hamburger, Fresh Restaurant"
+                                    />
+                                    <InputError :message="form.errors.title" />
+                                </div>
 
-                    <div class="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <select
+                                        id="category"
+                                        v-model="form.category_id"
+                                        required
+                                        class="finance-dialog-field"
+                                        :class="fieldControlClass"
+                                    >
+                                        <option value="" disabled>
+                                            Select
+                                        </option>
+                                        <option
+                                            v-for="category in selectedCategories"
+                                            :key="category.id"
+                                            :value="category.id.toString()"
+                                        >
+                                            {{ category.name }}
+                                        </option>
+                                    </select>
+                                    <InputError
+                                        :message="form.errors.category_id"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="grid gap-2">
-                            <Label for="category">Category</Label>
-                            <select
-                                id="category"
-                                v-model="form.category_id"
-                                required
-                                class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs ring-offset-background transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                            <Label
+                                class="finance-dialog-label"
+                                for="occurred_at"
                             >
-                                <option value="" disabled>
-                                    Select category
-                                </option>
-                                <option
-                                    v-for="category in selectedCategories"
-                                    :key="category.id"
-                                    :value="category.id.toString()"
-                                >
-                                    {{ category.name }}
-                                </option>
-                            </select>
-                            <InputError :message="form.errors.category_id" />
-                        </div>
-
-                        <div class="grid gap-2">
-                            <Label for="occurred_at">Date</Label>
+                                Date
+                            </Label>
                             <input
                                 id="occurred_at"
                                 type="hidden"
                                 :value="form.occurred_at"
                             />
                             <div
-                                class="grid grid-cols-[1.25fr_0.85fr_0.9fr] gap-2"
+                                class="grid gap-2 sm:grid-cols-[134px_134px_134px]"
                             >
                                 <Select v-model="selectedDateMonth" required>
-                                    <SelectTrigger class="w-full">
+                                    <SelectTrigger
+                                        class="finance-dialog-field"
+                                        :class="fieldControlClass"
+                                    >
                                         <SelectValue placeholder="Month" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -473,7 +480,10 @@
                                 </Select>
 
                                 <Select v-model="selectedDateDay" required>
-                                    <SelectTrigger class="w-full">
+                                    <SelectTrigger
+                                        class="finance-dialog-field"
+                                        :class="fieldControlClass"
+                                    >
                                         <SelectValue placeholder="Day" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -488,7 +498,10 @@
                                 </Select>
 
                                 <Select v-model="selectedDateYear" required>
-                                    <SelectTrigger class="w-full">
+                                    <SelectTrigger
+                                        class="finance-dialog-field"
+                                        :class="fieldControlClass"
+                                    >
                                         <SelectValue placeholder="Year" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -502,61 +515,100 @@
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div class="flex gap-2">
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    size="sm"
-                                    class="rounded-full"
-                                    @click="selectRelativeDate(0)"
-                                >
-                                    Today
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    size="sm"
-                                    class="rounded-full"
-                                    @click="selectRelativeDate(-1)"
-                                >
-                                    Yesterday
-                                </Button>
-                            </div>
                             <InputError :message="form.errors.occurred_at" />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="amount"
+                                >
+                                    Amount
+                                </Label>
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="currency"
+                                >
+                                    Currency
+                                </Label>
+                            </div>
+                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
+                                <div>
+                                    <Input
+                                        id="amount"
+                                        v-model="form.amount"
+                                        :class="fieldControlClass"
+                                        required
+                                        type="number"
+                                        min="0.01"
+                                        step="0.01"
+                                        placeholder="000.000.000"
+                                    />
+                                    <InputError :message="form.errors.amount" />
+                                </div>
+
+                                <div>
+                                    <select
+                                        id="currency"
+                                        v-model="form.currency"
+                                        class="finance-dialog-field"
+                                        :class="fieldControlClass"
+                                    >
+                                        <option
+                                            v-for="currency in props.currencies"
+                                            :key="currency.value"
+                                            :value="currency.value"
+                                        >
+                                            {{ currency.label }}
+                                        </option>
+                                    </select>
+                                    <InputError
+                                        :message="form.errors.currency"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label
+                                class="finance-dialog-label"
+                                for="description"
+                            >
+                                Description
+                            </Label>
+                            <textarea
+                                id="description"
+                                v-model="form.description"
+                                rows="1"
+                                class="finance-dialog-field min-h-9 resize-none"
+                                :class="fieldControlClass"
+                                placeholder="Optional note"
+                            />
+                            <InputError :message="form.errors.description" />
                         </div>
                     </div>
 
-                    <div class="grid gap-2">
-                        <Label for="description">Description</Label>
-                        <textarea
-                            id="description"
-                            v-model="form.description"
-                            rows="3"
-                            class="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs ring-offset-background transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
-                            placeholder="Optional note"
-                        />
-                        <InputError :message="form.errors.description" />
-                    </div>
-
-                    <DialogFooter>
+                    <div class="mt-7 flex justify-end gap-2">
                         <Button
                             type="button"
-                            variant="outline"
+                            class="h-9 w-[99px] rounded-[8px] bg-[#effffa] px-[10px] py-[3px] text-[20px] font-normal text-[#2d2d2d] shadow-none hover:bg-[#e1fff5]"
                             @click="isDialogOpen = false"
                         >
                             Cancel
                         </Button>
                         <Button
                             type="submit"
+                            class="h-9 w-[135px] rounded-[8px] bg-[#2d2d2d] px-[10px] py-[3px] text-[20px] font-normal text-white shadow-none hover:bg-[#1f1f1f]"
                             :disabled="
                                 form.processing ||
                                 selectedCategories.length === 0
                             "
                         >
                             <Spinner v-if="form.processing" />
-                            {{ isEditing ? 'Save changes' : 'Add transaction' }}
+                            Confirm
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </form>
             </DialogContent>
         </Dialog>
@@ -573,7 +625,6 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -703,6 +754,11 @@ const dialogTitle = computed(() =>
         ? `Edit ${form.type === 'cost' ? 'cost' : 'income'}`
         : `Add ${form.type === 'cost' ? 'cost' : 'income'}`,
 );
+const fieldControlClass = computed(() =>
+    form.type === 'cost'
+        ? 'finance-dialog-field finance-dialog-field-cost focus-visible:ring-[#947BFF]/30'
+        : 'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25',
+);
 
 const resetForm = (type: TransactionType) => {
     const categories = props.categories[type] ?? [];
@@ -766,14 +822,6 @@ const deleteTransaction = (transaction: Transaction) => {
     router.delete(`/transactions/${transaction.id}`, {
         preserveScroll: true,
     });
-};
-
-const selectRelativeDate = (dayOffset: number) => {
-    const date = new Date();
-
-    date.setDate(date.getDate() + dayOffset);
-    form.occurred_at = date.toISOString().slice(0, 10);
-    syncDatePicker(form.occurred_at);
 };
 
 watch(

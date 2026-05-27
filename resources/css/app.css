@@ -343,4 +343,56 @@
         background-color: color-mix(in srgb, var(--auth-color-red) 8%, white);
         color: color-mix(in srgb, var(--auth-color-red) 78%, black);
     }
+
+    .finance-dialog-label {
+        color: #2d2d2d;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5rem;
+    }
+
+    .finance-dialog-field {
+        height: 2.25rem !important;
+        width: 100%;
+        border-color: transparent !important;
+        border-radius: 0.5rem !important;
+        color: #2d2d2d !important;
+        font-size: 1rem;
+        font-weight: 300;
+        line-height: 1.5rem;
+        padding-inline: 1.25rem !important;
+        box-shadow: none !important;
+    }
+
+    .finance-dialog-field-cost {
+        background-color: #f0ecff !important;
+    }
+
+    .finance-dialog-field-income {
+        background-color: #e1fff5 !important;
+    }
+
+    .finance-dialog-field::placeholder {
+        color: #6f6a80;
+    }
+
+    .finance-dialog-field:-webkit-autofill,
+    .finance-dialog-field:-webkit-autofill:hover,
+    .finance-dialog-field:-webkit-autofill:focus {
+        -webkit-text-fill-color: #2d2d2d;
+        caret-color: #2d2d2d;
+        transition: background-color 9999s ease-in-out 0s;
+    }
+
+    .finance-dialog-field-cost:-webkit-autofill,
+    .finance-dialog-field-cost:-webkit-autofill:hover,
+    .finance-dialog-field-cost:-webkit-autofill:focus {
+        box-shadow: 0 0 0 1000px #f0ecff inset !important;
+    }
+
+    .finance-dialog-field-income:-webkit-autofill,
+    .finance-dialog-field-income:-webkit-autofill:hover,
+    .finance-dialog-field-income:-webkit-autofill:focus {
+        box-shadow: 0 0 0 1000px #e1fff5 inset !important;
+    }
 }

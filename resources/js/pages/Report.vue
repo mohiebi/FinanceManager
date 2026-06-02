@@ -1,29 +1,28 @@
 <template>
     <Head title="Reports" />
 
-    <div class="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-4 sm:p-6">
-        <section
-            class="overflow-hidden rounded-3xl border border-neutral-200/80 bg-[radial-gradient(circle_at_top_right,_#ffd8b4,_transparent_30%),radial-gradient(circle_at_bottom_left,_#d4efe2,_transparent_34%),linear-gradient(135deg,_#fff8f1,_#f4fbf7)] p-6 shadow-sm dark:border-neutral-800 dark:bg-[radial-gradient(circle_at_top_right,_#4a3022,_transparent_28%),radial-gradient(circle_at_bottom_left,_#173226,_transparent_34%),linear-gradient(135deg,_#121110,_#131a17)]"
-        >
+    <div
+        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
+    >
+        <!-- Hero / period summary -->
+        <section class="mx-[18px] mt-5 rounded-[22px] bg-white p-5 shadow-sm">
             <div
                 class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between"
             >
                 <div class="max-w-2xl space-y-3">
                     <p
-                        class="text-xs font-semibold tracking-[0.35em] text-amber-700 uppercase dark:text-amber-300"
+                        class="text-xs font-semibold tracking-[0.35em] text-amber-700 uppercase"
                     >
                         Time-based reports
                     </p>
                     <div class="space-y-2">
                         <h1
-                            class="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl dark:text-neutral-50"
+                            class="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl"
                         >
                             Slice your money story by month, season, year, or
                             any custom range.
                         </h1>
-                        <p
-                            class="text-sm text-neutral-600 dark:text-neutral-300"
-                        >
+                        <p class="text-sm text-neutral-600">
                             Each filter refreshes the transaction list and
                             totals so you can compare what came in and what went
                             out over the period you care about.
@@ -33,30 +32,30 @@
 
                 <div class="grid gap-3 sm:grid-cols-2 xl:min-w-xl">
                     <div
-                        class="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-xs backdrop-blur dark:border-white/10 dark:bg-white/5"
+                        class="rounded-[14px] border border-[#e6e6e6] bg-[#f9f9f9] p-4 shadow-xs"
                     >
                         <p
-                            class="text-xs font-medium tracking-[0.2em] text-neutral-500 uppercase dark:text-neutral-400"
+                            class="text-xs font-medium tracking-[0.2em] text-neutral-500 uppercase"
                         >
                             Range
                         </p>
                         <p
-                            class="mt-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100"
+                            class="mt-2 text-sm font-semibold text-neutral-900"
                         >
                             {{ props.period.label }}
                         </p>
                     </div>
 
                     <div
-                        class="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-xs backdrop-blur dark:border-white/10 dark:bg-white/5"
+                        class="rounded-[14px] border border-[#e6e6e6] bg-[#f9f9f9] p-4 shadow-xs"
                     >
                         <p
-                            class="text-xs font-medium tracking-[0.2em] text-neutral-500 uppercase dark:text-neutral-400"
+                            class="text-xs font-medium tracking-[0.2em] text-neutral-500 uppercase"
                         >
                             Transactions
                         </p>
                         <p
-                            class="mt-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100"
+                            class="mt-2 text-sm font-semibold text-neutral-900"
                         >
                             {{ props.summary.count }}
                         </p>
@@ -65,33 +64,38 @@
             </div>
         </section>
 
-        <section
-            class="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
-        >
+        <!-- Filters -->
+        <section class="mx-[18px] mt-[18px] rounded-[22px] bg-white p-5 shadow-sm">
             <div class="flex flex-col gap-5">
                 <div
                     class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
                 >
+                    <!-- Range buttons -->
                     <div class="flex flex-wrap gap-2">
-                        <Button
+                        <button
                             v-for="range in ranges"
                             :key="range.value"
-                            :variant="
+                            type="button"
+                            :class="[
+                                'rounded-full px-4 py-1.5 text-sm font-normal transition',
                                 selectedRange === range.value
-                                    ? 'default'
-                                    : 'outline'
-                            "
-                            class="rounded-full"
+                                    ? 'bg-[#2d2d2d] text-white'
+                                    : 'bg-white text-[#2d2d2d] ring-1 ring-[#e6e6e6] hover:bg-[#f7f7f7]',
+                            ]"
                             @click="selectRange(range.value)"
                         >
                             {{ range.label }}
-                        </Button>
+                        </button>
                     </div>
 
+                    <!-- Currency selector -->
                     <div class="grid gap-2 lg:min-w-56">
                         <Label for="report_currency">Display currency</Label>
                         <Select v-model="selectedCurrency">
-                            <SelectTrigger id="report_currency" class="w-full">
+                            <SelectTrigger
+                                id="report_currency"
+                                :class="filterFieldClass"
+                            >
                                 <SelectValue placeholder="Select currency" />
                             </SelectTrigger>
                             <SelectContent>
@@ -107,12 +111,16 @@
                     </div>
                 </div>
 
-                <div class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.9fr_auto]">
+                <!-- Search / type / category filters -->
+                <div
+                    class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.9fr_auto]"
+                >
                     <div class="grid gap-2">
                         <Label for="report_search">Search</Label>
                         <Input
                             id="report_search"
                             v-model="search"
+                            :class="filterFieldClass"
                             placeholder="Title or note"
                             @keyup.enter="applyFilters()"
                         />
@@ -120,45 +128,60 @@
 
                     <div class="grid gap-2">
                         <Label for="report_type">Type</Label>
-                        <select
-                            id="report_type"
+                        <Select
                             v-model="selectedType"
-                            class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                            @change="applyTypeFilter"
+                            @update:model-value="applyTypeFilter"
                         >
-                            <option value="all">All types</option>
-                            <option value="cost">Costs</option>
-                            <option value="income">Incomes</option>
-                        </select>
+                            <SelectTrigger
+                                id="report_type"
+                                :class="filterFieldClass"
+                            >
+                                <SelectValue placeholder="All types" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All types</SelectItem>
+                                <SelectItem value="cost">Costs</SelectItem>
+                                <SelectItem value="income">Incomes</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div class="grid gap-2">
                         <Label for="report_category">Category</Label>
-                        <select
-                            id="report_category"
+                        <Select
                             v-model="selectedCategory"
-                            class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                            @change="applyFilters()"
+                            @update:model-value="applyFilters()"
                         >
-                            <option value="all">All categories</option>
-                            <option
-                                v-for="category in reportCategories"
-                                :key="category.id"
-                                :value="category.id.toString()"
+                            <SelectTrigger
+                                id="report_category"
+                                :class="filterFieldClass"
                             >
-                                {{ category.name }}
-                            </option>
-                        </select>
+                                <SelectValue placeholder="All categories" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All categories</SelectItem>
+                                <SelectItem
+                                    v-for="category in reportCategories"
+                                    :key="category.id"
+                                    :value="category.id.toString()"
+                                >
+                                    {{ category.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div class="flex items-end gap-2">
-                        <Button class="rounded-full" @click="applyFilters()">
+                        <Button
+                            class="rounded-full bg-white px-5 text-[#2d2d2d] shadow-none ring-1 ring-[#e6e6e6] hover:bg-[#f7f7f7]"
+                            @click="applyFilters()"
+                        >
                             <Search class="size-4" />
                             Filter
                         </Button>
                         <Button
                             variant="outline"
-                            class="rounded-full"
+                            class="size-10 rounded-full border-[#d9d9d9] bg-[#d9d9d9] p-0 text-[#2d2d2d] hover:bg-[#cfcfcf]"
                             @click="clearTransactionFilters"
                         >
                             <RotateCcw class="size-4" />
@@ -167,43 +190,38 @@
                     </div>
                 </div>
 
+                <!-- Custom date range -->
                 <div
-                    :class="
-                        selectedRange === 'custom'
-                            ? 'grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto]'
-                            : 'grid gap-4 lg:grid-cols-1'
-                    "
+                    v-if="selectedRange === 'custom'"
+                    class="grid gap-4 lg:grid-cols-[1fr_1fr_auto]"
                 >
-                    <template v-if="selectedRange === 'custom'">
-                        <div class="grid gap-2">
-                            <Label for="from_date">From</Label>
-                            <BirthdatePicker
-                                v-model="fromDate"
-                                name="from_date"
-                                :required="false"
-                                :years-back="16"
-                                :years-forward="1"
-                            />
-                        </div>
+                    <div class="grid gap-2">
+                        <Label for="from_date">From</Label>
+                        <BirthdatePicker
+                            v-model="fromDate"
+                            name="from_date"
+                            :required="false"
+                            :years-back="16"
+                            :years-forward="1"
+                            :trigger-class="filterFieldClass"
+                        />
+                    </div>
 
-                        <div class="grid gap-2">
-                            <Label for="to_date">To</Label>
-                            <BirthdatePicker
-                                v-model="toDate"
-                                name="to_date"
-                                :required="false"
-                                :years-back="16"
-                                :years-forward="1"
-                            />
-                        </div>
-                    </template>
+                    <div class="grid gap-2">
+                        <Label for="to_date">To</Label>
+                        <BirthdatePicker
+                            v-model="toDate"
+                            name="to_date"
+                            :required="false"
+                            :years-back="16"
+                            :years-forward="1"
+                            :trigger-class="filterFieldClass"
+                        />
+                    </div>
 
-                    <div
-                        v-if="selectedRange === 'custom'"
-                        class="flex items-end"
-                    >
+                    <div class="flex items-end">
                         <Button
-                            class="w-full rounded-full lg:w-auto"
+                            class="w-full rounded-full bg-white px-5 text-[#2d2d2d] shadow-none ring-1 ring-[#e6e6e6] hover:bg-[#f7f7f7] lg:w-auto"
                             @click="applyFilters()"
                         >
                             Apply custom range
@@ -213,17 +231,18 @@
             </div>
         </section>
 
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <article
-                class="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
-            >
+        <!-- Summary cards -->
+        <div
+            class="grid gap-[18px] px-[18px] pt-[18px] md:grid-cols-3"
+        >
+            <article class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm">
                 <p
-                    class="text-xs font-medium tracking-[0.2em] text-emerald-600 uppercase dark:text-emerald-300"
+                    class="text-xs font-medium tracking-[0.2em] text-emerald-600 uppercase"
                 >
                     Income
                 </p>
                 <p
-                    class="mt-3 text-2xl font-semibold text-neutral-950 dark:text-neutral-50"
+                    class="mt-3 text-2xl font-semibold text-neutral-950"
                 >
                     {{
                         formatMoney(
@@ -234,16 +253,14 @@
                 </p>
             </article>
 
-            <article
-                class="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
-            >
+            <article class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm">
                 <p
-                    class="text-xs font-medium tracking-[0.2em] text-rose-600 uppercase dark:text-rose-300"
+                    class="text-xs font-medium tracking-[0.2em] text-rose-600 uppercase"
                 >
                     Costs
                 </p>
                 <p
-                    class="mt-3 text-2xl font-semibold text-neutral-950 dark:text-neutral-50"
+                    class="mt-3 text-2xl font-semibold text-neutral-950"
                 >
                     {{
                         formatMoney(props.summary.cost, props.selectedCurrency)
@@ -251,65 +268,69 @@
                 </p>
             </article>
 
-            <article
-                class="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm md:col-span-2 xl:col-span-1 dark:border-neutral-800 dark:bg-neutral-950"
-            >
+            <article class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm">
                 <p
-                    class="text-xs font-medium tracking-[0.2em] text-neutral-500 uppercase dark:text-neutral-400"
+                    class="text-xs font-medium tracking-[0.2em] text-neutral-500 uppercase"
                 >
                     Balance
                 </p>
                 <p
-                    class="mt-3 text-2xl font-semibold text-neutral-950 dark:text-neutral-50"
+                    class="mt-3 text-2xl font-semibold text-neutral-950"
                 >
                     {{ balanceLabel }}
                 </p>
             </article>
         </div>
 
-        <div class="grid gap-6 xl:grid-cols-2">
-            <section
-                class="rounded-3xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
-            >
+        <!-- Transaction tables -->
+        <div
+            class="grid items-start gap-[18px] px-[18px] py-[18px] pb-[38px] lg:grid-cols-2"
+        >
+            <!-- Costs table -->
+            <section class="overflow-hidden rounded-[22px] bg-white shadow-sm">
                 <div
-                    class="flex items-center justify-between gap-4 border-b p-5 dark:border-neutral-800"
+                    class="flex items-center justify-between gap-4 px-5 py-[29px]"
                 >
                     <div>
-                        <p
-                            class="text-xs font-medium text-rose-600 uppercase dark:text-rose-300"
-                        >
+                        <p class="text-xs font-medium text-rose-600 uppercase">
                             Costs
                         </p>
-                        <h2 class="text-lg font-semibold">Money going out</h2>
+                        <h2
+                            class="text-[22px] leading-none font-normal text-black"
+                        >
+                            Money going out
+                        </h2>
                     </div>
-                    <span
-                        class="text-xs text-neutral-500 dark:text-neutral-400"
-                    >
+                    <span class="text-xs text-neutral-500">
                         {{ props.transactions.costs.length }} entries
                     </span>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
+                <div class="overflow-x-auto px-3 pb-5">
+                    <table
+                        class="w-full border-separate border-spacing-y-0 text-sm"
+                    >
                         <thead>
-                            <tr
-                                class="border-b text-left text-xs tracking-wide text-neutral-500 uppercase dark:border-neutral-800"
-                            >
-                                <th class="px-3 py-3 font-medium sm:px-5">
-                                    Title
+                            <tr class="text-left text-base text-black">
+                                <th
+                                    class="rounded-l-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                >
+                                    Subject
                                 </th>
-                                <th class="px-3 py-3 font-medium sm:px-5">
+                                <th
+                                    class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                >
                                     Category
                                 </th>
                                 <th
-                                    class="hidden px-3 py-3 font-medium sm:table-cell sm:px-5"
-                                >
-                                    Date
-                                </th>
-                                <th
-                                    class="px-3 py-3 text-right font-medium sm:px-5"
+                                    class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
                                 >
                                     Amount
+                                </th>
+                                <th
+                                    class="hidden rounded-r-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:table-cell sm:px-5"
+                                >
+                                    Date
                                 </th>
                             </tr>
                         </thead>
@@ -317,12 +338,12 @@
                             <tr
                                 v-for="transaction in props.transactions.costs"
                                 :key="transaction.id"
-                                class="border-b last:border-0 hover:bg-rose-50/50 dark:border-neutral-800 dark:hover:bg-rose-950/10"
+                                class="group"
                             >
-                                <td class="px-3 py-4 sm:px-5">
-                                    <div class="text-xs font-medium sm:text-sm">
-                                        {{ transaction.title }}
-                                    </div>
+                                <td
+                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:px-5"
+                                >
+                                    {{ transaction.title }}
                                     <div
                                         v-if="transaction.description"
                                         class="mt-1 line-clamp-1 text-xs text-neutral-500"
@@ -330,9 +351,9 @@
                                         {{ transaction.description }}
                                     </div>
                                 </td>
-                                <td class="px-3 py-4 sm:px-5">
+                                <td class="px-3 py-[17px] text-center sm:px-5">
                                     <span
-                                        class="rounded-full bg-neutral-100 px-2 py-0.5 text-xs dark:bg-neutral-900"
+                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-[#d9d9d9] px-4 py-2 text-[17px] leading-none font-normal text-black"
                                     >
                                         {{
                                             transaction.category?.name ??
@@ -341,12 +362,7 @@
                                     </span>
                                 </td>
                                 <td
-                                    class="hidden px-3 py-4 text-xs text-neutral-600 sm:table-cell sm:px-5 sm:text-sm dark:text-neutral-300"
-                                >
-                                    {{ transaction.occurred_at }}
-                                </td>
-                                <td
-                                    class="px-3 py-4 text-right text-xs font-semibold text-rose-700 sm:px-5 sm:text-sm dark:text-rose-300"
+                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-semibold text-rose-700 sm:px-5"
                                 >
                                     {{
                                         formatMoney(
@@ -354,6 +370,11 @@
                                             transaction.display_currency,
                                         )
                                     }}
+                                </td>
+                                <td
+                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:table-cell sm:px-5"
+                                >
+                                    {{ transaction.occurred_at }}
                                 </td>
                             </tr>
                             <tr v-if="props.transactions.costs.length === 0">
@@ -369,62 +390,66 @@
                 </div>
             </section>
 
-            <section
-                class="rounded-3xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
-            >
+            <!-- Incomes table -->
+            <section class="overflow-hidden rounded-[22px] bg-white shadow-sm">
                 <div
-                    class="flex items-center justify-between gap-4 border-b p-5 dark:border-neutral-800"
+                    class="flex items-center justify-between gap-4 px-5 py-[29px]"
                 >
                     <div>
                         <p
-                            class="text-xs font-medium text-emerald-600 uppercase dark:text-emerald-300"
+                            class="text-xs font-medium text-emerald-600 uppercase"
                         >
                             Incomes
                         </p>
-                        <h2 class="text-lg font-semibold">Money coming in</h2>
+                        <h2
+                            class="text-[22px] leading-none font-normal text-black"
+                        >
+                            Money coming in
+                        </h2>
                     </div>
-                    <span
-                        class="text-xs text-neutral-500 dark:text-neutral-400"
-                    >
+                    <span class="text-xs text-neutral-500">
                         {{ props.transactions.incomes.length }} entries
                     </span>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
+                <div class="overflow-x-auto px-3 pb-5">
+                    <table
+                        class="w-full border-separate border-spacing-y-0 text-sm"
+                    >
                         <thead>
-                            <tr
-                                class="border-b text-left text-xs tracking-wide text-neutral-500 uppercase dark:border-neutral-800"
-                            >
-                                <th class="px-3 py-3 font-medium sm:px-5">
-                                    Title
+                            <tr class="text-left text-base text-black">
+                                <th
+                                    class="rounded-l-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                >
+                                    Subject
                                 </th>
-                                <th class="px-3 py-3 font-medium sm:px-5">
+                                <th
+                                    class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                >
                                     Category
                                 </th>
                                 <th
-                                    class="hidden px-3 py-3 font-medium sm:table-cell sm:px-5"
-                                >
-                                    Date
-                                </th>
-                                <th
-                                    class="px-3 py-3 text-right font-medium sm:px-5"
+                                    class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
                                 >
                                     Amount
+                                </th>
+                                <th
+                                    class="hidden rounded-r-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:table-cell sm:px-5"
+                                >
+                                    Date
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr
-                                v-for="transaction in props.transactions
-                                    .incomes"
+                                v-for="transaction in props.transactions.incomes"
                                 :key="transaction.id"
-                                class="border-b last:border-0 hover:bg-emerald-50/50 dark:border-neutral-800 dark:hover:bg-emerald-950/10"
+                                class="group"
                             >
-                                <td class="px-3 py-4 sm:px-5">
-                                    <div class="text-xs font-medium sm:text-sm">
-                                        {{ transaction.title }}
-                                    </div>
+                                <td
+                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:px-5"
+                                >
+                                    {{ transaction.title }}
                                     <div
                                         v-if="transaction.description"
                                         class="mt-1 line-clamp-1 text-xs text-neutral-500"
@@ -432,9 +457,9 @@
                                         {{ transaction.description }}
                                     </div>
                                 </td>
-                                <td class="px-3 py-4 sm:px-5">
+                                <td class="px-3 py-[17px] text-center sm:px-5">
                                     <span
-                                        class="rounded-full bg-neutral-100 px-2 py-0.5 text-xs dark:bg-neutral-900"
+                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-[#d9d9d9] px-4 py-2 text-[17px] leading-none font-normal text-black"
                                     >
                                         {{
                                             transaction.category?.name ??
@@ -443,12 +468,7 @@
                                     </span>
                                 </td>
                                 <td
-                                    class="hidden px-3 py-4 text-xs text-neutral-600 sm:table-cell sm:px-5 sm:text-sm dark:text-neutral-300"
-                                >
-                                    {{ transaction.occurred_at }}
-                                </td>
-                                <td
-                                    class="px-3 py-4 text-right text-xs font-semibold text-emerald-700 sm:px-5 sm:text-sm dark:text-emerald-300"
+                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-semibold text-emerald-700 sm:px-5"
                                 >
                                     {{
                                         formatMoney(
@@ -456,6 +476,11 @@
                                             transaction.display_currency,
                                         )
                                     }}
+                                </td>
+                                <td
+                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:table-cell sm:px-5"
+                                >
+                                    {{ transaction.occurred_at }}
                                 </td>
                             </tr>
                             <tr v-if="props.transactions.incomes.length === 0">
@@ -570,6 +595,9 @@ const ranges: Array<{ label: string; value: ReportRange }> = [
     { label: 'Yearly', value: 'yearly' },
     { label: 'Custom', value: 'custom' },
 ];
+
+const filterFieldClass =
+    'h-9 w-full rounded-md !border-[#989898] !bg-[#f4f4f4] px-3 text-sm font-normal !text-[#2d2d2d] shadow-none [color-scheme:light] placeholder:!text-[#989898] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 dark:!border-[#989898] dark:!bg-[#f4f4f4] dark:!text-[#2d2d2d] dark:hover:!bg-[#eeeeee] [&_svg]:!text-[#2d2d2d]';
 
 const selectedRange = ref<ReportRange>(props.filters.range);
 const fromDate = ref(props.filters.from);

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ApexCharts from 'apexcharts';
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
     incomeData: number[];
@@ -18,6 +18,15 @@ const fmt = (val: number) => {
     if (val >= 1_000)         return (val / 1_000).toFixed(0) + 'K';
     return val.toFixed(0);
 };
+
+// Column width scales up when fewer categories exist so bars never look thin
+const columnWidth = computed(() => {
+    const count = props.categories.length;
+    if (count <= 2) return '40%';
+    if (count <= 3) return '55%';
+    if (count <= 4) return '65%';
+    return '75%';
+});
 
 const buildOptions = () => ({
     chart: {
@@ -48,12 +57,15 @@ const buildOptions = () => ({
         },
         axisBorder: { show: false },
         axisTicks:  { show: false },
+        min: 0,
     },
     plotOptions: {
         bar: {
-            columnWidth: '58%',
-            borderRadius: 5,
+            columnWidth: columnWidth.value,
+            borderRadius: 6,
             borderRadiusApplication: 'end' as const,
+            borderRadiusWhenStacked: 'last' as const,
+            dataLabels: { position: 'top' },
         },
     },
     dataLabels: { enabled: false },
@@ -62,7 +74,7 @@ const buildOptions = () => ({
         strokeDashArray: 4,
         xaxis: { lines: { show: false } },
         yaxis: { lines: { show: true  } },
-        padding: { top: 0, right: 8, bottom: 0, left: 0 },
+        padding: { top: 0, right: 16, bottom: 0, left: 8 },
     },
     tooltip: {
         theme: 'light',
@@ -73,10 +85,26 @@ const buildOptions = () => ({
                 new Intl.NumberFormat('en-US').format(val),
         },
     },
+    fill: {
+        type: 'gradient',
+        gradient: {
+            shade: 'light',
+            type: 'vertical',
+            shadeIntensity: 0.15,
+            opacityFrom: 1,
+            opacityTo: 0.85,
+            stops: [0, 100],
+        },
+    },
     legend: { show: false },
     noData: {
         text: 'No transactions yet',
-        style: { color: '#989898', fontSize: '12px' },
+        align: 'center' as const,
+        verticalAlign: 'middle' as const,
+        style: { color: '#989898', fontSize: '13px' },
+    },
+    states: {
+        hover: { filter: { type: 'lighten' as const, value: 0.08 } },
     },
 });
 

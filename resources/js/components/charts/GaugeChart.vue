@@ -5,10 +5,9 @@ const props = defineProps<{
     value: number; // 0–100
 }>();
 
-// SVG geometry constants
 const cx = 100;
-const cy = 112;
-const r  = 82;
+const cy = 106;
+const r  = 80;
 
 const clamped    = computed(() => Math.max(0, Math.min(100, Math.round(props.value))));
 const v          = computed(() => clamped.value / 100);
@@ -19,123 +18,77 @@ const gaugeColor = computed(() => {
     return '#02CD86';
 });
 
-// Full-semicircle background arc
+// Background arc — full semicircle, flat (butt) linecaps so no blobs at endpoints
 const bgArc = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
 
-// Value arc from the left endpoint up to the current angle
+// Value arc — from left endpoint to the position for v
 const valueArc = computed<string | null>(() => {
     const val = v.value;
     if (val <= 0.005) return null;
     if (val >= 0.995) {
-        // Split into two halves to avoid SVG degenerate-arc bug
+        // Split to avoid SVG degenerate full-circle arc
         return `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy - r} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
     }
     const angle = Math.PI * (1 - val);
-    const ex    = cx + r * Math.cos(angle);
-    const ey    = cy - r * Math.sin(angle);
+    const ex    = (cx + r * Math.cos(angle)).toFixed(2);
+    const ey    = (cy - r * Math.sin(angle)).toFixed(2);
     const large = val > 0.5 ? 1 : 0;
-    return `M ${cx - r} ${cy} A ${r} ${r} 0 ${large} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}`;
-});
-
-// Glowing dot position at arc tip
-const tipX = computed(() => cx + r * Math.cos(Math.PI * (1 - v.value)));
-const tipY = computed(() => cy - r * Math.sin(Math.PI * (1 - v.value)));
-
-// Tick marks — 11 ticks across the arc
-const ticks = Array.from({ length: 11 }, (_, i) => {
-    const a   = Math.PI * (1 - i / 10);
-    const r1  = r + 3;
-    const r2  = r + 9;
-    return {
-        x1: cx + r1 * Math.cos(a),
-        y1: cy - r1 * Math.sin(a),
-        x2: cx + r2 * Math.cos(a),
-        y2: cy - r2 * Math.sin(a),
-    };
+    return `M ${cx - r} ${cy} A ${r} ${r} 0 ${large} 1 ${ex} ${ey}`;
 });
 </script>
 
 <template>
     <div class="flex flex-col items-center">
         <svg
-            viewBox="0 0 200 128"
-            class="w-full max-w-[210px]"
-            aria-label="`Finance Rate: ${clamped}%`"
+            viewBox="0 0 200 118"
+            class="w-full max-w-[200px]"
+            role="img"
+            :aria-label="`Finance Rate: ${clamped}%`"
         >
-            <!-- Tick marks -->
-            <line
-                v-for="(tick, i) in ticks"
-                :key="i"
-                :x1="tick.x1"
-                :y1="tick.y1"
-                :x2="tick.x2"
-                :y2="tick.y2"
-                stroke="#e6e6e6"
-                stroke-width="1.5"
-                stroke-linecap="round"
-            />
-
-            <!-- Background track -->
+            <!-- Background track — butt linecaps = no endpoint blobs -->
             <path
                 :d="bgArc"
                 fill="none"
-                stroke="#f0ecff"
-                stroke-width="13"
-                stroke-linecap="round"
+                stroke="#E2DBFF"
+                stroke-width="8"
+                stroke-linecap="butt"
             />
 
-            <!-- Colored value arc -->
+            <!-- Value arc — round linecap only at the leading tip -->
             <path
                 v-if="valueArc"
                 :d="valueArc"
                 fill="none"
                 :stroke="gaugeColor"
-                stroke-width="13"
+                stroke-width="8"
                 stroke-linecap="round"
             />
 
-            <!-- Glowing tip dot -->
-            <circle
-                v-if="v > 0.005"
-                :cx="tipX"
-                :cy="tipY"
-                r="8"
-                :fill="gaugeColor"
-                opacity="0.20"
-            />
-            <circle
-                v-if="v > 0.005"
-                :cx="tipX"
-                :cy="tipY"
-                r="4.5"
-                :fill="gaugeColor"
-            />
-
-            <!-- Big value label -->
+            <!-- Value label -->
             <text
                 :x="cx"
-                :y="cy - 22"
+                :y="cy - 18"
                 text-anchor="middle"
-                font-size="26"
+                font-size="28"
                 font-weight="700"
                 :fill="gaugeColor"
                 font-family="inherit"
             >{{ clamped }}%</text>
 
-            <!-- 0% / 100% end labels -->
+            <!-- 0% / 100% anchor labels -->
             <text
-                :x="cx - r + 2"
-                :y="cy + 16"
+                :x="cx - r - 2"
+                :y="cy + 14"
                 font-size="9"
-                fill="#989898"
+                fill="#BBBBBB"
                 text-anchor="middle"
                 font-family="inherit"
             >0%</text>
             <text
-                :x="cx + r - 2"
-                :y="cy + 16"
+                :x="cx + r + 2"
+                :y="cy + 14"
                 font-size="9"
-                fill="#989898"
+                fill="#BBBBBB"
                 text-anchor="middle"
                 font-family="inherit"
             >100%</text>

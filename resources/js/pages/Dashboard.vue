@@ -1048,7 +1048,14 @@ const monthlyData = computed(() => {
         if (m) m.income += parseNum(t.display_amount);
     }
 
-    return result;
+    // Drop empty leading months so bars never look isolated in a sea of zeros.
+    // Always keep at least the last 2 months (current + previous) for context.
+    const firstWithData = result.findIndex((m) => m.income > 0 || m.cost > 0);
+    const trimFrom      = firstWithData > 0
+        ? Math.min(firstWithData, result.length - 2) // keep ≥ 2 months
+        : 0;
+
+    return result.slice(trimFrom);
 });
 
 // ─── Recent rows (5 each) ─────────────────────────────────────────────────────

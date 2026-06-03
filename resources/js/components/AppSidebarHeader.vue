@@ -47,6 +47,7 @@ const pageTitle = computed(() => {
 
 const currencyProps = computed(() => page.props as CurrencyPageProps);
 const currencies = computed(() => currencyProps.value.currencies ?? []);
+const hasCurrencySelector = computed(() => currencies.value.length > 0);
 const selectedCurrency = computed({
     get: () => currencyProps.value.selectedCurrency ?? '',
     set: (value: string) => {
@@ -116,6 +117,7 @@ const selectedCurrency = computed({
             </div>
 
             <div
+                v-if="hasCurrencySelector"
                 class="flex items-center gap-4 lg:absolute lg:left-1/2 lg:-translate-x-1/2"
             >
                 <Label

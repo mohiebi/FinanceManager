@@ -1,16 +1,10 @@
 <script setup lang="ts">
 import ApexCharts from 'apexcharts';
-import { onMounted, onUnmounted, ref, watch } from 'vue';
-
-export type ChartSeries = {
-    name: string;
-    key: string;
-    color: string;
-    data: number[];
-};
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
-    series: ChartSeries[];
+    incomeData: number[];
+    costData: number[];
     categories: string[];
     height?: number;
 }>();
@@ -34,44 +28,45 @@ const formatAxisAmount = (amount: number) => {
     return amount.toFixed(0);
 };
 
+const columnWidth = computed(() => {
+    const categoryCount = props.categories.length;
+
+    if (categoryCount <= 2) {
+        return '40%';
+    }
+
+    if (categoryCount <= 3) {
+        return '55%';
+    }
+
+    if (categoryCount <= 4) {
+        return '65%';
+    }
+
+    return '75%';
+});
+
 const buildOptions = () => ({
     chart: {
-        type: 'area' as const,
-        height: props.height ?? 300,
+        type: 'bar' as const,
+        height: props.height ?? 220,
         background: 'transparent',
         toolbar: { show: false },
-        zoom: { enabled: false },
-        fontFamily: 'inherit',
         animations: { enabled: true, speed: 500, easing: 'easeinout' as const },
+        fontFamily: 'inherit',
     },
-    series: props.series.map((seriesItem) => ({
-        name: seriesItem.name,
-        data: seriesItem.data,
-    })),
-    colors: props.series.map((seriesItem) => seriesItem.color),
+    series: [
+        { name: 'Income', data: props.incomeData },
+        { name: 'Costs', data: props.costData },
+    ],
+    colors: ['#02CD86', '#6C4EE9'],
     xaxis: {
         categories: props.categories,
         axisBorder: { show: false },
         axisTicks: { show: false },
         labels: {
             style: { colors: '#989898', fontSize: '11px' },
-            hideOverlappingLabels: true,
-            rotate: 0,
-            formatter: (categoryValue: string) => {
-                const categoryDate = new Date(categoryValue);
-
-                if (isNaN(categoryDate.getTime())) {
-                    return categoryValue;
-                }
-
-                return categoryDate.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                });
-            },
         },
-        crosshairs: { stroke: { color: '#e6e6e6', dashArray: 4 } },
-        tooltip: { enabled: false },
     },
     yaxis: {
         labels: {
@@ -80,23 +75,24 @@ const buildOptions = () => ({
         },
         axisBorder: { show: false },
         axisTicks: { show: false },
+        min: 0,
     },
-    stroke: { curve: 'smooth' as const, width: 2 },
-    fill: {
-        type: 'gradient',
-        gradient: {
-            shadeIntensity: 1,
-            opacityFrom: 0.22,
-            opacityTo: 0.0,
-            stops: [0, 85, 100],
+    plotOptions: {
+        bar: {
+            columnWidth: columnWidth.value,
+            borderRadius: 6,
+            borderRadiusApplication: 'end' as const,
+            borderRadiusWhenStacked: 'last' as const,
+            dataLabels: { position: 'top' },
         },
     },
+    dataLabels: { enabled: false },
     grid: {
         borderColor: '#f0f0f0',
         strokeDashArray: 4,
         xaxis: { lines: { show: false } },
         yaxis: { lines: { show: true } },
-        padding: { top: 4, right: 16, bottom: 0, left: 8 },
+        padding: { top: 0, right: 16, bottom: 0, left: 8 },
     },
     tooltip: {
         theme: 'light' as const,
@@ -104,26 +100,29 @@ const buildOptions = () => ({
         intersect: false,
         y: {
             formatter: (amount: number) =>
-                new Intl.NumberFormat('en-US').format(amount) + ' T',
+                new Intl.NumberFormat('en-US').format(amount),
         },
     },
-    legend: {
-        show: props.series.length > 1,
-        position: 'top' as const,
-        horizontalAlign: 'right' as const,
-        fontFamily: 'inherit',
-        fontSize: '12px',
-        labels: { colors: '#2d2d2d' },
-        markers: { size: 6 },
-        itemMargin: { horizontal: 8 },
+    fill: {
+        type: 'gradient',
+        gradient: {
+            shade: 'light',
+            type: 'vertical',
+            shadeIntensity: 0.15,
+            opacityFrom: 1,
+            opacityTo: 0.85,
+            stops: [0, 100],
+        },
     },
-    markers: {
-        size: 0,
-        hover: { size: 4 },
-    },
+    legend: { show: false },
     noData: {
-        text: 'No data yet — add your first investment entry.',
+        text: 'No transactions yet',
+        align: 'center' as const,
+        verticalAlign: 'middle' as const,
         style: { color: '#989898', fontSize: '13px' },
+    },
+    states: {
+        hover: { filter: { type: 'lighten' as const, value: 0.08 } },
     },
 });
 
@@ -137,7 +136,7 @@ onMounted(() => {
 });
 
 watch(
-    () => [props.series, props.categories],
+    () => [props.incomeData, props.costData, props.categories],
     () => chart?.updateOptions(buildOptions(), false, true),
     { deep: true },
 );

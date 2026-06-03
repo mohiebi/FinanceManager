@@ -27,14 +27,11 @@ class InvestmentController extends Controller
             ->orderBy('created_at')
             ->get();
 
-        // Cumulative holdings per asset type
         $holdings = $this->computeHoldings($allEntries);
 
-        // Build per-asset summary with current values
         $assets = $this->buildAssets($holdings, $priceService);
         $totalValue = array_sum(array_column($assets, 'value'));
 
-        // Add allocation percentages
         $assets = array_map(function (array $asset) use ($totalValue) {
             return [
                 ...$asset,
@@ -42,63 +39,60 @@ class InvestmentController extends Controller
             ];
         }, $assets);
 
-        // Chart data for the selected time range
         $chartData = $this->generateChartData($allEntries, $range, $priceService);
 
-        // All available asset types for the Add form
-        $assetTypes = collect(AssetType::cases())->map(fn (AssetType $t) => [
-            'value' => $t->value,
-            'label' => $t->label(),
-            'unit'  => $t->unit(),
-            'icon'  => $t->icon(),
-            'color' => $t->color(),
+        $assetTypes = collect(AssetType::cases())->map(fn (AssetType $assetType) => [
+            'value' => $assetType->value,
+            'label' => $assetType->label(),
+            'unit' => $assetType->unit(),
+            'icon' => $assetType->icon(),
+            'color' => $assetType->color(),
         ]);
 
-        // Recent entries for the table
         $recentEntries = $user->investments()
             ->orderByDesc('occurred_at')
             ->orderByDesc('created_at')
             ->limit(100)
             ->get()
-            ->map(fn (Investment $inv) => [
-                'id'                  => $inv->id,
-                'asset_type'          => $inv->asset_type->value,
-                'asset_label'         => $inv->asset_type->label(),
-                'asset_icon'          => $inv->asset_type->icon(),
-                'asset_color'         => $inv->asset_type->color(),
-                'asset_unit'          => $inv->asset_type->unit(),
-                'quantity'            => (float) $inv->quantity,
-                'cost_basis'          => $inv->cost_basis !== null ? (float) $inv->cost_basis : null,
-                'cost_basis_currency' => $inv->cost_basis_currency,
-                'note'                => $inv->note,
-                'occurred_at'         => $inv->occurred_at->toDateString(),
+            ->map(fn (Investment $investment) => [
+                'id' => $investment->id,
+                'asset_type' => $investment->asset_type->value,
+                'asset_label' => $investment->asset_type->label(),
+                'asset_icon' => $investment->asset_type->icon(),
+                'asset_color' => $investment->asset_type->color(),
+                'asset_unit' => $investment->asset_type->unit(),
+                'quantity' => (float) $investment->quantity,
+                'cost_basis' => $investment->cost_basis !== null ? (float) $investment->cost_basis : null,
+                'cost_basis_currency' => $investment->cost_basis_currency,
+                'note' => $investment->note,
+                'occurred_at' => $investment->occurred_at->toDateString(),
             ]);
 
         return Inertia::render('Investments', [
-            'assets'        => $assets,
-            'summary'       => [
-                'total_value'           => $totalValue,
+            'assets' => $assets,
+            'summary' => [
+                'total_value' => $totalValue,
                 'total_value_formatted' => $this->formatMoney($totalValue),
-                'asset_count'           => count($assets),
-                'entry_count'           => $allEntries->count(),
+                'asset_count' => count($assets),
+                'entry_count' => $allEntries->count(),
             ],
-            'chartData'     => $chartData,
-            'assetTypes'    => $assetTypes,
-            'entries'       => $recentEntries,
+            'chartData' => $chartData,
+            'assetTypes' => $assetTypes,
+            'entries' => $recentEntries,
             'selectedRange' => $range,
-            'prices'        => $priceService->allPrices(),
+            'prices' => $priceService->allPrices(),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'asset_type'          => ['required', 'string', 'in:' . implode(',', array_column(AssetType::cases(), 'value'))],
-            'quantity'            => ['required', 'numeric', 'min:0.00000001'],
-            'cost_basis'          => ['nullable', 'numeric', 'min:0'],
+            'asset_type' => ['required', 'string', 'in:'.implode(',', array_column(AssetType::cases(), 'value'))],
+            'quantity' => ['required', 'numeric', 'min:0.00000001'],
+            'cost_basis' => ['nullable', 'numeric', 'min:0'],
             'cost_basis_currency' => ['nullable', 'string', 'max:10'],
-            'note'                => ['nullable', 'string', 'max:500'],
-            'occurred_at'         => ['required', 'date', 'before_or_equal:today'],
+            'note' => ['nullable', 'string', 'max:500'],
+            'occurred_at' => ['required', 'date', 'before_or_equal:today'],
         ]);
 
         $request->user()->investments()->create($validated);
@@ -111,12 +105,12 @@ class InvestmentController extends Controller
         abort_unless((int) $investment->user_id === (int) $request->user()->id, 404);
 
         $validated = $request->validate([
-            'asset_type'          => ['required', 'string', 'in:' . implode(',', array_column(AssetType::cases(), 'value'))],
-            'quantity'            => ['required', 'numeric', 'min:0.00000001'],
-            'cost_basis'          => ['nullable', 'numeric', 'min:0'],
+            'asset_type' => ['required', 'string', 'in:'.implode(',', array_column(AssetType::cases(), 'value'))],
+            'quantity' => ['required', 'numeric', 'min:0.00000001'],
+            'cost_basis' => ['nullable', 'numeric', 'min:0'],
             'cost_basis_currency' => ['nullable', 'string', 'max:10'],
-            'note'                => ['nullable', 'string', 'max:500'],
-            'occurred_at'         => ['required', 'date', 'before_or_equal:today'],
+            'note' => ['nullable', 'string', 'max:500'],
+            'occurred_at' => ['required', 'date', 'before_or_equal:today'],
         ]);
 
         $investment->fill($validated)->save();
@@ -132,8 +126,6 @@ class InvestmentController extends Controller
 
         return redirect()->back();
     }
-
-    // ─── Private helpers ────────────────────────────────────────────────────────
 
     /** @return array<string, float> */
     private function computeHoldings(Collection $entries): array
@@ -152,26 +144,26 @@ class InvestmentController extends Controller
     {
         $assets = [];
         foreach ($holdings as $typeValue => $quantity) {
-            $type  = AssetType::from($typeValue);
+            $type = AssetType::from($typeValue);
             $price = $priceService->priceFor($type);
             $value = $priceService->valueOf($type, $quantity);
 
             $assets[] = [
-                'key'               => $type->value,
-                'label'             => $type->label(),
-                'icon'              => $type->icon(),
-                'color'             => $type->color(),
-                'unit'              => $type->unit(),
-                'quantity'          => round($quantity, 8),
-                'quantity_display'  => $this->formatQuantity($quantity, $type),
-                'price'             => $price,
-                'price_formatted'   => $this->formatMoney($price),
-                'value'             => $value,
-                'value_formatted'   => $this->formatMoney($value),
+                'key' => $type->value,
+                'label' => $type->label(),
+                'icon' => $type->icon(),
+                'color' => $type->color(),
+                'unit' => $type->unit(),
+                'quantity' => round($quantity, 8),
+                'quantity_display' => $this->formatQuantity($quantity, $type),
+                'price' => $price,
+                'price_formatted' => $this->formatMoney($price),
+                'value' => $value,
+                'value_formatted' => $this->formatMoney($value),
             ];
         }
 
-        usort($assets, fn ($a, $b) => $b['value'] <=> $a['value']);
+        usort($assets, fn ($leftAsset, $rightAsset) => $rightAsset['value'] <=> $leftAsset['value']);
 
         return $assets;
     }
@@ -188,72 +180,69 @@ class InvestmentController extends Controller
             return ['categories' => [], 'series' => []];
         }
 
-        $now        = Carbon::today();
+        $now = Carbon::today();
         $firstEntry = Carbon::parse($entries->min('occurred_at'));
 
         [$from, $step] = match ($range) {
-            '1w'    => [$now->copy()->subDays(6), 'day'],
-            '3m'    => [$now->copy()->subMonths(3), 'week'],
-            '1y'    => [$now->copy()->subYear(), 'month'],
-            'all'   => [$firstEntry->copy(), 'month'],
-            default => [$now->copy()->subDays(29), 'day'],   // '1m'
+            '1w' => [$now->copy()->subDays(6), 'day'],
+            '3m' => [$now->copy()->subMonths(3), 'week'],
+            '1y' => [$now->copy()->subYear(), 'month'],
+            'all' => [$firstEntry->copy(), 'month'],
+            default => [$now->copy()->subDays(29), 'day'],
         };
 
-        // Generate ordered date points
         $dates = [];
-        $cur   = $from->copy();
-        while ($cur->lte($now)) {
-            $dates[] = $cur->toDateString();
+        $dateCursor = $from->copy();
+        while ($dateCursor->lte($now)) {
+            $dates[] = $dateCursor->toDateString();
             match ($step) {
-                'day'   => $cur->addDay(),
-                'week'  => $cur->addWeek(),
-                'month' => $cur->addMonthNoOverflow(),
+                'day' => $dateCursor->addDay(),
+                'week' => $dateCursor->addWeek(),
+                'month' => $dateCursor->addMonthNoOverflow(),
             };
         }
         if (! in_array($now->toDateString(), $dates, true)) {
             $dates[] = $now->toDateString();
         }
 
-        // Unique asset types present in this user's entries
         $assetTypes = $entries->pluck('asset_type')->unique()->values();
 
-        $seriesList  = [];
+        $seriesList = [];
         $totalByDate = array_fill_keys($dates, 0.0);
 
         foreach ($assetTypes as $assetType) {
-            $typeEntries = $entries->filter(fn ($e) => $e->asset_type === $assetType);
-            $price       = $priceService->priceFor($assetType);
-            $seriesData  = [];
+            $typeEntries = $entries->filter(fn ($entry) => $entry->asset_type === $assetType);
+            $price = $priceService->priceFor($assetType);
+            $seriesData = [];
 
             foreach ($dates as $date) {
                 $dateParsed = Carbon::parse($date);
-                $cumQty     = $typeEntries
-                    ->filter(fn ($e) => $e->occurred_at->lte($dateParsed))
+                $cumulativeQuantity = $typeEntries
+                    ->filter(fn ($entry) => $entry->occurred_at->lte($dateParsed))
                     ->sum('quantity');
-                $value         = round((float) $cumQty * $price);
-                $seriesData[]  = $value;
+                $value = round((float) $cumulativeQuantity * $price);
+                $seriesData[] = $value;
                 $totalByDate[$date] += $value;
             }
 
             $seriesList[] = [
-                'name'  => $assetType->label(),
-                'key'   => $assetType->value,
+                'name' => $assetType->label(),
+                'key' => $assetType->value,
                 'color' => $assetType->color(),
-                'data'  => $seriesData,
+                'data' => $seriesData,
             ];
         }
 
-        // Total portfolio series — always first
         array_unshift($seriesList, [
-            'name'  => 'Total Portfolio',
-            'key'   => 'total',
+            'name' => 'Total Portfolio',
+            'key' => 'total',
             'color' => '#02CD86',
-            'data'  => array_values($totalByDate),
+            'data' => array_values($totalByDate),
         ]);
 
         return [
             'categories' => $dates,
-            'series'     => $seriesList,
+            'series' => $seriesList,
         ];
     }
 
@@ -266,7 +255,7 @@ class InvestmentController extends Controller
     {
         return match ($type) {
             AssetType::Bitcoin => number_format($quantity, 6),
-            default            => number_format($quantity, 2),
+            default => number_format($quantity, 2),
         };
     }
 }

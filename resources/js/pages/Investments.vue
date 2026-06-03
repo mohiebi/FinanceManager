@@ -14,9 +14,7 @@
                 >
                     Total Portfolio Value
                 </p>
-                <p
-                    class="mt-3 text-2xl font-bold text-[#2d2d2d]"
-                >
+                <p class="mt-3 text-2xl font-bold text-[#2d2d2d]">
                     {{ props.summary.total_value_formatted }}
                     <span class="text-sm font-normal text-[#989898]">T</span>
                 </p>
@@ -63,14 +61,10 @@
                 class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
             >
                 <div class="mb-4 flex items-center justify-between">
-                    <h2
-                        class="text-[18px] font-normal leading-none text-black"
-                    >
+                    <h2 class="text-[18px] leading-none font-normal text-black">
                         Allocation
                     </h2>
-                    <span class="text-xs text-[#989898]"
-                        >by current value</span
-                    >
+                    <span class="text-xs text-[#989898]">by current value</span>
                 </div>
                 <DonutChart
                     :series="donutSeries"
@@ -89,26 +83,24 @@
                 <div
                     class="mb-4 flex flex-wrap items-center justify-between gap-3"
                 >
-                    <h2
-                        class="text-[18px] font-normal leading-none text-black"
-                    >
+                    <h2 class="text-[18px] leading-none font-normal text-black">
                         Value over time
                     </h2>
                     <!-- Range buttons -->
                     <div class="flex flex-wrap gap-1.5">
                         <button
-                            v-for="r in ranges"
-                            :key="r.value"
+                            v-for="rangeOption in ranges"
+                            :key="rangeOption.value"
                             type="button"
                             :class="[
                                 'rounded-full px-3 py-1 text-xs font-medium transition',
-                                selectedRange === r.value
+                                selectedRange === rangeOption.value
                                     ? 'bg-[#2d2d2d] text-white'
                                     : 'bg-white text-[#2d2d2d] ring-1 ring-[#e6e6e6] hover:bg-[#f7f7f7]',
                             ]"
-                            @click="changeRange(r.value)"
+                            @click="changeRange(rangeOption.value)"
                         >
-                            {{ r.label }}
+                            {{ rangeOption.label }}
                         </button>
                     </div>
                 </div>
@@ -116,27 +108,27 @@
                 <!-- Series toggle chips -->
                 <div class="mb-3 flex flex-wrap gap-2">
                     <button
-                        v-for="s in availableSeries"
-                        :key="s.key"
+                        v-for="seriesItem in availableSeries"
+                        :key="seriesItem.key"
                         type="button"
                         :class="[
                             'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition',
-                            activeSeries.has(s.key)
+                            activeSeries.has(seriesItem.key)
                                 ? 'text-white'
                                 : 'bg-[#f4f4f4] text-[#989898] ring-1 ring-[#e6e6e6]',
                         ]"
                         :style="
-                            activeSeries.has(s.key)
-                                ? { backgroundColor: s.color }
+                            activeSeries.has(seriesItem.key)
+                                ? { backgroundColor: seriesItem.color }
                                 : {}
                         "
-                        @click="toggleSeries(s.key)"
+                        @click="toggleSeries(seriesItem.key)"
                     >
                         <span
                             class="size-2 shrink-0 rounded-full"
-                            :style="{ backgroundColor: s.color }"
+                            :style="{ backgroundColor: seriesItem.color }"
                         />
-                        {{ s.name }}
+                        {{ seriesItem.name }}
                     </button>
                 </div>
 
@@ -205,14 +197,10 @@
         <!-- ── Recent entries table ──────────────────────────────── -->
         <div
             v-if="props.entries.length > 0"
-            class="mx-[18px] mb-[38px] mt-[18px] overflow-hidden rounded-[22px] bg-white shadow-sm"
+            class="mx-[18px] mt-[18px] mb-[38px] overflow-hidden rounded-[22px] bg-white shadow-sm"
         >
-            <div
-                class="flex items-center justify-between gap-4 px-5 py-[29px]"
-            >
-                <h2
-                    class="text-[22px] leading-none font-normal text-black"
-                >
+            <div class="flex items-center justify-between gap-4 px-5 py-[29px]">
+                <h2 class="text-[22px] leading-none font-normal text-black">
                     Investment entries
                 </h2>
                 <Button
@@ -268,9 +256,7 @@
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-black sm:px-5"
                             >
-                                <span class="mr-1">{{
-                                    entry.asset_icon
-                                }}</span>
+                                <span class="mr-1">{{ entry.asset_icon }}</span>
                                 {{ entry.asset_label }}
                             </td>
                             <td
@@ -294,9 +280,7 @@
                             >
                                 {{ entry.occurred_at }}
                             </td>
-                            <td
-                                class="px-3 py-[14px] text-center sm:px-5"
-                            >
+                            <td class="px-3 py-[14px] text-center sm:px-5">
                                 <div
                                     class="flex items-center justify-center gap-2 opacity-0 transition group-hover:opacity-100"
                                 >
@@ -352,9 +336,7 @@
 
                     <div class="space-y-5">
                         <!-- Asset type + Quantity -->
-                        <div
-                            class="grid gap-2 sm:grid-cols-[1fr_140px]"
-                        >
+                        <div class="grid gap-2 sm:grid-cols-[1fr_140px]">
                             <div class="grid gap-2">
                                 <Label
                                     class="finance-dialog-label"
@@ -373,17 +355,17 @@
                                         Select asset
                                     </option>
                                     <option
-                                        v-for="t in props.assetTypes"
-                                        :key="t.value"
-                                        :value="t.value"
+                                        v-for="assetType in props.assetTypes"
+                                        :key="assetType.value"
+                                        :value="assetType.value"
                                     >
-                                        {{ t.icon }} {{ t.label }}
-                                        ({{ t.unit }})
+                                        {{ assetType.icon }}
+                                        {{ assetType.label }} ({{
+                                            assetType.unit
+                                        }})
                                     </option>
                                 </select>
-                                <InputError
-                                    :message="form.errors.asset_type"
-                                />
+                                <InputError :message="form.errors.asset_type" />
                             </div>
 
                             <div class="grid gap-2">
@@ -410,13 +392,8 @@
                         <!-- Date -->
                         <div class="grid gap-2">
                             <Label class="finance-dialog-label">Date</Label>
-                            <div
-                                class="grid gap-2 sm:grid-cols-[1fr_1fr_1fr]"
-                            >
-                                <Select
-                                    v-model="selectedMonth"
-                                    required
-                                >
+                            <div class="grid gap-2 sm:grid-cols-[1fr_1fr_1fr]">
+                                <Select v-model="selectedMonth" required>
                                     <SelectTrigger
                                         class="finance-dialog-field"
                                         :class="fieldClass"
@@ -425,11 +402,11 @@
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem
-                                            v-for="m in months"
-                                            :key="m.value"
-                                            :value="m.value"
+                                            v-for="monthOption in months"
+                                            :key="monthOption.value"
+                                            :value="monthOption.value"
                                         >
-                                            {{ m.label }}
+                                            {{ monthOption.label }}
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -442,11 +419,11 @@
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem
-                                            v-for="d in daysInMonth"
-                                            :key="d"
-                                            :value="d"
+                                            v-for="dayOption in daysInMonth"
+                                            :key="dayOption"
+                                            :value="dayOption"
                                         >
-                                            {{ Number(d) }}
+                                            {{ Number(dayOption) }}
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -459,11 +436,11 @@
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem
-                                            v-for="y in years"
-                                            :key="y"
-                                            :value="y"
+                                            v-for="yearOption in years"
+                                            :key="yearOption"
+                                            :value="yearOption"
                                         >
-                                            {{ y }}
+                                            {{ yearOption }}
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -513,10 +490,7 @@
         </Dialog>
 
         <!-- Floating add button when there are already entries -->
-        <div
-            v-if="props.assets.length > 0"
-            class="fixed right-6 bottom-6 z-10"
-        >
+        <div v-if="props.assets.length > 0" class="fixed right-6 bottom-6 z-10">
             <Button
                 class="h-14 w-14 rounded-full bg-[linear-gradient(135deg,#947BFF_0%,#6C4EE9_100%)] p-0 text-white shadow-[0_8px_24px_rgba(108,78,233,0.35)] hover:brightness-105"
                 @click="openCreateDialog()"
@@ -556,8 +530,6 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard } from '@/routes';
 import { index as investmentsIndex } from '@/routes/investments';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 type AssetKey = 'gold' | 'silver' | 'usd' | 'eur' | 'coin' | 'bitcoin';
 
@@ -603,8 +575,6 @@ type ChartData = {
     series: ChartSeries[];
 };
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
 const props = defineProps<{
     assets: AssetSummary[];
     summary: {
@@ -629,54 +599,67 @@ defineOptions({
     },
 });
 
-// ─── Chart state ─────────────────────────────────────────────────────────────
-
 const ranges = [
-    { label: '1W',  value: '1w' },
-    { label: '1M',  value: '1m' },
-    { label: '3M',  value: '3m' },
-    { label: '1Y',  value: '1y' },
+    { label: '1W', value: '1w' },
+    { label: '1M', value: '1m' },
+    { label: '3M', value: '3m' },
+    { label: '1Y', value: '1y' },
     { label: 'All', value: 'all' },
 ];
 
 const selectedRange = ref(props.selectedRange);
 
-const availableSeries = computed<ChartSeries[]>(() => props.chartData.series ?? []);
-const activeSeries    = ref<Set<string>>(new Set(availableSeries.value.map(s => s.key)));
-
-const filteredChartSeries = computed<ChartSeries[]>(() =>
-    availableSeries.value.filter(s => activeSeries.value.has(s.key)),
+const availableSeries = computed<ChartSeries[]>(
+    () => props.chartData.series ?? [],
+);
+const activeSeries = ref<Set<string>>(
+    new Set(availableSeries.value.map((seriesItem) => seriesItem.key)),
 );
 
-// Donut chart data
-const donutSeries = computed(() => props.assets.map(a => a.allocation));
-const donutLabels = computed(() => props.assets.map(a => a.label));
-const donutColors = computed(() => props.assets.map(a => a.color));
+const filteredChartSeries = computed<ChartSeries[]>(() =>
+    availableSeries.value.filter((seriesItem) =>
+        activeSeries.value.has(seriesItem.key),
+    ),
+);
+
+const donutSeries = computed(() =>
+    props.assets.map((asset) => asset.allocation),
+);
+const donutLabels = computed(() => props.assets.map((asset) => asset.label));
+const donutColors = computed(() => props.assets.map((asset) => asset.color));
 
 function toggleSeries(key: string) {
     if (activeSeries.value.has(key)) {
-        if (activeSeries.value.size === 1) return; // keep at least one
+        if (activeSeries.value.size === 1) {
+            return;
+        }
+
         activeSeries.value.delete(key);
     } else {
         activeSeries.value.add(key);
     }
+
     activeSeries.value = new Set(activeSeries.value);
 }
 
-function onSliceClick(idx: number | null) {
-    if (idx === null) {
-        // reset to all series
-        activeSeries.value = new Set(availableSeries.value.map(s => s.key));
+function onSliceClick(sliceIndex: number | null) {
+    if (sliceIndex === null) {
+        activeSeries.value = new Set(
+            availableSeries.value.map((seriesItem) => seriesItem.key),
+        );
     } else {
-        const asset = props.assets[idx];
-        if (!asset) return;
-        // If clicking the same single-active asset, reset
+        const asset = props.assets[sliceIndex];
+
+        if (!asset) {
+            return;
+        }
+
         if (
             activeSeries.value.size === 1 &&
             activeSeries.value.has(asset.key)
         ) {
             activeSeries.value = new Set(
-                availableSeries.value.map(s => s.key),
+                availableSeries.value.map((seriesItem) => seriesItem.key),
             );
         } else {
             activeSeries.value = new Set([asset.key]);
@@ -697,25 +680,26 @@ watch(
     () => props.chartData.series,
     () => {
         activeSeries.value = new Set(
-            (props.chartData.series ?? []).map(s => s.key),
+            (props.chartData.series ?? []).map((seriesItem) => seriesItem.key),
         );
     },
 );
 
-// ─── Dialog / form ────────────────────────────────────────────────────────────
-
 const isDialogOpen = ref(false);
-const editingId     = ref<number | null>(null);
+const editingId = ref<number | null>(null);
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-const selectedYear  = ref('');
+const selectedYear = ref('');
 const selectedMonth = ref('');
-const selectedDay   = ref('');
+const selectedDay = ref('');
 
 const years = computed(() => {
-    const y = new Date().getFullYear();
-    return Array.from({ length: 17 }, (_, i) => String(y + 1 - i));
+    const currentYear = new Date().getFullYear();
+
+    return Array.from({ length: 17 }, (_, yearIndex) =>
+        String(currentYear + 1 - yearIndex),
+    );
 });
 
 const months = [
@@ -734,20 +718,27 @@ const months = [
 ];
 
 const daysInMonth = computed(() => {
-    const y = Number(selectedYear.value  || new Date().getFullYear());
-    const m = Number(selectedMonth.value || 1);
-    const count = new Date(y, m, 0).getDate();
-    return Array.from({ length: count }, (_, i) =>
-        String(i + 1).padStart(2, '0'),
+    const selectedYearNumber = Number(
+        selectedYear.value || new Date().getFullYear(),
+    );
+    const selectedMonthNumber = Number(selectedMonth.value || 1);
+    const dayCount = new Date(
+        selectedYearNumber,
+        selectedMonthNumber,
+        0,
+    ).getDate();
+
+    return Array.from({ length: dayCount }, (_, dayIndex) =>
+        String(dayIndex + 1).padStart(2, '0'),
     );
 });
 
 const form = useForm({
-    asset_type:          '',
-    quantity:            '',
-    note:                '',
-    occurred_at:         today(),
-    cost_basis:          '',
+    asset_type: '',
+    quantity: '',
+    note: '',
+    occurred_at: today(),
+    cost_basis: '',
     cost_basis_currency: '',
 });
 
@@ -755,18 +746,21 @@ const fieldClass =
     'finance-dialog-field finance-dialog-field-cost focus-visible:ring-[#947BFF]/30';
 
 function syncDatePicker(date: string) {
-    const [y, m, d] = date.split('-');
-    selectedYear.value  = y ?? '';
-    selectedMonth.value = m ?? '';
-    selectedDay.value   = d ?? '';
+    const [yearPart, monthPart, dayPart] = date.split('-');
+    selectedYear.value = yearPart ?? '';
+    selectedMonth.value = monthPart ?? '';
+    selectedDay.value = dayPart ?? '';
 }
 
 watch([selectedYear, selectedMonth, selectedDay], () => {
-    if (!selectedYear.value || !selectedMonth.value || !selectedDay.value) return;
+    if (!selectedYear.value || !selectedMonth.value || !selectedDay.value) {
+        return;
+    }
+
     form.occurred_at = `${selectedYear.value}-${selectedMonth.value}-${selectedDay.value}`;
 });
 
-watch(daysInMonth, days => {
+watch(daysInMonth, (days) => {
     if (selectedDay.value && !days.includes(selectedDay.value)) {
         selectedDay.value = days.at(-1) ?? '';
     }
@@ -776,23 +770,23 @@ function openCreateDialog(defaultType?: AssetKey) {
     editingId.value = null;
     form.reset();
     form.clearErrors();
-    form.asset_type  = defaultType ?? (props.assetTypes[0]?.value ?? '');
+    form.asset_type = defaultType ?? props.assetTypes[0]?.value ?? '';
     form.occurred_at = today();
     syncDatePicker(form.occurred_at);
     isDialogOpen.value = true;
 }
 
 function openEditDialog(entry: Entry) {
-    editingId.value      = entry.id;
+    editingId.value = entry.id;
     form.clearErrors();
-    form.asset_type      = entry.asset_type;
-    form.quantity        = String(entry.quantity);
-    form.note            = entry.note ?? '';
-    form.occurred_at     = entry.occurred_at;
-    form.cost_basis      = entry.cost_basis !== null ? String(entry.cost_basis) : '';
+    form.asset_type = entry.asset_type;
+    form.quantity = String(entry.quantity);
+    form.note = entry.note ?? '';
+    form.occurred_at = entry.occurred_at;
+    form.cost_basis = entry.cost_basis !== null ? String(entry.cost_basis) : '';
     form.cost_basis_currency = entry.cost_basis_currency ?? '';
     syncDatePicker(entry.occurred_at);
-    isDialogOpen.value   = true;
+    isDialogOpen.value = true;
 }
 
 function submitEntry() {
@@ -800,7 +794,7 @@ function submitEntry() {
         preserveScroll: true,
         onSuccess: () => {
             isDialogOpen.value = false;
-            editingId.value    = null;
+            editingId.value = null;
         },
     };
 
@@ -811,16 +805,18 @@ function submitEntry() {
     }
 }
 
-function deleteEntry(id: number) {
-    if (!confirm('Delete this investment entry?')) return;
-    router.delete(`/investments/${id}`, { preserveScroll: true });
+function deleteEntry(investmentId: number) {
+    if (!confirm('Delete this investment entry?')) {
+        return;
+    }
+
+    router.delete(`/investments/${investmentId}`, { preserveScroll: true });
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatEntryValue(qty: number, assetType: AssetKey): string {
+function formatEntryValue(quantity: number, assetType: AssetKey): string {
     const price = props.prices[assetType] ?? 0;
-    return new Intl.NumberFormat('en-US').format(Math.round(qty * price));
+
+    return new Intl.NumberFormat('en-US').format(Math.round(quantity * price));
 }
 
 syncDatePicker(form.occurred_at);

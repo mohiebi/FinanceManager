@@ -146,7 +146,7 @@
                     </article>
                 </div>
                 <div
-                    class="grid items-stretch gap-[18px] md:grid-cols-[240px_1fr]"
+                    class="grid items-stretch gap-[18px] md:grid-cols-[1fr_2fr]"
                 >
                     <div
                         class="flex min-h-[244px] flex-col items-center justify-center rounded-[22px] bg-white p-5 shadow-sm"

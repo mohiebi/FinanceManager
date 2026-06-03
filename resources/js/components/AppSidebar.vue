@@ -7,6 +7,8 @@ import {
     PanelLeftOpen,
     ReceiptText,
     Settings,
+    TrendingUp,
+    Wallet,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import {
@@ -17,7 +19,8 @@ import {
 import { Sidebar, useSidebar } from '@/components/ui/sidebar';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import { dashboard, report } from '@/routes';
+import { dashboard, portfolio, report } from '@/routes';
+import { index as investmentsIndex } from '@/routes/investments';
 import { index as transactionsIndex } from '@/routes/transactions';
 import type { NavItem } from '@/types';
 
@@ -28,14 +31,24 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
+        title: 'Transactions',
+        href: transactionsIndex(),
+        icon: ReceiptText,
+    },
+    {
         title: 'Report',
         href: report(),
         icon: ChartPie,
     },
     {
-        title: 'Transactions',
-        href: transactionsIndex(),
-        icon: ReceiptText,
+        title: 'Investments',
+        href: investmentsIndex(),
+        icon: TrendingUp,
+    },
+    {
+        title: 'Portfolio',
+        href: portfolio(),
+        icon: Wallet,
     },
 ];
 

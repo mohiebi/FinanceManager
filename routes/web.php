@@ -3,6 +3,8 @@
 use App\Http\Controllers\Auth\EmailAuthPageController;
 use App\Http\Controllers\Auth\WebEmailAuthController;
 use App\Http\Controllers\Auth\WebGoogleAuthController;
+use App\Http\Controllers\InvestmentController;
+use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Middleware\EnsureProfileIsComplete;
@@ -51,6 +53,8 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     Route::get('dashboard', [TransactionController::class, 'dashboard'])->name('dashboard');
     Route::get('reports', ReportController::class)->name('report');
     Route::resource('transactions', TransactionController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('investments', InvestmentController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::get('portfolio', PortfolioController::class)->name('portfolio');
 });
 
 require __DIR__.'/settings.php';

@@ -12,34 +12,34 @@ const props = defineProps<{
 const chartRef = ref<HTMLElement | null>(null);
 let chart: ApexCharts | null = null;
 
-const fmt = (val: number) => {
-    if (val >= 1_000_000_000) {
-        return (val / 1_000_000_000).toFixed(1) + 'B';
+const formatAxisAmount = (amount: number) => {
+    if (amount >= 1_000_000_000) {
+        return (amount / 1_000_000_000).toFixed(1) + 'B';
     }
 
-    if (val >= 1_000_000) {
-        return (val / 1_000_000).toFixed(1) + 'M';
+    if (amount >= 1_000_000) {
+        return (amount / 1_000_000).toFixed(1) + 'M';
     }
 
-    if (val >= 1_000) {
-        return (val / 1_000).toFixed(0) + 'K';
+    if (amount >= 1_000) {
+        return (amount / 1_000).toFixed(0) + 'K';
     }
 
-    return val.toFixed(0);
+    return amount.toFixed(0);
 };
 
 const columnWidth = computed(() => {
-    const count = props.categories.length;
+    const categoryCount = props.categories.length;
 
-    if (count <= 2) {
+    if (categoryCount <= 2) {
         return '40%';
     }
 
-    if (count <= 3) {
+    if (categoryCount <= 3) {
         return '55%';
     }
 
-    if (count <= 4) {
+    if (categoryCount <= 4) {
         return '65%';
     }
 
@@ -71,7 +71,7 @@ const buildOptions = () => ({
     yaxis: {
         labels: {
             style: { colors: '#989898', fontSize: '11px' },
-            formatter: fmt,
+            formatter: formatAxisAmount,
         },
         axisBorder: { show: false },
         axisTicks: { show: false },
@@ -99,8 +99,8 @@ const buildOptions = () => ({
         shared: true,
         intersect: false,
         y: {
-            formatter: (val: number) =>
-                new Intl.NumberFormat('en-US').format(val),
+            formatter: (amount: number) =>
+                new Intl.NumberFormat('en-US').format(amount),
         },
     },
     fill: {

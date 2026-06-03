@@ -5,14 +5,14 @@ const props = defineProps<{
     value: number;
 }>();
 
-const cx = 100;
-const cy = 106;
-const r = 80;
+const centerX = 100;
+const centerY = 106;
+const radius = 80;
 
 const clamped = computed(() =>
     Math.max(0, Math.min(100, Math.round(props.value))),
 );
-const v = computed(() => clamped.value / 100);
+const valueRatio = computed(() => clamped.value / 100);
 
 const gaugeColor = computed(() => {
     if (clamped.value < 40) {
@@ -26,33 +26,37 @@ const gaugeColor = computed(() => {
     return '#02CD86';
 });
 
-const bgArc = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
+const backgroundArc = `M ${centerX - radius} ${centerY} A ${radius} ${radius} 0 0 1 ${centerX + radius} ${centerY}`;
 
 const valueArc = computed<string | null>(() => {
-    const val = v.value;
+    const currentRatio = valueRatio.value;
 
-    if (val <= 0.005) {
+    if (currentRatio <= 0.005) {
         return null;
     }
 
-    if (val >= 0.995) {
+    if (currentRatio >= 0.995) {
         return (
-            `M ${cx - r} ${cy}` +
-            ` A ${r} ${r} 0 0 1 ${cx} ${cy - r}` +
-            ` A ${r} ${r} 0 0 1 ${cx + r} ${cy}`
+            `M ${centerX - radius} ${centerY}` +
+            ` A ${radius} ${radius} 0 0 1 ${centerX} ${centerY - radius}` +
+            ` A ${radius} ${radius} 0 0 1 ${centerX + radius} ${centerY}`
         );
     }
 
-    const angle = Math.PI * (1 - val);
-    const ex = (cx + r * Math.cos(angle)).toFixed(2);
-    const ey = (cy - r * Math.sin(angle)).toFixed(2);
-    const large = val > 0.5 ? 1 : 0;
+    const angle = Math.PI * (1 - currentRatio);
+    const endpointX = (centerX + radius * Math.cos(angle)).toFixed(2);
+    const endpointY = (centerY - radius * Math.sin(angle)).toFixed(2);
+    const largeArc = currentRatio > 0.5 ? 1 : 0;
 
-    return `M ${cx - r} ${cy} A ${r} ${r} 0 ${large} 1 ${ex} ${ey}`;
+    return `M ${centerX - radius} ${centerY} A ${radius} ${radius} 0 ${largeArc} 1 ${endpointX} ${endpointY}`;
 });
 
-const tipX = computed(() => cx + r * Math.cos(Math.PI * (1 - v.value)));
-const tipY = computed(() => cy - r * Math.sin(Math.PI * (1 - v.value)));
+const indicatorX = computed(
+    () => centerX + radius * Math.cos(Math.PI * (1 - valueRatio.value)),
+);
+const indicatorY = computed(
+    () => centerY - radius * Math.sin(Math.PI * (1 - valueRatio.value)),
+);
 </script>
 
 <template>
@@ -64,7 +68,7 @@ const tipY = computed(() => cy - r * Math.sin(Math.PI * (1 - v.value)));
             :aria-label="`Finance Rate: ${clamped}%`"
         >
             <path
-                :d="bgArc"
+                :d="backgroundArc"
                 fill="none"
                 stroke="#E2DBFF"
                 stroke-width="7"
@@ -81,9 +85,9 @@ const tipY = computed(() => cy - r * Math.sin(Math.PI * (1 - v.value)));
             />
 
             <circle
-                v-if="v > 0.005 && v < 0.995"
-                :cx="tipX"
-                :cy="tipY"
+                v-if="valueRatio > 0.005 && valueRatio < 0.995"
+                :cx="indicatorX"
+                :cy="indicatorY"
                 r="5.5"
                 :fill="gaugeColor"
                 stroke="white"
@@ -91,8 +95,8 @@ const tipY = computed(() => cy - r * Math.sin(Math.PI * (1 - v.value)));
             />
 
             <text
-                :x="cx"
-                :y="cy - 18"
+                :x="centerX"
+                :y="centerY - 18"
                 text-anchor="middle"
                 font-size="28"
                 font-weight="700"
@@ -103,8 +107,8 @@ const tipY = computed(() => cy - r * Math.sin(Math.PI * (1 - v.value)));
             </text>
 
             <text
-                :x="cx - r"
-                :y="cy + 14"
+                :x="centerX - radius"
+                :y="centerY + 14"
                 font-size="9"
                 fill="#BBBBBB"
                 text-anchor="middle"
@@ -113,8 +117,8 @@ const tipY = computed(() => cy - r * Math.sin(Math.PI * (1 - v.value)));
                 0%
             </text>
             <text
-                :x="cx + r"
-                :y="cy + 14"
+                :x="centerX + radius"
+                :y="centerY + 14"
                 font-size="9"
                 fill="#BBBBBB"
                 text-anchor="middle"

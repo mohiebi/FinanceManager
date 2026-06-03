@@ -18,20 +18,20 @@ const props = defineProps<{
 const chartRef = ref<HTMLElement | null>(null);
 let chart: ApexCharts | null = null;
 
-const fmt = (val: number) => {
-    if (val >= 1_000_000_000) {
-        return (val / 1_000_000_000).toFixed(1) + 'B';
+const formatAxisAmount = (amount: number) => {
+    if (amount >= 1_000_000_000) {
+        return (amount / 1_000_000_000).toFixed(1) + 'B';
     }
 
-    if (val >= 1_000_000) {
-        return (val / 1_000_000).toFixed(1) + 'M';
+    if (amount >= 1_000_000) {
+        return (amount / 1_000_000).toFixed(1) + 'M';
     }
 
-    if (val >= 1_000) {
-        return (val / 1_000).toFixed(0) + 'K';
+    if (amount >= 1_000) {
+        return (amount / 1_000).toFixed(0) + 'K';
     }
 
-    return val.toFixed(0);
+    return amount.toFixed(0);
 };
 
 const buildOptions = () => ({
@@ -44,8 +44,11 @@ const buildOptions = () => ({
         fontFamily: 'inherit',
         animations: { enabled: true, speed: 500, easing: 'easeinout' as const },
     },
-    series: props.series.map((s) => ({ name: s.name, data: s.data })),
-    colors: props.series.map((s) => s.color),
+    series: props.series.map((seriesItem) => ({
+        name: seriesItem.name,
+        data: seriesItem.data,
+    })),
+    colors: props.series.map((seriesItem) => seriesItem.color),
     xaxis: {
         categories: props.categories,
         axisBorder: { show: false },
@@ -54,14 +57,14 @@ const buildOptions = () => ({
             style: { colors: '#989898', fontSize: '11px' },
             hideOverlappingLabels: true,
             rotate: 0,
-            formatter: (val: string) => {
-                const d = new Date(val);
+            formatter: (categoryValue: string) => {
+                const categoryDate = new Date(categoryValue);
 
-                if (isNaN(d.getTime())) {
-                    return val;
+                if (isNaN(categoryDate.getTime())) {
+                    return categoryValue;
                 }
 
-                return d.toLocaleDateString('en-US', {
+                return categoryDate.toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                 });
@@ -73,7 +76,7 @@ const buildOptions = () => ({
     yaxis: {
         labels: {
             style: { colors: '#989898', fontSize: '11px' },
-            formatter: fmt,
+            formatter: formatAxisAmount,
         },
         axisBorder: { show: false },
         axisTicks: { show: false },
@@ -100,8 +103,8 @@ const buildOptions = () => ({
         shared: true,
         intersect: false,
         y: {
-            formatter: (val: number) =>
-                new Intl.NumberFormat('en-US').format(val) + ' T',
+            formatter: (amount: number) =>
+                new Intl.NumberFormat('en-US').format(amount) + ' T',
         },
     },
     legend: {

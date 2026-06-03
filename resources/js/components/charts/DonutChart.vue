@@ -27,22 +27,22 @@ const buildOptions = () => ({
         animations: { enabled: true, speed: 500 },
         events: {
             dataPointSelection: (
-                _e: MouseEvent,
-                _ctx?: ApexCharts,
+                _event: MouseEvent,
+                _chartContext?: ApexCharts,
                 config?: { dataPointIndex?: number },
             ) => {
-                const idx = config?.dataPointIndex;
+                const sliceIndex = config?.dataPointIndex;
 
-                if (idx === undefined || idx < 0) {
+                if (sliceIndex === undefined || sliceIndex < 0) {
                     return;
                 }
 
-                if (activeSlice === idx) {
+                if (activeSlice === sliceIndex) {
                     activeSlice = null;
                     emit('sliceClick', null);
                 } else {
-                    activeSlice = idx;
-                    emit('sliceClick', idx);
+                    activeSlice = sliceIndex;
+                    emit('sliceClick', sliceIndex);
                 }
             },
         },
@@ -60,18 +60,26 @@ const buildOptions = () => ({
         itemMargin: { horizontal: 6, vertical: 3 },
         formatter: (
             label: string,
-            opts?: {
+            legendOptions?: {
                 w?: { globals?: { series?: number[] } };
                 seriesIndex?: number;
             },
         ) => {
-            const series = opts?.w?.globals?.series ?? [];
-            const index = opts?.seriesIndex ?? -1;
-            const total = series.reduce((a: number, b: number) => a + b, 0);
-            const value = index >= 0 ? (series[index] ?? 0) : 0;
-            const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+            const seriesValues = legendOptions?.w?.globals?.series ?? [];
+            const seriesIndex = legendOptions?.seriesIndex ?? -1;
+            const totalValue = seriesValues.reduce(
+                (runningTotal: number, seriesValue: number) =>
+                    runningTotal + seriesValue,
+                0,
+            );
+            const currentValue =
+                seriesIndex >= 0 ? (seriesValues[seriesIndex] ?? 0) : 0;
+            const percentage =
+                totalValue > 0
+                    ? ((currentValue / totalValue) * 100).toFixed(1)
+                    : '0';
 
-            return `${label} — ${pct}%`;
+            return `${label} — ${percentage}%`;
         },
     },
     plotOptions: {
@@ -94,7 +102,8 @@ const buildOptions = () => ({
                         fontWeight: 700,
                         color: '#2d2d2d',
                         offsetY: 4,
-                        formatter: (val: string) => val + '%',
+                        formatter: (percentageValue: string) =>
+                            percentageValue + '%',
                     },
                     total: {
                         show: true,
@@ -112,7 +121,10 @@ const buildOptions = () => ({
     stroke: { width: 2, colors: ['#ffffff'] },
     tooltip: {
         theme: 'light' as const,
-        y: { formatter: (val: number) => val.toFixed(1) + '%' },
+        y: {
+            formatter: (percentageValue: number) =>
+                percentageValue.toFixed(1) + '%',
+        },
     },
     states: {
         hover: { filter: { type: 'lighten' as const, value: 0.08 } },

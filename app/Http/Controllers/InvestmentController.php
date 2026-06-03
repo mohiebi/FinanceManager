@@ -41,12 +41,12 @@ class InvestmentController extends Controller
 
         $chartData = $this->generateChartData($allEntries, $range, $priceService);
 
-        $assetTypes = collect(AssetType::cases())->map(fn (AssetType $t) => [
-            'value' => $t->value,
-            'label' => $t->label(),
-            'unit' => $t->unit(),
-            'icon' => $t->icon(),
-            'color' => $t->color(),
+        $assetTypes = collect(AssetType::cases())->map(fn (AssetType $assetType) => [
+            'value' => $assetType->value,
+            'label' => $assetType->label(),
+            'unit' => $assetType->unit(),
+            'icon' => $assetType->icon(),
+            'color' => $assetType->color(),
         ]);
 
         $recentEntries = $user->investments()
@@ -54,18 +54,18 @@ class InvestmentController extends Controller
             ->orderByDesc('created_at')
             ->limit(100)
             ->get()
-            ->map(fn (Investment $inv) => [
-                'id' => $inv->id,
-                'asset_type' => $inv->asset_type->value,
-                'asset_label' => $inv->asset_type->label(),
-                'asset_icon' => $inv->asset_type->icon(),
-                'asset_color' => $inv->asset_type->color(),
-                'asset_unit' => $inv->asset_type->unit(),
-                'quantity' => (float) $inv->quantity,
-                'cost_basis' => $inv->cost_basis !== null ? (float) $inv->cost_basis : null,
-                'cost_basis_currency' => $inv->cost_basis_currency,
-                'note' => $inv->note,
-                'occurred_at' => $inv->occurred_at->toDateString(),
+            ->map(fn (Investment $investment) => [
+                'id' => $investment->id,
+                'asset_type' => $investment->asset_type->value,
+                'asset_label' => $investment->asset_type->label(),
+                'asset_icon' => $investment->asset_type->icon(),
+                'asset_color' => $investment->asset_type->color(),
+                'asset_unit' => $investment->asset_type->unit(),
+                'quantity' => (float) $investment->quantity,
+                'cost_basis' => $investment->cost_basis !== null ? (float) $investment->cost_basis : null,
+                'cost_basis_currency' => $investment->cost_basis_currency,
+                'note' => $investment->note,
+                'occurred_at' => $investment->occurred_at->toDateString(),
             ]);
 
         return Inertia::render('Investments', [
@@ -163,7 +163,7 @@ class InvestmentController extends Controller
             ];
         }
 
-        usort($assets, fn ($a, $b) => $b['value'] <=> $a['value']);
+        usort($assets, fn ($leftAsset, $rightAsset) => $rightAsset['value'] <=> $leftAsset['value']);
 
         return $assets;
     }
@@ -192,13 +192,13 @@ class InvestmentController extends Controller
         };
 
         $dates = [];
-        $cur = $from->copy();
-        while ($cur->lte($now)) {
-            $dates[] = $cur->toDateString();
+        $dateCursor = $from->copy();
+        while ($dateCursor->lte($now)) {
+            $dates[] = $dateCursor->toDateString();
             match ($step) {
-                'day' => $cur->addDay(),
-                'week' => $cur->addWeek(),
-                'month' => $cur->addMonthNoOverflow(),
+                'day' => $dateCursor->addDay(),
+                'week' => $dateCursor->addWeek(),
+                'month' => $dateCursor->addMonthNoOverflow(),
             };
         }
         if (! in_array($now->toDateString(), $dates, true)) {
@@ -211,16 +211,16 @@ class InvestmentController extends Controller
         $totalByDate = array_fill_keys($dates, 0.0);
 
         foreach ($assetTypes as $assetType) {
-            $typeEntries = $entries->filter(fn ($e) => $e->asset_type === $assetType);
+            $typeEntries = $entries->filter(fn ($entry) => $entry->asset_type === $assetType);
             $price = $priceService->priceFor($assetType);
             $seriesData = [];
 
             foreach ($dates as $date) {
                 $dateParsed = Carbon::parse($date);
-                $cumQty = $typeEntries
-                    ->filter(fn ($e) => $e->occurred_at->lte($dateParsed))
+                $cumulativeQuantity = $typeEntries
+                    ->filter(fn ($entry) => $entry->occurred_at->lte($dateParsed))
                     ->sum('quantity');
-                $value = round((float) $cumQty * $price);
+                $value = round((float) $cumulativeQuantity * $price);
                 $seriesData[] = $value;
                 $totalByDate[$date] += $value;
             }

@@ -89,18 +89,18 @@
                     <!-- Range buttons -->
                     <div class="flex flex-wrap gap-1.5">
                         <button
-                            v-for="r in ranges"
-                            :key="r.value"
+                            v-for="rangeOption in ranges"
+                            :key="rangeOption.value"
                             type="button"
                             :class="[
                                 'rounded-full px-3 py-1 text-xs font-medium transition',
-                                selectedRange === r.value
+                                selectedRange === rangeOption.value
                                     ? 'bg-[#2d2d2d] text-white'
                                     : 'bg-white text-[#2d2d2d] ring-1 ring-[#e6e6e6] hover:bg-[#f7f7f7]',
                             ]"
-                            @click="changeRange(r.value)"
+                            @click="changeRange(rangeOption.value)"
                         >
-                            {{ r.label }}
+                            {{ rangeOption.label }}
                         </button>
                     </div>
                 </div>
@@ -108,27 +108,27 @@
                 <!-- Series toggle chips -->
                 <div class="mb-3 flex flex-wrap gap-2">
                     <button
-                        v-for="s in availableSeries"
-                        :key="s.key"
+                        v-for="seriesItem in availableSeries"
+                        :key="seriesItem.key"
                         type="button"
                         :class="[
                             'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition',
-                            activeSeries.has(s.key)
+                            activeSeries.has(seriesItem.key)
                                 ? 'text-white'
                                 : 'bg-[#f4f4f4] text-[#989898] ring-1 ring-[#e6e6e6]',
                         ]"
                         :style="
-                            activeSeries.has(s.key)
-                                ? { backgroundColor: s.color }
+                            activeSeries.has(seriesItem.key)
+                                ? { backgroundColor: seriesItem.color }
                                 : {}
                         "
-                        @click="toggleSeries(s.key)"
+                        @click="toggleSeries(seriesItem.key)"
                     >
                         <span
                             class="size-2 shrink-0 rounded-full"
-                            :style="{ backgroundColor: s.color }"
+                            :style="{ backgroundColor: seriesItem.color }"
                         />
-                        {{ s.name }}
+                        {{ seriesItem.name }}
                     </button>
                 </div>
 
@@ -355,12 +355,13 @@
                                         Select asset
                                     </option>
                                     <option
-                                        v-for="t in props.assetTypes"
-                                        :key="t.value"
-                                        :value="t.value"
+                                        v-for="assetType in props.assetTypes"
+                                        :key="assetType.value"
+                                        :value="assetType.value"
                                     >
-                                        {{ t.icon }} {{ t.label }} ({{
-                                            t.unit
+                                        {{ assetType.icon }}
+                                        {{ assetType.label }} ({{
+                                            assetType.unit
                                         }})
                                     </option>
                                 </select>
@@ -401,11 +402,11 @@
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem
-                                            v-for="m in months"
-                                            :key="m.value"
-                                            :value="m.value"
+                                            v-for="monthOption in months"
+                                            :key="monthOption.value"
+                                            :value="monthOption.value"
                                         >
-                                            {{ m.label }}
+                                            {{ monthOption.label }}
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -418,11 +419,11 @@
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem
-                                            v-for="d in daysInMonth"
-                                            :key="d"
-                                            :value="d"
+                                            v-for="dayOption in daysInMonth"
+                                            :key="dayOption"
+                                            :value="dayOption"
                                         >
-                                            {{ Number(d) }}
+                                            {{ Number(dayOption) }}
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -435,11 +436,11 @@
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem
-                                            v-for="y in years"
-                                            :key="y"
-                                            :value="y"
+                                            v-for="yearOption in years"
+                                            :key="yearOption"
+                                            :value="yearOption"
                                         >
-                                            {{ y }}
+                                            {{ yearOption }}
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -612,16 +613,20 @@ const availableSeries = computed<ChartSeries[]>(
     () => props.chartData.series ?? [],
 );
 const activeSeries = ref<Set<string>>(
-    new Set(availableSeries.value.map((s) => s.key)),
+    new Set(availableSeries.value.map((seriesItem) => seriesItem.key)),
 );
 
 const filteredChartSeries = computed<ChartSeries[]>(() =>
-    availableSeries.value.filter((s) => activeSeries.value.has(s.key)),
+    availableSeries.value.filter((seriesItem) =>
+        activeSeries.value.has(seriesItem.key),
+    ),
 );
 
-const donutSeries = computed(() => props.assets.map((a) => a.allocation));
-const donutLabels = computed(() => props.assets.map((a) => a.label));
-const donutColors = computed(() => props.assets.map((a) => a.color));
+const donutSeries = computed(() =>
+    props.assets.map((asset) => asset.allocation),
+);
+const donutLabels = computed(() => props.assets.map((asset) => asset.label));
+const donutColors = computed(() => props.assets.map((asset) => asset.color));
 
 function toggleSeries(key: string) {
     if (activeSeries.value.has(key)) {
@@ -633,18 +638,20 @@ function toggleSeries(key: string) {
     activeSeries.value = new Set(activeSeries.value);
 }
 
-function onSliceClick(idx: number | null) {
-    if (idx === null) {
-        activeSeries.value = new Set(availableSeries.value.map((s) => s.key));
+function onSliceClick(sliceIndex: number | null) {
+    if (sliceIndex === null) {
+        activeSeries.value = new Set(
+            availableSeries.value.map((seriesItem) => seriesItem.key),
+        );
     } else {
-        const asset = props.assets[idx];
+        const asset = props.assets[sliceIndex];
         if (!asset) return;
         if (
             activeSeries.value.size === 1 &&
             activeSeries.value.has(asset.key)
         ) {
             activeSeries.value = new Set(
-                availableSeries.value.map((s) => s.key),
+                availableSeries.value.map((seriesItem) => seriesItem.key),
             );
         } else {
             activeSeries.value = new Set([asset.key]);
@@ -665,7 +672,7 @@ watch(
     () => props.chartData.series,
     () => {
         activeSeries.value = new Set(
-            (props.chartData.series ?? []).map((s) => s.key),
+            (props.chartData.series ?? []).map((seriesItem) => seriesItem.key),
         );
     },
 );
@@ -680,8 +687,11 @@ const selectedMonth = ref('');
 const selectedDay = ref('');
 
 const years = computed(() => {
-    const y = new Date().getFullYear();
-    return Array.from({ length: 17 }, (_, i) => String(y + 1 - i));
+    const currentYear = new Date().getFullYear();
+
+    return Array.from({ length: 17 }, (_, yearIndex) =>
+        String(currentYear + 1 - yearIndex),
+    );
 });
 
 const months = [
@@ -700,11 +710,18 @@ const months = [
 ];
 
 const daysInMonth = computed(() => {
-    const y = Number(selectedYear.value || new Date().getFullYear());
-    const m = Number(selectedMonth.value || 1);
-    const count = new Date(y, m, 0).getDate();
-    return Array.from({ length: count }, (_, i) =>
-        String(i + 1).padStart(2, '0'),
+    const selectedYearNumber = Number(
+        selectedYear.value || new Date().getFullYear(),
+    );
+    const selectedMonthNumber = Number(selectedMonth.value || 1);
+    const dayCount = new Date(
+        selectedYearNumber,
+        selectedMonthNumber,
+        0,
+    ).getDate();
+
+    return Array.from({ length: dayCount }, (_, dayIndex) =>
+        String(dayIndex + 1).padStart(2, '0'),
     );
 });
 
@@ -721,10 +738,10 @@ const fieldClass =
     'finance-dialog-field finance-dialog-field-cost focus-visible:ring-[#947BFF]/30';
 
 function syncDatePicker(date: string) {
-    const [y, m, d] = date.split('-');
-    selectedYear.value = y ?? '';
-    selectedMonth.value = m ?? '';
-    selectedDay.value = d ?? '';
+    const [yearPart, monthPart, dayPart] = date.split('-');
+    selectedYear.value = yearPart ?? '';
+    selectedMonth.value = monthPart ?? '';
+    selectedDay.value = dayPart ?? '';
 }
 
 watch([selectedYear, selectedMonth, selectedDay], () => {
@@ -778,14 +795,14 @@ function submitEntry() {
     }
 }
 
-function deleteEntry(id: number) {
+function deleteEntry(investmentId: number) {
     if (!confirm('Delete this investment entry?')) return;
-    router.delete(`/investments/${id}`, { preserveScroll: true });
+    router.delete(`/investments/${investmentId}`, { preserveScroll: true });
 }
 
-function formatEntryValue(qty: number, assetType: AssetKey): string {
+function formatEntryValue(quantity: number, assetType: AssetKey): string {
     const price = props.prices[assetType] ?? 0;
-    return new Intl.NumberFormat('en-US').format(Math.round(qty * price));
+    return new Intl.NumberFormat('en-US').format(Math.round(quantity * price));
 }
 
 syncDatePicker(form.occurred_at);

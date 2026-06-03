@@ -186,9 +186,21 @@
                             </div>
                         </div>
                         <BarChart
-                            :income-data="monthlyData.map((m) => m.income)"
-                            :cost-data="monthlyData.map((m) => m.cost)"
-                            :categories="monthlyData.map((m) => m.label)"
+                            :income-data="
+                                monthlyData.map(
+                                    (monthBucket) => monthBucket.income,
+                                )
+                            "
+                            :cost-data="
+                                monthlyData.map(
+                                    (monthBucket) => monthBucket.cost,
+                                )
+                            "
+                            :categories="
+                                monthlyData.map(
+                                    (monthBucket) => monthBucket.label,
+                                )
+                            "
                             :height="220"
                         />
                     </div>
@@ -331,8 +343,8 @@
                         </thead>
                         <tbody>
                             <tr
-                                v-for="t in recentCosts"
-                                :key="t.id"
+                                v-for="transaction in recentCosts"
+                                :key="transaction.id"
                                 class="group"
                             >
                                 <td
@@ -341,15 +353,15 @@
                                     <button
                                         type="button"
                                         class="transition hover:text-[#6C4EE9]"
-                                        @click="openEditForm(t)"
+                                        @click="openEditForm(transaction)"
                                     >
-                                        {{ t.title }}
+                                        {{ transaction.title }}
                                     </button>
                                     <div
-                                        v-if="t.description"
+                                        v-if="transaction.description"
                                         class="mt-0.5 line-clamp-1 text-xs text-[#989898]"
                                     >
-                                        {{ t.description }}
+                                        {{ transaction.description }}
                                     </div>
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
@@ -357,14 +369,17 @@
                                         class="inline-flex min-w-[90px] justify-center rounded-md bg-[#d9d9d9] px-3 py-1.5 text-[15px] font-normal text-black"
                                     >
                                         {{
-                                            t.category?.name ?? 'Uncategorized'
+                                            transaction.category?.name ??
+                                            'Uncategorized'
                                         }}
                                     </span>
                                 </td>
                                 <td
                                     class="px-3 py-3.5 text-center text-[16px] leading-none font-semibold text-[#6C4EE9] sm:px-5"
                                 >
-                                    {{ formatAmount(t.display_amount) }}
+                                    {{
+                                        formatAmount(transaction.display_amount)
+                                    }}
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
                                     <div
@@ -373,7 +388,7 @@
                                         <button
                                             type="button"
                                             class="rounded-md p-1.5 hover:bg-[#f0ecff]"
-                                            @click="openEditForm(t)"
+                                            @click="openEditForm(transaction)"
                                         >
                                             <Pencil
                                                 class="size-3.5 text-[#6C4EE9]"
@@ -382,7 +397,9 @@
                                         <button
                                             type="button"
                                             class="rounded-md p-1.5 hover:bg-[#fff0f0]"
-                                            @click="deleteTransaction(t)"
+                                            @click="
+                                                deleteTransaction(transaction)
+                                            "
                                         >
                                             <Trash2
                                                 class="size-3.5 text-[#E94E50]"
@@ -444,8 +461,8 @@
                         </thead>
                         <tbody>
                             <tr
-                                v-for="t in recentIncomes"
-                                :key="t.id"
+                                v-for="transaction in recentIncomes"
+                                :key="transaction.id"
                                 class="group"
                             >
                                 <td
@@ -454,15 +471,15 @@
                                     <button
                                         type="button"
                                         class="transition hover:text-[#02CD86]"
-                                        @click="openEditForm(t)"
+                                        @click="openEditForm(transaction)"
                                     >
-                                        {{ t.title }}
+                                        {{ transaction.title }}
                                     </button>
                                     <div
-                                        v-if="t.description"
+                                        v-if="transaction.description"
                                         class="mt-0.5 line-clamp-1 text-xs text-[#989898]"
                                     >
-                                        {{ t.description }}
+                                        {{ transaction.description }}
                                     </div>
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
@@ -470,14 +487,17 @@
                                         class="inline-flex min-w-[90px] justify-center rounded-md bg-[#d9d9d9] px-3 py-1.5 text-[15px] font-normal text-black"
                                     >
                                         {{
-                                            t.category?.name ?? 'Uncategorized'
+                                            transaction.category?.name ??
+                                            'Uncategorized'
                                         }}
                                     </span>
                                 </td>
                                 <td
                                     class="px-3 py-3.5 text-center text-[16px] leading-none font-semibold text-[#02CD86] sm:px-5"
                                 >
-                                    {{ formatAmount(t.display_amount) }}
+                                    {{
+                                        formatAmount(transaction.display_amount)
+                                    }}
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
                                     <div
@@ -486,7 +506,7 @@
                                         <button
                                             type="button"
                                             class="rounded-md p-1.5 hover:bg-[#f0ecff]"
-                                            @click="openEditForm(t)"
+                                            @click="openEditForm(transaction)"
                                         >
                                             <Pencil
                                                 class="size-3.5 text-[#6C4EE9]"
@@ -495,7 +515,9 @@
                                         <button
                                             type="button"
                                             class="rounded-md p-1.5 hover:bg-[#fff0f0]"
-                                            @click="deleteTransaction(t)"
+                                            @click="
+                                                deleteTransaction(transaction)
+                                            "
                                         >
                                             <Trash2
                                                 class="size-3.5 text-[#E94E50]"
@@ -830,8 +852,8 @@ const user = computed(
     () => (page.props.auth as { user?: { name: string } } | undefined)?.user,
 );
 
-function parseNum(val: string | number): number {
-    return parseFloat(String(val).replace(/,/g, '')) || 0;
+function parseNum(value: string | number): number {
+    return parseFloat(String(value).replace(/,/g, '')) || 0;
 }
 
 const incomeNum = computed(() => parseNum(props.summary.income));
@@ -871,43 +893,51 @@ const period = computed(() => {
 
 const monthlyData = computed(() => {
     const now = new Date();
-    const result = Array.from({ length: 6 }, (_, i) => {
-        const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const label = d.toLocaleDateString('en-US', { month: 'short' });
+    const monthBuckets = Array.from({ length: 6 }, (_, monthIndex) => {
+        const monthDate = new Date(
+            now.getFullYear(),
+            now.getMonth() - (5 - monthIndex),
+            1,
+        );
+        const key = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+        const label = monthDate.toLocaleDateString('en-US', { month: 'short' });
 
         return { key, label, income: 0, cost: 0 };
     });
 
-    for (const t of props.transactions.costs) {
-        const m = result.find((r) => r.key === t.occurred_at.slice(0, 7));
+    for (const transaction of props.transactions.costs) {
+        const monthBucket = monthBuckets.find(
+            (bucket) => bucket.key === transaction.occurred_at.slice(0, 7),
+        );
 
-        if (m) {
-            m.cost += parseNum(t.display_amount);
+        if (monthBucket) {
+            monthBucket.cost += parseNum(transaction.display_amount);
         }
     }
 
-    for (const t of props.transactions.incomes) {
-        const m = result.find((r) => r.key === t.occurred_at.slice(0, 7));
+    for (const transaction of props.transactions.incomes) {
+        const monthBucket = monthBuckets.find(
+            (bucket) => bucket.key === transaction.occurred_at.slice(0, 7),
+        );
 
-        if (m) {
-            m.income += parseNum(t.display_amount);
+        if (monthBucket) {
+            monthBucket.income += parseNum(transaction.display_amount);
         }
     }
 
-    return result;
+    return monthBuckets;
 });
 
 const recentCosts = computed(() => props.transactions.costs.slice(0, 5));
 const recentIncomes = computed(() => props.transactions.incomes.slice(0, 5));
 
 function formatAmount(amount: string | number): string {
-    const n = Number(String(amount).replace(/,/g, ''));
+    const numericAmount = Number(String(amount).replace(/,/g, ''));
 
     return new Intl.NumberFormat('en-US', {
         maximumFractionDigits: 2,
-        minimumFractionDigits: n % 1 === 0 ? 0 : 2,
-    }).format(n);
+        minimumFractionDigits: numericAmount % 1 === 0 ? 0 : 2,
+    }).format(numericAmount);
 }
 
 const isDialogOpen = ref(false);
@@ -919,9 +949,11 @@ const selectedDateDay = ref('');
 const today = () => new Date().toISOString().slice(0, 10);
 
 const transactionYears = computed(() => {
-    const y = new Date().getFullYear();
+    const currentYear = new Date().getFullYear();
 
-    return Array.from({ length: 17 }, (_, i) => String(y + 1 - i));
+    return Array.from({ length: 17 }, (_, yearIndex) =>
+        String(currentYear + 1 - yearIndex),
+    );
 });
 
 const months = [
@@ -940,12 +972,18 @@ const months = [
 ];
 
 const transactionDays = computed(() => {
-    const y = Number(selectedDateYear.value || new Date().getFullYear());
-    const m = Number(selectedDateMonth.value || 1);
-    const count = new Date(y, m, 0).getDate();
+    const selectedYearNumber = Number(
+        selectedDateYear.value || new Date().getFullYear(),
+    );
+    const selectedMonthNumber = Number(selectedDateMonth.value || 1);
+    const dayCount = new Date(
+        selectedYearNumber,
+        selectedMonthNumber,
+        0,
+    ).getDate();
 
-    return Array.from({ length: count }, (_, i) =>
-        String(i + 1).padStart(2, '0'),
+    return Array.from({ length: dayCount }, (_, dayIndex) =>
+        String(dayIndex + 1).padStart(2, '0'),
     );
 });
 
@@ -973,10 +1011,10 @@ const fieldControlClass = computed(() =>
 );
 
 function syncDatePicker(date: string): void {
-    const [y, m, d] = date.split('-');
-    selectedDateYear.value = y ?? '';
-    selectedDateMonth.value = m ?? '';
-    selectedDateDay.value = d ?? '';
+    const [yearPart, monthPart, dayPart] = date.split('-');
+    selectedDateYear.value = yearPart ?? '';
+    selectedDateMonth.value = monthPart ?? '';
+    selectedDateDay.value = dayPart ?? '';
 }
 
 function updateOccurredAt(): void {
@@ -1011,17 +1049,17 @@ const openCreateForm = (type: TransactionType) => {
     isDialogOpen.value = true;
 };
 
-const openEditForm = (t: Transaction) => {
-    editingTransactionId.value = t.id;
+const openEditForm = (transaction: Transaction) => {
+    editingTransactionId.value = transaction.id;
     form.clearErrors();
-    form.type = t.type;
-    form.category_id = t.category_id.toString();
-    form.amount = t.amount;
-    form.currency = t.currency;
-    form.title = t.title;
-    form.description = t.description ?? '';
-    form.occurred_at = t.occurred_at;
-    syncDatePicker(t.occurred_at);
+    form.type = transaction.type;
+    form.category_id = transaction.category_id.toString();
+    form.amount = transaction.amount;
+    form.currency = transaction.currency;
+    form.title = transaction.title;
+    form.description = transaction.description ?? '';
+    form.occurred_at = transaction.occurred_at;
+    syncDatePicker(transaction.occurred_at);
     isDialogOpen.value = true;
 };
 
@@ -1044,12 +1082,12 @@ const submitTransaction = () => {
     form.post('/transactions', opts);
 };
 
-const deleteTransaction = (t: Transaction) => {
-    if (!window.confirm(`Delete "${t.title}"?`)) {
+const deleteTransaction = (transaction: Transaction) => {
+    if (!window.confirm(`Delete "${transaction.title}"?`)) {
         return;
     }
 
-    router.delete(`/transactions/${t.id}`, { preserveScroll: true });
+    router.delete(`/transactions/${transaction.id}`, { preserveScroll: true });
 };
 
 watch([selectedDateYear, selectedDateMonth, selectedDateDay], updateOccurredAt);

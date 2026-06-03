@@ -1,0 +1,272 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Enums\AssetType;
+use App\Models\Investment;
+use App\Services\AssetPriceService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class InvestmentController extends Controller
+{
+    public function index(Request $request, AssetPriceService $priceService): Response
+    {
+        $user = $request->user();
+        $range = in_array($request->query('range'), ['1w', '1m', '3m', '1y', 'all'])
+            ? (string) $request->query('range')
+            : '1m';
+
+        /** @var Collection<int, Investment> $allEntries */
+        $allEntries = $user->investments()
+            ->orderBy('occurred_at')
+            ->orderBy('created_at')
+            ->get();
+
+        // Cumulative holdings per asset type
+        $holdings = $this->computeHoldings($allEntries);
+
+        // Build per-asset summary with current values
+        $assets = $this->buildAssets($holdings, $priceService);
+        $totalValue = array_sum(array_column($assets, 'value'));
+
+        // Add allocation percentages
+        $assets = array_map(function (array $asset) use ($totalValue) {
+            return [
+                ...$asset,
+                'allocation' => $totalValue > 0 ? round($asset['value'] / $totalValue * 100, 1) : 0,
+            ];
+        }, $assets);
+
+        // Chart data for the selected time range
+        $chartData = $this->generateChartData($allEntries, $range, $priceService);
+
+        // All available asset types for the Add form
+        $assetTypes = collect(AssetType::cases())->map(fn (AssetType $t) => [
+            'value' => $t->value,
+            'label' => $t->label(),
+            'unit'  => $t->unit(),
+            'icon'  => $t->icon(),
+            'color' => $t->color(),
+        ]);
+
+        // Recent entries for the table
+        $recentEntries = $user->investments()
+            ->orderByDesc('occurred_at')
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get()
+            ->map(fn (Investment $inv) => [
+                'id'                  => $inv->id,
+                'asset_type'          => $inv->asset_type->value,
+                'asset_label'         => $inv->asset_type->label(),
+                'asset_icon'          => $inv->asset_type->icon(),
+                'asset_color'         => $inv->asset_type->color(),
+                'asset_unit'          => $inv->asset_type->unit(),
+                'quantity'            => (float) $inv->quantity,
+                'cost_basis'          => $inv->cost_basis !== null ? (float) $inv->cost_basis : null,
+                'cost_basis_currency' => $inv->cost_basis_currency,
+                'note'                => $inv->note,
+                'occurred_at'         => $inv->occurred_at->toDateString(),
+            ]);
+
+        return Inertia::render('Investments', [
+            'assets'        => $assets,
+            'summary'       => [
+                'total_value'           => $totalValue,
+                'total_value_formatted' => $this->formatMoney($totalValue),
+                'asset_count'           => count($assets),
+                'entry_count'           => $allEntries->count(),
+            ],
+            'chartData'     => $chartData,
+            'assetTypes'    => $assetTypes,
+            'entries'       => $recentEntries,
+            'selectedRange' => $range,
+            'prices'        => $priceService->allPrices(),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'asset_type'          => ['required', 'string', 'in:' . implode(',', array_column(AssetType::cases(), 'value'))],
+            'quantity'            => ['required', 'numeric', 'min:0.00000001'],
+            'cost_basis'          => ['nullable', 'numeric', 'min:0'],
+            'cost_basis_currency' => ['nullable', 'string', 'max:10'],
+            'note'                => ['nullable', 'string', 'max:500'],
+            'occurred_at'         => ['required', 'date', 'before_or_equal:today'],
+        ]);
+
+        $request->user()->investments()->create($validated);
+
+        return redirect()->back();
+    }
+
+    public function update(Request $request, Investment $investment): RedirectResponse
+    {
+        abort_unless((int) $investment->user_id === (int) $request->user()->id, 404);
+
+        $validated = $request->validate([
+            'asset_type'          => ['required', 'string', 'in:' . implode(',', array_column(AssetType::cases(), 'value'))],
+            'quantity'            => ['required', 'numeric', 'min:0.00000001'],
+            'cost_basis'          => ['nullable', 'numeric', 'min:0'],
+            'cost_basis_currency' => ['nullable', 'string', 'max:10'],
+            'note'                => ['nullable', 'string', 'max:500'],
+            'occurred_at'         => ['required', 'date', 'before_or_equal:today'],
+        ]);
+
+        $investment->fill($validated)->save();
+
+        return redirect()->back();
+    }
+
+    public function destroy(Request $request, Investment $investment): RedirectResponse
+    {
+        abort_unless((int) $investment->user_id === (int) $request->user()->id, 404);
+
+        $investment->delete();
+
+        return redirect()->back();
+    }
+
+    // ─── Private helpers ────────────────────────────────────────────────────────
+
+    /** @return array<string, float> */
+    private function computeHoldings(Collection $entries): array
+    {
+        $holdings = [];
+        foreach ($entries as $entry) {
+            $key = $entry->asset_type->value;
+            $holdings[$key] = ($holdings[$key] ?? 0.0) + (float) $entry->quantity;
+        }
+
+        return $holdings;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function buildAssets(array $holdings, AssetPriceService $priceService): array
+    {
+        $assets = [];
+        foreach ($holdings as $typeValue => $quantity) {
+            $type  = AssetType::from($typeValue);
+            $price = $priceService->priceFor($type);
+            $value = $priceService->valueOf($type, $quantity);
+
+            $assets[] = [
+                'key'               => $type->value,
+                'label'             => $type->label(),
+                'icon'              => $type->icon(),
+                'color'             => $type->color(),
+                'unit'              => $type->unit(),
+                'quantity'          => round($quantity, 8),
+                'quantity_display'  => $this->formatQuantity($quantity, $type),
+                'price'             => $price,
+                'price_formatted'   => $this->formatMoney($price),
+                'value'             => $value,
+                'value_formatted'   => $this->formatMoney($value),
+            ];
+        }
+
+        usort($assets, fn ($a, $b) => $b['value'] <=> $a['value']);
+
+        return $assets;
+    }
+
+    /**
+     * Build ApexCharts-ready series + categories for the selected time range.
+     *
+     * @param  Collection<int, Investment>  $entries
+     * @return array{categories: list<string>, series: list<array<string, mixed>>}
+     */
+    private function generateChartData(Collection $entries, string $range, AssetPriceService $priceService): array
+    {
+        if ($entries->isEmpty()) {
+            return ['categories' => [], 'series' => []];
+        }
+
+        $now        = Carbon::today();
+        $firstEntry = Carbon::parse($entries->min('occurred_at'));
+
+        [$from, $step] = match ($range) {
+            '1w'    => [$now->copy()->subDays(6), 'day'],
+            '3m'    => [$now->copy()->subMonths(3), 'week'],
+            '1y'    => [$now->copy()->subYear(), 'month'],
+            'all'   => [$firstEntry->copy(), 'month'],
+            default => [$now->copy()->subDays(29), 'day'],   // '1m'
+        };
+
+        // Generate ordered date points
+        $dates = [];
+        $cur   = $from->copy();
+        while ($cur->lte($now)) {
+            $dates[] = $cur->toDateString();
+            match ($step) {
+                'day'   => $cur->addDay(),
+                'week'  => $cur->addWeek(),
+                'month' => $cur->addMonthNoOverflow(),
+            };
+        }
+        if (! in_array($now->toDateString(), $dates, true)) {
+            $dates[] = $now->toDateString();
+        }
+
+        // Unique asset types present in this user's entries
+        $assetTypes = $entries->pluck('asset_type')->unique()->values();
+
+        $seriesList  = [];
+        $totalByDate = array_fill_keys($dates, 0.0);
+
+        foreach ($assetTypes as $assetType) {
+            $typeEntries = $entries->filter(fn ($e) => $e->asset_type === $assetType);
+            $price       = $priceService->priceFor($assetType);
+            $seriesData  = [];
+
+            foreach ($dates as $date) {
+                $dateParsed = Carbon::parse($date);
+                $cumQty     = $typeEntries
+                    ->filter(fn ($e) => $e->occurred_at->lte($dateParsed))
+                    ->sum('quantity');
+                $value         = round((float) $cumQty * $price);
+                $seriesData[]  = $value;
+                $totalByDate[$date] += $value;
+            }
+
+            $seriesList[] = [
+                'name'  => $assetType->label(),
+                'key'   => $assetType->value,
+                'color' => $assetType->color(),
+                'data'  => $seriesData,
+            ];
+        }
+
+        // Total portfolio series — always first
+        array_unshift($seriesList, [
+            'name'  => 'Total Portfolio',
+            'key'   => 'total',
+            'color' => '#02CD86',
+            'data'  => array_values($totalByDate),
+        ]);
+
+        return [
+            'categories' => $dates,
+            'series'     => $seriesList,
+        ];
+    }
+
+    private function formatMoney(float $amount): string
+    {
+        return number_format($amount, 0, '.', ',');
+    }
+
+    private function formatQuantity(float $quantity, AssetType $type): string
+    {
+        return match ($type) {
+            AssetType::Bitcoin => number_format($quantity, 6),
+            default            => number_format($quantity, 2),
+        };
+    }
+}

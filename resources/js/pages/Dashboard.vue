@@ -720,11 +720,11 @@
                                         :class="fieldControlClass"
                                     >
                                         <option
-                                            v-for="c in props.currencies"
-                                            :key="c.value"
-                                            :value="c.value"
+                                            v-for="currency in props.currencies"
+                                            :key="currency.value"
+                                            :value="currency.value"
                                         >
-                                            {{ c.label }}
+                                            {{ currency.label }}
                                         </option>
                                     </select>
                                     <InputError

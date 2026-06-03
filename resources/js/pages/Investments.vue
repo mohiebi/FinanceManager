@@ -630,11 +630,15 @@ const donutColors = computed(() => props.assets.map((asset) => asset.color));
 
 function toggleSeries(key: string) {
     if (activeSeries.value.has(key)) {
-        if (activeSeries.value.size === 1) return;
+        if (activeSeries.value.size === 1) {
+            return;
+        }
+
         activeSeries.value.delete(key);
     } else {
         activeSeries.value.add(key);
     }
+
     activeSeries.value = new Set(activeSeries.value);
 }
 
@@ -645,7 +649,11 @@ function onSliceClick(sliceIndex: number | null) {
         );
     } else {
         const asset = props.assets[sliceIndex];
-        if (!asset) return;
+
+        if (!asset) {
+            return;
+        }
+
         if (
             activeSeries.value.size === 1 &&
             activeSeries.value.has(asset.key)
@@ -745,8 +753,10 @@ function syncDatePicker(date: string) {
 }
 
 watch([selectedYear, selectedMonth, selectedDay], () => {
-    if (!selectedYear.value || !selectedMonth.value || !selectedDay.value)
+    if (!selectedYear.value || !selectedMonth.value || !selectedDay.value) {
         return;
+    }
+
     form.occurred_at = `${selectedYear.value}-${selectedMonth.value}-${selectedDay.value}`;
 });
 
@@ -796,12 +806,16 @@ function submitEntry() {
 }
 
 function deleteEntry(investmentId: number) {
-    if (!confirm('Delete this investment entry?')) return;
+    if (!confirm('Delete this investment entry?')) {
+        return;
+    }
+
     router.delete(`/investments/${investmentId}`, { preserveScroll: true });
 }
 
 function formatEntryValue(quantity: number, assetType: AssetKey): string {
     const price = props.prices[assetType] ?? 0;
+
     return new Intl.NumberFormat('en-US').format(Math.round(quantity * price));
 }
 

@@ -20,14 +20,23 @@ let activeSlice: number | null = null;
 
 const buildOptions = () => ({
     chart: {
-        type: 'donut',
+        type: 'donut' as const,
         height: 300,
         background: 'transparent',
         toolbar: { show: false },
         animations: { enabled: true, speed: 500 },
         events: {
-            dataPointSelection: (_e: unknown, _ctx: unknown, config: { dataPointIndex: number }) => {
-                const idx = config.dataPointIndex;
+            dataPointSelection: (
+                _e: MouseEvent,
+                _ctx?: ApexCharts,
+                config?: { dataPointIndex?: number },
+            ) => {
+                const idx = config?.dataPointIndex;
+
+                if (idx === undefined || idx < 0) {
+                    return;
+                }
+
                 if (activeSlice === idx) {
                     activeSlice = null;
                     emit('sliceClick', null);
@@ -49,9 +58,19 @@ const buildOptions = () => ({
         labels: { colors: '#2d2d2d' },
         markers: { size: 7 },
         itemMargin: { horizontal: 6, vertical: 3 },
-        formatter: (label: string, opts: { w: { globals: { series: number[] } }; seriesIndex: number }) => {
-            const total = opts.w.globals.series.reduce((a: number, b: number) => a + b, 0);
-            const pct   = total > 0 ? ((opts.w.globals.series[opts.seriesIndex] / total) * 100).toFixed(1) : '0';
+        formatter: (
+            label: string,
+            opts?: {
+                w?: { globals?: { series?: number[] } };
+                seriesIndex?: number;
+            },
+        ) => {
+            const series = opts?.w?.globals?.series ?? [];
+            const index = opts?.seriesIndex ?? -1;
+            const total = series.reduce((a: number, b: number) => a + b, 0);
+            const value = index >= 0 ? (series[index] ?? 0) : 0;
+            const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+
             return `${label} — ${pct}%`;
         },
     },
@@ -92,17 +111,20 @@ const buildOptions = () => ({
     dataLabels: { enabled: false },
     stroke: { width: 2, colors: ['#ffffff'] },
     tooltip: {
-        theme: 'light',
+        theme: 'light' as const,
         y: { formatter: (val: number) => val.toFixed(1) + '%' },
     },
     states: {
-        hover:  { filter: { type: 'lighten' as const, value: 0.08 } },
-        active: { filter: { type: 'darken'  as const, value: 0.12 } },
+        hover: { filter: { type: 'lighten' as const, value: 0.08 } },
+        active: { filter: { type: 'darken' as const, value: 0.12 } },
     },
 });
 
 onMounted(() => {
-    if (!chartRef.value) return;
+    if (!chartRef.value) {
+        return;
+    }
+
     chart = new ApexCharts(chartRef.value, buildOptions());
     chart.render();
 });

@@ -19,9 +19,18 @@ const chartRef = ref<HTMLElement | null>(null);
 let chart: ApexCharts | null = null;
 
 const fmt = (val: number) => {
-    if (val >= 1_000_000_000) return (val / 1_000_000_000).toFixed(1) + 'B';
-    if (val >= 1_000_000)     return (val / 1_000_000).toFixed(1) + 'M';
-    if (val >= 1_000)         return (val / 1_000).toFixed(0) + 'K';
+    if (val >= 1_000_000_000) {
+        return (val / 1_000_000_000).toFixed(1) + 'B';
+    }
+
+    if (val >= 1_000_000) {
+        return (val / 1_000_000).toFixed(1) + 'M';
+    }
+
+    if (val >= 1_000) {
+        return (val / 1_000).toFixed(0) + 'K';
+    }
+
     return val.toFixed(0);
 };
 
@@ -35,8 +44,8 @@ const buildOptions = () => ({
         fontFamily: 'inherit',
         animations: { enabled: true, speed: 500, easing: 'easeinout' as const },
     },
-    series: props.series.map(s => ({ name: s.name, data: s.data })),
-    colors: props.series.map(s => s.color),
+    series: props.series.map((s) => ({ name: s.name, data: s.data })),
+    colors: props.series.map((s) => s.color),
     xaxis: {
         categories: props.categories,
         axisBorder: { show: false },
@@ -47,8 +56,15 @@ const buildOptions = () => ({
             rotate: 0,
             formatter: (val: string) => {
                 const d = new Date(val);
-                if (isNaN(d.getTime())) return val;
-                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                if (isNaN(d.getTime())) {
+                    return val;
+                }
+
+                return d.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                });
             },
         },
         crosshairs: { stroke: { color: '#e6e6e6', dashArray: 4 } },
@@ -80,7 +96,7 @@ const buildOptions = () => ({
         padding: { top: 4, right: 16, bottom: 0, left: 8 },
     },
     tooltip: {
-        theme: 'light',
+        theme: 'light' as const,
         shared: true,
         intersect: false,
         y: {
@@ -109,7 +125,10 @@ const buildOptions = () => ({
 });
 
 onMounted(() => {
-    if (!chartRef.value) return;
+    if (!chartRef.value) {
+        return;
+    }
+
     chart = new ApexCharts(chartRef.value, buildOptions());
     chart.render();
 });

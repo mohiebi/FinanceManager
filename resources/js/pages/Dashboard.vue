@@ -4,16 +4,10 @@
     <div
         class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
     >
-        <!-- ═══════════════════════════════════════════════════════
-             HERO BANNER
-        ════════════════════════════════════════════════════════ -->
-        <section
-            class="mx-[18px] mt-5 rounded-[22px] bg-white p-5 shadow-sm"
-        >
+        <section class="mx-[18px] mt-5 rounded-[22px] bg-white p-5 shadow-sm">
             <div
                 class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
             >
-                <!-- Welcome copy -->
                 <div>
                     <p
                         class="text-xs font-semibold tracking-[0.3em] text-[#989898] uppercase"
@@ -21,7 +15,7 @@
                         Finance command center
                     </p>
                     <h1
-                        class="mt-1 text-[26px] font-bold leading-tight text-[#2d2d2d] sm:text-[30px]"
+                        class="mt-1 text-[26px] leading-tight font-bold text-[#2d2d2d] sm:text-[30px]"
                     >
                         Your money, on Autopilot.
                     </h1>
@@ -32,47 +26,13 @@
                         }}</span>
                     </p>
                 </div>
-
-                <!-- Currency selector -->
-                <div class="flex flex-col gap-1.5 sm:min-w-[160px]">
-                    <Label
-                        for="display_currency"
-                        class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-                    >
-                        Display currency
-                    </Label>
-                    <Select v-model="selectedCurrency">
-                        <SelectTrigger
-                            id="display_currency"
-                            class="h-9 w-full rounded-md !border-[#e6e6e6] !bg-[#f4f4f4] !text-[#2d2d2d] shadow-none"
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem
-                                v-for="c in props.currencies"
-                                :key="c.value"
-                                :value="c.value"
-                            >
-                                {{ c.label }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
             </div>
         </section>
-
-        <!-- ═══════════════════════════════════════════════════════
-             MAIN CONTENT GRID
-        ════════════════════════════════════════════════════════ -->
         <div
             class="grid gap-[18px] px-[18px] py-[18px] xl:grid-cols-[1fr_284px]"
         >
-            <!-- ── LEFT COLUMN ──────────────────────────────────── -->
             <div class="flex flex-col gap-[18px]">
-                <!-- KPI Cards -->
                 <div class="grid gap-[18px] sm:grid-cols-3">
-                    <!-- Income -->
                     <article
                         class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
                     >
@@ -91,15 +51,12 @@
                             </p>
                         </div>
                         <p
-                            class="mt-3 text-[20px] font-bold leading-none text-[#2d2d2d]"
+                            class="mt-3 text-[20px] leading-none font-bold text-[#2d2d2d]"
                         >
                             {{ formatAmount(props.summary.income) }}
-                            <span
-                                class="text-xs font-normal text-[#989898]"
-                                >{{
-                                    props.selectedCurrency.toUpperCase()
-                                }}</span
-                            >
+                            <span class="text-xs font-normal text-[#989898]">{{
+                                props.selectedCurrency.toUpperCase()
+                            }}</span>
                         </p>
                         <p class="mt-1.5 text-xs text-[#989898]">
                             {{ props.transactions.incomes.length }}
@@ -110,8 +67,6 @@
                             }}
                         </p>
                     </article>
-
-                    <!-- Costs -->
                     <article
                         class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
                     >
@@ -130,27 +85,20 @@
                             </p>
                         </div>
                         <p
-                            class="mt-3 text-[20px] font-bold leading-none text-[#2d2d2d]"
+                            class="mt-3 text-[20px] leading-none font-bold text-[#2d2d2d]"
                         >
                             {{ formatAmount(props.summary.cost) }}
-                            <span
-                                class="text-xs font-normal text-[#989898]"
-                                >{{
-                                    props.selectedCurrency.toUpperCase()
-                                }}</span
-                            >
+                            <span class="text-xs font-normal text-[#989898]">{{
+                                props.selectedCurrency.toUpperCase()
+                            }}</span>
                         </p>
                         <p class="mt-1.5 text-xs text-[#989898]">
                             {{ props.transactions.costs.length }}
                             transaction{{
-                                props.transactions.costs.length !== 1
-                                    ? 's'
-                                    : ''
+                                props.transactions.costs.length !== 1 ? 's' : ''
                             }}
                         </p>
                     </article>
-
-                    <!-- Balance -->
                     <article
                         class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
                     >
@@ -179,7 +127,7 @@
                             </p>
                         </div>
                         <p
-                            class="mt-3 text-[20px] font-bold leading-none"
+                            class="mt-3 text-[20px] leading-none font-bold"
                             :class="
                                 balance >= 0
                                     ? 'text-[#02CD86]'
@@ -188,26 +136,20 @@
                         >
                             {{ balance >= 0 ? '+' : '−'
                             }}{{ formatAmount(Math.abs(balance)) }}
-                            <span
-                                class="text-xs font-normal text-[#989898]"
-                                >{{
-                                    props.selectedCurrency.toUpperCase()
-                                }}</span
-                            >
+                            <span class="text-xs font-normal text-[#989898]">{{
+                                props.selectedCurrency.toUpperCase()
+                            }}</span>
                         </p>
                         <p class="mt-1.5 text-xs text-[#989898]">
                             {{ balance >= 0 ? 'In the positive' : 'Overspent' }}
                         </p>
                     </article>
                 </div>
-
-                <!-- Finance Rate Gauge + Monthly Chart -->
                 <div
-                    class="grid gap-[18px] md:grid-cols-[216px_1fr]"
+                    class="grid items-stretch gap-[18px] md:grid-cols-[240px_1fr]"
                 >
-                    <!-- Gauge card -->
                     <div
-                        class="flex flex-col items-center justify-center rounded-[22px] bg-white p-5 shadow-sm"
+                        class="flex min-h-[244px] flex-col items-center justify-center rounded-[22px] bg-white p-5 shadow-sm"
                     >
                         <p
                             class="mb-1 text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
@@ -216,20 +158,14 @@
                         </p>
                         <GaugeChart :value="financeRate" />
                         <p class="mt-1 text-center text-xs text-[#989898]">
-                            Income ÷ total flow
+                            Income / total flow
                         </p>
                     </div>
-
-                    <!-- Monthly bar chart card -->
                     <div
                         class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
                     >
-                        <div
-                            class="mb-3 flex items-center justify-between"
-                        >
-                            <h2
-                                class="text-[17px] font-normal text-[#2d2d2d]"
-                            >
+                        <div class="mb-3 flex items-center justify-between">
+                            <h2 class="text-[17px] font-normal text-[#2d2d2d]">
                                 Monthly overview
                             </h2>
                             <div
@@ -258,10 +194,7 @@
                     </div>
                 </div>
             </div>
-
-            <!-- ── RIGHT SIDEBAR ─────────────────────────────────── -->
             <div class="flex flex-col gap-[18px]">
-                <!-- Period card -->
                 <div
                     class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
                 >
@@ -271,7 +204,7 @@
                         Current Period
                     </p>
                     <p
-                        class="mt-2 text-[26px] font-bold leading-none text-[#2d2d2d]"
+                        class="mt-2 text-[26px] leading-none font-bold text-[#2d2d2d]"
                     >
                         {{ period.month }}
                     </p>
@@ -291,8 +224,6 @@
                         {{ period.progress }}% of month elapsed
                     </p>
                 </div>
-
-                <!-- Cost Optimize / Savings Rate -->
                 <div
                     class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
                 >
@@ -302,15 +233,14 @@
                         Cost Optimize
                     </p>
                     <p
-                        class="mt-2 text-[26px] font-bold leading-none"
+                        class="mt-2 text-[26px] leading-none font-bold"
                         :class="
                             costOptimize >= 0
                                 ? 'text-[#02CD86]'
                                 : 'text-[#E94E50]'
                         "
                     >
-                        {{ costOptimize >= 0 ? '+' : ''
-                        }}{{ costOptimize }}%
+                        {{ costOptimize >= 0 ? '+' : '' }}{{ costOptimize }}%
                     </p>
                     <p class="mt-1 text-xs text-[#989898]">Savings rate</p>
                     <div
@@ -325,16 +255,11 @@
                             "
                             :style="{
                                 width:
-                                    Math.min(
-                                        100,
-                                        Math.abs(costOptimize),
-                                    ) + '%',
+                                    Math.min(100, Math.abs(costOptimize)) + '%',
                             }"
                         />
                     </div>
                 </div>
-
-                <!-- Quick actions -->
                 <div class="flex flex-col gap-3">
                     <button
                         type="button"
@@ -364,23 +289,10 @@
                 </div>
             </div>
         </div>
-
-        <!-- ═══════════════════════════════════════════════════════
-             RECENT TRANSACTIONS
-        ════════════════════════════════════════════════════════ -->
-        <div
-            class="grid gap-[18px] px-[18px] pb-[38px] xl:grid-cols-2"
-        >
-            <!-- Recent Costs -->
-            <section
-                class="overflow-hidden rounded-[22px] bg-white shadow-sm"
-            >
-                <div
-                    class="flex items-center justify-between px-5 py-[24px]"
-                >
-                    <h2
-                        class="text-[20px] leading-none font-normal text-black"
-                    >
+        <div class="grid gap-[18px] px-[18px] pb-[38px] xl:grid-cols-2">
+            <section class="overflow-hidden rounded-[22px] bg-white shadow-sm">
+                <div class="flex items-center justify-between px-5 py-[24px]">
+                    <h2 class="text-[20px] leading-none font-normal text-black">
                         Recently Costs
                     </h2>
                     <Link
@@ -440,15 +352,12 @@
                                         {{ t.description }}
                                     </div>
                                 </td>
-                                <td
-                                    class="px-3 py-3.5 text-center sm:px-5"
-                                >
+                                <td class="px-3 py-3.5 text-center sm:px-5">
                                     <span
                                         class="inline-flex min-w-[90px] justify-center rounded-md bg-[#d9d9d9] px-3 py-1.5 text-[15px] font-normal text-black"
                                     >
                                         {{
-                                            t.category?.name ??
-                                            'Uncategorized'
+                                            t.category?.name ?? 'Uncategorized'
                                         }}
                                     </span>
                                 </td>
@@ -457,9 +366,7 @@
                                 >
                                     {{ formatAmount(t.display_amount) }}
                                 </td>
-                                <td
-                                    class="px-3 py-3.5 text-center sm:px-5"
-                                >
+                                <td class="px-3 py-3.5 text-center sm:px-5">
                                     <div
                                         class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
                                     >
@@ -496,17 +403,9 @@
                     </table>
                 </div>
             </section>
-
-            <!-- Recent Incomes -->
-            <section
-                class="overflow-hidden rounded-[22px] bg-white shadow-sm"
-            >
-                <div
-                    class="flex items-center justify-between px-5 py-[24px]"
-                >
-                    <h2
-                        class="text-[20px] leading-none font-normal text-black"
-                    >
+            <section class="overflow-hidden rounded-[22px] bg-white shadow-sm">
+                <div class="flex items-center justify-between px-5 py-[24px]">
+                    <h2 class="text-[20px] leading-none font-normal text-black">
                         Recently Incomes
                     </h2>
                     <Link
@@ -566,15 +465,12 @@
                                         {{ t.description }}
                                     </div>
                                 </td>
-                                <td
-                                    class="px-3 py-3.5 text-center sm:px-5"
-                                >
+                                <td class="px-3 py-3.5 text-center sm:px-5">
                                     <span
                                         class="inline-flex min-w-[90px] justify-center rounded-md bg-[#d9d9d9] px-3 py-1.5 text-[15px] font-normal text-black"
                                     >
                                         {{
-                                            t.category?.name ??
-                                            'Uncategorized'
+                                            t.category?.name ?? 'Uncategorized'
                                         }}
                                     </span>
                                 </td>
@@ -583,9 +479,7 @@
                                 >
                                     {{ formatAmount(t.display_amount) }}
                                 </td>
-                                <td
-                                    class="px-3 py-3.5 text-center sm:px-5"
-                                >
+                                <td class="px-3 py-3.5 text-center sm:px-5">
                                     <div
                                         class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
                                     >
@@ -624,10 +518,6 @@
                 </div>
             </section>
         </div>
-
-        <!-- ═══════════════════════════════════════════════════════
-             ADD / EDIT DIALOG  (unchanged logic)
-        ════════════════════════════════════════════════════════ -->
         <Dialog v-model:open="isDialogOpen">
             <DialogContent
                 class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-white p-0 text-[#2d2d2d] shadow-2xl sm:min-h-[654px] sm:max-w-[618px]"
@@ -654,15 +544,9 @@
                     <input type="hidden" name="type" :value="form.type" />
 
                     <div class="space-y-5">
-                        <!-- Subject + Category -->
                         <div class="grid gap-2">
-                            <div
-                                class="grid gap-2 sm:grid-cols-[276px_134px]"
-                            >
-                                <Label
-                                    class="finance-dialog-label"
-                                    for="title"
-                                >
+                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
+                                <Label class="finance-dialog-label" for="title">
                                     Subject
                                 </Label>
                                 <Label
@@ -672,9 +556,7 @@
                                     Category
                                 </Label>
                             </div>
-                            <div
-                                class="grid gap-2 sm:grid-cols-[276px_134px]"
-                            >
+                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
                                 <div>
                                     <Input
                                         id="title"
@@ -683,9 +565,7 @@
                                         required
                                         placeholder="Hamburger, Fresh Restaurant"
                                     />
-                                    <InputError
-                                        :message="form.errors.title"
-                                    />
+                                    <InputError :message="form.errors.title" />
                                 </div>
                                 <div>
                                     <select
@@ -712,8 +592,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Date -->
                         <div class="grid gap-2">
                             <Label
                                 class="finance-dialog-label"
@@ -729,10 +607,7 @@
                             <div
                                 class="grid gap-2 sm:grid-cols-[134px_134px_134px]"
                             >
-                                <Select
-                                    v-model="selectedDateMonth"
-                                    required
-                                >
+                                <Select v-model="selectedDateMonth" required>
                                     <SelectTrigger
                                         class="finance-dialog-field"
                                         :class="fieldControlClass"
@@ -786,12 +661,8 @@
                             </div>
                             <InputError :message="form.errors.occurred_at" />
                         </div>
-
-                        <!-- Amount + Currency -->
                         <div class="grid gap-2">
-                            <div
-                                class="grid gap-2 sm:grid-cols-[276px_134px]"
-                            >
+                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
                                 <Label
                                     class="finance-dialog-label"
                                     for="amount"
@@ -805,9 +676,7 @@
                                     Currency
                                 </Label>
                             </div>
-                            <div
-                                class="grid gap-2 sm:grid-cols-[276px_134px]"
-                            >
+                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
                                 <div>
                                     <Input
                                         id="amount"
@@ -819,9 +688,7 @@
                                         step="0.01"
                                         placeholder="000.000.000"
                                     />
-                                    <InputError
-                                        :message="form.errors.amount"
-                                    />
+                                    <InputError :message="form.errors.amount" />
                                 </div>
                                 <div>
                                     <select
@@ -844,8 +711,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Description -->
                         <div class="grid gap-2">
                             <Label
                                 class="finance-dialog-label"
@@ -893,7 +758,14 @@
 
 <script setup lang="ts">
 import { Head, Link, router, usePage, useForm } from '@inertiajs/vue3';
-import { Pencil, Plus, Trash2, TrendingDown, TrendingUp, Wallet } from 'lucide-vue-next';
+import {
+    Pencil,
+    Plus,
+    Trash2,
+    TrendingDown,
+    TrendingUp,
+    Wallet,
+} from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import BarChart from '@/components/charts/BarChart.vue';
 import GaugeChart from '@/components/charts/GaugeChart.vue';
@@ -908,21 +780,12 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard } from '@/routes';
 import { index as transactionsIndex } from '@/routes/transactions';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type TransactionType = 'cost' | 'income';
-type Currency        = 'toman' | 'usd' | 'eur';
+type Currency = 'toman' | 'usd' | 'eur';
 
 type Category = {
     id: number;
@@ -948,14 +811,12 @@ type Transaction = {
 
 type CurrencyOption = { label: string; value: Currency };
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
 const props = defineProps<{
     transactions: { costs: Transaction[]; incomes: Transaction[] };
-    categories:   Record<TransactionType, Category[]>;
-    currencies:   CurrencyOption[];
+    categories: Record<TransactionType, Category[]>;
+    currencies: CurrencyOption[];
     selectedCurrency: Currency;
-    summary:      { cost: string; income: string };
+    summary: { cost: string; income: string };
 }>();
 
 defineOptions({
@@ -964,167 +825,143 @@ defineOptions({
     },
 });
 
-// ─── Auth user ────────────────────────────────────────────────────────────────
-
 const page = usePage();
 const user = computed(
     () => (page.props.auth as { user?: { name: string } } | undefined)?.user,
 );
-
-// ─── Currency selector ────────────────────────────────────────────────────────
-
-const selectedCurrency = ref<Currency>(props.selectedCurrency);
-
-watch(
-    () => props.selectedCurrency,
-    (v) => { selectedCurrency.value = v; },
-);
-
-watch(selectedCurrency, (v) => {
-    if (v === props.selectedCurrency) return;
-    router.get(
-        dashboard.url(),
-        { currency: v },
-        { preserveScroll: true, preserveState: true, replace: true },
-    );
-});
-
-// ─── Numeric helpers ──────────────────────────────────────────────────────────
 
 function parseNum(val: string | number): number {
     return parseFloat(String(val).replace(/,/g, '')) || 0;
 }
 
 const incomeNum = computed(() => parseNum(props.summary.income));
-const costNum   = computed(() => parseNum(props.summary.cost));
-const balance   = computed(() => incomeNum.value - costNum.value);
-
-// ─── Finance Rate gauge (income share of total flow) ─────────────────────────
+const costNum = computed(() => parseNum(props.summary.cost));
+const balance = computed(() => incomeNum.value - costNum.value);
 
 const financeRate = computed(() => {
     const total = incomeNum.value + costNum.value;
-    if (total <= 0) return 0;
+
+    if (total <= 0) {
+        return 0;
+    }
+
     return Math.round((incomeNum.value / total) * 100);
 });
 
-// ─── Savings rate (Cost Optimize) ─────────────────────────────────────────────
-
 const costOptimize = computed(() => {
-    if (incomeNum.value <= 0) return 0;
+    if (incomeNum.value <= 0) {
+        return 0;
+    }
+
     return Math.round(
         ((incomeNum.value - costNum.value) / incomeNum.value) * 100,
     );
 });
 
-// ─── Current period ───────────────────────────────────────────────────────────
-
 const period = computed(() => {
-    const now          = new Date();
-    const month        = now.toLocaleDateString('en-US', { month: 'long' });
-    const year         = now.getFullYear();
-    const dayOfMonth   = now.getDate();
-    const daysInMonth  = new Date(year, now.getMonth() + 1, 0).getDate();
-    const progress     = Math.round((dayOfMonth / daysInMonth) * 100);
+    const now = new Date();
+    const month = now.toLocaleDateString('en-US', { month: 'long' });
+    const year = now.getFullYear();
+    const dayOfMonth = now.getDate();
+    const daysInMonth = new Date(year, now.getMonth() + 1, 0).getDate();
+    const progress = Math.round((dayOfMonth / daysInMonth) * 100);
+
     return { month, year, dayOfMonth, daysInMonth, progress };
 });
 
-// ─── Monthly bar chart data (last 6 months) ───────────────────────────────────
-
 const monthlyData = computed(() => {
-    const now    = new Date();
+    const now = new Date();
     const result = Array.from({ length: 6 }, (_, i) => {
-        const d   = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+        const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         const label = d.toLocaleDateString('en-US', { month: 'short' });
+
         return { key, label, income: 0, cost: 0 };
     });
 
     for (const t of props.transactions.costs) {
         const m = result.find((r) => r.key === t.occurred_at.slice(0, 7));
-        if (m) m.cost += parseNum(t.display_amount);
+
+        if (m) {
+            m.cost += parseNum(t.display_amount);
+        }
     }
+
     for (const t of props.transactions.incomes) {
         const m = result.find((r) => r.key === t.occurred_at.slice(0, 7));
-        if (m) m.income += parseNum(t.display_amount);
+
+        if (m) {
+            m.income += parseNum(t.display_amount);
+        }
     }
 
-    // Drop empty leading months so bars never look isolated in a sea of zeros.
-    // Always keep at least the last 2 months (current + previous) for context.
-    const firstWithData = result.findIndex((m) => m.income > 0 || m.cost > 0);
-    const trimFrom      = firstWithData > 0
-        ? Math.min(firstWithData, result.length - 2) // keep ≥ 2 months
-        : 0;
-
-    return result.slice(trimFrom);
+    return result;
 });
 
-// ─── Recent rows (5 each) ─────────────────────────────────────────────────────
-
-const recentCosts   = computed(() => props.transactions.costs.slice(0, 5));
+const recentCosts = computed(() => props.transactions.costs.slice(0, 5));
 const recentIncomes = computed(() => props.transactions.incomes.slice(0, 5));
-
-// ─── Format amount ────────────────────────────────────────────────────────────
 
 function formatAmount(amount: string | number): string {
     const n = Number(String(amount).replace(/,/g, ''));
+
     return new Intl.NumberFormat('en-US', {
         maximumFractionDigits: 2,
         minimumFractionDigits: n % 1 === 0 ? 0 : 2,
     }).format(n);
 }
 
-// ─── Dialog / form ────────────────────────────────────────────────────────────
-
-const isDialogOpen          = ref(false);
-const editingTransactionId  = ref<number | null>(null);
-const selectedDateYear      = ref('');
-const selectedDateMonth     = ref('');
-const selectedDateDay       = ref('');
+const isDialogOpen = ref(false);
+const editingTransactionId = ref<number | null>(null);
+const selectedDateYear = ref('');
+const selectedDateMonth = ref('');
+const selectedDateDay = ref('');
 
 const today = () => new Date().toISOString().slice(0, 10);
 
 const transactionYears = computed(() => {
     const y = new Date().getFullYear();
+
     return Array.from({ length: 17 }, (_, i) => String(y + 1 - i));
 });
 
 const months = [
-    { value: '01', label: 'January'   },
-    { value: '02', label: 'February'  },
-    { value: '03', label: 'March'     },
-    { value: '04', label: 'April'     },
-    { value: '05', label: 'May'       },
-    { value: '06', label: 'June'      },
-    { value: '07', label: 'July'      },
-    { value: '08', label: 'August'    },
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
     { value: '09', label: 'September' },
-    { value: '10', label: 'October'   },
-    { value: '11', label: 'November'  },
-    { value: '12', label: 'December'  },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' },
 ];
 
 const transactionDays = computed(() => {
-    const y     = Number(selectedDateYear.value  || new Date().getFullYear());
-    const m     = Number(selectedDateMonth.value || 1);
+    const y = Number(selectedDateYear.value || new Date().getFullYear());
+    const m = Number(selectedDateMonth.value || 1);
     const count = new Date(y, m, 0).getDate();
+
     return Array.from({ length: count }, (_, i) =>
         String(i + 1).padStart(2, '0'),
     );
 });
 
 const form = useForm({
-    type:        'cost' as TransactionType,
+    type: 'cost' as TransactionType,
     category_id: '',
-    amount:      '',
-    currency:    'toman' as Currency,
-    title:       '',
+    amount: '',
+    currency: 'toman' as Currency,
+    title: '',
     description: '',
     occurred_at: today(),
 });
 
 const selectedCategories = computed(() => props.categories[form.type] ?? []);
-const isEditing          = computed(() => editingTransactionId.value !== null);
-const dialogTitle        = computed(() =>
+const isEditing = computed(() => editingTransactionId.value !== null);
+const dialogTitle = computed(() =>
     isEditing.value
         ? `Edit ${form.type === 'cost' ? 'cost' : 'income'}`
         : `Add ${form.type === 'cost' ? 'cost' : 'income'}`,
@@ -1137,13 +974,20 @@ const fieldControlClass = computed(() =>
 
 function syncDatePicker(date: string): void {
     const [y, m, d] = date.split('-');
-    selectedDateYear.value  = y ?? '';
+    selectedDateYear.value = y ?? '';
     selectedDateMonth.value = m ?? '';
-    selectedDateDay.value   = d ?? '';
+    selectedDateDay.value = d ?? '';
 }
 
 function updateOccurredAt(): void {
-    if (!selectedDateYear.value || !selectedDateMonth.value || !selectedDateDay.value) return;
+    if (
+        !selectedDateYear.value ||
+        !selectedDateMonth.value ||
+        !selectedDateDay.value
+    ) {
+        return;
+    }
+
     form.occurred_at = `${selectedDateYear.value}-${selectedDateMonth.value}-${selectedDateDay.value}`;
 }
 
@@ -1151,11 +995,11 @@ const resetForm = (type: TransactionType) => {
     const cats = props.categories[type] ?? [];
     form.clearErrors();
     form.reset();
-    form.type        = type;
+    form.type = type;
     form.category_id = cats[0]?.id.toString() ?? '';
-    form.amount      = '';
-    form.currency    = 'toman';
-    form.title       = '';
+    form.amount = '';
+    form.currency = 'toman';
+    form.title = '';
     form.description = '';
     form.occurred_at = today();
     syncDatePicker(form.occurred_at);
@@ -1170,11 +1014,11 @@ const openCreateForm = (type: TransactionType) => {
 const openEditForm = (t: Transaction) => {
     editingTransactionId.value = t.id;
     form.clearErrors();
-    form.type        = t.type;
+    form.type = t.type;
     form.category_id = t.category_id.toString();
-    form.amount      = t.amount;
-    form.currency    = t.currency;
-    form.title       = t.title;
+    form.amount = t.amount;
+    form.currency = t.currency;
+    form.title = t.title;
     form.description = t.description ?? '';
     form.occurred_at = t.occurred_at;
     syncDatePicker(t.occurred_at);
@@ -1185,20 +1029,26 @@ const submitTransaction = () => {
     const opts = {
         preserveScroll: true,
         onSuccess: () => {
-            isDialogOpen.value         = false;
+            isDialogOpen.value = false;
             editingTransactionId.value = null;
             resetForm(form.type);
         },
     };
+
     if (editingTransactionId.value) {
         form.patch(`/transactions/${editingTransactionId.value}`, opts);
+
         return;
     }
+
     form.post('/transactions', opts);
 };
 
 const deleteTransaction = (t: Transaction) => {
-    if (!window.confirm(`Delete "${t.title}"?`)) return;
+    if (!window.confirm(`Delete "${t.title}"?`)) {
+        return;
+    }
+
     router.delete(`/transactions/${t.id}`, { preserveScroll: true });
 };
 

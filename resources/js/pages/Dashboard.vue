@@ -1,233 +1,495 @@
 <template>
     <Head title="Dashboard" />
 
-    <div class="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-4 sm:p-6">
+    <div
+        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
+    >
+        <!-- ═══════════════════════════════════════════════════════
+             HERO BANNER
+        ════════════════════════════════════════════════════════ -->
         <section
-            class="overflow-hidden rounded-3xl border border-neutral-200/70 bg-[radial-gradient(circle_at_top_left,_#f7f0dc,_transparent_32%),linear-gradient(135deg,_#fffefa,_#eef8f1)] p-6 shadow-sm dark:border-neutral-800 dark:bg-[radial-gradient(circle_at_top_left,_#332f22,_transparent_36%),linear-gradient(135deg,_#101211,_#172018)]"
+            class="mx-[18px] mt-5 rounded-[22px] bg-white p-5 shadow-sm"
         >
             <div
-                class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"
+                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
             >
-                <div class="max-w-2xl space-y-3">
+                <!-- Welcome copy -->
+                <div>
                     <p
-                        class="text-xs font-semibold tracking-[0.35em] text-emerald-700 uppercase dark:text-emerald-300"
+                        class="text-xs font-semibold tracking-[0.3em] text-[#989898] uppercase"
                     >
                         Finance command center
                     </p>
-                    <div class="space-y-2">
-                        <h1
-                            class="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl dark:text-neutral-50"
-                        >
-                            Track every toman with a little less chaos.
-                        </h1>
-                        <p
-                            class="text-sm text-neutral-600 dark:text-neutral-300"
-                        >
-                            Costs and incomes live side by side with one shared
-                            display currency, so every amount stays easy to
-                            compare.
-                        </p>
-                    </div>
+                    <h1
+                        class="mt-1 text-[26px] font-bold leading-tight text-[#2d2d2d] sm:text-[30px]"
+                    >
+                        Your money, on Autopilot.
+                    </h1>
+                    <p class="mt-0.5 text-sm text-[#989898]">
+                        Welcome back,
+                        <span class="font-semibold text-[#2d2d2d]">{{
+                            user?.name ?? 'there'
+                        }}</span>
+                    </p>
                 </div>
 
-                <div class="flex flex-col gap-4 lg:min-w-lg">
-                    <div class="flex flex-col gap-2 sm:max-w-xs lg:max-w-3xs">
-                        <Label
-                            for="display_currency"
-                            class="text-xs font-semibold tracking-[0.2em] text-neutral-500 uppercase dark:text-neutral-400"
+                <!-- Currency selector -->
+                <div class="flex flex-col gap-1.5 sm:min-w-[160px]">
+                    <Label
+                        for="display_currency"
+                        class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
+                    >
+                        Display currency
+                    </Label>
+                    <Select v-model="selectedCurrency">
+                        <SelectTrigger
+                            id="display_currency"
+                            class="h-9 w-full rounded-md !border-[#e6e6e6] !bg-[#f4f4f4] !text-[#2d2d2d] shadow-none"
                         >
-                            Display currency
-                        </Label>
-                        <Select v-model="selectedCurrency">
-                            <SelectTrigger
-                                id="display_currency"
-                                class="w-full rounded-2xl border-white/70 bg-white/80 dark:border-white/10 dark:bg-white/10"
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem
+                                v-for="c in props.currencies"
+                                :key="c.value"
+                                :value="c.value"
                             >
-                                <SelectValue placeholder="Select currency" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem
-                                    v-for="currency in props.currencies"
-                                    :key="currency.value"
-                                    :value="currency.value"
-                                >
-                                    {{ currency.label }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <div
-                            class="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-xs backdrop-blur dark:border-white/10 dark:bg-white/5"
-                        >
-                            <p
-                                class="text-xs text-neutral-500 dark:text-neutral-400"
-                            >
-                                Income
-                            </p>
-                            <p
-                                class="mt-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300"
-                            >
-                                {{
-                                    formatMoney(
-                                        props.summary.income,
-                                        props.selectedCurrency,
-                                    )
-                                }}
-                            </p>
-                        </div>
-                        <div
-                            class="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-xs backdrop-blur dark:border-white/10 dark:bg-white/5"
-                        >
-                            <p
-                                class="text-xs text-neutral-500 dark:text-neutral-400"
-                            >
-                                Costs
-                            </p>
-                            <p
-                                class="mt-2 text-sm font-semibold text-rose-700 dark:text-rose-300"
-                            >
-                                {{
-                                    formatMoney(
-                                        props.summary.cost,
-                                        props.selectedCurrency,
-                                    )
-                                }}
-                            </p>
-                        </div>
-                    </div>
+                                {{ c.label }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
         </section>
 
-        <div class="grid gap-6 xl:grid-cols-2">
-            <section
-                class="rounded-3xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
-            >
-                <div
-                    class="flex items-center justify-between gap-4 border-b p-5 dark:border-neutral-800"
-                >
-                    <div>
-                        <p
-                            class="text-xs font-medium text-rose-600 uppercase dark:text-rose-300"
-                        >
-                            Costs
-                        </p>
-                        <h2 class="text-lg font-semibold">Money going out</h2>
-                    </div>
-                    <Button
-                        class="rounded-full"
-                        size="sm"
-                        @click="openCreateForm('cost')"
+        <!-- ═══════════════════════════════════════════════════════
+             MAIN CONTENT GRID
+        ════════════════════════════════════════════════════════ -->
+        <div
+            class="grid gap-[18px] px-[18px] py-[18px] xl:grid-cols-[1fr_284px]"
+        >
+            <!-- ── LEFT COLUMN ──────────────────────────────────── -->
+            <div class="flex flex-col gap-[18px]">
+                <!-- KPI Cards -->
+                <div class="grid gap-[18px] sm:grid-cols-3">
+                    <!-- Income -->
+                    <article
+                        class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
                     >
-                        <Plus class="size-4" />
-                        Add cost
-                    </Button>
+                        <div class="flex items-center gap-2.5">
+                            <span
+                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#effffa]"
+                            >
+                                <TrendingUp
+                                    class="size-[18px] text-[#02CD86]"
+                                />
+                            </span>
+                            <p
+                                class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase"
+                            >
+                                Income
+                            </p>
+                        </div>
+                        <p
+                            class="mt-3 text-[20px] font-bold leading-none text-[#2d2d2d]"
+                        >
+                            {{ formatAmount(props.summary.income) }}
+                            <span
+                                class="text-xs font-normal text-[#989898]"
+                                >{{
+                                    props.selectedCurrency.toUpperCase()
+                                }}</span
+                            >
+                        </p>
+                        <p class="mt-1.5 text-xs text-[#989898]">
+                            {{ props.transactions.incomes.length }}
+                            transaction{{
+                                props.transactions.incomes.length !== 1
+                                    ? 's'
+                                    : ''
+                            }}
+                        </p>
+                    </article>
+
+                    <!-- Costs -->
+                    <article
+                        class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                    >
+                        <div class="flex items-center gap-2.5">
+                            <span
+                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f0ecff]"
+                            >
+                                <TrendingDown
+                                    class="size-[18px] text-[#6C4EE9]"
+                                />
+                            </span>
+                            <p
+                                class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase"
+                            >
+                                Costs
+                            </p>
+                        </div>
+                        <p
+                            class="mt-3 text-[20px] font-bold leading-none text-[#2d2d2d]"
+                        >
+                            {{ formatAmount(props.summary.cost) }}
+                            <span
+                                class="text-xs font-normal text-[#989898]"
+                                >{{
+                                    props.selectedCurrency.toUpperCase()
+                                }}</span
+                            >
+                        </p>
+                        <p class="mt-1.5 text-xs text-[#989898]">
+                            {{ props.transactions.costs.length }}
+                            transaction{{
+                                props.transactions.costs.length !== 1
+                                    ? 's'
+                                    : ''
+                            }}
+                        </p>
+                    </article>
+
+                    <!-- Balance -->
+                    <article
+                        class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                    >
+                        <div class="flex items-center gap-2.5">
+                            <span
+                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                                :class="
+                                    balance >= 0
+                                        ? 'bg-[#effffa]'
+                                        : 'bg-[#fff0f0]'
+                                "
+                            >
+                                <Wallet
+                                    class="size-[18px]"
+                                    :class="
+                                        balance >= 0
+                                            ? 'text-[#02CD86]'
+                                            : 'text-[#E94E50]'
+                                    "
+                                />
+                            </span>
+                            <p
+                                class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase"
+                            >
+                                Balance
+                            </p>
+                        </div>
+                        <p
+                            class="mt-3 text-[20px] font-bold leading-none"
+                            :class="
+                                balance >= 0
+                                    ? 'text-[#02CD86]'
+                                    : 'text-[#E94E50]'
+                            "
+                        >
+                            {{ balance >= 0 ? '+' : '−'
+                            }}{{ formatAmount(Math.abs(balance)) }}
+                            <span
+                                class="text-xs font-normal text-[#989898]"
+                                >{{
+                                    props.selectedCurrency.toUpperCase()
+                                }}</span
+                            >
+                        </p>
+                        <p class="mt-1.5 text-xs text-[#989898]">
+                            {{ balance >= 0 ? 'In the positive' : 'Overspent' }}
+                        </p>
+                    </article>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr
-                                class="border-b text-left text-xs tracking-wide text-neutral-500 uppercase dark:border-neutral-800"
+                <!-- Finance Rate Gauge + Monthly Chart -->
+                <div
+                    class="grid gap-[18px] md:grid-cols-[216px_1fr]"
+                >
+                    <!-- Gauge card -->
+                    <div
+                        class="flex flex-col items-center justify-center rounded-[22px] bg-white p-5 shadow-sm"
+                    >
+                        <p
+                            class="mb-1 text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
+                        >
+                            Finance Rate
+                        </p>
+                        <GaugeChart :value="financeRate" />
+                        <p class="mt-1 text-center text-xs text-[#989898]">
+                            Income ÷ total flow
+                        </p>
+                    </div>
+
+                    <!-- Monthly bar chart card -->
+                    <div
+                        class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                    >
+                        <div
+                            class="mb-3 flex items-center justify-between"
+                        >
+                            <h2
+                                class="text-[17px] font-normal text-[#2d2d2d]"
                             >
-                                <th class="px-3 py-3 font-medium sm:px-5">
-                                    Title
+                                Monthly overview
+                            </h2>
+                            <div
+                                class="flex items-center gap-4 text-xs text-[#989898]"
+                            >
+                                <span class="flex items-center gap-1.5">
+                                    <span
+                                        class="h-2 w-2 rounded-full bg-[#02CD86]"
+                                    />
+                                    Income
+                                </span>
+                                <span class="flex items-center gap-1.5">
+                                    <span
+                                        class="h-2 w-2 rounded-full bg-[#6C4EE9]"
+                                    />
+                                    Costs
+                                </span>
+                            </div>
+                        </div>
+                        <BarChart
+                            :income-data="monthlyData.map((m) => m.income)"
+                            :cost-data="monthlyData.map((m) => m.cost)"
+                            :categories="monthlyData.map((m) => m.label)"
+                            :height="220"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── RIGHT SIDEBAR ─────────────────────────────────── -->
+            <div class="flex flex-col gap-[18px]">
+                <!-- Period card -->
+                <div
+                    class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                >
+                    <p
+                        class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
+                    >
+                        Current Period
+                    </p>
+                    <p
+                        class="mt-2 text-[26px] font-bold leading-none text-[#2d2d2d]"
+                    >
+                        {{ period.month }}
+                    </p>
+                    <p class="mt-1 text-xs text-[#989898]">
+                        {{ period.year }} &middot; Day
+                        {{ period.dayOfMonth }} of {{ period.daysInMonth }}
+                    </p>
+                    <div
+                        class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#f0ecff]"
+                    >
+                        <div
+                            class="h-full rounded-full bg-[#6C4EE9] transition-all duration-700"
+                            :style="{ width: period.progress + '%' }"
+                        />
+                    </div>
+                    <p class="mt-1.5 text-right text-xs text-[#989898]">
+                        {{ period.progress }}% of month elapsed
+                    </p>
+                </div>
+
+                <!-- Cost Optimize / Savings Rate -->
+                <div
+                    class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                >
+                    <p
+                        class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
+                    >
+                        Cost Optimize
+                    </p>
+                    <p
+                        class="mt-2 text-[26px] font-bold leading-none"
+                        :class="
+                            costOptimize >= 0
+                                ? 'text-[#02CD86]'
+                                : 'text-[#E94E50]'
+                        "
+                    >
+                        {{ costOptimize >= 0 ? '+' : ''
+                        }}{{ costOptimize }}%
+                    </p>
+                    <p class="mt-1 text-xs text-[#989898]">Savings rate</p>
+                    <div
+                        class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#f4f4f4]"
+                    >
+                        <div
+                            class="h-full rounded-full transition-all duration-700"
+                            :class="
+                                costOptimize >= 0
+                                    ? 'bg-[#02CD86]'
+                                    : 'bg-[#E94E50]'
+                            "
+                            :style="{
+                                width:
+                                    Math.min(
+                                        100,
+                                        Math.abs(costOptimize),
+                                    ) + '%',
+                            }"
+                        />
+                    </div>
+                </div>
+
+                <!-- Quick actions -->
+                <div class="flex flex-col gap-3">
+                    <button
+                        type="button"
+                        class="flex h-[60px] w-full items-center justify-between rounded-[16px] bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-4 text-white shadow-[0_10px_24px_rgba(108,78,233,0.28)] transition hover:brightness-105 active:scale-[0.98]"
+                        @click="openCreateForm('cost')"
+                    >
+                        <span class="text-[19px] font-bold">Add Cost</span>
+                        <span
+                            class="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/10 shadow-inner"
+                        >
+                            <Plus class="size-5" />
+                        </span>
+                    </button>
+
+                    <button
+                        type="button"
+                        class="flex h-[60px] w-full items-center justify-between rounded-[16px] bg-[linear-gradient(90deg,#02CD86_0%,#00A96F_100%)] px-4 text-white shadow-[0_10px_24px_rgba(2,205,134,0.25)] transition hover:brightness-105 active:scale-[0.98]"
+                        @click="openCreateForm('income')"
+                    >
+                        <span class="text-[19px] font-bold">Add Income</span>
+                        <span
+                            class="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/10 shadow-inner"
+                        >
+                            <Plus class="size-5" />
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════
+             RECENT TRANSACTIONS
+        ════════════════════════════════════════════════════════ -->
+        <div
+            class="grid gap-[18px] px-[18px] pb-[38px] xl:grid-cols-2"
+        >
+            <!-- Recent Costs -->
+            <section
+                class="overflow-hidden rounded-[22px] bg-white shadow-sm"
+            >
+                <div
+                    class="flex items-center justify-between px-5 py-[24px]"
+                >
+                    <h2
+                        class="text-[20px] leading-none font-normal text-black"
+                    >
+                        Recently Costs
+                    </h2>
+                    <Link
+                        :href="transactionsIndex()"
+                        class="text-xs text-[#6C4EE9] hover:underline"
+                    >
+                        See all →
+                    </Link>
+                </div>
+
+                <div class="overflow-x-auto px-3 pb-4">
+                    <table
+                        class="w-full border-separate border-spacing-y-0 text-sm"
+                    >
+                        <thead>
+                            <tr>
+                                <th
+                                    class="rounded-l-2xl bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                >
+                                    Subject
                                 </th>
-                                <th class="px-3 py-3 font-medium sm:px-5">
+                                <th
+                                    class="bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                >
                                     Category
                                 </th>
                                 <th
-                                    class="hidden px-3 py-3 font-medium sm:table-cell sm:px-5"
-                                >
-                                    Date
-                                </th>
-                                <th
-                                    class="px-3 py-3 text-right font-medium sm:px-5"
+                                    class="bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
                                 >
                                     Amount
                                 </th>
                                 <th
-                                    class="px-3 py-3 text-right font-medium sm:px-5"
-                                >
-                                    Actions
-                                </th>
+                                    class="rounded-r-2xl bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                ></th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr
-                                v-for="transaction in props.transactions.costs"
-                                :key="transaction.id"
-                                class="border-b last:border-0 hover:bg-rose-50/50 dark:border-neutral-800 dark:hover:bg-rose-950/10"
+                                v-for="t in recentCosts"
+                                :key="t.id"
+                                class="group"
                             >
-                                <td class="px-3 py-4 sm:px-5">
-                                    <div class="text-xs font-medium sm:text-sm">
-                                        {{ transaction.title }}
-                                    </div>
-                                    <div
-                                        v-if="transaction.description"
-                                        class="mt-1 line-clamp-1 text-xs text-neutral-500"
+                                <td
+                                    class="px-3 py-3.5 text-center text-[16px] leading-none text-black sm:px-5"
+                                >
+                                    <button
+                                        type="button"
+                                        class="transition hover:text-[#6C4EE9]"
+                                        @click="openEditForm(t)"
                                     >
-                                        {{ transaction.description }}
+                                        {{ t.title }}
+                                    </button>
+                                    <div
+                                        v-if="t.description"
+                                        class="mt-0.5 line-clamp-1 text-xs text-[#989898]"
+                                    >
+                                        {{ t.description }}
                                     </div>
                                 </td>
-                                <td class="px-3 py-4 sm:px-5">
+                                <td
+                                    class="px-3 py-3.5 text-center sm:px-5"
+                                >
                                     <span
-                                        class="rounded-full bg-neutral-100 px-2 py-0.5 text-xs dark:bg-neutral-900"
+                                        class="inline-flex min-w-[90px] justify-center rounded-md bg-[#d9d9d9] px-3 py-1.5 text-[15px] font-normal text-black"
                                     >
                                         {{
-                                            transaction.category?.name ??
+                                            t.category?.name ??
                                             'Uncategorized'
                                         }}
                                     </span>
                                 </td>
                                 <td
-                                    class="hidden px-3 py-4 text-xs text-neutral-600 sm:table-cell sm:px-5 sm:text-sm dark:text-neutral-300"
+                                    class="px-3 py-3.5 text-center text-[16px] leading-none font-semibold text-[#6C4EE9] sm:px-5"
                                 >
-                                    {{ transaction.occurred_at }}
+                                    {{ formatAmount(t.display_amount) }}
                                 </td>
                                 <td
-                                    class="px-3 py-4 text-right text-xs font-semibold text-rose-700 sm:px-5 sm:text-sm dark:text-rose-300"
+                                    class="px-3 py-3.5 text-center sm:px-5"
                                 >
-                                    {{
-                                        formatAmount(transaction.display_amount)
-                                    }}
-                                </td>
-                                <td class="px-3 py-4 sm:px-5">
                                     <div
-                                        class="flex justify-end gap-1 sm:gap-2"
+                                        class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
                                     >
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            class="h-7 w-7 rounded-full p-0 sm:h-9 sm:w-9"
-                                            @click="openEditForm(transaction)"
+                                        <button
+                                            type="button"
+                                            class="rounded-md p-1.5 hover:bg-[#f0ecff]"
+                                            @click="openEditForm(t)"
                                         >
-                                            <Pencil class="size-3 sm:size-4" />
-                                            <span class="sr-only">Edit</span>
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            class="h-7 w-7 rounded-full p-0 text-rose-700 hover:text-rose-800 sm:h-9 sm:w-9 dark:text-rose-300"
-                                            @click="
-                                                deleteTransaction(transaction)
-                                            "
+                                            <Pencil
+                                                class="size-3.5 text-[#6C4EE9]"
+                                            />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="rounded-md p-1.5 hover:bg-[#fff0f0]"
+                                            @click="deleteTransaction(t)"
                                         >
-                                            <Trash2 class="size-3 sm:size-4" />
-                                            <span class="sr-only">Delete</span>
-                                        </Button>
+                                            <Trash2
+                                                class="size-3.5 text-[#E94E50]"
+                                            />
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-if="props.transactions.costs.length === 0">
+                            <tr v-if="recentCosts.length === 0">
                                 <td
-                                    colspan="5"
-                                    class="px-5 py-12 text-center text-neutral-500"
+                                    colspan="4"
+                                    class="px-5 py-10 text-center text-[#989898]"
                                 >
-                                    No costs yet. Add the first one when money
-                                    leaves the building.
+                                    No costs yet — add one when money leaves!
                                 </td>
                             </tr>
                         </tbody>
@@ -235,133 +497,126 @@
                 </div>
             </section>
 
+            <!-- Recent Incomes -->
             <section
-                class="rounded-3xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
+                class="overflow-hidden rounded-[22px] bg-white shadow-sm"
             >
                 <div
-                    class="flex items-center justify-between gap-4 border-b p-5 dark:border-neutral-800"
+                    class="flex items-center justify-between px-5 py-[24px]"
                 >
-                    <div>
-                        <p
-                            class="text-xs font-medium text-emerald-600 uppercase dark:text-emerald-300"
-                        >
-                            Incomes
-                        </p>
-                        <h2 class="text-lg font-semibold">Money coming in</h2>
-                    </div>
-                    <Button
-                        class="rounded-full bg-emerald-700 hover:bg-emerald-800"
-                        size="sm"
-                        @click="openCreateForm('income')"
+                    <h2
+                        class="text-[20px] leading-none font-normal text-black"
                     >
-                        <Plus class="size-4" />
-                        Add income
-                    </Button>
+                        Recently Incomes
+                    </h2>
+                    <Link
+                        :href="transactionsIndex()"
+                        class="text-xs text-[#02CD86] hover:underline"
+                    >
+                        See all →
+                    </Link>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
+                <div class="overflow-x-auto px-3 pb-4">
+                    <table
+                        class="w-full border-separate border-spacing-y-0 text-sm"
+                    >
                         <thead>
-                            <tr
-                                class="border-b text-left text-xs tracking-wide text-neutral-500 uppercase dark:border-neutral-800"
-                            >
-                                <th class="px-3 py-3 font-medium sm:px-5">
-                                    Title
+                            <tr>
+                                <th
+                                    class="rounded-l-2xl bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                >
+                                    Subject
                                 </th>
-                                <th class="px-3 py-3 font-medium sm:px-5">
+                                <th
+                                    class="bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                >
                                     Category
                                 </th>
                                 <th
-                                    class="hidden px-3 py-3 font-medium sm:table-cell sm:px-5"
-                                >
-                                    Date
-                                </th>
-                                <th
-                                    class="px-3 py-3 text-right font-medium sm:px-5"
+                                    class="bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
                                 >
                                     Amount
                                 </th>
                                 <th
-                                    class="px-3 py-3 text-right font-medium sm:px-5"
-                                >
-                                    Actions
-                                </th>
+                                    class="rounded-r-2xl bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                ></th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr
-                                v-for="transaction in props.transactions
-                                    .incomes"
-                                :key="transaction.id"
-                                class="border-b last:border-0 hover:bg-emerald-50/50 dark:border-neutral-800 dark:hover:bg-emerald-950/10"
+                                v-for="t in recentIncomes"
+                                :key="t.id"
+                                class="group"
                             >
-                                <td class="px-3 py-4 sm:px-5">
-                                    <div class="text-xs font-medium sm:text-sm">
-                                        {{ transaction.title }}
-                                    </div>
-                                    <div
-                                        v-if="transaction.description"
-                                        class="mt-1 line-clamp-1 text-xs text-neutral-500"
+                                <td
+                                    class="px-3 py-3.5 text-center text-[16px] leading-none text-black sm:px-5"
+                                >
+                                    <button
+                                        type="button"
+                                        class="transition hover:text-[#02CD86]"
+                                        @click="openEditForm(t)"
                                     >
-                                        {{ transaction.description }}
+                                        {{ t.title }}
+                                    </button>
+                                    <div
+                                        v-if="t.description"
+                                        class="mt-0.5 line-clamp-1 text-xs text-[#989898]"
+                                    >
+                                        {{ t.description }}
                                     </div>
                                 </td>
-                                <td class="px-3 py-4 sm:px-5">
+                                <td
+                                    class="px-3 py-3.5 text-center sm:px-5"
+                                >
                                     <span
-                                        class="rounded-full bg-neutral-100 px-2 py-0.5 text-xs dark:bg-neutral-900"
+                                        class="inline-flex min-w-[90px] justify-center rounded-md bg-[#d9d9d9] px-3 py-1.5 text-[15px] font-normal text-black"
                                     >
                                         {{
-                                            transaction.category?.name ??
+                                            t.category?.name ??
                                             'Uncategorized'
                                         }}
                                     </span>
                                 </td>
                                 <td
-                                    class="hidden px-3 py-4 text-xs text-neutral-600 sm:table-cell sm:px-5 sm:text-sm dark:text-neutral-300"
+                                    class="px-3 py-3.5 text-center text-[16px] leading-none font-semibold text-[#02CD86] sm:px-5"
                                 >
-                                    {{ transaction.occurred_at }}
+                                    {{ formatAmount(t.display_amount) }}
                                 </td>
                                 <td
-                                    class="px-3 py-4 text-right text-xs font-semibold text-emerald-700 sm:px-5 sm:text-sm dark:text-emerald-300"
+                                    class="px-3 py-3.5 text-center sm:px-5"
                                 >
-                                    {{
-                                        formatAmount(transaction.display_amount)
-                                    }}
-                                </td>
-                                <td class="px-3 py-4 sm:px-5">
                                     <div
-                                        class="flex justify-end gap-1 sm:gap-2"
+                                        class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
                                     >
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            class="h-7 w-7 rounded-full p-0 sm:h-9 sm:w-9"
-                                            @click="openEditForm(transaction)"
+                                        <button
+                                            type="button"
+                                            class="rounded-md p-1.5 hover:bg-[#f0ecff]"
+                                            @click="openEditForm(t)"
                                         >
-                                            <Pencil class="size-3 sm:size-4" />
-                                            <span class="sr-only">Edit</span>
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            class="h-7 w-7 rounded-full p-0 text-rose-700 hover:text-rose-800 sm:h-9 sm:w-9 dark:text-rose-300"
-                                            @click="
-                                                deleteTransaction(transaction)
-                                            "
+                                            <Pencil
+                                                class="size-3.5 text-[#6C4EE9]"
+                                            />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="rounded-md p-1.5 hover:bg-[#fff0f0]"
+                                            @click="deleteTransaction(t)"
                                         >
-                                            <Trash2 class="size-3 sm:size-4" />
-                                            <span class="sr-only">Delete</span>
-                                        </Button>
+                                            <Trash2
+                                                class="size-3.5 text-[#E94E50]"
+                                            />
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-if="props.transactions.incomes.length === 0">
+                            <tr v-if="recentIncomes.length === 0">
                                 <td
-                                    colspan="5"
-                                    class="px-5 py-12 text-center text-neutral-500"
+                                    colspan="4"
+                                    class="px-5 py-10 text-center text-[#989898]"
                                 >
-                                    No incomes yet. Add salary, gifts, or
-                                    freelance wins here.
+                                    No incomes yet — add salary or freelance
+                                    wins here!
                                 </td>
                             </tr>
                         </tbody>
@@ -370,6 +625,9 @@
             </section>
         </div>
 
+        <!-- ═══════════════════════════════════════════════════════
+             ADD / EDIT DIALOG  (unchanged logic)
+        ════════════════════════════════════════════════════════ -->
         <Dialog v-model:open="isDialogOpen">
             <DialogContent
                 class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-white p-0 text-[#2d2d2d] shadow-2xl sm:min-h-[654px] sm:max-w-[618px]"
@@ -396,9 +654,15 @@
                     <input type="hidden" name="type" :value="form.type" />
 
                     <div class="space-y-5">
+                        <!-- Subject + Category -->
                         <div class="grid gap-2">
-                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
-                                <Label class="finance-dialog-label" for="title">
+                            <div
+                                class="grid gap-2 sm:grid-cols-[276px_134px]"
+                            >
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="title"
+                                >
                                     Subject
                                 </Label>
                                 <Label
@@ -408,7 +672,9 @@
                                     Category
                                 </Label>
                             </div>
-                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
+                            <div
+                                class="grid gap-2 sm:grid-cols-[276px_134px]"
+                            >
                                 <div>
                                     <Input
                                         id="title"
@@ -417,9 +683,10 @@
                                         required
                                         placeholder="Hamburger, Fresh Restaurant"
                                     />
-                                    <InputError :message="form.errors.title" />
+                                    <InputError
+                                        :message="form.errors.title"
+                                    />
                                 </div>
-
                                 <div>
                                     <select
                                         id="category"
@@ -446,6 +713,7 @@
                             </div>
                         </div>
 
+                        <!-- Date -->
                         <div class="grid gap-2">
                             <Label
                                 class="finance-dialog-label"
@@ -461,7 +729,10 @@
                             <div
                                 class="grid gap-2 sm:grid-cols-[134px_134px_134px]"
                             >
-                                <Select v-model="selectedDateMonth" required>
+                                <Select
+                                    v-model="selectedDateMonth"
+                                    required
+                                >
                                     <SelectTrigger
                                         class="finance-dialog-field"
                                         :class="fieldControlClass"
@@ -478,7 +749,6 @@
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-
                                 <Select v-model="selectedDateDay" required>
                                     <SelectTrigger
                                         class="finance-dialog-field"
@@ -496,7 +766,6 @@
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-
                                 <Select v-model="selectedDateYear" required>
                                     <SelectTrigger
                                         class="finance-dialog-field"
@@ -518,8 +787,11 @@
                             <InputError :message="form.errors.occurred_at" />
                         </div>
 
+                        <!-- Amount + Currency -->
                         <div class="grid gap-2">
-                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
+                            <div
+                                class="grid gap-2 sm:grid-cols-[276px_134px]"
+                            >
                                 <Label
                                     class="finance-dialog-label"
                                     for="amount"
@@ -533,7 +805,9 @@
                                     Currency
                                 </Label>
                             </div>
-                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
+                            <div
+                                class="grid gap-2 sm:grid-cols-[276px_134px]"
+                            >
                                 <div>
                                     <Input
                                         id="amount"
@@ -545,9 +819,10 @@
                                         step="0.01"
                                         placeholder="000.000.000"
                                     />
-                                    <InputError :message="form.errors.amount" />
+                                    <InputError
+                                        :message="form.errors.amount"
+                                    />
                                 </div>
-
                                 <div>
                                     <select
                                         id="currency"
@@ -556,11 +831,11 @@
                                         :class="fieldControlClass"
                                     >
                                         <option
-                                            v-for="currency in props.currencies"
-                                            :key="currency.value"
-                                            :value="currency.value"
+                                            v-for="c in props.currencies"
+                                            :key="c.value"
+                                            :value="c.value"
                                         >
-                                            {{ currency.label }}
+                                            {{ c.label }}
                                         </option>
                                     </select>
                                     <InputError
@@ -570,6 +845,7 @@
                             </div>
                         </div>
 
+                        <!-- Description -->
                         <div class="grid gap-2">
                             <Label
                                 class="finance-dialog-label"
@@ -616,9 +892,11 @@
 </template>
 
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { Head, Link, router, usePage, useForm } from '@inertiajs/vue3';
+import { Pencil, Plus, Trash2, TrendingDown, TrendingUp, Wallet } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import BarChart from '@/components/charts/BarChart.vue';
+import GaugeChart from '@/components/charts/GaugeChart.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -639,9 +917,12 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard } from '@/routes';
+import { index as transactionsIndex } from '@/routes/transactions';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type TransactionType = 'cost' | 'income';
-type Currency = 'toman' | 'usd' | 'eur';
+type Currency        = 'toman' | 'usd' | 'eur';
 
 type Category = {
     id: number;
@@ -665,91 +946,178 @@ type Transaction = {
     category_id: number;
 };
 
-type CurrencyOption = {
-    label: string;
-    value: Currency;
-};
+type CurrencyOption = { label: string; value: Currency };
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 const props = defineProps<{
-    transactions: {
-        costs: Transaction[];
-        incomes: Transaction[];
-    };
-    categories: Record<TransactionType, Category[]>;
-    currencies: CurrencyOption[];
+    transactions: { costs: Transaction[]; incomes: Transaction[] };
+    categories:   Record<TransactionType, Category[]>;
+    currencies:   CurrencyOption[];
     selectedCurrency: Currency;
-    summary: {
-        cost: string;
-        income: string;
-    };
+    summary:      { cost: string; income: string };
 }>();
 
 defineOptions({
     layout: {
-        breadcrumbs: [
-            {
-                title: 'Dashboard',
-                href: dashboard(),
-            },
-        ],
+        breadcrumbs: [{ title: 'Dashboard', href: dashboard() }],
     },
 });
 
-const isDialogOpen = ref(false);
-const editingTransactionId = ref<number | null>(null);
-const selectedDateYear = ref('');
-const selectedDateMonth = ref('');
-const selectedDateDay = ref('');
+// ─── Auth user ────────────────────────────────────────────────────────────────
+
+const page = usePage();
+const user = computed(
+    () => (page.props.auth as { user?: { name: string } } | undefined)?.user,
+);
+
+// ─── Currency selector ────────────────────────────────────────────────────────
+
 const selectedCurrency = ref<Currency>(props.selectedCurrency);
+
+watch(
+    () => props.selectedCurrency,
+    (v) => { selectedCurrency.value = v; },
+);
+
+watch(selectedCurrency, (v) => {
+    if (v === props.selectedCurrency) return;
+    router.get(
+        dashboard.url(),
+        { currency: v },
+        { preserveScroll: true, preserveState: true, replace: true },
+    );
+});
+
+// ─── Numeric helpers ──────────────────────────────────────────────────────────
+
+function parseNum(val: string | number): number {
+    return parseFloat(String(val).replace(/,/g, '')) || 0;
+}
+
+const incomeNum = computed(() => parseNum(props.summary.income));
+const costNum   = computed(() => parseNum(props.summary.cost));
+const balance   = computed(() => incomeNum.value - costNum.value);
+
+// ─── Finance Rate gauge (income share of total flow) ─────────────────────────
+
+const financeRate = computed(() => {
+    const total = incomeNum.value + costNum.value;
+    if (total <= 0) return 0;
+    return Math.round((incomeNum.value / total) * 100);
+});
+
+// ─── Savings rate (Cost Optimize) ─────────────────────────────────────────────
+
+const costOptimize = computed(() => {
+    if (incomeNum.value <= 0) return 0;
+    return Math.round(
+        ((incomeNum.value - costNum.value) / incomeNum.value) * 100,
+    );
+});
+
+// ─── Current period ───────────────────────────────────────────────────────────
+
+const period = computed(() => {
+    const now          = new Date();
+    const month        = now.toLocaleDateString('en-US', { month: 'long' });
+    const year         = now.getFullYear();
+    const dayOfMonth   = now.getDate();
+    const daysInMonth  = new Date(year, now.getMonth() + 1, 0).getDate();
+    const progress     = Math.round((dayOfMonth / daysInMonth) * 100);
+    return { month, year, dayOfMonth, daysInMonth, progress };
+});
+
+// ─── Monthly bar chart data (last 6 months) ───────────────────────────────────
+
+const monthlyData = computed(() => {
+    const now    = new Date();
+    const result = Array.from({ length: 6 }, (_, i) => {
+        const d   = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = d.toLocaleDateString('en-US', { month: 'short' });
+        return { key, label, income: 0, cost: 0 };
+    });
+
+    for (const t of props.transactions.costs) {
+        const m = result.find((r) => r.key === t.occurred_at.slice(0, 7));
+        if (m) m.cost += parseNum(t.display_amount);
+    }
+    for (const t of props.transactions.incomes) {
+        const m = result.find((r) => r.key === t.occurred_at.slice(0, 7));
+        if (m) m.income += parseNum(t.display_amount);
+    }
+
+    return result;
+});
+
+// ─── Recent rows (5 each) ─────────────────────────────────────────────────────
+
+const recentCosts   = computed(() => props.transactions.costs.slice(0, 5));
+const recentIncomes = computed(() => props.transactions.incomes.slice(0, 5));
+
+// ─── Format amount ────────────────────────────────────────────────────────────
+
+function formatAmount(amount: string | number): string {
+    const n = Number(String(amount).replace(/,/g, ''));
+    return new Intl.NumberFormat('en-US', {
+        maximumFractionDigits: 2,
+        minimumFractionDigits: n % 1 === 0 ? 0 : 2,
+    }).format(n);
+}
+
+// ─── Dialog / form ────────────────────────────────────────────────────────────
+
+const isDialogOpen          = ref(false);
+const editingTransactionId  = ref<number | null>(null);
+const selectedDateYear      = ref('');
+const selectedDateMonth     = ref('');
+const selectedDateDay       = ref('');
 
 const today = () => new Date().toISOString().slice(0, 10);
 
 const transactionYears = computed(() => {
-    const currentYear = new Date().getFullYear();
-
-    return Array.from({ length: 17 }, (_, index) =>
-        String(currentYear + 1 - index),
-    );
+    const y = new Date().getFullYear();
+    return Array.from({ length: 17 }, (_, i) => String(y + 1 - i));
 });
 
 const months = [
-    { value: '01', label: 'January' },
-    { value: '02', label: 'February' },
-    { value: '03', label: 'March' },
-    { value: '04', label: 'April' },
-    { value: '05', label: 'May' },
-    { value: '06', label: 'June' },
-    { value: '07', label: 'July' },
-    { value: '08', label: 'August' },
+    { value: '01', label: 'January'   },
+    { value: '02', label: 'February'  },
+    { value: '03', label: 'March'     },
+    { value: '04', label: 'April'     },
+    { value: '05', label: 'May'       },
+    { value: '06', label: 'June'      },
+    { value: '07', label: 'July'      },
+    { value: '08', label: 'August'    },
     { value: '09', label: 'September' },
-    { value: '10', label: 'October' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'December' },
+    { value: '10', label: 'October'   },
+    { value: '11', label: 'November'  },
+    { value: '12', label: 'December'  },
 ];
 
 const transactionDays = computed(() => {
-    const year = Number(selectedDateYear.value || new Date().getFullYear());
-    const month = Number(selectedDateMonth.value || 1);
-    const daysInMonth = new Date(year, month, 0).getDate();
-
-    return Array.from({ length: daysInMonth }, (_, index) =>
-        String(index + 1).padStart(2, '0'),
+    const y     = Number(selectedDateYear.value  || new Date().getFullYear());
+    const m     = Number(selectedDateMonth.value || 1);
+    const count = new Date(y, m, 0).getDate();
+    return Array.from({ length: count }, (_, i) =>
+        String(i + 1).padStart(2, '0'),
     );
 });
 
 const form = useForm({
-    type: 'cost' as TransactionType,
+    type:        'cost' as TransactionType,
     category_id: '',
-    amount: '',
-    currency: 'toman' as Currency,
-    title: '',
+    amount:      '',
+    currency:    'toman' as Currency,
+    title:       '',
     description: '',
     occurred_at: today(),
 });
 
 const selectedCategories = computed(() => props.categories[form.type] ?? []);
-const isEditing = computed(() => editingTransactionId.value !== null);
-const dialogTitle = computed(() =>
+const isEditing          = computed(() => editingTransactionId.value !== null);
+const dialogTitle        = computed(() =>
     isEditing.value
         ? `Edit ${form.type === 'cost' ? 'cost' : 'income'}`
         : `Add ${form.type === 'cost' ? 'cost' : 'income'}`,
@@ -760,16 +1128,27 @@ const fieldControlClass = computed(() =>
         : 'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25',
 );
 
-const resetForm = (type: TransactionType) => {
-    const categories = props.categories[type] ?? [];
+function syncDatePicker(date: string): void {
+    const [y, m, d] = date.split('-');
+    selectedDateYear.value  = y ?? '';
+    selectedDateMonth.value = m ?? '';
+    selectedDateDay.value   = d ?? '';
+}
 
+function updateOccurredAt(): void {
+    if (!selectedDateYear.value || !selectedDateMonth.value || !selectedDateDay.value) return;
+    form.occurred_at = `${selectedDateYear.value}-${selectedDateMonth.value}-${selectedDateDay.value}`;
+}
+
+const resetForm = (type: TransactionType) => {
+    const cats = props.categories[type] ?? [];
     form.clearErrors();
     form.reset();
-    form.type = type;
-    form.category_id = categories[0]?.id.toString() ?? '';
-    form.amount = '';
-    form.currency = 'toman';
-    form.title = '';
+    form.type        = type;
+    form.category_id = cats[0]?.id.toString() ?? '';
+    form.amount      = '';
+    form.currency    = 'toman';
+    form.title       = '';
     form.description = '';
     form.occurred_at = today();
     syncDatePicker(form.occurred_at);
@@ -781,120 +1160,48 @@ const openCreateForm = (type: TransactionType) => {
     isDialogOpen.value = true;
 };
 
-const openEditForm = (transaction: Transaction) => {
-    editingTransactionId.value = transaction.id;
+const openEditForm = (t: Transaction) => {
+    editingTransactionId.value = t.id;
     form.clearErrors();
-    form.type = transaction.type;
-    form.category_id = transaction.category_id.toString();
-    form.amount = transaction.amount;
-    form.currency = transaction.currency;
-    form.title = transaction.title;
-    form.description = transaction.description ?? '';
-    form.occurred_at = transaction.occurred_at;
-    syncDatePicker(transaction.occurred_at);
+    form.type        = t.type;
+    form.category_id = t.category_id.toString();
+    form.amount      = t.amount;
+    form.currency    = t.currency;
+    form.title       = t.title;
+    form.description = t.description ?? '';
+    form.occurred_at = t.occurred_at;
+    syncDatePicker(t.occurred_at);
     isDialogOpen.value = true;
 };
 
 const submitTransaction = () => {
-    const options = {
+    const opts = {
         preserveScroll: true,
         onSuccess: () => {
-            isDialogOpen.value = false;
+            isDialogOpen.value         = false;
             editingTransactionId.value = null;
             resetForm(form.type);
         },
     };
-
     if (editingTransactionId.value) {
-        form.patch(`/transactions/${editingTransactionId.value}`, options);
-
+        form.patch(`/transactions/${editingTransactionId.value}`, opts);
         return;
     }
-
-    form.post('/transactions', options);
+    form.post('/transactions', opts);
 };
 
-const deleteTransaction = (transaction: Transaction) => {
-    if (!window.confirm(`Delete "${transaction.title}"?`)) {
-        return;
-    }
-
-    router.delete(`/transactions/${transaction.id}`, {
-        preserveScroll: true,
-    });
+const deleteTransaction = (t: Transaction) => {
+    if (!window.confirm(`Delete "${t.title}"?`)) return;
+    router.delete(`/transactions/${t.id}`, { preserveScroll: true });
 };
 
-watch(
-    [selectedDateYear, selectedDateMonth, selectedDateDay],
-    updateOccurredAtFromPicker,
-);
+watch([selectedDateYear, selectedDateMonth, selectedDateDay], updateOccurredAt);
 
-watch(
-    () => props.selectedCurrency,
-    (value) => {
-        selectedCurrency.value = value;
-    },
-);
-
-watch(selectedCurrency, (value) => {
-    if (value === props.selectedCurrency) {
-        return;
-    }
-
-    router.get(
-        dashboard.url(),
-        { currency: value },
-        {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        },
-    );
-});
-
-watch(transactionDays, (availableDays) => {
-    if (
-        selectedDateDay.value &&
-        !availableDays.includes(selectedDateDay.value)
-    ) {
-        selectedDateDay.value = availableDays.at(-1) ?? '';
+watch(transactionDays, (days) => {
+    if (selectedDateDay.value && !days.includes(selectedDateDay.value)) {
+        selectedDateDay.value = days.at(-1) ?? '';
     }
 });
-
-function syncDatePicker(date: string): void {
-    const [year, month, day] = date.split('-');
-
-    selectedDateYear.value = year ?? '';
-    selectedDateMonth.value = month ?? '';
-    selectedDateDay.value = day ?? '';
-}
-
-function updateOccurredAtFromPicker(): void {
-    if (
-        !selectedDateYear.value ||
-        !selectedDateMonth.value ||
-        !selectedDateDay.value
-    ) {
-        return;
-    }
-
-    form.occurred_at = `${selectedDateYear.value}-${selectedDateMonth.value}-${selectedDateDay.value}`;
-}
-
-function formatMoney(amount: string | number, currency: Currency): string {
-    const value = formatAmount(amount);
-
-    return `${value} ${currency.toUpperCase()}`;
-}
-
-function formatAmount(amount: string | number): string {
-    const number = Number(amount);
-
-    return new Intl.NumberFormat('en-US', {
-        maximumFractionDigits: 2,
-        minimumFractionDigits: number % 1 === 0 ? 0 : 2,
-    }).format(number);
-}
 
 syncDatePicker(form.occurred_at);
 </script>

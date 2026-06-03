@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TransactionType;
+use App\Models\Investment;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -51,6 +52,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function categories(): HasMany
     {
         return $this->hasMany(Category::class);
+    }
+
+    /**
+     * @return HasMany<Investment, User>
+     */
+    public function investments(): HasMany
+    {
+        return $this->hasMany(Investment::class);
     }
 
     /**

@@ -396,6 +396,32 @@
         box-shadow: 0 0 0 1000px #e1fff5 inset !important;
     }
 
+    /* ── Finance number utilities ─────────────────────────────── */
+    .finance-num {
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
+    }
+
+    /* ── KPI card colour accent strips ───────────────────────── */
+    .kpi-card-income  { border-top: 2.5px solid #02CD86; }
+    .kpi-card-cost    { border-top: 2.5px solid #6C4EE9; }
+    .kpi-card-balance { border-top: 2.5px solid #F59E0B; }
+    .kpi-card-period  { border-top: 2.5px solid #9478FF; }
+    .kpi-card-neutral { border-top: 2.5px solid #AAAAAA; }
+
+    /* ── Table income / cost row themes ─────────────────────── */
+    .table-header-income th { background-color: #effffa !important; }
+    .table-header-cost   th { background-color: #f0ecff !important; }
+
+    /* ── Category badge variants ─────────────────────────────── */
+    .badge-income   { background-color: #d0f8ec; color: #006644; }
+    .badge-cost     { background-color: #ede9ff; color: #3d1fa8; }
+    .badge-neutral  { background-color: #d9d9d9; color: #3a3a3a; }
+
+    /* ── Cursor pointer on all interactive table cells ────────── */
+    .finance-table-row { cursor: default; transition: background-color 150ms; }
+    .finance-table-row:hover { background-color: #f9f9f9; }
+
     .finance-dark-page {
         background-color: #101010 !important;
         color: #ffffff !important;

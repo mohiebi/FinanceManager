@@ -2,9 +2,11 @@
     <Head title="Dashboard" />
 
     <div
-        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
+        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#101010] text-white"
     >
-        <section class="mx-[18px] mt-5 rounded-[22px] bg-white p-5 shadow-sm">
+        <section
+            class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+        >
             <div
                 class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
             >
@@ -15,13 +17,13 @@
                         Finance command center
                     </p>
                     <h1
-                        class="mt-1 text-[26px] leading-tight font-bold text-[#2d2d2d] sm:text-[30px]"
+                        class="mt-1 text-[26px] leading-tight font-bold text-white sm:text-[30px]"
                     >
                         Your money, on Autopilot.
                     </h1>
                     <p class="mt-0.5 text-sm text-[#989898]">
                         Welcome back,
-                        <span class="font-semibold text-[#2d2d2d]">{{
+                        <span class="font-semibold text-white">{{
                             user?.name ?? 'there'
                         }}</span>
                     </p>
@@ -34,7 +36,7 @@
             <div class="flex flex-col gap-[18px]">
                 <div class="grid gap-[18px] sm:grid-cols-3">
                     <article
-                        class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                        class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                     >
                         <div class="flex items-center gap-2.5">
                             <span
@@ -51,7 +53,7 @@
                             </p>
                         </div>
                         <p
-                            class="mt-3 text-[20px] leading-none font-bold text-[#2d2d2d]"
+                            class="mt-3 text-[20px] leading-none font-bold text-white"
                         >
                             {{ formatAmount(props.summary.income) }}
                             <span class="text-xs font-normal text-[#989898]">{{
@@ -68,11 +70,11 @@
                         </p>
                     </article>
                     <article
-                        class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                        class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                     >
                         <div class="flex items-center gap-2.5">
                             <span
-                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f0ecff]"
+                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#24212f]"
                             >
                                 <TrendingDown
                                     class="size-[18px] text-[#6C4EE9]"
@@ -85,7 +87,7 @@
                             </p>
                         </div>
                         <p
-                            class="mt-3 text-[20px] leading-none font-bold text-[#2d2d2d]"
+                            class="mt-3 text-[20px] leading-none font-bold text-white"
                         >
                             {{ formatAmount(props.summary.cost) }}
                             <span class="text-xs font-normal text-[#989898]">{{
@@ -100,7 +102,7 @@
                         </p>
                     </article>
                     <article
-                        class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                        class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                     >
                         <div class="flex items-center gap-2.5">
                             <span
@@ -149,7 +151,7 @@
                     class="grid items-stretch gap-[18px] md:grid-cols-[1fr_2fr]"
                 >
                     <div
-                        class="flex min-h-[244px] flex-col items-center justify-center rounded-[22px] bg-white p-5 shadow-sm"
+                        class="flex min-h-[244px] flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                     >
                         <p
                             class="mb-1 text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
@@ -162,10 +164,10 @@
                         </p>
                     </div>
                     <div
-                        class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                        class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                     >
                         <div class="mb-3 flex items-center justify-between">
-                            <h2 class="text-[17px] font-normal text-[#2d2d2d]">
+                            <h2 class="text-[17px] font-normal text-white">
                                 Monthly overview
                             </h2>
                             <div
@@ -208,7 +210,7 @@
             </div>
             <div class="flex flex-col gap-[18px]">
                 <div
-                    class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                    class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 >
                     <p
                         class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
@@ -216,7 +218,7 @@
                         Current Period
                     </p>
                     <p
-                        class="mt-2 text-[26px] leading-none font-bold text-[#2d2d2d]"
+                        class="mt-2 text-[26px] leading-none font-bold text-white"
                     >
                         {{ period.month }}
                     </p>
@@ -225,7 +227,7 @@
                         {{ period.dayOfMonth }} of {{ period.daysInMonth }}
                     </p>
                     <div
-                        class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#f0ecff]"
+                        class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10"
                     >
                         <div
                             class="h-full rounded-full bg-[#6C4EE9] transition-all duration-700"
@@ -237,7 +239,7 @@
                     </p>
                 </div>
                 <div
-                    class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                    class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 >
                     <p
                         class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
@@ -256,7 +258,7 @@
                     </p>
                     <p class="mt-1 text-xs text-[#989898]">Savings rate</p>
                     <div
-                        class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#f4f4f4]"
+                        class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10"
                     >
                         <div
                             class="h-full rounded-full transition-all duration-700"
@@ -302,9 +304,11 @@
             </div>
         </div>
         <div class="grid gap-[18px] px-[18px] pb-[38px] xl:grid-cols-2">
-            <section class="overflow-hidden rounded-[22px] bg-white shadow-sm">
+            <section
+                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            >
                 <div class="flex items-center justify-between px-5 py-[24px]">
-                    <h2 class="text-[20px] leading-none font-normal text-black">
+                    <h2 class="text-[20px] leading-none font-normal text-white">
                         Recently Costs
                     </h2>
                     <Link
@@ -322,22 +326,22 @@
                         <thead>
                             <tr>
                                 <th
-                                    class="rounded-l-2xl bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                    class="rounded-l-2xl bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
                                 >
                                     Subject
                                 </th>
                                 <th
-                                    class="bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                    class="bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
                                 >
                                     Category
                                 </th>
                                 <th
-                                    class="bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                    class="bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
                                 >
                                     Amount
                                 </th>
                                 <th
-                                    class="rounded-r-2xl bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                    class="rounded-r-2xl bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
                                 ></th>
                             </tr>
                         </thead>
@@ -348,7 +352,7 @@
                                 class="group"
                             >
                                 <td
-                                    class="px-3 py-3.5 text-center text-[16px] leading-none text-black sm:px-5"
+                                    class="px-3 py-3.5 text-center text-[16px] leading-none text-white sm:px-5"
                                 >
                                     <button
                                         type="button"
@@ -366,7 +370,7 @@
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
                                     <span
-                                        class="inline-flex min-w-[90px] justify-center rounded-md bg-[#d9d9d9] px-3 py-1.5 text-[15px] font-normal text-black"
+                                        class="inline-flex min-w-[90px] justify-center rounded-md bg-white/10 px-3 py-1.5 text-[15px] font-normal text-white"
                                     >
                                         {{
                                             transaction.category?.name ??
@@ -387,7 +391,7 @@
                                     >
                                         <button
                                             type="button"
-                                            class="rounded-md p-1.5 hover:bg-[#f0ecff]"
+                                            class="rounded-md p-1.5 hover:bg-white/10"
                                             @click="openEditForm(transaction)"
                                         >
                                             <Pencil
@@ -420,9 +424,11 @@
                     </table>
                 </div>
             </section>
-            <section class="overflow-hidden rounded-[22px] bg-white shadow-sm">
+            <section
+                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            >
                 <div class="flex items-center justify-between px-5 py-[24px]">
-                    <h2 class="text-[20px] leading-none font-normal text-black">
+                    <h2 class="text-[20px] leading-none font-normal text-white">
                         Recently Incomes
                     </h2>
                     <Link
@@ -440,22 +446,22 @@
                         <thead>
                             <tr>
                                 <th
-                                    class="rounded-l-2xl bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                    class="rounded-l-2xl bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
                                 >
                                     Subject
                                 </th>
                                 <th
-                                    class="bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                    class="bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
                                 >
                                     Category
                                 </th>
                                 <th
-                                    class="bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                    class="bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
                                 >
                                     Amount
                                 </th>
                                 <th
-                                    class="rounded-r-2xl bg-[#f0ecff] px-3 py-3.5 text-center text-sm font-normal text-black sm:px-5"
+                                    class="rounded-r-2xl bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
                                 ></th>
                             </tr>
                         </thead>
@@ -466,7 +472,7 @@
                                 class="group"
                             >
                                 <td
-                                    class="px-3 py-3.5 text-center text-[16px] leading-none text-black sm:px-5"
+                                    class="px-3 py-3.5 text-center text-[16px] leading-none text-white sm:px-5"
                                 >
                                     <button
                                         type="button"
@@ -484,7 +490,7 @@
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
                                     <span
-                                        class="inline-flex min-w-[90px] justify-center rounded-md bg-[#d9d9d9] px-3 py-1.5 text-[15px] font-normal text-black"
+                                        class="inline-flex min-w-[90px] justify-center rounded-md bg-white/10 px-3 py-1.5 text-[15px] font-normal text-white"
                                     >
                                         {{
                                             transaction.category?.name ??
@@ -505,7 +511,7 @@
                                     >
                                         <button
                                             type="button"
-                                            class="rounded-md p-1.5 hover:bg-[#f0ecff]"
+                                            class="rounded-md p-1.5 hover:bg-white/10"
                                             @click="openEditForm(transaction)"
                                         >
                                             <Pencil

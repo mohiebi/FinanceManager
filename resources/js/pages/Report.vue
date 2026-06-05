@@ -2,7 +2,7 @@
     <Head title="Reports" />
 
     <div
-        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
+        class="finance-dark-page flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
     >
         <!-- Hero / period summary -->
         <section class="mx-[18px] mt-5 rounded-[22px] bg-white p-5 shadow-sm">
@@ -39,9 +39,7 @@
                         >
                             Range
                         </p>
-                        <p
-                            class="mt-2 text-sm font-semibold text-neutral-900"
-                        >
+                        <p class="mt-2 text-sm font-semibold text-neutral-900">
                             {{ props.period.label }}
                         </p>
                     </div>
@@ -54,9 +52,7 @@
                         >
                             Transactions
                         </p>
-                        <p
-                            class="mt-2 text-sm font-semibold text-neutral-900"
-                        >
+                        <p class="mt-2 text-sm font-semibold text-neutral-900">
                             {{ props.summary.count }}
                         </p>
                     </div>
@@ -65,7 +61,9 @@
         </section>
 
         <!-- Filters -->
-        <section class="mx-[18px] mt-[18px] rounded-[22px] bg-white p-5 shadow-sm">
+        <section
+            class="mx-[18px] mt-[18px] rounded-[22px] bg-white p-5 shadow-sm"
+        >
             <div class="flex flex-col gap-5">
                 <div
                     class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
@@ -112,9 +110,7 @@
                 </div>
 
                 <!-- Search / type / category filters -->
-                <div
-                    class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.9fr_auto]"
-                >
+                <div class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.9fr_auto]">
                     <div class="grid gap-2">
                         <Label for="report_search">Search</Label>
                         <Input
@@ -159,7 +155,9 @@
                                 <SelectValue placeholder="All categories" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All categories</SelectItem>
+                                <SelectItem value="all"
+                                    >All categories</SelectItem
+                                >
                                 <SelectItem
                                     v-for="category in reportCategories"
                                     :key="category.id"
@@ -232,18 +230,16 @@
         </section>
 
         <!-- Summary cards -->
-        <div
-            class="grid gap-[18px] px-[18px] pt-[18px] md:grid-cols-3"
-        >
-            <article class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm">
+        <div class="grid gap-[18px] px-[18px] pt-[18px] md:grid-cols-3">
+            <article
+                class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+            >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-emerald-600 uppercase"
                 >
                     Income
                 </p>
-                <p
-                    class="mt-3 text-2xl font-semibold text-neutral-950"
-                >
+                <p class="mt-3 text-2xl font-semibold text-neutral-950">
                     {{
                         formatMoney(
                             props.summary.income,
@@ -253,30 +249,30 @@
                 </p>
             </article>
 
-            <article class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm">
+            <article
+                class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+            >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-rose-600 uppercase"
                 >
                     Costs
                 </p>
-                <p
-                    class="mt-3 text-2xl font-semibold text-neutral-950"
-                >
+                <p class="mt-3 text-2xl font-semibold text-neutral-950">
                     {{
                         formatMoney(props.summary.cost, props.selectedCurrency)
                     }}
                 </p>
             </article>
 
-            <article class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm">
+            <article
+                class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+            >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-neutral-500 uppercase"
                 >
                     Balance
                 </p>
-                <p
-                    class="mt-3 text-2xl font-semibold text-neutral-950"
-                >
+                <p class="mt-3 text-2xl font-semibold text-neutral-950">
                     {{ balanceLabel }}
                 </p>
             </article>
@@ -442,7 +438,8 @@
                         </thead>
                         <tbody>
                             <tr
-                                v-for="transaction in props.transactions.incomes"
+                                v-for="transaction in props.transactions
+                                    .incomes"
                                 :key="transaction.id"
                                 class="group"
                             >

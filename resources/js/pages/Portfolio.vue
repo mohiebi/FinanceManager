@@ -2,12 +2,10 @@
     <Head title="Portfolio" />
 
     <div
-        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
+        class="finance-dark-page flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
     >
         <!-- ── Hero / Summary ────────────────────────────────────── -->
-        <section
-            class="mx-[18px] mt-5 rounded-[22px] bg-white p-5 shadow-sm"
-        >
+        <section class="mx-[18px] mt-5 rounded-[22px] bg-white p-5 shadow-sm">
             <div
                 class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between"
             >
@@ -38,9 +36,7 @@
                         >
                             Current value
                         </p>
-                        <p
-                            class="mt-2 text-base font-bold text-[#2d2d2d]"
-                        >
+                        <p class="mt-2 text-base font-bold text-[#2d2d2d]">
                             {{ props.summary.total_current_value_formatted }}
                             <span class="text-xs font-normal text-[#989898]"
                                 >T</span
@@ -57,19 +53,16 @@
                         >
                             Invested
                         </p>
-                        <p
-                            class="mt-2 text-base font-bold text-[#2d2d2d]"
-                        >
+                        <p class="mt-2 text-base font-bold text-[#2d2d2d]">
                             <template v-if="props.summary.has_cost_basis_data">
-                                {{
-                                    props.summary.total_cost_basis_formatted
-                                }}
-                                <span
-                                    class="text-xs font-normal text-[#989898]"
+                                {{ props.summary.total_cost_basis_formatted }}
+                                <span class="text-xs font-normal text-[#989898]"
                                     >T</span
                                 >
                             </template>
-                            <span v-else class="text-sm font-normal text-[#989898]"
+                            <span
+                                v-else
+                                class="text-sm font-normal text-[#989898]"
                                 >No cost basis yet</span
                             >
                         </p>
@@ -103,9 +96,7 @@
                                       : 'text-[#2d2d2d]'
                             "
                         >
-                            <template
-                                v-if="props.summary.total_pnl !== null"
-                            >
+                            <template v-if="props.summary.total_pnl !== null">
                                 <span>{{
                                     props.summary.total_pnl_is_positive
                                         ? '+'
@@ -113,7 +104,9 @@
                                 }}</span>
                                 {{ props.summary.total_pnl_formatted }} T
                                 <span
-                                    v-if="props.summary.total_pnl_percent !== null"
+                                    v-if="
+                                        props.summary.total_pnl_percent !== null
+                                    "
                                     class="text-xs font-normal"
                                 >
                                     ({{
@@ -207,10 +200,7 @@
                                 >
                                     {{ asset.avg_cost_basis_formatted }} T
                                 </span>
-                                <span
-                                    v-else
-                                    class="text-sm text-[#989898]"
-                                >
+                                <span v-else class="text-sm text-[#989898]">
                                     —
                                 </span>
                             </td>
@@ -218,8 +208,7 @@
                                 class="px-3 py-[17px] text-center text-[17px] leading-none font-bold text-black sm:px-5"
                             >
                                 {{ asset.current_value_formatted }}
-                                <span
-                                    class="text-xs font-normal text-[#989898]"
+                                <span class="text-xs font-normal text-[#989898]"
                                     >T</span
                                 >
                             </td>
@@ -240,8 +229,7 @@
                                         v-if="asset.pnl_percent !== null"
                                         class="block text-xs font-normal"
                                     >
-                                        ({{
-                                            asset.pnl_is_positive ? '+' : ''
+                                        ({{ asset.pnl_is_positive ? '+' : ''
                                         }}{{ asset.pnl_percent }}%)
                                     </span>
                                 </template>
@@ -315,9 +303,7 @@
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none text-black sm:px-5"
                             >
-                                <span class="mr-1">{{
-                                    entry.asset_icon
-                                }}</span>
+                                <span class="mr-1">{{ entry.asset_icon }}</span>
                                 {{ entry.asset_label }}
                             </td>
                             <td
@@ -335,15 +321,10 @@
                                     v-if="entry.cost_basis !== null"
                                     class="text-[15px] text-black"
                                 >
-                                    {{
-                                        formatMoney(entry.cost_basis)
-                                    }}
+                                    {{ formatMoney(entry.cost_basis) }}
                                     T
                                 </span>
-                                <span
-                                    v-else
-                                    class="text-sm text-[#989898]"
-                                >
+                                <span v-else class="text-sm text-[#989898]">
                                     —
                                 </span>
                             </td>
@@ -351,8 +332,7 @@
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-bold text-black sm:px-5"
                             >
                                 {{ entry.current_value_fmt }}
-                                <span
-                                    class="text-xs font-normal text-[#989898]"
+                                <span class="text-xs font-normal text-[#989898]"
                                     >T</span
                                 >
                             </td>
@@ -393,9 +373,9 @@
                 Portfolio is empty
             </h2>
             <p class="mt-2 max-w-sm text-center text-sm text-[#989898]">
-                Head over to the Investments page and add your first entry.
-                Come back here to track your profit &amp; loss once you add
-                cost basis info.
+                Head over to the Investments page and add your first entry. Come
+                back here to track your profit &amp; loss once you add cost
+                basis info.
             </p>
         </div>
     </div>

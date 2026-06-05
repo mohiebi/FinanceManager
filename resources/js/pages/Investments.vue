@@ -2,7 +2,7 @@
     <Head title="Investments" />
 
     <div
-        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
+        class="finance-dark-page flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
     >
         <!-- ── Summary stat cards ────────────────────────────────── -->
         <div class="grid gap-[18px] px-[18px] pt-[18px] md:grid-cols-3">

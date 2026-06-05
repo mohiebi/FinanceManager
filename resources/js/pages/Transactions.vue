@@ -2,7 +2,7 @@
     <Head title="Transactions" />
 
     <div
-        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
+        class="finance-dark-page flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
     >
         <section class="mx-[18px] mt-5 rounded-[22px] bg-white p-5 shadow-sm">
             <div

@@ -2,27 +2,27 @@
     <Head title="Reports" />
 
     <div
-        class="finance-dark-page flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
+        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
     >
         <!-- Hero / period summary -->
-        <section class="mx-[18px] mt-5 rounded-[22px] bg-white p-5 shadow-sm">
+        <section class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
             <div
                 class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between"
             >
                 <div class="max-w-2xl space-y-3">
                     <p
-                        class="text-xs font-semibold tracking-[0.35em] text-amber-700 uppercase"
+                        class="text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase"
                     >
                         Time-based reports
                     </p>
                     <div class="space-y-2">
                         <h1
-                            class="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl"
+                            class="text-3xl font-semibold tracking-tight text-white sm:text-4xl"
                         >
                             Slice your money story by month, season, year, or
                             any custom range.
                         </h1>
-                        <p class="text-sm text-neutral-600">
+                        <p class="text-sm text-[#989898]">
                             Each filter refreshes the transaction list and
                             totals so you can compare what came in and what went
                             out over the period you care about.
@@ -32,27 +32,27 @@
 
                 <div class="grid gap-3 sm:grid-cols-2 xl:min-w-xl">
                     <div
-                        class="rounded-[14px] border border-[#e6e6e6] bg-[#f9f9f9] p-4 shadow-xs"
+                        class="rounded-[14px] border border-white/10 bg-[#252525] p-4 shadow-xs"
                     >
                         <p
-                            class="text-xs font-medium tracking-[0.2em] text-neutral-500 uppercase"
+                            class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                         >
                             Range
                         </p>
-                        <p class="mt-2 text-sm font-semibold text-neutral-900">
+                        <p class="mt-2 text-sm font-semibold text-white">
                             {{ props.period.label }}
                         </p>
                     </div>
 
                     <div
-                        class="rounded-[14px] border border-[#e6e6e6] bg-[#f9f9f9] p-4 shadow-xs"
+                        class="rounded-[14px] border border-white/10 bg-[#252525] p-4 shadow-xs"
                     >
                         <p
-                            class="text-xs font-medium tracking-[0.2em] text-neutral-500 uppercase"
+                            class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                         >
                             Transactions
                         </p>
-                        <p class="mt-2 text-sm font-semibold text-neutral-900">
+                        <p class="mt-2 text-sm font-semibold text-white">
                             {{ props.summary.count }}
                         </p>
                     </div>
@@ -62,7 +62,7 @@
 
         <!-- Filters -->
         <section
-            class="mx-[18px] mt-[18px] rounded-[22px] bg-white p-5 shadow-sm"
+            class="mx-[18px] mt-[18px] rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
         >
             <div class="flex flex-col gap-5">
                 <div
@@ -77,7 +77,7 @@
                             :class="[
                                 'rounded-full px-4 py-1.5 text-sm font-normal transition',
                                 selectedRange === range.value
-                                    ? 'bg-[#2d2d2d] text-white'
+                                    ? 'bg-[#111111] text-white'
                                     : 'bg-white text-[#2d2d2d] ring-1 ring-[#e6e6e6] hover:bg-[#f7f7f7]',
                             ]"
                             @click="selectRange(range.value)"
@@ -171,7 +171,7 @@
 
                     <div class="flex items-end gap-2">
                         <Button
-                            class="rounded-full bg-white px-5 text-[#2d2d2d] shadow-none ring-1 ring-[#e6e6e6] hover:bg-[#f7f7f7]"
+                            class="rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15"
                             @click="applyFilters()"
                         >
                             <Search class="size-4" />
@@ -179,7 +179,7 @@
                         </Button>
                         <Button
                             variant="outline"
-                            class="size-10 rounded-full border-[#d9d9d9] bg-[#d9d9d9] p-0 text-[#2d2d2d] hover:bg-[#cfcfcf]"
+                            class="size-10 rounded-full bg-white/10 p-0 text-[#989898] ring-1 ring-white/15 hover:bg-white/15"
                             @click="clearTransactionFilters"
                         >
                             <RotateCcw class="size-4" />
@@ -219,7 +219,7 @@
 
                     <div class="flex items-end">
                         <Button
-                            class="w-full rounded-full bg-white px-5 text-[#2d2d2d] shadow-none ring-1 ring-[#e6e6e6] hover:bg-[#f7f7f7] lg:w-auto"
+                            class="w-full rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15 lg:w-auto"
                             @click="applyFilters()"
                         >
                             Apply custom range
@@ -232,14 +232,14 @@
         <!-- Summary cards -->
         <div class="grid gap-[18px] px-[18px] pt-[18px] md:grid-cols-3">
             <article
-                class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
             >
                 <p
-                    class="text-xs font-medium tracking-[0.2em] text-emerald-600 uppercase"
+                    class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
                 >
                     Income
                 </p>
-                <p class="mt-3 text-2xl font-semibold text-neutral-950">
+                <p class="mt-3 text-2xl font-semibold text-white">
                     {{
                         formatMoney(
                             props.summary.income,
@@ -250,14 +250,14 @@
             </article>
 
             <article
-                class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
             >
                 <p
-                    class="text-xs font-medium tracking-[0.2em] text-rose-600 uppercase"
+                    class="text-xs font-medium tracking-[0.2em] text-[#6C4EE9] uppercase"
                 >
                     Costs
                 </p>
-                <p class="mt-3 text-2xl font-semibold text-neutral-950">
+                <p class="mt-3 text-2xl font-semibold text-white">
                     {{
                         formatMoney(props.summary.cost, props.selectedCurrency)
                     }}
@@ -265,14 +265,14 @@
             </article>
 
             <article
-                class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                class="kpi-card-neutral overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
             >
                 <p
-                    class="text-xs font-medium tracking-[0.2em] text-neutral-500 uppercase"
+                    class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                 >
                     Balance
                 </p>
-                <p class="mt-3 text-2xl font-semibold text-neutral-950">
+                <p class="mt-3 text-2xl font-semibold text-white">
                     {{ balanceLabel }}
                 </p>
             </article>
@@ -283,21 +283,21 @@
             class="grid items-start gap-[18px] px-[18px] py-[18px] pb-[38px] lg:grid-cols-2"
         >
             <!-- Costs table -->
-            <section class="overflow-hidden rounded-[22px] bg-white shadow-sm">
+            <section class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
                 <div
                     class="flex items-center justify-between gap-4 px-5 py-[29px]"
                 >
                     <div>
-                        <p class="text-xs font-medium text-rose-600 uppercase">
+                        <p class="text-xs font-medium text-[#6C4EE9] uppercase">
                             Costs
                         </p>
                         <h2
-                            class="text-[22px] leading-none font-normal text-black"
+                            class="text-[22px] leading-none font-normal text-white"
                         >
                             Money going out
                         </h2>
                     </div>
-                    <span class="text-xs text-neutral-500">
+                    <span class="text-xs text-[#989898]">
                         {{ props.transactions.costs.length }} entries
                     </span>
                 </div>
@@ -307,24 +307,24 @@
                         class="w-full border-separate border-spacing-y-0 text-sm"
                     >
                         <thead>
-                            <tr class="text-left text-base text-black">
+                            <tr class="text-left text-base">
                                 <th
-                                    class="rounded-l-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                    class="rounded-l-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                                 >
                                     Subject
                                 </th>
                                 <th
-                                    class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                    class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                                 >
                                     Category
                                 </th>
                                 <th
-                                    class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                    class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                                 >
                                     Amount
                                 </th>
                                 <th
-                                    class="hidden rounded-r-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:table-cell sm:px-5"
+                                    class="hidden rounded-r-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
                                 >
                                     Date
                                 </th>
@@ -337,19 +337,19 @@
                                 class="group"
                             >
                                 <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:px-5"
+                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
                                     {{ transaction.title }}
                                     <div
                                         v-if="transaction.description"
-                                        class="mt-1 line-clamp-1 text-xs text-neutral-500"
+                                        class="mt-1 line-clamp-1 text-xs text-[#989898]"
                                     >
                                         {{ transaction.description }}
                                     </div>
                                 </td>
                                 <td class="px-3 py-[17px] text-center sm:px-5">
                                     <span
-                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-[#d9d9d9] px-4 py-2 text-[17px] leading-none font-normal text-black"
+                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
                                     >
                                         {{
                                             transaction.category?.name ??
@@ -358,7 +358,7 @@
                                     </span>
                                 </td>
                                 <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-semibold text-rose-700 sm:px-5"
+                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-semibold text-[#6C4EE9] sm:px-5"
                                 >
                                     {{
                                         formatMoney(
@@ -368,7 +368,7 @@
                                     }}
                                 </td>
                                 <td
-                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:table-cell sm:px-5"
+                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
                                 >
                                     {{ transaction.occurred_at }}
                                 </td>
@@ -376,7 +376,7 @@
                             <tr v-if="props.transactions.costs.length === 0">
                                 <td
                                     colspan="4"
-                                    class="px-5 py-12 text-center text-neutral-500"
+                                    class="px-5 py-12 text-center text-[#989898]"
                                 >
                                     No costs matched this range.
                                 </td>
@@ -387,23 +387,23 @@
             </section>
 
             <!-- Incomes table -->
-            <section class="overflow-hidden rounded-[22px] bg-white shadow-sm">
+            <section class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
                 <div
                     class="flex items-center justify-between gap-4 px-5 py-[29px]"
                 >
                     <div>
                         <p
-                            class="text-xs font-medium text-emerald-600 uppercase"
+                            class="text-xs font-medium text-[#02CD86] uppercase"
                         >
                             Incomes
                         </p>
                         <h2
-                            class="text-[22px] leading-none font-normal text-black"
+                            class="text-[22px] leading-none font-normal text-white"
                         >
                             Money coming in
                         </h2>
                     </div>
-                    <span class="text-xs text-neutral-500">
+                    <span class="text-xs text-[#989898]">
                         {{ props.transactions.incomes.length }} entries
                     </span>
                 </div>
@@ -413,24 +413,24 @@
                         class="w-full border-separate border-spacing-y-0 text-sm"
                     >
                         <thead>
-                            <tr class="text-left text-base text-black">
+                            <tr class="text-left text-base">
                                 <th
-                                    class="rounded-l-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                    class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     Subject
                                 </th>
                                 <th
-                                    class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     Category
                                 </th>
                                 <th
-                                    class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     Amount
                                 </th>
                                 <th
-                                    class="hidden rounded-r-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:table-cell sm:px-5"
+                                    class="hidden rounded-r-2xl bg-[#effffa] px-3 py-4 text-center font-normal text-[#006644] sm:table-cell sm:px-5"
                                 >
                                     Date
                                 </th>
@@ -444,19 +444,19 @@
                                 class="group"
                             >
                                 <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:px-5"
+                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
                                     {{ transaction.title }}
                                     <div
                                         v-if="transaction.description"
-                                        class="mt-1 line-clamp-1 text-xs text-neutral-500"
+                                        class="mt-1 line-clamp-1 text-xs text-[#989898]"
                                     >
                                         {{ transaction.description }}
                                     </div>
                                 </td>
                                 <td class="px-3 py-[17px] text-center sm:px-5">
                                     <span
-                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-[#d9d9d9] px-4 py-2 text-[17px] leading-none font-normal text-black"
+                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
                                     >
                                         {{
                                             transaction.category?.name ??
@@ -465,7 +465,7 @@
                                     </span>
                                 </td>
                                 <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-semibold text-emerald-700 sm:px-5"
+                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-semibold text-[#02CD86] sm:px-5"
                                 >
                                     {{
                                         formatMoney(
@@ -475,7 +475,7 @@
                                     }}
                                 </td>
                                 <td
-                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:table-cell sm:px-5"
+                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
                                 >
                                     {{ transaction.occurred_at }}
                                 </td>
@@ -483,7 +483,7 @@
                             <tr v-if="props.transactions.incomes.length === 0">
                                 <td
                                     colspan="4"
-                                    class="px-5 py-12 text-center text-neutral-500"
+                                    class="px-5 py-12 text-center text-[#989898]"
                                 >
                                     No incomes matched this range.
                                 </td>

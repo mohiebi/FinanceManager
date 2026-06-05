@@ -2,47 +2,47 @@
     <Head title="Investments" />
 
     <div
-        class="finance-dark-page flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
+        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
     >
         <!-- ── Summary stat cards ────────────────────────────────── -->
         <div class="grid gap-[18px] px-[18px] pt-[18px] md:grid-cols-3">
             <article
-                class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
                 >
                     Total Portfolio Value
                 </p>
-                <p class="mt-3 text-2xl font-bold text-[#2d2d2d]">
+                <p class="mt-3 text-2xl font-bold text-white">
                     {{ props.summary.total_value_formatted }}
                     <span class="text-sm font-normal text-[#989898]">T</span>
                 </p>
             </article>
 
             <article
-                class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#6C4EE9] uppercase"
                 >
                     Asset Types
                 </p>
-                <p class="mt-3 text-2xl font-bold text-[#2d2d2d]">
+                <p class="mt-3 text-2xl font-bold text-white">
                     {{ props.summary.asset_count }}
                     <span class="text-sm font-normal text-[#989898]">held</span>
                 </p>
             </article>
 
             <article
-                class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                class="kpi-card-neutral overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                 >
                     Total Entries
                 </p>
-                <p class="mt-3 text-2xl font-bold text-[#2d2d2d]">
+                <p class="mt-3 text-2xl font-bold text-white">
                     {{ props.summary.entry_count }}
                     <span class="text-sm font-normal text-[#989898]"
                         >records</span
@@ -58,10 +58,10 @@
         >
             <!-- Donut / allocation chart -->
             <section
-                class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
             >
                 <div class="mb-4 flex items-center justify-between">
-                    <h2 class="text-[18px] leading-none font-normal text-black">
+                    <h2 class="text-[18px] leading-none font-normal text-white">
                         Allocation
                     </h2>
                     <span class="text-xs text-[#989898]">by current value</span>
@@ -78,12 +78,12 @@
 
             <!-- Line chart — value over time -->
             <section
-                class="overflow-hidden rounded-[22px] bg-white p-5 shadow-sm"
+                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
             >
                 <div
                     class="mb-4 flex flex-wrap items-center justify-between gap-3"
                 >
-                    <h2 class="text-[18px] leading-none font-normal text-black">
+                    <h2 class="text-[18px] leading-none font-normal text-white">
                         Value over time
                     </h2>
                     <!-- Range buttons -->
@@ -95,7 +95,7 @@
                             :class="[
                                 'rounded-full px-3 py-1 text-xs font-medium transition',
                                 selectedRange === rangeOption.value
-                                    ? 'bg-[#2d2d2d] text-white'
+                                    ? 'bg-[#111111] text-white'
                                     : 'bg-white text-[#2d2d2d] ring-1 ring-[#e6e6e6] hover:bg-[#f7f7f7]',
                             ]"
                             @click="changeRange(rangeOption.value)"
@@ -143,10 +143,12 @@
         <!-- ── Empty state when no entries yet ──────────────────── -->
         <div
             v-if="props.assets.length === 0"
-            class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-white px-8 py-20 shadow-sm"
+            class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
-            <span class="text-5xl">📊</span>
-            <h2 class="mt-4 text-xl font-semibold text-[#2d2d2d]">
+            <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f0ecff]">
+                <TrendingUp class="size-8 text-[#6C4EE9]" />
+            </span>
+            <h2 class="mt-4 text-xl font-semibold text-white">
                 No investments yet
             </h2>
             <p class="mt-2 max-w-sm text-center text-sm text-[#989898]">
@@ -170,7 +172,8 @@
             <div
                 v-for="asset in props.assets"
                 :key="asset.key"
-                class="overflow-hidden rounded-[22px] bg-white p-4 shadow-sm"
+                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-4 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+                :style="{ borderTop: `2.5px solid ${asset.color}` }"
             >
                 <div class="mb-2 flex items-center justify-between">
                     <span class="text-xl leading-none">{{ asset.icon }}</span>
@@ -197,10 +200,10 @@
         <!-- ── Recent entries table ──────────────────────────────── -->
         <div
             v-if="props.entries.length > 0"
-            class="mx-[18px] mt-[18px] mb-[38px] overflow-hidden rounded-[22px] bg-white shadow-sm"
+            class="mx-[18px] mt-[18px] mb-[38px] overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
         >
             <div class="flex items-center justify-between gap-4 px-5 py-[29px]">
-                <h2 class="text-[22px] leading-none font-normal text-black">
+                <h2 class="text-[22px] leading-none font-normal text-white">
                     Investment entries
                 </h2>
                 <Button
@@ -221,29 +224,29 @@
                     class="w-full border-separate border-spacing-y-0 text-sm"
                 >
                     <thead>
-                        <tr class="text-base text-black">
+                        <tr class="text-base">
                             <th
-                                class="rounded-l-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                class="rounded-l-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                             >
                                 Asset
                             </th>
                             <th
-                                class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                             >
                                 Quantity
                             </th>
                             <th
-                                class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                             >
                                 Value
                             </th>
                             <th
-                                class="hidden rounded-r-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:table-cell sm:px-5"
+                                class="hidden rounded-r-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
                             >
                                 Date
                             </th>
                             <th
-                                class="rounded-r-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:rounded-none sm:px-5"
+                                class="rounded-r-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:rounded-none sm:px-5"
                             ></th>
                         </tr>
                     </thead>
@@ -254,18 +257,18 @@
                             class="group"
                         >
                             <td
-                                class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-black sm:px-5"
+                                class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-white sm:px-5"
                             >
                                 <span class="mr-1">{{ entry.asset_icon }}</span>
                                 {{ entry.asset_label }}
                             </td>
                             <td
-                                class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-black sm:px-5"
+                                class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-white sm:px-5"
                             >
                                 {{ entry.quantity }} {{ entry.asset_unit }}
                             </td>
                             <td
-                                class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-black sm:px-5"
+                                class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-white sm:px-5"
                             >
                                 {{
                                     formatEntryValue(
@@ -478,7 +481,7 @@
                         </Button>
                         <Button
                             type="submit"
-                            class="h-9 w-[120px] rounded-[8px] bg-[#2d2d2d] px-[10px] text-[16px] font-normal text-white shadow-none hover:bg-[#1f1f1f]"
+                            class="h-9 w-[120px] rounded-[8px] bg-[#111111] px-[10px] text-[16px] font-normal text-white shadow-none hover:bg-[#1f1f1f]"
                             :disabled="form.processing"
                         >
                             <Spinner v-if="form.processing" />
@@ -504,7 +507,7 @@
 
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Plus } from 'lucide-vue-next';
+import { Plus, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';

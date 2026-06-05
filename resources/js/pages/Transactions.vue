@@ -2,9 +2,9 @@
     <Head title="Transactions" />
 
     <div
-        class="finance-dark-page flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
+        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
     >
-        <section class="mx-[18px] mt-5 rounded-[22px] bg-white p-5 shadow-sm">
+        <section class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
             <div
                 class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.9fr_0.8fr_0.8fr_auto]"
             >
@@ -90,7 +90,7 @@
 
                 <div class="flex items-end gap-2">
                     <Button
-                        class="rounded-full bg-white px-5 text-[#2d2d2d] shadow-none ring-1 ring-[#e6e6e6] hover:bg-[#f7f7f7]"
+                        class="rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15"
                         @click="applyFilters()"
                     >
                         <Search class="size-4" />
@@ -98,7 +98,7 @@
                     </Button>
                     <Button
                         variant="outline"
-                        class="size-10 rounded-full border-[#d9d9d9] bg-[#d9d9d9] p-0 text-[#2d2d2d] hover:bg-[#cfcfcf]"
+                        class="size-10 rounded-full bg-white/10 p-0 text-[#989898] ring-1 ring-white/15 hover:bg-white/15"
                         @click="clearFilters"
                     >
                         <RotateCcw class="size-4" />
@@ -111,13 +111,13 @@
         <div
             class="grid items-start gap-[18px] px-[18px] py-[38px] lg:grid-cols-2"
         >
-            <section class="overflow-hidden rounded-[22px] bg-white shadow-sm">
+            <section class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
                 <div
                     class="flex items-center justify-between gap-4 px-5 py-[29px]"
                 >
                     <div>
                         <h2
-                            class="text-[22px] leading-none font-normal text-black"
+                            class="text-[22px] leading-none font-normal text-white"
                         >
                             Money going out
                         </h2>
@@ -150,24 +150,24 @@
                         class="w-full border-separate border-spacing-y-0 text-sm"
                     >
                         <thead>
-                            <tr class="text-left text-base text-black">
+                            <tr class="text-left text-base">
                                 <th
-                                    class="rounded-l-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                    class="rounded-l-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                                 >
                                     Subject
                                 </th>
                                 <th
-                                    class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                    class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                                 >
                                     Category
                                 </th>
                                 <th
-                                    class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                    class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                                 >
                                     Amount
                                 </th>
                                 <th
-                                    class="hidden rounded-r-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:table-cell sm:px-5"
+                                    class="hidden rounded-r-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
                                 >
                                     Date
                                 </th>
@@ -180,7 +180,7 @@
                                 class="group"
                             >
                                 <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:px-5"
+                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
                                     <button
                                         class="text-black"
@@ -191,14 +191,14 @@
                                     </button>
                                     <div
                                         v-if="transaction.description"
-                                        class="mt-1 line-clamp-1 text-xs text-neutral-500"
+                                        class="mt-1 line-clamp-1 text-xs text-[#989898]"
                                     >
                                         {{ transaction.description }}
                                     </div>
                                 </td>
                                 <td class="px-3 py-[17px] text-center sm:px-5">
                                     <span
-                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-[#d9d9d9] px-4 py-2 text-[17px] leading-none font-normal text-black"
+                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
                                     >
                                         {{
                                             transaction.category?.name ??
@@ -207,14 +207,14 @@
                                     </span>
                                 </td>
                                 <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:px-5"
+                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
                                     {{
                                         formatAmount(transaction.display_amount)
                                     }}
                                 </td>
                                 <td
-                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:table-cell sm:px-5"
+                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
                                 >
                                     {{ transaction.occurred_at }}
                                 </td>
@@ -222,7 +222,7 @@
                             <tr v-if="props.transactions.costs.length === 0">
                                 <td
                                     colspan="4"
-                                    class="px-5 py-12 text-center text-neutral-500"
+                                    class="px-5 py-12 text-center text-[#989898]"
                                 >
                                     No costs yet. Add the first one when money
                                     leaves the building.
@@ -233,13 +233,13 @@
                 </div>
             </section>
 
-            <section class="overflow-hidden rounded-[22px] bg-white shadow-sm">
+            <section class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
                 <div
                     class="flex items-center justify-between gap-4 px-5 py-[29px]"
                 >
                     <div>
                         <h2
-                            class="text-[22px] leading-none font-normal text-black"
+                            class="text-[22px] leading-none font-normal text-white"
                         >
                             Money coming in
                         </h2>
@@ -272,24 +272,24 @@
                         class="w-full border-separate border-spacing-y-0 text-sm"
                     >
                         <thead>
-                            <tr class="text-left text-base text-black">
+                            <tr class="text-left text-base">
                                 <th
-                                    class="rounded-l-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                    class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     Subject
                                 </th>
                                 <th
-                                    class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     Category
                                 </th>
                                 <th
-                                    class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     Amount
                                 </th>
                                 <th
-                                    class="hidden rounded-r-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:table-cell sm:px-5"
+                                    class="hidden rounded-r-2xl bg-[#effffa] px-3 py-4 text-center font-normal text-[#006644] sm:table-cell sm:px-5"
                                 >
                                     Date
                                 </th>
@@ -303,7 +303,7 @@
                                 class="group"
                             >
                                 <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:px-5"
+                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
                                     <button
                                         class="text-black"
@@ -314,14 +314,14 @@
                                     </button>
                                     <div
                                         v-if="transaction.description"
-                                        class="mt-1 line-clamp-1 text-xs text-neutral-500"
+                                        class="mt-1 line-clamp-1 text-xs text-[#989898]"
                                     >
                                         {{ transaction.description }}
                                     </div>
                                 </td>
                                 <td class="px-3 py-[17px] text-center sm:px-5">
                                     <span
-                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-[#d9d9d9] px-4 py-2 text-[17px] leading-none font-normal text-black"
+                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
                                     >
                                         {{
                                             transaction.category?.name ??
@@ -330,14 +330,14 @@
                                     </span>
                                 </td>
                                 <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:px-5"
+                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
                                     {{
                                         formatAmount(transaction.display_amount)
                                     }}
                                 </td>
                                 <td
-                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:table-cell sm:px-5"
+                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
                                 >
                                     {{ transaction.occurred_at }}
                                 </td>
@@ -345,7 +345,7 @@
                             <tr v-if="props.transactions.incomes.length === 0">
                                 <td
                                     colspan="4"
-                                    class="px-5 py-12 text-center text-neutral-500"
+                                    class="px-5 py-12 text-center text-[#989898]"
                                 >
                                     No incomes yet. Add salary, gifts, or
                                     freelance wins here.
@@ -586,7 +586,7 @@
                         </Button>
                         <Button
                             type="submit"
-                            class="h-9 w-[135px] rounded-[8px] bg-[#2d2d2d] px-[10px] py-[3px] text-[20px] font-normal text-white shadow-none hover:bg-[#1f1f1f]"
+                            class="h-9 w-[135px] rounded-[8px] bg-[#111111] px-[10px] py-[3px] text-[20px] font-normal text-white shadow-none hover:bg-[#1f1f1f]"
                             :disabled="
                                 form.processing ||
                                 selectedCategories.length === 0

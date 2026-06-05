@@ -2,10 +2,10 @@
     <Head title="Portfolio" />
 
     <div
-        class="finance-dark-page flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#2d2d2d] text-black"
+        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
     >
         <!-- ── Hero / Summary ────────────────────────────────────── -->
-        <section class="mx-[18px] mt-5 rounded-[22px] bg-white p-5 shadow-sm">
+        <section class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
             <div
                 class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between"
             >
@@ -16,7 +16,7 @@
                         Portfolio overview
                     </p>
                     <h1
-                        class="text-3xl font-semibold tracking-tight text-[#2d2d2d] sm:text-4xl"
+                        class="text-3xl font-semibold tracking-tight text-white sm:text-4xl"
                     >
                         Your holdings, cost basis &amp; P/L at a glance.
                     </h1>
@@ -29,14 +29,15 @@
                 <div class="grid gap-3 sm:grid-cols-3 xl:min-w-2xl">
                     <!-- Current value -->
                     <div
-                        class="rounded-[14px] border border-[#e6e6e6] bg-[#f9f9f9] p-4"
+                        class="rounded-[14px] border border-white/10 bg-[#252525] p-4"
+                        style="border-top: 2.5px solid #02CD86"
                     >
                         <p
                             class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
                         >
                             Current value
                         </p>
-                        <p class="mt-2 text-base font-bold text-[#2d2d2d]">
+                        <p class="mt-2 text-base font-bold text-white">
                             {{ props.summary.total_current_value_formatted }}
                             <span class="text-xs font-normal text-[#989898]"
                                 >T</span
@@ -46,14 +47,15 @@
 
                     <!-- Cost basis -->
                     <div
-                        class="rounded-[14px] border border-[#e6e6e6] bg-[#f9f9f9] p-4"
+                        class="rounded-[14px] border border-white/10 bg-[#252525] p-4"
+                        style="border-top: 2.5px solid #989898"
                     >
                         <p
                             class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                         >
                             Invested
                         </p>
-                        <p class="mt-2 text-base font-bold text-[#2d2d2d]">
+                        <p class="mt-2 text-base font-bold text-white">
                             <template v-if="props.summary.has_cost_basis_data">
                                 {{ props.summary.total_cost_basis_formatted }}
                                 <span class="text-xs font-normal text-[#989898]"
@@ -70,7 +72,8 @@
 
                     <!-- P&L -->
                     <div
-                        class="rounded-[14px] border border-[#e6e6e6] bg-[#f9f9f9] p-4"
+                        class="rounded-[14px] border border-white/10 bg-[#252525] p-4"
+                        :style="{ borderTop: props.summary.total_pnl_is_positive === true ? '2.5px solid #02CD86' : props.summary.total_pnl_is_positive === false ? '2.5px solid #E94E50' : '2.5px solid #989898' }"
                     >
                         <p
                             class="text-xs font-medium tracking-[0.2em] uppercase"
@@ -130,10 +133,10 @@
         <!-- ── Asset breakdown table ─────────────────────────────── -->
         <div
             v-if="props.assets.length > 0"
-            class="mx-[18px] mt-[18px] overflow-hidden rounded-[22px] bg-white shadow-sm"
+            class="mx-[18px] mt-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
         >
             <div class="px-5 py-[29px]">
-                <h2 class="text-[22px] leading-none font-normal text-black">
+                <h2 class="text-[22px] leading-none font-normal text-white">
                     Per-asset breakdown
                 </h2>
             </div>
@@ -143,29 +146,29 @@
                     class="w-full border-separate border-spacing-y-0 text-sm"
                 >
                     <thead>
-                        <tr class="text-base text-black">
+                        <tr class="text-base">
                             <th
-                                class="rounded-l-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                class="rounded-l-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                             >
                                 Asset
                             </th>
                             <th
-                                class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                             >
                                 Holdings
                             </th>
                             <th
-                                class="hidden bg-[#f0ecff] px-3 py-4 text-center font-normal sm:table-cell sm:px-5"
+                                class="hidden bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
                             >
                                 Avg cost / unit
                             </th>
                             <th
-                                class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                             >
                                 Current value
                             </th>
                             <th
-                                class="rounded-r-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                class="rounded-r-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                             >
                                 P&amp;L
                             </th>
@@ -178,13 +181,13 @@
                             class="group"
                         >
                             <td
-                                class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:px-5"
+                                class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                             >
                                 <span class="mr-1">{{ asset.icon }}</span>
                                 {{ asset.label }}
                             </td>
                             <td
-                                class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-black sm:px-5"
+                                class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                             >
                                 {{ asset.quantity }}
                                 <span class="text-xs text-[#989898]">{{
@@ -196,7 +199,7 @@
                             >
                                 <span
                                     v-if="asset.avg_cost_basis_formatted"
-                                    class="inline-flex min-w-[118px] justify-center rounded-md bg-[#d9d9d9] px-4 py-2 text-[15px] leading-none font-normal text-black"
+                                    class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[15px] leading-none font-normal text-black"
                                 >
                                     {{ asset.avg_cost_basis_formatted }} T
                                 </span>
@@ -205,7 +208,7 @@
                                 </span>
                             </td>
                             <td
-                                class="px-3 py-[17px] text-center text-[17px] leading-none font-bold text-black sm:px-5"
+                                class="px-3 py-[17px] text-center text-[17px] leading-none font-bold text-white sm:px-5"
                             >
                                 {{ asset.current_value_formatted }}
                                 <span class="text-xs font-normal text-[#989898]"
@@ -244,10 +247,10 @@
         <!-- ── Per-entry breakdown ───────────────────────────────── -->
         <div
             v-if="props.entries.length > 0"
-            class="mx-[18px] my-[18px] overflow-hidden rounded-[22px] bg-white shadow-sm"
+            class="mx-[18px] my-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
         >
             <div class="px-5 py-[29px]">
-                <h2 class="text-[22px] leading-none font-normal text-black">
+                <h2 class="text-[22px] leading-none font-normal text-white">
                     Entry-level detail
                 </h2>
                 <p class="mt-1 text-sm text-[#989898]">
@@ -261,34 +264,34 @@
                     class="w-full border-separate border-spacing-y-0 text-sm"
                 >
                     <thead>
-                        <tr class="text-base text-black">
+                        <tr class="text-base">
                             <th
-                                class="rounded-l-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                class="rounded-l-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                             >
                                 Asset
                             </th>
                             <th
-                                class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                             >
                                 Qty
                             </th>
                             <th
-                                class="hidden bg-[#f0ecff] px-3 py-4 text-center font-normal sm:table-cell sm:px-5"
+                                class="hidden bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
                             >
                                 Cost basis / u
                             </th>
                             <th
-                                class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                             >
                                 Current value
                             </th>
                             <th
-                                class="bg-[#f0ecff] px-3 py-4 text-center font-normal sm:px-5"
+                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                             >
                                 P&amp;L
                             </th>
                             <th
-                                class="hidden rounded-r-2xl bg-[#f0ecff] px-3 py-4 text-center font-normal sm:table-cell sm:px-5"
+                                class="hidden rounded-r-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
                             >
                                 Date
                             </th>
@@ -301,13 +304,13 @@
                             class="group"
                         >
                             <td
-                                class="px-3 py-[14px] text-center text-[16px] leading-none text-black sm:px-5"
+                                class="px-3 py-[14px] text-center text-[16px] leading-none text-white sm:px-5"
                             >
                                 <span class="mr-1">{{ entry.asset_icon }}</span>
                                 {{ entry.asset_label }}
                             </td>
                             <td
-                                class="px-3 py-[14px] text-center text-[16px] leading-none text-black sm:px-5"
+                                class="px-3 py-[14px] text-center text-[16px] leading-none text-white sm:px-5"
                             >
                                 {{ entry.quantity }}
                                 <span class="text-xs text-[#989898]">{{
@@ -319,7 +322,7 @@
                             >
                                 <span
                                     v-if="entry.cost_basis !== null"
-                                    class="text-[15px] text-black"
+                                    class="text-[15px] text-white"
                                 >
                                     {{ formatMoney(entry.cost_basis) }}
                                     T
@@ -329,7 +332,7 @@
                                 </span>
                             </td>
                             <td
-                                class="px-3 py-[14px] text-center text-[16px] leading-none font-bold text-black sm:px-5"
+                                class="px-3 py-[14px] text-center text-[16px] leading-none font-bold text-white sm:px-5"
                             >
                                 {{ entry.current_value_fmt }}
                                 <span class="text-xs font-normal text-[#989898]"
@@ -366,10 +369,12 @@
         <!-- ── Empty state ───────────────────────────────────────── -->
         <div
             v-if="props.assets.length === 0"
-            class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-white px-8 py-20 shadow-sm"
+            class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
-            <span class="text-5xl">💼</span>
-            <h2 class="mt-4 text-xl font-semibold text-[#2d2d2d]">
+            <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f0ecff]">
+                <Wallet class="size-8 text-[#6C4EE9]" />
+            </span>
+            <h2 class="mt-4 text-xl font-semibold text-white">
                 Portfolio is empty
             </h2>
             <p class="mt-2 max-w-sm text-center text-sm text-[#989898]">
@@ -383,6 +388,7 @@
 
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { Wallet } from 'lucide-vue-next';
 import { dashboard, portfolio } from '@/routes';
 
 type AssetKey = 'gold' | 'silver' | 'usd' | 'eur' | 'coin' | 'bitcoin';

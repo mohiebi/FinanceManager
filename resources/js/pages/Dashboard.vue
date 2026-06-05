@@ -35,12 +35,13 @@
         >
             <div class="flex flex-col gap-[18px]">
                 <div class="grid gap-[18px] sm:grid-cols-3">
+                    <!-- Income KPI -->
                     <article
-                        class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                        class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                     >
                         <div class="flex items-center gap-2.5">
                             <span
-                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#effffa]"
+                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0d2e22]"
                             >
                                 <TrendingUp
                                     class="size-[18px] text-[#02CD86]"
@@ -69,8 +70,9 @@
                             }}
                         </p>
                     </article>
+                    <!-- Cost KPI -->
                     <article
-                        class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                        class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                     >
                         <div class="flex items-center gap-2.5">
                             <span
@@ -101,8 +103,10 @@
                             }}
                         </p>
                     </article>
+                    <!-- Balance KPI -->
                     <article
                         class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                        :class="balance >= 0 ? 'kpi-card-income' : 'kpi-card-cost'"
                     >
                         <div class="flex items-center gap-2.5">
                             <span
@@ -210,7 +214,7 @@
             </div>
             <div class="flex flex-col gap-[18px]">
                 <div
-                    class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                    class="kpi-card-period overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 >
                     <p
                         class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
@@ -304,8 +308,9 @@
             </div>
         </div>
         <div class="grid gap-[18px] px-[18px] pb-[38px] xl:grid-cols-2">
+            <!-- ── Recently Costs ── -->
             <section
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="flex items-center justify-between px-5 py-[24px]">
                     <h2 class="text-[20px] leading-none font-normal text-white">
@@ -424,8 +429,9 @@
                     </table>
                 </div>
             </section>
+            <!-- ── Recently Incomes ── -->
             <section
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="flex items-center justify-between px-5 py-[24px]">
                     <h2 class="text-[20px] leading-none font-normal text-white">
@@ -446,22 +452,22 @@
                         <thead>
                             <tr>
                                 <th
-                                    class="rounded-l-2xl bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
+                                    class="rounded-l-2xl bg-[#0d2620] px-3 py-3.5 text-center text-sm font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     Subject
                                 </th>
                                 <th
-                                    class="bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
+                                    class="bg-[#0d2620] px-3 py-3.5 text-center text-sm font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     Category
                                 </th>
                                 <th
-                                    class="bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
+                                    class="bg-[#0d2620] px-3 py-3.5 text-center text-sm font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     Amount
                                 </th>
                                 <th
-                                    class="rounded-r-2xl bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
+                                    class="rounded-r-2xl bg-[#0d2620] px-3 py-3.5 text-center text-sm font-normal text-[#7ee8c4] sm:px-5"
                                 ></th>
                             </tr>
                         </thead>

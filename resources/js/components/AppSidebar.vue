@@ -3,6 +3,8 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     ChartPie,
     LayoutGrid,
+    PanelLeftClose,
+    PanelLeftOpen,
     ReceiptText,
     Settings,
     TrendingUp,
@@ -14,7 +16,7 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sidebar, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+import { Sidebar, useSidebar } from '@/components/ui/sidebar';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { dashboard, portfolio, report } from '@/routes';
@@ -32,7 +34,7 @@ const mainNavItems: NavItem[] = [
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
-const { isMobile } = useSidebar();
+const { isMobile, state, toggleSidebar } = useSidebar();
 const { isCurrentUrl } = useCurrentUrl();
 
 const iconBoxBase =
@@ -49,25 +51,34 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
             <div
                 class="flex w-full flex-col gap-10 pt-6 group-data-[collapsible=icon]:items-center"
             >
-                <!-- ── Menu toggle ─────────────────────────────────── -->
-                <!-- SidebarTrigger handles the icon + toggle logic;
-                     the outer div adds the "Menu toggle" text label. -->
-                <div
-                    class="flex w-full items-center gap-3 group-data-[collapsible=icon]:justify-center"
+                <!-- ── Menu toggle — full row is one button ───────── -->
+                <button
+                    type="button"
+                    class="flex w-full cursor-pointer items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#02cd86]"
+                    data-sidebar="trigger"
+                    :title="state === 'collapsed' ? 'Expand sidebar' : 'Collapse sidebar'"
+                    @click="toggleSidebar"
                 >
-                    <SidebarTrigger
+                    <!-- Icon box -->
+                    <span
                         :class="[
                             iconBoxDefault,
                             'text-white hover:bg-[#3a3a3a]',
-                            '[&_svg]:size-[18px]',
                         ]"
-                    />
+                    >
+                        <PanelLeftOpen
+                            v-if="isMobile || state === 'collapsed'"
+                            class="size-[18px]"
+                        />
+                        <PanelLeftClose v-else class="size-[18px]" />
+                    </span>
+                    <!-- Text label — also triggers the toggle -->
                     <span
-                        class="truncate text-sm font-medium text-white/60 group-data-[collapsible=icon]:hidden"
+                        class="cursor-pointer truncate text-sm font-medium text-white/60 transition-colors hover:text-white group-data-[collapsible=icon]:sr-only"
                     >
                         Menu toggle
                     </span>
-                </div>
+                </button>
 
                 <!-- ── Primary navigation ──────────────────────────── -->
                 <nav

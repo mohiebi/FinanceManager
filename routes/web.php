@@ -10,7 +10,7 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Middleware\EnsureProfileIsComplete;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::inertia('/', 'Landing')->name('home');
 
 Route::middleware('guest')->group(function () {
     Route::get('forgot-password', EmailAuthPageController::class)->name('password.request');

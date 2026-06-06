@@ -167,10 +167,13 @@
                                     Amount
                                 </th>
                                 <th
-                                    class="hidden rounded-r-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
+                                    class="hidden bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
                                 >
                                     Date
                                 </th>
+                                <th
+                                    class="rounded-r-2xl bg-[#24212f] px-3 py-4 sm:px-5"
+                                ></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -218,10 +221,20 @@
                                 >
                                     {{ transaction.occurred_at }}
                                 </td>
+                                <td class="px-3 py-3.5 text-center sm:px-5">
+                                    <div class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                        <button type="button" class="rounded-md p-1.5 hover:bg-white/10" @click="openEditForm(transaction)">
+                                            <Pencil class="size-3.5 text-[#6C4EE9]" />
+                                        </button>
+                                        <button type="button" class="rounded-md p-1.5 hover:bg-[#fff0f0]" @click="requestDelete(transaction)">
+                                            <Trash2 class="size-3.5 text-[#E94E50]" />
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
                             <tr v-if="props.transactions.costs.length === 0">
                                 <td
-                                    colspan="4"
+                                    colspan="5"
                                     class="px-5 py-12 text-center text-[#989898]"
                                 >
                                     No costs yet. Add the first one when money
@@ -289,10 +302,13 @@
                                     Amount
                                 </th>
                                 <th
-                                    class="hidden rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
+                                    class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                                 >
                                     Date
                                 </th>
+                                <th
+                                    class="rounded-r-2xl bg-[#0d2620] px-3 py-4 sm:px-5"
+                                ></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -341,10 +357,20 @@
                                 >
                                     {{ transaction.occurred_at }}
                                 </td>
+                                <td class="px-3 py-3.5 text-center sm:px-5">
+                                    <div class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                        <button type="button" class="rounded-md p-1.5 hover:bg-white/10" @click="openEditForm(transaction)">
+                                            <Pencil class="size-3.5 text-[#6C4EE9]" />
+                                        </button>
+                                        <button type="button" class="rounded-md p-1.5 hover:bg-[#fff0f0]" @click="requestDelete(transaction)">
+                                            <Trash2 class="size-3.5 text-[#E94E50]" />
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
                             <tr v-if="props.transactions.incomes.length === 0">
                                 <td
-                                    colspan="4"
+                                    colspan="5"
                                     class="px-5 py-12 text-center text-[#989898]"
                                 >
                                     No incomes yet. Add salary, gifts, or
@@ -359,7 +385,7 @@
 
         <Dialog v-model:open="isDialogOpen">
             <DialogContent
-                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-white p-0 text-[#2d2d2d] shadow-2xl sm:min-h-[654px] sm:max-w-[618px]"
+                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-[#1a1a1a] p-0 shadow-2xl ring-1 ring-white/10 sm:min-h-[654px] sm:max-w-[618px]"
                 :show-close-button="false"
             >
                 <form
@@ -368,12 +394,12 @@
                 >
                     <DialogHeader class="mb-7 space-y-2 text-left">
                         <DialogTitle
-                            class="text-[20px] leading-normal font-medium text-[#2d2d2d]"
+                            class="text-[20px] leading-normal font-medium text-white"
                         >
                             {{ dialogTitle }}
                         </DialogTitle>
                         <DialogDescription
-                            class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#2d2d2d]"
+                            class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#989898]"
                         >
                             The same form handles both tables. The transaction
                             type follows the table action you selected.
@@ -599,12 +625,20 @@
                 </form>
             </DialogContent>
         </Dialog>
+
+        <ConfirmDeleteModal
+            :open="deleteTarget !== null"
+            :title="`Delete &quot;${deleteTarget?.title}&quot;?`"
+            description="This transaction will be permanently deleted."
+            @update:open="deleteTarget = null"
+            @confirm="confirmDelete"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Plus, RotateCcw, Search } from 'lucide-vue-next';
+import { Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import InputError from '@/components/InputError.vue';
@@ -626,6 +660,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import { dashboard } from '@/routes';
 import { index as transactionsIndex } from '@/routes/transactions';
 
@@ -699,6 +734,17 @@ defineOptions({
 
 const isDialogOpen = ref(false);
 const editingTransactionId = ref<number | null>(null);
+const deleteTarget = ref<Transaction | null>(null);
+
+const requestDelete = (transaction: Transaction) => {
+    deleteTarget.value = transaction;
+};
+
+const confirmDelete = () => {
+    if (!deleteTarget.value) return;
+    router.delete(`/transactions/${deleteTarget.value.id}`, { preserveScroll: true });
+    deleteTarget.value = null;
+};
 const selectedDateYear = ref('');
 const selectedDateMonth = ref('');
 const selectedDateDay = ref('');

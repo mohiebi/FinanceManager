@@ -345,55 +345,60 @@
     }
 
     .finance-dialog-label {
-        color: #2d2d2d;
-        font-size: 1rem;
-        font-weight: 400;
+        color: #989898;
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
         line-height: 1.5rem;
     }
 
     .finance-dialog-field {
         height: 2.25rem !important;
         width: 100%;
-        border-color: transparent !important;
         border-radius: 0.5rem !important;
-        color: #2d2d2d !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        color: #ffffff !important;
         font-size: 1rem;
         font-weight: 300;
         line-height: 1.5rem;
         padding-inline: 1.25rem !important;
         box-shadow: none !important;
+        background-color: #252525 !important;
     }
 
     .finance-dialog-field-cost {
-        background-color: #f0ecff !important;
+        background-color: #1e1829 !important;
+        border-color: rgba(108,78,233,0.2) !important;
     }
 
     .finance-dialog-field-income {
-        background-color: #e1fff5 !important;
+        background-color: #0a1914 !important;
+        border-color: rgba(2,205,134,0.2) !important;
     }
 
     .finance-dialog-field::placeholder {
-        color: #6f6a80;
+        color: #686868;
     }
 
     .finance-dialog-field:-webkit-autofill,
     .finance-dialog-field:-webkit-autofill:hover,
     .finance-dialog-field:-webkit-autofill:focus {
-        -webkit-text-fill-color: #2d2d2d;
-        caret-color: #2d2d2d;
+        -webkit-text-fill-color: #ffffff;
+        caret-color: #ffffff;
         transition: background-color 9999s ease-in-out 0s;
     }
 
     .finance-dialog-field-cost:-webkit-autofill,
     .finance-dialog-field-cost:-webkit-autofill:hover,
     .finance-dialog-field-cost:-webkit-autofill:focus {
-        box-shadow: 0 0 0 1000px #f0ecff inset !important;
+        box-shadow: 0 0 0 1000px #1e1829 inset !important;
     }
 
     .finance-dialog-field-income:-webkit-autofill,
     .finance-dialog-field-income:-webkit-autofill:hover,
     .finance-dialog-field-income:-webkit-autofill:focus {
-        box-shadow: 0 0 0 1000px #e1fff5 inset !important;
+        box-shadow: 0 0 0 1000px #0a1914 inset !important;
     }
 
     /* ── Finance number utilities ─────────────────────────────── */

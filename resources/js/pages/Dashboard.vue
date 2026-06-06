@@ -554,7 +554,7 @@
         </div>
         <Dialog v-model:open="isDialogOpen">
             <DialogContent
-                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-white p-0 text-[#2d2d2d] shadow-2xl sm:min-h-[654px] sm:max-w-[618px]"
+                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-[#1a1a1a] p-0 shadow-2xl ring-1 ring-white/10 sm:min-h-[654px] sm:max-w-[618px]"
                 :show-close-button="false"
             >
                 <form
@@ -563,12 +563,12 @@
                 >
                     <DialogHeader class="mb-7 space-y-2 text-left">
                         <DialogTitle
-                            class="text-[20px] leading-normal font-medium text-[#2d2d2d]"
+                            class="text-[20px] leading-normal font-medium text-white"
                         >
                             {{ dialogTitle }}
                         </DialogTitle>
                         <DialogDescription
-                            class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#2d2d2d]"
+                            class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#989898]"
                         >
                             The same form handles both tables. The transaction
                             type follows the table action you selected.
@@ -767,14 +767,14 @@
                     <div class="mt-7 flex justify-end gap-2">
                         <Button
                             type="button"
-                            class="h-9 w-[99px] rounded-[8px] bg-[#effffa] px-[10px] py-[3px] text-[20px] font-normal text-[#2d2d2d] shadow-none hover:bg-[#e1fff5]"
+                            class="h-9 w-[99px] cursor-pointer rounded-[8px] bg-white/5 px-[10px] py-[3px] text-[20px] font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
                             @click="isDialogOpen = false"
                         >
                             Cancel
                         </Button>
                         <Button
                             type="submit"
-                            class="h-9 w-[135px] rounded-[8px] bg-[#2d2d2d] px-[10px] py-[3px] text-[20px] font-normal text-white shadow-none hover:bg-[#1f1f1f]"
+                            class="h-9 w-[135px] rounded-[8px] bg-[#111111] px-[10px] py-[3px] text-[20px] font-normal text-white shadow-none hover:bg-[#1f1f1f]"
                             :disabled="
                                 form.processing ||
                                 selectedCategories.length === 0

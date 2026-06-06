@@ -12,7 +12,6 @@ export function useAppearance() {
     const appearance = ref('dark');
     const resolvedAppearance = computed(() => 'dark' as const);
 
-    function updateAppearance(_value: string) {}
 
-    return { appearance, resolvedAppearance, updateAppearance };
+    return { appearance, resolvedAppearance };
 }

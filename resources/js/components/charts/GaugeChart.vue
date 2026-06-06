@@ -48,7 +48,7 @@ const buildOptions = () => ({
                 background: 'transparent',
             },
             track: {
-                background: '#E2DBFF',
+                background: '#2d2842',
                 strokeWidth: '100%',
                 margin: 0,
                 startAngle: -90,

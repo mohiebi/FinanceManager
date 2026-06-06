@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\TransactionType;
-use App\Models\Investment;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,7 +14,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'birthdate', 'password', 'email_verified_at'])]
+#[Fillable(['name', 'email', 'birthdate', 'password', 'email_verified_at', 'telegram_chat_id', 'telegram_connect_token'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -78,6 +77,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function requiresProfileCompletion(): bool
     {
         return blank($this->birthdate);
+    }
+
+    public function hasTelegram(): bool
+    {
+        return filled($this->telegram_chat_id);
     }
 
     /**

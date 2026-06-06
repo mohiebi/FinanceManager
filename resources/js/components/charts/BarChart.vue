@@ -88,20 +88,20 @@ const buildOptions = () => ({
     },
     dataLabels: { enabled: false },
     grid: {
-        borderColor: '#f0f0f0',
+        borderColor: '#252525',
         strokeDashArray: 4,
         xaxis: { lines: { show: false } },
         yaxis: { lines: { show: true } },
         padding: { top: 0, right: 16, bottom: 0, left: 8 },
     },
     tooltip: {
-        theme: 'light' as const,
+        theme: 'dark' as const,
         shared: true,
         intersect: false,
         y: {
-            formatter: (amount: number) =>
-                new Intl.NumberFormat('en-US').format(amount),
+            formatter: formatAxisAmount,
         },
+        style: { fontSize: '12px' },
     },
     fill: {
         type: 'gradient',

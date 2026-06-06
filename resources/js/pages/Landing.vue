@@ -18,7 +18,6 @@ import {
 import { ref } from 'vue';
 import { dashboard, home, login } from '@/routes';
 import logoGreen from '../../img/Logo-green.svg';
-import logoWhite from '../../img/Logi-white.svg';
 
 const page = usePage();
 const isLoggedIn = !!page.props.auth?.user;

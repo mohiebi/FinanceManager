@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Controllers\Settings\TelegramController;
 use App\Http\Middleware\EnsureProfileIsComplete;
 use Illuminate\Support\Facades\Route;
 
@@ -22,4 +23,8 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
         ->name('user-password.update');
 
     Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
+
+    Route::get('settings/telegram', [TelegramController::class, 'edit'])->name('telegram.edit');
+    Route::post('settings/telegram/connect', [TelegramController::class, 'connect'])->name('telegram.connect');
+    Route::delete('settings/telegram', [TelegramController::class, 'disconnect'])->name('telegram.disconnect');
 });

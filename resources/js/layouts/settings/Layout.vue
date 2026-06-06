@@ -1,70 +1,64 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import Heading from '@/components/Heading.vue';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
+import { edit as editTelegram } from '@/routes/telegram';
 import type { NavItem } from '@/types';
 
 const sidebarNavItems: NavItem[] = [
-    {
-        title: 'Profile',
-        href: editProfile(),
-    },
-    {
-        title: 'Security',
-        href: editSecurity(),
-    },
-    {
-        title: 'Appearance',
-        href: editAppearance(),
-    },
+    { title: 'Profile', href: editProfile() },
+    { title: 'Security', href: editSecurity() },
+    { title: 'Appearance', href: editAppearance() },
+    { title: 'Telegram', href: editTelegram() },
 ];
 
 const { isCurrentOrParentUrl } = useCurrentUrl();
 </script>
 
 <template>
-    <div class="px-4 py-6">
-        <Heading
-            title="Settings"
-            description="Manage your profile and account settings"
-        />
+    <div
+        class="flex h-full min-h-[calc(100vh-92px)] flex-col bg-[#101010] px-[18px] py-[18px]"
+    >
+        <div class="mb-[18px]">
+            <h1 class="text-[22px] font-normal text-white">Settings</h1>
+            <p class="mt-1 text-sm text-[#989898]">
+                Manage your profile and account settings
+            </p>
+        </div>
 
-        <div class="flex flex-col lg:flex-row lg:space-x-12">
-            <aside class="w-full max-w-xl lg:w-48">
+        <div class="flex flex-col gap-[18px] lg:flex-row lg:items-start">
+            <!-- Settings nav -->
+            <aside class="w-full shrink-0 lg:w-44">
                 <nav
-                    class="flex flex-col space-y-1 space-x-0"
+                    class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-2 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
                     aria-label="Settings"
                 >
-                    <Button
+                    <Link
                         v-for="item in sidebarNavItems"
                         :key="toUrl(item.href)"
-                        variant="ghost"
+                        :href="item.href"
                         :class="[
-                            'w-full justify-start',
-                            { 'bg-muted': isCurrentOrParentUrl(item.href) },
+                            'flex w-full items-center rounded-xl px-3 py-2.5 text-sm transition',
+                            isCurrentOrParentUrl(item.href)
+                                ? 'bg-[#02CD86]/10 font-medium text-[#02CD86]'
+                                : 'text-[#989898] hover:bg-white/5 hover:text-white',
                         ]"
-                        as-child
                     >
-                        <Link :href="item.href">
-                            <component :is="item.icon" class="h-4 w-4" />
-                            {{ item.title }}
-                        </Link>
-                    </Button>
+                        {{ item.title }}
+                    </Link>
                 </nav>
             </aside>
 
-            <Separator class="my-6 lg:hidden" />
-
-            <div class="flex-1 md:max-w-2xl">
-                <section class="max-w-xl space-y-12">
+            <!-- Page content -->
+            <div class="min-w-0 flex-1">
+                <div
+                    class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)] md:max-w-2xl"
+                >
                     <slot />
-                </section>
+                </div>
             </div>
         </div>
     </div>

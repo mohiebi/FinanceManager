@@ -67,6 +67,7 @@ const handleInput = async (index: number, event: Event): Promise<void> => {
     if (cleanValue === '') {
         digits.value[index] = '';
         emitValue();
+
         return;
     }
 
@@ -80,6 +81,7 @@ const handleInput = async (index: number, event: Event): Promise<void> => {
         emitValue();
 
         await focusInput(Math.min(pastedDigits.length, 5));
+
         return;
     }
 
@@ -102,12 +104,14 @@ const handleKeydown = async (
         emitValue();
         event.preventDefault();
         await focusInput(index - 1);
+
         return;
     }
 
     if (event.key === 'ArrowLeft' && index > 0) {
         event.preventDefault();
         await focusInput(index - 1);
+
         return;
     }
 

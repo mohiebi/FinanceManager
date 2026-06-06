@@ -204,8 +204,7 @@
                                         class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
                                     >
                                         {{
-                                            transaction.category?.name ??
-                                            'Uncategorized'
+                                            categoryName(transaction)
                                         }}
                                     </span>
                                 </td>
@@ -340,8 +339,7 @@
                                         class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
                                     >
                                         {{
-                                            transaction.category?.name ??
-                                            'Uncategorized'
+                                            categoryName(transaction)
                                         }}
                                     </span>
                                 </td>
@@ -481,7 +479,9 @@
                                     >
                                         <SelectValue placeholder="Month" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="month in months"
                                             :key="month.value"
@@ -499,7 +499,9 @@
                                     >
                                         <SelectValue placeholder="Day" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="day in transactionDays"
                                             :key="day"
@@ -517,7 +519,9 @@
                                     >
                                         <SelectValue placeholder="Year" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="year in transactionYears"
                                             :key="year"
@@ -641,6 +645,7 @@ import { Head, router, useForm } from '@inertiajs/vue3';
 import { Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -660,7 +665,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import { dashboard } from '@/routes';
 import { index as transactionsIndex } from '@/routes/transactions';
 
@@ -741,7 +745,10 @@ const requestDelete = (transaction: Transaction) => {
 };
 
 const confirmDelete = () => {
-    if (!deleteTarget.value) return;
+    if (!deleteTarget.value) {
+        return;
+    }
+
     router.delete(`/transactions/${deleteTarget.value.id}`, { preserveScroll: true });
     deleteTarget.value = null;
 };
@@ -821,6 +828,18 @@ const fieldControlClass = computed(() =>
         ? 'finance-dialog-field finance-dialog-field-cost focus-visible:ring-[#947BFF]/30'
         : 'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25',
 );
+
+function categoryName(transaction: Transaction): string {
+    if (transaction.category?.name) {
+        return transaction.category.name;
+    }
+
+    return (
+        (props.categories[transaction.type] ?? []).find(
+            (category) => category.id === transaction.category_id,
+        )?.name ?? 'Uncategorized'
+    );
+}
 
 const resetForm = (type: TransactionType) => {
     const categories = props.categories[type] ?? [];

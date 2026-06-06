@@ -378,8 +378,7 @@
                                         class="inline-flex min-w-[90px] justify-center rounded-md bg-white/10 px-3 py-1.5 text-[15px] font-normal text-white"
                                     >
                                         {{
-                                            transaction.category?.name ??
-                                            'Uncategorized'
+                                            categoryName(transaction)
                                         }}
                                     </span>
                                 </td>
@@ -499,8 +498,7 @@
                                         class="inline-flex min-w-[90px] justify-center rounded-md bg-white/10 px-3 py-1.5 text-[15px] font-normal text-white"
                                     >
                                         {{
-                                            transaction.category?.name ??
-                                            'Uncategorized'
+                                            categoryName(transaction)
                                         }}
                                     </span>
                                 </td>
@@ -648,7 +646,9 @@
                                     >
                                         <SelectValue placeholder="Month" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="month in months"
                                             :key="month.value"
@@ -665,7 +665,9 @@
                                     >
                                         <SelectValue placeholder="Day" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="day in transactionDays"
                                             :key="day"
@@ -682,7 +684,9 @@
                                     >
                                         <SelectValue placeholder="Year" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="year in transactionYears"
                                             :key="year"
@@ -823,6 +827,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard } from '@/routes';
 import { index as transactionsIndex } from '@/routes/transactions';
@@ -1030,6 +1041,18 @@ const fieldControlClass = computed(() =>
         ? 'finance-dialog-field finance-dialog-field-cost focus-visible:ring-[#947BFF]/30'
         : 'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25',
 );
+
+function categoryName(transaction: Transaction): string {
+    if (transaction.category?.name) {
+        return transaction.category.name;
+    }
+
+    return (
+        (props.categories[transaction.type] ?? []).find(
+            (category) => category.id === transaction.category_id,
+        )?.name ?? 'Uncategorized'
+    );
+}
 
 function syncDatePicker(date: string): void {
     const [yearPart, monthPart, dayPart] = date.split('-');

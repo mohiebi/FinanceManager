@@ -483,7 +483,10 @@ const currencySymbol = computed(() => {
 });
 
 function changeCurrency(currency: string) {
-    if (currency === selectedCurrency.value) return;
+    if (currency === selectedCurrency.value) {
+return;
+}
+
     selectedCurrency.value = currency;
     router.get(
         portfolio.url({ query: { currency } }),
@@ -494,7 +497,9 @@ function changeCurrency(currency: string) {
 
 watch(
     () => props.selectedCurrency,
-    (value) => { selectedCurrency.value = value; },
+    (value) => {
+ selectedCurrency.value = value; 
+},
 );
 
 defineOptions({

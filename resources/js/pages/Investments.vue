@@ -260,12 +260,12 @@
                                 Value
                             </th>
                             <th
-                                class="hidden rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
+                                class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                             >
                                 Date
                             </th>
                             <th
-                                class="rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:rounded-none sm:px-5"
+                                class="rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             ></th>
                         </tr>
                     </thead>
@@ -331,7 +331,7 @@
         <!-- ── Add / Edit dialog ─────────────────────────────────── -->
         <Dialog v-model:open="isDialogOpen">
             <DialogContent
-                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-white p-0 text-[#2d2d2d] shadow-2xl sm:min-h-[560px] sm:max-w-[560px]"
+                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-[#1a1a1a] p-0 text-white shadow-2xl ring-1 ring-white/10 sm:min-h-[560px] sm:max-w-[560px]"
                 :show-close-button="false"
             >
                 <form
@@ -340,7 +340,7 @@
                 >
                     <DialogHeader class="mb-6 space-y-2 text-left">
                         <DialogTitle
-                            class="text-[20px] leading-normal font-medium text-[#2d2d2d]"
+                            class="text-[20px] leading-normal font-medium text-white"
                         >
                             {{
                                 editingId !== null
@@ -422,7 +422,9 @@
                                     >
                                         <SelectValue placeholder="Month" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="monthOption in months"
                                             :key="monthOption.value"
@@ -439,7 +441,9 @@
                                     >
                                         <SelectValue placeholder="Day" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="dayOption in daysInMonth"
                                             :key="dayOption"
@@ -456,7 +460,9 @@
                                     >
                                         <SelectValue placeholder="Year" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="yearOption in years"
                                             :key="yearOption"
@@ -493,14 +499,14 @@
                     <div class="mt-6 flex justify-end gap-2">
                         <Button
                             type="button"
-                            class="h-9 w-[90px] rounded-[8px] bg-[#f4f4f4] px-[10px] text-[16px] font-normal text-[#2d2d2d] shadow-none hover:bg-[#ebebeb]"
+                            class="h-9 w-[90px] rounded-[8px] bg-white/5 px-[10px] text-[16px] font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
                             @click="isDialogOpen = false"
                         >
                             Cancel
                         </Button>
                         <Button
                             type="submit"
-                            class="h-9 w-[120px] rounded-[8px] bg-[#111111] px-[10px] text-[16px] font-normal text-white shadow-none hover:bg-[#1f1f1f]"
+                            class="h-9 w-[120px] rounded-[8px] bg-[#02CD86] px-[10px] text-[16px] font-semibold text-[#101010] shadow-none hover:bg-[#08dd93]"
                             :disabled="form.processing"
                         >
                             <Spinner v-if="form.processing" />
@@ -724,7 +730,10 @@ function changeRange(range: string) {
 }
 
 function changeCurrency(currency: string) {
-    if (currency === selectedCurrency.value) return;
+    if (currency === selectedCurrency.value) {
+        return;
+    }
+
     selectedCurrency.value = currency;
     router.get(
         investmentsIndex.url({ query: { range: selectedRange.value, currency } }),
@@ -744,12 +753,16 @@ watch(
 
 watch(
     () => props.selectedCurrency,
-    (value) => { selectedCurrency.value = value; },
+    (value) => {
+        selectedCurrency.value = value;
+    },
 );
 
 watch(
     () => props.selectedRange,
-    (value) => { selectedRange.value = value; },
+    (value) => {
+        selectedRange.value = value;
+    },
 );
 
 const isDialogOpen = ref(false);
@@ -810,7 +823,7 @@ const form = useForm({
 });
 
 const fieldClass =
-    'finance-dialog-field finance-dialog-field-cost focus-visible:ring-[#947BFF]/30';
+    'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25';
 
 function syncDatePicker(date: string) {
     const [yearPart, monthPart, dayPart] = date.split('-');

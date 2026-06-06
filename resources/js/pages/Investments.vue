@@ -893,8 +893,8 @@ function requestDeleteEntry(investmentId: number) {
 
 function confirmDeleteEntry() {
     if (!deleteTargetId.value) {
-return;
-}
+        return;
+    }
 
     router.delete(`/investments/${deleteTargetId.value}`, { preserveScroll: true });
     deleteTargetId.value = null;

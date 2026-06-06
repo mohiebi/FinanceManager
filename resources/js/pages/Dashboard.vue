@@ -1134,8 +1134,8 @@ const requestDelete = (transaction: Transaction) => {
 
 const confirmDelete = () => {
     if (!deleteTarget.value) {
-return;
-}
+        return;
+    }
 
     router.delete(`/transactions/${deleteTarget.value.id}`, { preserveScroll: true });
     deleteTarget.value = null;

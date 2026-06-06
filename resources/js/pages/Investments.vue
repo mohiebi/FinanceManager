@@ -93,10 +93,10 @@
                             :key="rangeOption.value"
                             type="button"
                             :class="[
-                                'rounded-full px-3 py-1 text-xs font-medium transition',
+                                'rounded-full px-3 py-1 text-xs font-medium transition cursor-pointer',
                                 selectedRange === rangeOption.value
-                                    ? 'bg-[#111111] text-white'
-                                    : 'bg-white text-[#2d2d2d] ring-1 ring-[#e6e6e6] hover:bg-[#f7f7f7]',
+                                    ? 'bg-white/15 text-white'
+                                    : 'text-[#686868] ring-1 ring-white/10 hover:text-white hover:bg-white/10',
                             ]"
                             @click="changeRange(rangeOption.value)"
                         >
@@ -115,7 +115,7 @@
                             'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition',
                             activeSeries.has(seriesItem.key)
                                 ? 'text-white'
-                                : 'bg-[#f4f4f4] text-[#989898] ring-1 ring-[#e6e6e6]',
+                                : 'bg-white/5 text-[#686868] ring-1 ring-white/10 hover:text-white',
                         ]"
                         :style="
                             activeSeries.has(seriesItem.key)
@@ -184,13 +184,13 @@
                         {{ asset.allocation }}%
                     </span>
                 </div>
-                <p class="text-sm font-semibold text-[#2d2d2d]">
+                <p class="text-sm font-semibold text-white">
                     {{ asset.label }}
                 </p>
                 <p class="mt-0.5 text-xs text-[#989898]">
                     {{ asset.quantity_display }} {{ asset.unit }}
                 </p>
-                <p class="mt-2 text-sm font-bold text-[#2d2d2d]">
+                <p class="mt-2 text-sm font-bold text-white">
                     {{ asset.value_formatted }}
                     <span class="text-xs font-normal text-[#989898]">T</span>
                 </p>
@@ -279,7 +279,7 @@
                                 <span class="text-xs text-[#989898]">T</span>
                             </td>
                             <td
-                                class="hidden px-3 py-[14px] text-center text-[16px] leading-none font-normal text-black sm:table-cell sm:px-5"
+                                class="hidden px-3 py-[14px] text-center text-[16px] leading-none font-normal text-[#989898] sm:table-cell sm:px-5"
                             >
                                 {{ entry.occurred_at }}
                             </td>
@@ -296,10 +296,10 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="rounded-md bg-[#fff0f0] px-2 py-1 text-xs text-[#E94E50] hover:bg-[#ffe0e0]"
-                                        @click="deleteEntry(entry.id)"
+                                        class="rounded-md p-1.5 hover:bg-[#fff0f0]"
+                                        @click="requestDeleteEntry(entry.id)"
                                     >
-                                        Delete
+                                        <Trash2 class="size-3.5 text-[#E94E50]" />
                                     </button>
                                 </div>
                             </td>
@@ -502,13 +502,22 @@
                 <span class="sr-only">Add investment entry</span>
             </Button>
         </div>
+
+        <ConfirmDeleteModal
+            :open="deleteTargetId !== null"
+            title="Delete investment entry?"
+            description="This entry will be permanently removed from your portfolio."
+            @update:open="deleteTargetId = null"
+            @confirm="confirmDeleteEntry"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Plus, TrendingUp } from 'lucide-vue-next';
+import { Plus, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import type { ChartSeries } from '@/components/charts/LineChart.vue';
@@ -808,12 +817,16 @@ function submitEntry() {
     }
 }
 
-function deleteEntry(investmentId: number) {
-    if (!confirm('Delete this investment entry?')) {
-        return;
-    }
+const deleteTargetId = ref<number | null>(null);
 
-    router.delete(`/investments/${investmentId}`, { preserveScroll: true });
+function requestDeleteEntry(investmentId: number) {
+    deleteTargetId.value = investmentId;
+}
+
+function confirmDeleteEntry() {
+    if (!deleteTargetId.value) return;
+    router.delete(`/investments/${deleteTargetId.value}`, { preserveScroll: true });
+    deleteTargetId.value = null;
 }
 
 function formatEntryValue(quantity: number, assetType: AssetKey): string {

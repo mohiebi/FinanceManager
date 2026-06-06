@@ -32,11 +32,7 @@ const buildOptions = () => ({
                 config?: { dataPointIndex?: number },
             ) => {
                 const sliceIndex = config?.dataPointIndex;
-
-                if (sliceIndex === undefined || sliceIndex < 0) {
-                    return;
-                }
-
+                if (sliceIndex === undefined || sliceIndex < 0) return;
                 if (activeSlice === sliceIndex) {
                     activeSlice = null;
                     emit('sliceClick', null);
@@ -55,7 +51,7 @@ const buildOptions = () => ({
         position: 'bottom' as const,
         fontFamily: 'inherit',
         fontSize: '12px',
-        labels: { colors: '#2d2d2d' },
+        labels: { colors: '#989898' },
         markers: { size: 7 },
         itemMargin: { horizontal: 6, vertical: 3 },
         formatter: (
@@ -68,17 +64,11 @@ const buildOptions = () => ({
             const seriesValues = legendOptions?.w?.globals?.series ?? [];
             const seriesIndex = legendOptions?.seriesIndex ?? -1;
             const totalValue = seriesValues.reduce(
-                (runningTotal: number, seriesValue: number) =>
-                    runningTotal + seriesValue,
+                (acc: number, v: number) => acc + v,
                 0,
             );
-            const currentValue =
-                seriesIndex >= 0 ? (seriesValues[seriesIndex] ?? 0) : 0;
-            const percentage =
-                totalValue > 0
-                    ? ((currentValue / totalValue) * 100).toFixed(1)
-                    : '0';
-
+            const currentValue = seriesIndex >= 0 ? (seriesValues[seriesIndex] ?? 0) : 0;
+            const percentage = totalValue > 0 ? ((currentValue / totalValue) * 100).toFixed(1) : '0';
             return `${label} — ${percentage}%`;
         },
     },
@@ -100,10 +90,9 @@ const buildOptions = () => ({
                         fontSize: '22px',
                         fontFamily: 'inherit',
                         fontWeight: 700,
-                        color: '#2d2d2d',
+                        color: '#ffffff',
                         offsetY: 4,
-                        formatter: (percentageValue: string) =>
-                            percentageValue + '%',
+                        formatter: (v: string) => v + '%',
                     },
                     total: {
                         show: true,
@@ -118,13 +107,13 @@ const buildOptions = () => ({
         },
     },
     dataLabels: { enabled: false },
-    stroke: { width: 2, colors: ['#ffffff'] },
+    stroke: { width: 2, colors: ['#1a1a1a'] },
     tooltip: {
-        theme: 'light' as const,
+        theme: 'dark' as const,
         y: {
-            formatter: (percentageValue: number) =>
-                percentageValue.toFixed(1) + '%',
+            formatter: (v: number) => v.toFixed(1) + '%',
         },
+        style: { fontSize: '12px' },
     },
     states: {
         hover: { filter: { type: 'lighten' as const, value: 0.08 } },
@@ -133,10 +122,7 @@ const buildOptions = () => ({
 });
 
 onMounted(() => {
-    if (!chartRef.value) {
-        return;
-    }
-
+    if (!chartRef.value) return;
     chart = new ApexCharts(chartRef.value, buildOptions());
     chart.render();
 });

@@ -407,7 +407,7 @@
                                             type="button"
                                             class="rounded-md p-1.5 hover:bg-[#fff0f0]"
                                             @click="
-                                                deleteTransaction(transaction)
+                                                requestDelete(transaction)
                                             "
                                         >
                                             <Trash2
@@ -528,7 +528,7 @@
                                             type="button"
                                             class="rounded-md p-1.5 hover:bg-[#fff0f0]"
                                             @click="
-                                                deleteTransaction(transaction)
+                                                requestDelete(transaction)
                                             "
                                         >
                                             <Trash2
@@ -787,6 +787,14 @@
                 </form>
             </DialogContent>
         </Dialog>
+
+        <ConfirmDeleteModal
+            :open="deleteTarget !== null"
+            :title="`Delete &quot;${deleteTarget?.title}&quot;?`"
+            description="This transaction will be permanently deleted."
+            @update:open="deleteTarget = null"
+            @confirm="confirmDelete"
+        />
     </div>
 </template>
 
@@ -802,6 +810,7 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import BarChart from '@/components/charts/BarChart.vue';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import GaugeChart from '@/components/charts/GaugeChart.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -1094,12 +1103,16 @@ const submitTransaction = () => {
     form.post('/transactions', opts);
 };
 
-const deleteTransaction = (transaction: Transaction) => {
-    if (!window.confirm(`Delete "${transaction.title}"?`)) {
-        return;
-    }
+const deleteTarget = ref<Transaction | null>(null);
 
-    router.delete(`/transactions/${transaction.id}`, { preserveScroll: true });
+const requestDelete = (transaction: Transaction) => {
+    deleteTarget.value = transaction;
+};
+
+const confirmDelete = () => {
+    if (!deleteTarget.value) return;
+    router.delete(`/transactions/${deleteTarget.value.id}`, { preserveScroll: true });
+    deleteTarget.value = null;
 };
 
 watch([selectedDateYear, selectedDateMonth, selectedDateDay], updateOccurredAt);

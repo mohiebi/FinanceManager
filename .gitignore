@@ -28,3 +28,4 @@ yarn-error.log
 /.zed
 .claude/*
 design-system/cashpilot/MASTER.md
+vite.config.ts

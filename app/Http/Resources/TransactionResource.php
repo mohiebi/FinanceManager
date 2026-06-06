@@ -26,7 +26,10 @@ class TransactionResource extends JsonResource
             'title' => $this->title,
             'description' => $this->description,
             'occurred_at' => $this->occurred_at->toDateString(),
-            'category' => new CategoryResource($this->whenLoaded('category')),
+            'category' => $this->whenLoaded(
+                'category',
+                fn () => $this->category ? (new CategoryResource($this->category))->resolve($request) : null,
+            ),
             'category_id' => $this->category_id,
         ];
     }

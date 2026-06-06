@@ -41,4 +41,13 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
     ],
 
+    'tgju' => [
+        'enabled' => env('TGJU_PRICES_ENABLED', env('APP_ENV') !== 'testing'),
+        'url' => env('TGJU_PRICE_URL', 'https://www.tgju.org/'),
+        'fallback_url' => env('TGJU_PRICE_FALLBACK_URL', 'http://www.tgju.org/'),
+        'cache_seconds' => env('TGJU_PRICE_CACHE_SECONDS', 300),
+        'timeout' => env('TGJU_PRICE_TIMEOUT', 8),
+        'connect_timeout' => env('TGJU_PRICE_CONNECT_TIMEOUT', 4),
+    ],
+
 ];

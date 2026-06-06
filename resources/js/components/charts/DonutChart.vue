@@ -32,7 +32,11 @@ const buildOptions = () => ({
                 config?: { dataPointIndex?: number },
             ) => {
                 const sliceIndex = config?.dataPointIndex;
-                if (sliceIndex === undefined || sliceIndex < 0) return;
+
+                if (sliceIndex === undefined || sliceIndex < 0) {
+return;
+}
+
                 if (activeSlice === sliceIndex) {
                     activeSlice = null;
                     emit('sliceClick', null);
@@ -69,6 +73,7 @@ const buildOptions = () => ({
             );
             const currentValue = seriesIndex >= 0 ? (seriesValues[seriesIndex] ?? 0) : 0;
             const percentage = totalValue > 0 ? ((currentValue / totalValue) * 100).toFixed(1) : '0';
+
             return `${label} — ${percentage}%`;
         },
     },
@@ -122,7 +127,10 @@ const buildOptions = () => ({
 });
 
 onMounted(() => {
-    if (!chartRef.value) return;
+    if (!chartRef.value) {
+return;
+}
+
     chart = new ApexCharts(chartRef.value, buildOptions());
     chart.render();
 });

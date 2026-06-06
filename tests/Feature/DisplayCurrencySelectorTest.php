@@ -16,7 +16,7 @@ test('transaction workspaces expose display currency options', function () {
         );
 });
 
-test('investment workspaces do not expose display currency options', function () {
+test('investment workspaces expose display currency options', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
@@ -24,8 +24,8 @@ test('investment workspaces do not expose display currency options', function ()
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Investments')
-            ->missing('currencies')
-            ->missing('selectedCurrency'),
+            ->has('currencies', 3)
+            ->where('selectedCurrency', 'toman'),
         );
 
     $this->actingAs($user)
@@ -33,7 +33,7 @@ test('investment workspaces do not expose display currency options', function ()
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Portfolio')
-            ->missing('currencies')
-            ->missing('selectedCurrency'),
+            ->has('currencies', 3)
+            ->where('selectedCurrency', 'toman'),
         );
 });

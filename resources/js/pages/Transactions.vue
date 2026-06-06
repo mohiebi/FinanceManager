@@ -167,10 +167,13 @@
                                     Amount
                                 </th>
                                 <th
-                                    class="hidden rounded-r-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
+                                    class="hidden bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
                                 >
                                     Date
                                 </th>
+                                <th
+                                    class="rounded-r-2xl bg-[#24212f] px-3 py-4 sm:px-5"
+                                ></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -183,7 +186,7 @@
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
                                     <button
-                                        class="text-black"
+                                        class="cursor-pointer text-white hover:text-[#947BFF]"
                                         type="button"
                                         @click="openEditForm(transaction)"
                                     >
@@ -201,8 +204,7 @@
                                         class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
                                     >
                                         {{
-                                            transaction.category?.name ??
-                                            'Uncategorized'
+                                            categoryName(transaction)
                                         }}
                                     </span>
                                 </td>
@@ -218,10 +220,20 @@
                                 >
                                     {{ transaction.occurred_at }}
                                 </td>
+                                <td class="px-3 py-3.5 text-center sm:px-5">
+                                    <div class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                        <button type="button" class="rounded-md p-1.5 hover:bg-white/10" @click="openEditForm(transaction)">
+                                            <Pencil class="size-3.5 text-[#6C4EE9]" />
+                                        </button>
+                                        <button type="button" class="rounded-md p-1.5 hover:bg-[#fff0f0]" @click="requestDelete(transaction)">
+                                            <Trash2 class="size-3.5 text-[#E94E50]" />
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
                             <tr v-if="props.transactions.costs.length === 0">
                                 <td
-                                    colspan="4"
+                                    colspan="5"
                                     class="px-5 py-12 text-center text-[#989898]"
                                 >
                                     No costs yet. Add the first one when money
@@ -289,10 +301,13 @@
                                     Amount
                                 </th>
                                 <th
-                                    class="hidden rounded-r-2xl bg-[#effffa] px-3 py-4 text-center font-normal text-[#006644] sm:table-cell sm:px-5"
+                                    class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                                 >
                                     Date
                                 </th>
+                                <th
+                                    class="rounded-r-2xl bg-[#0d2620] px-3 py-4 sm:px-5"
+                                ></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -306,7 +321,7 @@
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
                                     <button
-                                        class="text-black"
+                                        class="cursor-pointer text-white hover:text-[#02CD86]"
                                         type="button"
                                         @click="openEditForm(transaction)"
                                     >
@@ -324,8 +339,7 @@
                                         class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
                                     >
                                         {{
-                                            transaction.category?.name ??
-                                            'Uncategorized'
+                                            categoryName(transaction)
                                         }}
                                     </span>
                                 </td>
@@ -341,10 +355,20 @@
                                 >
                                     {{ transaction.occurred_at }}
                                 </td>
+                                <td class="px-3 py-3.5 text-center sm:px-5">
+                                    <div class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                        <button type="button" class="rounded-md p-1.5 hover:bg-white/10" @click="openEditForm(transaction)">
+                                            <Pencil class="size-3.5 text-[#6C4EE9]" />
+                                        </button>
+                                        <button type="button" class="rounded-md p-1.5 hover:bg-[#fff0f0]" @click="requestDelete(transaction)">
+                                            <Trash2 class="size-3.5 text-[#E94E50]" />
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
                             <tr v-if="props.transactions.incomes.length === 0">
                                 <td
-                                    colspan="4"
+                                    colspan="5"
                                     class="px-5 py-12 text-center text-[#989898]"
                                 >
                                     No incomes yet. Add salary, gifts, or
@@ -359,7 +383,7 @@
 
         <Dialog v-model:open="isDialogOpen">
             <DialogContent
-                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-white p-0 text-[#2d2d2d] shadow-2xl sm:min-h-[654px] sm:max-w-[618px]"
+                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-[#1a1a1a] p-0 shadow-2xl ring-1 ring-white/10 sm:min-h-[654px] sm:max-w-[618px]"
                 :show-close-button="false"
             >
                 <form
@@ -368,12 +392,12 @@
                 >
                     <DialogHeader class="mb-7 space-y-2 text-left">
                         <DialogTitle
-                            class="text-[20px] leading-normal font-medium text-[#2d2d2d]"
+                            class="text-[20px] leading-normal font-medium text-white"
                         >
                             {{ dialogTitle }}
                         </DialogTitle>
                         <DialogDescription
-                            class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#2d2d2d]"
+                            class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#989898]"
                         >
                             The same form handles both tables. The transaction
                             type follows the table action you selected.
@@ -455,7 +479,9 @@
                                     >
                                         <SelectValue placeholder="Month" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="month in months"
                                             :key="month.value"
@@ -473,7 +499,9 @@
                                     >
                                         <SelectValue placeholder="Day" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="day in transactionDays"
                                             :key="day"
@@ -491,7 +519,9 @@
                                     >
                                         <SelectValue placeholder="Year" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="year in transactionYears"
                                             :key="year"
@@ -579,7 +609,7 @@
                     <div class="mt-7 flex justify-end gap-2">
                         <Button
                             type="button"
-                            class="h-9 w-[99px] rounded-[8px] bg-[#effffa] px-[10px] py-[3px] text-[20px] font-normal text-[#2d2d2d] shadow-none hover:bg-[#e1fff5]"
+                            class="h-9 w-[99px] cursor-pointer rounded-[8px] bg-white/5 px-[10px] py-[3px] text-[20px] font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
                             @click="isDialogOpen = false"
                         >
                             Cancel
@@ -599,14 +629,23 @@
                 </form>
             </DialogContent>
         </Dialog>
+
+        <ConfirmDeleteModal
+            :open="deleteTarget !== null"
+            :title="`Delete &quot;${deleteTarget?.title}&quot;?`"
+            description="This transaction will be permanently deleted."
+            @update:open="deleteTarget = null"
+            @confirm="confirmDelete"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Plus, RotateCcw, Search } from 'lucide-vue-next';
+import { Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -699,6 +738,20 @@ defineOptions({
 
 const isDialogOpen = ref(false);
 const editingTransactionId = ref<number | null>(null);
+const deleteTarget = ref<Transaction | null>(null);
+
+const requestDelete = (transaction: Transaction) => {
+    deleteTarget.value = transaction;
+};
+
+const confirmDelete = () => {
+    if (!deleteTarget.value) {
+        return;
+    }
+
+    router.delete(`/transactions/${deleteTarget.value.id}`, { preserveScroll: true });
+    deleteTarget.value = null;
+};
 const selectedDateYear = ref('');
 const selectedDateMonth = ref('');
 const selectedDateDay = ref('');
@@ -775,6 +828,18 @@ const fieldControlClass = computed(() =>
         ? 'finance-dialog-field finance-dialog-field-cost focus-visible:ring-[#947BFF]/30'
         : 'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25',
 );
+
+function categoryName(transaction: Transaction): string {
+    if (transaction.category?.name) {
+        return transaction.category.name;
+    }
+
+    return (
+        (props.categories[transaction.type] ?? []).find(
+            (category) => category.id === transaction.category_id,
+        )?.name ?? 'Uncategorized'
+    );
+}
 
 const resetForm = (type: TransactionType) => {
     const categories = props.categories[type] ?? [];

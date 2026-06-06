@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\AssetType;
+use App\Enums\Currency;
 use App\Models\Investment;
 use App\Services\AssetPriceService;
 use Illuminate\Http\RedirectResponse;
@@ -14,12 +16,21 @@ use Inertia\Response;
 
 class InvestmentController extends Controller
 {
-    public function index(Request $request, AssetPriceService $priceService): Response
+    public function index(Request $request, AssetPriceService $priceService, CurrencyConverter $currencyConverter): Response
     {
         $user = $request->user();
         $range = in_array($request->query('range'), ['1w', '1m', '3m', '1y', 'all'])
             ? (string) $request->query('range')
             : '1m';
+        $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
+
+        $fmt = function (float $amount) use ($selectedCurrency, $currencyConverter): string {
+            if ($selectedCurrency === Currency::Toman) {
+                return $this->formatMoney($amount);
+            }
+
+            return number_format($currencyConverter->convert($amount, Currency::Toman, $selectedCurrency), 2, '.', ',');
+        };
 
         /** @var Collection<int, Investment> $allEntries */
         $allEntries = $user->investments()
@@ -32,10 +43,12 @@ class InvestmentController extends Controller
         $assets = $this->buildAssets($holdings, $priceService);
         $totalValue = array_sum(array_column($assets, 'value'));
 
-        $assets = array_map(function (array $asset) use ($totalValue) {
+        $assets = array_map(function (array $asset) use ($totalValue, $fmt) {
             return [
                 ...$asset,
                 'allocation' => $totalValue > 0 ? round($asset['value'] / $totalValue * 100, 1) : 0,
+                'price_formatted' => $fmt($asset['price']),
+                'value_formatted' => $fmt($asset['value']),
             ];
         }, $assets);
 
@@ -72,7 +85,7 @@ class InvestmentController extends Controller
             'assets' => $assets,
             'summary' => [
                 'total_value' => $totalValue,
-                'total_value_formatted' => $this->formatMoney($totalValue),
+                'total_value_formatted' => $fmt($totalValue),
                 'asset_count' => count($assets),
                 'entry_count' => $allEntries->count(),
             ],
@@ -81,6 +94,11 @@ class InvestmentController extends Controller
             'entries' => $recentEntries,
             'selectedRange' => $range,
             'prices' => $priceService->allPrices(),
+            'currencies' => collect(Currency::cases())->map(fn (Currency $c) => [
+                'label' => strtoupper($c->value),
+                'value' => $c->value,
+            ]),
+            'selectedCurrency' => $selectedCurrency->value,
         ]);
     }
 

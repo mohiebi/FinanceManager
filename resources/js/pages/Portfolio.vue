@@ -10,11 +10,30 @@
                 class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between"
             >
                 <div class="space-y-2">
-                    <p
-                        class="text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase"
-                    >
-                        Portfolio overview
-                    </p>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <p
+                            class="text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase"
+                        >
+                            Portfolio overview
+                        </p>
+                        <!-- Currency pills -->
+                        <div class="flex gap-1">
+                            <button
+                                v-for="c in props.currencies"
+                                :key="c.value"
+                                type="button"
+                                :class="[
+                                    'cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition',
+                                    selectedCurrency === c.value
+                                        ? 'bg-[#02CD86]/10 text-[#02CD86] ring-1 ring-[#02CD86]/25'
+                                        : 'text-[#686868] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
+                                ]"
+                                @click="changeCurrency(c.value)"
+                            >
+                                {{ c.label }}
+                            </button>
+                        </div>
+                    </div>
                     <h1
                         class="text-3xl font-semibold tracking-tight text-white sm:text-4xl"
                     >
@@ -39,9 +58,7 @@
                         </p>
                         <p class="mt-2 text-base font-bold text-white">
                             {{ props.summary.total_current_value_formatted }}
-                            <span class="text-xs font-normal text-[#989898]"
-                                >T</span
-                            >
+                            <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
                         </p>
                     </div>
 
@@ -58,9 +75,7 @@
                         <p class="mt-2 text-base font-bold text-white">
                             <template v-if="props.summary.has_cost_basis_data">
                                 {{ props.summary.total_cost_basis_formatted }}
-                                <span class="text-xs font-normal text-[#989898]"
-                                    >T</span
-                                >
+                                <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
                             </template>
                             <span
                                 v-else
@@ -96,7 +111,7 @@
                                     : props.summary.total_pnl_is_positive ===
                                         false
                                       ? 'text-[#E94E50]'
-                                      : 'text-[#2d2d2d]'
+                                      : 'text-[#989898]'
                             "
                         >
                             <template v-if="props.summary.total_pnl !== null">
@@ -105,7 +120,7 @@
                                         ? '+'
                                         : '−'
                                 }}</span>
-                                {{ props.summary.total_pnl_formatted }} T
+                                {{ props.summary.total_pnl_formatted }} {{ currencySymbol }}
                                 <span
                                     v-if="
                                         props.summary.total_pnl_percent !== null
@@ -148,27 +163,27 @@
                     <thead>
                         <tr class="text-base">
                             <th
-                                class="rounded-l-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
                                 Asset
                             </th>
                             <th
-                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
                                 Holdings
                             </th>
                             <th
-                                class="hidden bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
+                                class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                             >
                                 Avg cost / unit
                             </th>
                             <th
-                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
                                 Current value
                             </th>
                             <th
-                                class="rounded-r-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                class="rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
                                 P&amp;L
                             </th>
@@ -199,9 +214,9 @@
                             >
                                 <span
                                     v-if="asset.avg_cost_basis_formatted"
-                                    class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[15px] leading-none font-normal text-black"
+                                    class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[15px] leading-none font-normal text-white"
                                 >
-                                    {{ asset.avg_cost_basis_formatted }} T
+                                    {{ asset.avg_cost_basis_formatted }} {{ currencySymbol }}
                                 </span>
                                 <span v-else class="text-sm text-[#989898]">
                                     —
@@ -211,9 +226,7 @@
                                 class="px-3 py-[17px] text-center text-[17px] leading-none font-bold text-white sm:px-5"
                             >
                                 {{ asset.current_value_formatted }}
-                                <span class="text-xs font-normal text-[#989898]"
-                                    >T</span
-                                >
+                                <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
                             </td>
                             <td
                                 class="px-3 py-[17px] text-center text-[17px] leading-none font-bold sm:px-5"
@@ -227,7 +240,7 @@
                             >
                                 <template v-if="asset.pnl !== null">
                                     {{ asset.pnl_is_positive ? '+' : '−' }}
-                                    {{ asset.pnl_formatted }} T
+                                    {{ asset.pnl_formatted }} {{ currencySymbol }}
                                     <span
                                         v-if="asset.pnl_percent !== null"
                                         class="block text-xs font-normal"
@@ -266,32 +279,32 @@
                     <thead>
                         <tr class="text-base">
                             <th
-                                class="rounded-l-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
                                 Asset
                             </th>
                             <th
-                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
                                 Qty
                             </th>
                             <th
-                                class="hidden bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
+                                class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                             >
                                 Cost basis / u
                             </th>
                             <th
-                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
                                 Current value
                             </th>
                             <th
-                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
                                 P&amp;L
                             </th>
                             <th
-                                class="hidden rounded-r-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
+                                class="hidden rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                             >
                                 Date
                             </th>
@@ -325,7 +338,7 @@
                                     class="text-[15px] text-white"
                                 >
                                     {{ formatMoney(entry.cost_basis) }}
-                                    T
+                                    {{ (entry.cost_basis_currency ?? 'toman').toUpperCase() }}
                                 </span>
                                 <span v-else class="text-sm text-[#989898]">
                                     —
@@ -335,9 +348,7 @@
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-bold text-white sm:px-5"
                             >
                                 {{ entry.current_value_fmt }}
-                                <span class="text-xs font-normal text-[#989898]"
-                                    >T</span
-                                >
+                                <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
                             </td>
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-bold sm:px-5"
@@ -351,12 +362,12 @@
                             >
                                 <template v-if="entry.pnl !== null">
                                     {{ entry.pnl_is_positive ? '+' : '−' }}
-                                    {{ entry.pnl_formatted }} T
+                                    {{ entry.pnl_formatted }} {{ currencySymbol }}
                                 </template>
                                 <span v-else>—</span>
                             </td>
                             <td
-                                class="hidden px-3 py-[14px] text-center text-[16px] leading-none text-black sm:table-cell sm:px-5"
+                                class="hidden px-3 py-[14px] text-center text-[16px] leading-none text-[#989898] sm:table-cell sm:px-5"
                             >
                                 {{ entry.occurred_at }}
                             </td>
@@ -387,11 +398,17 @@
 </template>
 
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { Wallet } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
 import { dashboard, portfolio } from '@/routes';
 
 type AssetKey = 'gold' | 'silver' | 'usd' | 'eur' | 'coin' | 'bitcoin';
+
+type CurrencyOption = {
+    label: string;
+    value: string;
+};
 
 type PortfolioAsset = {
     key: AssetKey;
@@ -451,7 +468,39 @@ const props = defineProps<{
         has_cost_basis_data: boolean;
         asset_count: number;
     };
+    currencies: CurrencyOption[];
+    selectedCurrency: string;
 }>();
+
+const selectedCurrency = ref(props.selectedCurrency);
+
+const currencySymbol = computed(() => {
+    switch (selectedCurrency.value) {
+        case 'usd': return '$';
+        case 'eur': return '€';
+        default: return 'T';
+    }
+});
+
+function changeCurrency(currency: string) {
+    if (currency === selectedCurrency.value) {
+return;
+}
+
+    selectedCurrency.value = currency;
+    router.get(
+        portfolio.url({ query: { currency } }),
+        {},
+        { preserveScroll: true, preserveState: true, replace: true },
+    );
+}
+
+watch(
+    () => props.selectedCurrency,
+    (value) => {
+ selectedCurrency.value = value; 
+},
+);
 
 defineOptions({
     layout: {

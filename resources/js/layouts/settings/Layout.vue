@@ -2,7 +2,6 @@
 import { Link } from '@inertiajs/vue3';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
-import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import { edit as editTelegram } from '@/routes/telegram';
@@ -11,7 +10,6 @@ import type { NavItem } from '@/types';
 const sidebarNavItems: NavItem[] = [
     { title: 'Profile', href: editProfile() },
     { title: 'Security', href: editSecurity() },
-    { title: 'Appearance', href: editAppearance() },
     { title: 'Telegram', href: editTelegram() },
 ];
 
@@ -41,7 +39,7 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                         :key="toUrl(item.href)"
                         :href="item.href"
                         :class="[
-                            'flex w-full items-center rounded-xl px-3 py-2.5 text-sm transition',
+                            'flex w-full cursor-pointer items-center rounded-xl px-3 py-2.5 text-sm transition',
                             isCurrentOrParentUrl(item.href)
                                 ? 'bg-[#02CD86]/10 font-medium text-[#02CD86]'
                                 : 'text-[#989898] hover:bg-white/5 hover:text-white',

@@ -378,8 +378,7 @@
                                         class="inline-flex min-w-[90px] justify-center rounded-md bg-white/10 px-3 py-1.5 text-[15px] font-normal text-white"
                                     >
                                         {{
-                                            transaction.category?.name ??
-                                            'Uncategorized'
+                                            categoryName(transaction)
                                         }}
                                     </span>
                                 </td>
@@ -499,8 +498,7 @@
                                         class="inline-flex min-w-[90px] justify-center rounded-md bg-white/10 px-3 py-1.5 text-[15px] font-normal text-white"
                                     >
                                         {{
-                                            transaction.category?.name ??
-                                            'Uncategorized'
+                                            categoryName(transaction)
                                         }}
                                     </span>
                                 </td>
@@ -554,7 +552,7 @@
         </div>
         <Dialog v-model:open="isDialogOpen">
             <DialogContent
-                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-white p-0 text-[#2d2d2d] shadow-2xl sm:min-h-[654px] sm:max-w-[618px]"
+                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-[#1a1a1a] p-0 shadow-2xl ring-1 ring-white/10 sm:min-h-[654px] sm:max-w-[618px]"
                 :show-close-button="false"
             >
                 <form
@@ -563,12 +561,12 @@
                 >
                     <DialogHeader class="mb-7 space-y-2 text-left">
                         <DialogTitle
-                            class="text-[20px] leading-normal font-medium text-[#2d2d2d]"
+                            class="text-[20px] leading-normal font-medium text-white"
                         >
                             {{ dialogTitle }}
                         </DialogTitle>
                         <DialogDescription
-                            class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#2d2d2d]"
+                            class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#989898]"
                         >
                             The same form handles both tables. The transaction
                             type follows the table action you selected.
@@ -648,7 +646,9 @@
                                     >
                                         <SelectValue placeholder="Month" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="month in months"
                                             :key="month.value"
@@ -665,7 +665,9 @@
                                     >
                                         <SelectValue placeholder="Day" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="day in transactionDays"
                                             :key="day"
@@ -682,7 +684,9 @@
                                     >
                                         <SelectValue placeholder="Year" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
                                         <SelectItem
                                             v-for="year in transactionYears"
                                             :key="year"
@@ -767,14 +771,14 @@
                     <div class="mt-7 flex justify-end gap-2">
                         <Button
                             type="button"
-                            class="h-9 w-[99px] rounded-[8px] bg-[#effffa] px-[10px] py-[3px] text-[20px] font-normal text-[#2d2d2d] shadow-none hover:bg-[#e1fff5]"
+                            class="h-9 w-[99px] cursor-pointer rounded-[8px] bg-white/5 px-[10px] py-[3px] text-[20px] font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
                             @click="isDialogOpen = false"
                         >
                             Cancel
                         </Button>
                         <Button
                             type="submit"
-                            class="h-9 w-[135px] rounded-[8px] bg-[#2d2d2d] px-[10px] py-[3px] text-[20px] font-normal text-white shadow-none hover:bg-[#1f1f1f]"
+                            class="h-9 w-[135px] rounded-[8px] bg-[#111111] px-[10px] py-[3px] text-[20px] font-normal text-white shadow-none hover:bg-[#1f1f1f]"
                             :disabled="
                                 form.processing ||
                                 selectedCategories.length === 0
@@ -810,8 +814,8 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import BarChart from '@/components/charts/BarChart.vue';
-import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import GaugeChart from '@/components/charts/GaugeChart.vue';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -823,6 +827,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard } from '@/routes';
 import { index as transactionsIndex } from '@/routes/transactions';
@@ -1031,6 +1042,18 @@ const fieldControlClass = computed(() =>
         : 'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25',
 );
 
+function categoryName(transaction: Transaction): string {
+    if (transaction.category?.name) {
+        return transaction.category.name;
+    }
+
+    return (
+        (props.categories[transaction.type] ?? []).find(
+            (category) => category.id === transaction.category_id,
+        )?.name ?? 'Uncategorized'
+    );
+}
+
 function syncDatePicker(date: string): void {
     const [yearPart, monthPart, dayPart] = date.split('-');
     selectedDateYear.value = yearPart ?? '';
@@ -1110,7 +1133,10 @@ const requestDelete = (transaction: Transaction) => {
 };
 
 const confirmDelete = () => {
-    if (!deleteTarget.value) return;
+    if (!deleteTarget.value) {
+return;
+}
+
     router.delete(`/transactions/${deleteTarget.value.id}`, { preserveScroll: true });
     deleteTarget.value = null;
 };

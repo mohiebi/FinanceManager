@@ -14,13 +14,20 @@ type Props = {
 const props = defineProps<Props>();
 
 const deepLink = computed(() => {
-    if (!props.connectToken || !props.botUsername) return null;
+    if (!props.connectToken || !props.botUsername) {
+return null;
+}
+
     const username = props.botUsername.replace(/^@/, '');
+
     return `https://t.me/${username}?start=${props.connectToken}`;
 });
 
 const botUrl = computed(() => {
-    if (!props.botUsername) return null;
+    if (!props.botUsername) {
+return null;
+}
+
     return `https://t.me/${props.botUsername.replace(/^@/, '')}`;
 });
 

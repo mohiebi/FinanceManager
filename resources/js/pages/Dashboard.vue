@@ -810,8 +810,8 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import BarChart from '@/components/charts/BarChart.vue';
-import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import GaugeChart from '@/components/charts/GaugeChart.vue';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -1110,7 +1110,10 @@ const requestDelete = (transaction: Transaction) => {
 };
 
 const confirmDelete = () => {
-    if (!deleteTarget.value) return;
+    if (!deleteTarget.value) {
+return;
+}
+
     router.delete(`/transactions/${deleteTarget.value.id}`, { preserveScroll: true });
     deleteTarget.value = null;
 };

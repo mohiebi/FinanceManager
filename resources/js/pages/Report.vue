@@ -309,22 +309,22 @@
                         <thead>
                             <tr class="text-left text-base">
                                 <th
-                                    class="rounded-l-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                    class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     Subject
                                 </th>
                                 <th
-                                    class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     Category
                                 </th>
                                 <th
-                                    class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     Amount
                                 </th>
                                 <th
-                                    class="hidden rounded-r-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
+                                    class="hidden rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                                 >
                                     Date
                                 </th>
@@ -430,7 +430,7 @@
                                     Amount
                                 </th>
                                 <th
-                                    class="hidden rounded-r-2xl bg-[#effffa] px-3 py-4 text-center font-normal text-[#006644] sm:table-cell sm:px-5"
+                                    class="hidden rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                                 >
                                     Date
                                 </th>

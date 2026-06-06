@@ -19,9 +19,18 @@ const chartRef = ref<HTMLElement | null>(null);
 let chart: ApexCharts | null = null;
 
 const abbreviate = (amount: number): string => {
-    if (amount >= 1_000_000_000) return (amount / 1_000_000_000).toFixed(1) + 'B';
-    if (amount >= 1_000_000) return (amount / 1_000_000).toFixed(1) + 'M';
-    if (amount >= 1_000) return (amount / 1_000).toFixed(0) + 'K';
+    if (amount >= 1_000_000_000) {
+return (amount / 1_000_000_000).toFixed(1) + 'B';
+}
+
+    if (amount >= 1_000_000) {
+return (amount / 1_000_000).toFixed(1) + 'M';
+}
+
+    if (amount >= 1_000) {
+return (amount / 1_000).toFixed(0) + 'K';
+}
+
     return amount.toFixed(0);
 };
 
@@ -48,7 +57,11 @@ const buildOptions = () => ({
             rotate: 0,
             formatter: (v: string) => {
                 const d = new Date(v);
-                if (isNaN(d.getTime())) return v;
+
+                if (isNaN(d.getTime())) {
+return v;
+}
+
                 return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             },
         },
@@ -110,7 +123,10 @@ const buildOptions = () => ({
 });
 
 onMounted(() => {
-    if (!chartRef.value) return;
+    if (!chartRef.value) {
+return;
+}
+
     chart = new ApexCharts(chartRef.value, buildOptions());
     chart.render();
 });

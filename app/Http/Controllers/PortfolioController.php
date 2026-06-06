@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\AssetType;
+use App\Enums\Currency;
 use App\Models\Investment;
 use App\Services\AssetPriceService;
 use Illuminate\Http\Request;
@@ -12,9 +14,18 @@ use Inertia\Response;
 
 class PortfolioController extends Controller
 {
-    public function __invoke(Request $request, AssetPriceService $priceService): Response
+    public function __invoke(Request $request, AssetPriceService $priceService, CurrencyConverter $currencyConverter): Response
     {
         $user = $request->user();
+        $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
+
+        $fmt = function (float $amount) use ($selectedCurrency, $currencyConverter): string {
+            if ($selectedCurrency === Currency::Toman) {
+                return number_format($amount, 0, '.', ',');
+            }
+
+            return number_format($currencyConverter->convert($amount, Currency::Toman, $selectedCurrency), 2, '.', ',');
+        };
 
         /** @var Collection<int, Investment> $allEntries */
         $allEntries = $user->investments()
@@ -58,15 +69,15 @@ class PortfolioController extends Controller
                 'unit' => $type->unit(),
                 'quantity' => round($totalQuantity, 8),
                 'current_price' => $currentPrice,
-                'current_price_formatted' => number_format($currentPrice, 0, '.', ','),
+                'current_price_formatted' => $fmt($currentPrice),
                 'current_value' => $currentValue,
-                'current_value_formatted' => number_format($currentValue, 0, '.', ','),
+                'current_value_formatted' => $fmt($currentValue),
                 'avg_cost_basis' => $averageCostBasis,
-                'avg_cost_basis_formatted' => $averageCostBasis !== null ? number_format($averageCostBasis, 0, '.', ',') : null,
+                'avg_cost_basis_formatted' => $averageCostBasis !== null ? $fmt($averageCostBasis) : null,
                 'total_cost' => $totalAssetCost,
-                'total_cost_formatted' => $totalAssetCost !== null ? number_format($totalAssetCost, 0, '.', ',') : null,
+                'total_cost_formatted' => $totalAssetCost !== null ? $fmt($totalAssetCost) : null,
                 'pnl' => $profitAndLoss,
-                'pnl_formatted' => $profitAndLoss !== null ? number_format(abs($profitAndLoss), 0, '.', ',') : null,
+                'pnl_formatted' => $profitAndLoss !== null ? $fmt(abs($profitAndLoss)) : null,
                 'pnl_percent' => $profitAndLossPercent,
                 'pnl_is_positive' => $profitAndLoss !== null ? $profitAndLoss >= 0 : null,
                 'entries_count' => $typeEntries->count(),
@@ -90,7 +101,7 @@ class PortfolioController extends Controller
             ->orderByDesc('created_at')
             ->limit(200)
             ->get()
-            ->map(function (Investment $investment) use ($priceService) {
+            ->map(function (Investment $investment) use ($priceService, $fmt) {
                 $currentPrice = $priceService->priceFor($investment->asset_type);
                 $currentValue = $priceService->valueOf($investment->asset_type, (float) $investment->quantity);
                 $entryProfitAndLoss = $investment->cost_basis !== null
@@ -108,11 +119,11 @@ class PortfolioController extends Controller
                     'cost_basis' => $investment->cost_basis !== null ? (float) $investment->cost_basis : null,
                     'cost_basis_currency' => $investment->cost_basis_currency,
                     'current_price' => $currentPrice,
-                    'current_price_fmt' => number_format($currentPrice, 0, '.', ','),
+                    'current_price_fmt' => $fmt($currentPrice),
                     'current_value' => $currentValue,
-                    'current_value_fmt' => number_format($currentValue, 0, '.', ','),
+                    'current_value_fmt' => $fmt($currentValue),
                     'pnl' => $entryProfitAndLoss,
-                    'pnl_formatted' => $entryProfitAndLoss !== null ? number_format(abs($entryProfitAndLoss), 0, '.', ',') : null,
+                    'pnl_formatted' => $entryProfitAndLoss !== null ? $fmt(abs($entryProfitAndLoss)) : null,
                     'pnl_is_positive' => $entryProfitAndLoss !== null ? $entryProfitAndLoss >= 0 : null,
                     'note' => $investment->note,
                     'occurred_at' => $investment->occurred_at->toDateString(),
@@ -124,16 +135,21 @@ class PortfolioController extends Controller
             'entries' => $entries,
             'summary' => [
                 'total_current_value' => $totalCurrentValue,
-                'total_current_value_formatted' => number_format($totalCurrentValue, 0, '.', ','),
+                'total_current_value_formatted' => $fmt($totalCurrentValue),
                 'total_cost_basis' => $totalCostBasis,
-                'total_cost_basis_formatted' => number_format($totalCostBasis, 0, '.', ','),
+                'total_cost_basis_formatted' => $fmt($totalCostBasis),
                 'total_pnl' => $totalProfitAndLoss,
-                'total_pnl_formatted' => $totalProfitAndLoss !== null ? number_format(abs($totalProfitAndLoss), 0, '.', ',') : null,
+                'total_pnl_formatted' => $totalProfitAndLoss !== null ? $fmt(abs($totalProfitAndLoss)) : null,
                 'total_pnl_percent' => $totalProfitAndLossPercent,
                 'total_pnl_is_positive' => $totalProfitAndLoss !== null ? $totalProfitAndLoss >= 0 : null,
                 'has_cost_basis_data' => $hasCostBasisData,
                 'asset_count' => count($assets),
             ],
+            'currencies' => collect(Currency::cases())->map(fn (Currency $c) => [
+                'label' => strtoupper($c->value),
+                'value' => $c->value,
+            ]),
+            'selectedCurrency' => $selectedCurrency->value,
         ]);
     }
 }

@@ -16,7 +16,7 @@
                 </p>
                 <p class="mt-3 text-2xl font-bold text-white">
                     {{ props.summary.total_value_formatted }}
-                    <span class="text-sm font-normal text-[#989898]">T</span>
+                    <span class="text-sm font-normal text-[#989898]">{{ currencySymbol }}</span>
                 </p>
             </article>
 
@@ -86,22 +86,41 @@
                     <h2 class="text-[18px] leading-none font-normal text-white">
                         Value over time
                     </h2>
-                    <!-- Range buttons -->
-                    <div class="flex flex-wrap gap-1.5">
-                        <button
-                            v-for="rangeOption in ranges"
-                            :key="rangeOption.value"
-                            type="button"
-                            :class="[
-                                'rounded-full px-3 py-1 text-xs font-medium transition cursor-pointer',
-                                selectedRange === rangeOption.value
-                                    ? 'bg-white/15 text-white'
-                                    : 'text-[#686868] ring-1 ring-white/10 hover:text-white hover:bg-white/10',
-                            ]"
-                            @click="changeRange(rangeOption.value)"
-                        >
-                            {{ rangeOption.label }}
-                        </button>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Currency pills -->
+                        <div class="flex gap-1">
+                            <button
+                                v-for="c in props.currencies"
+                                :key="c.value"
+                                type="button"
+                                :class="[
+                                    'rounded-full px-3 py-1 text-xs font-medium transition cursor-pointer',
+                                    selectedCurrency === c.value
+                                        ? 'bg-[#02CD86]/10 text-[#02CD86] ring-1 ring-[#02CD86]/25'
+                                        : 'text-[#686868] ring-1 ring-white/10 hover:text-white hover:bg-white/10',
+                                ]"
+                                @click="changeCurrency(c.value)"
+                            >
+                                {{ c.label }}
+                            </button>
+                        </div>
+                        <!-- Range buttons -->
+                        <div class="flex flex-wrap gap-1.5">
+                            <button
+                                v-for="rangeOption in ranges"
+                                :key="rangeOption.value"
+                                type="button"
+                                :class="[
+                                    'rounded-full px-3 py-1 text-xs font-medium transition cursor-pointer',
+                                    selectedRange === rangeOption.value
+                                        ? 'bg-white/15 text-white'
+                                        : 'text-[#686868] ring-1 ring-white/10 hover:text-white hover:bg-white/10',
+                                ]"
+                                @click="changeRange(rangeOption.value)"
+                            >
+                                {{ rangeOption.label }}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -192,7 +211,7 @@
                 </p>
                 <p class="mt-2 text-sm font-bold text-white">
                     {{ asset.value_formatted }}
-                    <span class="text-xs font-normal text-[#989898]">T</span>
+                    <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
                 </p>
             </div>
         </div>
@@ -207,7 +226,7 @@
                     Investment entries
                 </h2>
                 <Button
-                    class="h-12 w-max justify-between rounded-md bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-3.5 text-lg font-bold text-white shadow-[0_10px_20px_rgba(108,78,233,0.22)] hover:brightness-105"
+                    class="h-12 w-max justify-between rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-3.5 text-lg font-bold text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
                     @click="openCreateDialog()"
                 >
                     <span>Add Entry</span>
@@ -226,27 +245,27 @@
                     <thead>
                         <tr class="text-base">
                             <th
-                                class="rounded-l-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
                                 Asset
                             </th>
                             <th
-                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
                                 Quantity
                             </th>
                             <th
-                                class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
                                 Value
                             </th>
                             <th
-                                class="hidden rounded-r-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
+                                class="hidden rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                             >
                                 Date
                             </th>
                             <th
-                                class="rounded-r-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:rounded-none sm:px-5"
+                                class="rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:rounded-none sm:px-5"
                             ></th>
                         </tr>
                     </thead>
@@ -276,7 +295,7 @@
                                         entry.asset_type,
                                     )
                                 }}
-                                <span class="text-xs text-[#989898]">T</span>
+                                <span class="text-xs text-[#989898]">{{ currencySymbol }}</span>
                             </td>
                             <td
                                 class="hidden px-3 py-[14px] text-center text-[16px] leading-none font-normal text-[#989898] sm:table-cell sm:px-5"
@@ -517,10 +536,10 @@
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Plus, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
-import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import type { ChartSeries } from '@/components/charts/LineChart.vue';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -587,6 +606,11 @@ type ChartData = {
     series: ChartSeries[];
 };
 
+type CurrencyOption = {
+    label: string;
+    value: string;
+};
+
 const props = defineProps<{
     assets: AssetSummary[];
     summary: {
@@ -600,6 +624,8 @@ const props = defineProps<{
     entries: Entry[];
     selectedRange: string;
     prices: Record<AssetKey, number>;
+    currencies: CurrencyOption[];
+    selectedCurrency: string;
 }>();
 
 defineOptions({
@@ -620,6 +646,15 @@ const ranges = [
 ];
 
 const selectedRange = ref(props.selectedRange);
+const selectedCurrency = ref(props.selectedCurrency);
+
+const currencySymbol = computed(() => {
+    switch (selectedCurrency.value) {
+        case 'usd': return '$';
+        case 'eur': return '€';
+        default: return 'T';
+    }
+});
 
 const availableSeries = computed<ChartSeries[]>(
     () => props.chartData.series ?? [],
@@ -682,7 +717,17 @@ function onSliceClick(sliceIndex: number | null) {
 function changeRange(range: string) {
     selectedRange.value = range;
     router.get(
-        investmentsIndex.url({ query: { range } }),
+        investmentsIndex.url({ query: { range, currency: selectedCurrency.value } }),
+        {},
+        { preserveScroll: true, preserveState: true, replace: true },
+    );
+}
+
+function changeCurrency(currency: string) {
+    if (currency === selectedCurrency.value) return;
+    selectedCurrency.value = currency;
+    router.get(
+        investmentsIndex.url({ query: { range: selectedRange.value, currency } }),
         {},
         { preserveScroll: true, preserveState: true, replace: true },
     );
@@ -695,6 +740,16 @@ watch(
             (props.chartData.series ?? []).map((seriesItem) => seriesItem.key),
         );
     },
+);
+
+watch(
+    () => props.selectedCurrency,
+    (value) => { selectedCurrency.value = value; },
+);
+
+watch(
+    () => props.selectedRange,
+    (value) => { selectedRange.value = value; },
 );
 
 const isDialogOpen = ref(false);
@@ -824,15 +879,29 @@ function requestDeleteEntry(investmentId: number) {
 }
 
 function confirmDeleteEntry() {
-    if (!deleteTargetId.value) return;
+    if (!deleteTargetId.value) {
+return;
+}
+
     router.delete(`/investments/${deleteTargetId.value}`, { preserveScroll: true });
     deleteTargetId.value = null;
 }
 
+function convertFromToman(amount: number, currency: string): number {
+    switch (currency) {
+        case 'usd': return amount / 150000;
+        case 'eur': return amount / 150000 / 1.17;
+        default: return amount;
+    }
+}
+
 function formatEntryValue(quantity: number, assetType: AssetKey): string {
     const price = props.prices[assetType] ?? 0;
+    const valueInToman = quantity * price;
+    const converted = convertFromToman(valueInToman, selectedCurrency.value);
+    const decimals = selectedCurrency.value === 'toman' ? 0 : 2;
 
-    return new Intl.NumberFormat('en-US').format(Math.round(quantity * price));
+    return new Intl.NumberFormat('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(converted);
 }
 
 syncDatePicker(form.occurred_at);

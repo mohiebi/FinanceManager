@@ -183,7 +183,7 @@
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
                                     <button
-                                        class="text-black"
+                                        class="cursor-pointer text-white hover:text-[#947BFF]"
                                         type="button"
                                         @click="openEditForm(transaction)"
                                     >
@@ -289,7 +289,7 @@
                                     Amount
                                 </th>
                                 <th
-                                    class="hidden rounded-r-2xl bg-[#effffa] px-3 py-4 text-center font-normal text-[#006644] sm:table-cell sm:px-5"
+                                    class="hidden rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                                 >
                                     Date
                                 </th>
@@ -306,7 +306,7 @@
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
                                     <button
-                                        class="text-black"
+                                        class="cursor-pointer text-white hover:text-[#02CD86]"
                                         type="button"
                                         @click="openEditForm(transaction)"
                                     >
@@ -579,7 +579,7 @@
                     <div class="mt-7 flex justify-end gap-2">
                         <Button
                             type="button"
-                            class="h-9 w-[99px] rounded-[8px] bg-[#effffa] px-[10px] py-[3px] text-[20px] font-normal text-[#2d2d2d] shadow-none hover:bg-[#e1fff5]"
+                            class="h-9 w-[99px] cursor-pointer rounded-[8px] bg-white/5 px-[10px] py-[3px] text-[20px] font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
                             @click="isDialogOpen = false"
                         >
                             Cancel

@@ -158,6 +158,7 @@
                 <LineChart
                     :series="filteredChartSeries"
                     :categories="props.chartData.categories"
+                    :calendar="displayCalendar"
                     :height="280"
                 />
             </section>

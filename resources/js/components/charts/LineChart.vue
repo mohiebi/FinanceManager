@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ApexCharts from 'apexcharts';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { formatChartDateLabel } from '@/lib/date';
 
 export type ChartSeries = {
     name: string;
@@ -13,6 +14,7 @@ const props = defineProps<{
     series: ChartSeries[];
     categories: string[];
     height?: number;
+    calendar?: string;
 }>();
 
 const chartRef = ref<HTMLElement | null>(null);
@@ -55,15 +57,7 @@ const buildOptions = () => ({
             style: { colors: '#686868', fontSize: '11px' },
             hideOverlappingLabels: true,
             rotate: 0,
-            formatter: (v: string) => {
-                const d = new Date(v);
-
-                if (isNaN(d.getTime())) {
-return v;
-}
-
-                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            },
+            formatter: (v: string) => formatChartDateLabel(v, props.calendar),
         },
         crosshairs: { stroke: { color: '#333333', dashArray: 4 } },
         tooltip: { enabled: false },
@@ -132,7 +126,7 @@ return;
 });
 
 watch(
-    () => [props.series, props.categories],
+    () => [props.series, props.categories, props.calendar],
     () => chart?.updateOptions(buildOptions(), false, true),
     { deep: true },
 );

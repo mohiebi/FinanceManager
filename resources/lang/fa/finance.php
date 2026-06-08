@@ -22,8 +22,8 @@ return [
     ],
     'calendar' => [
         'current_period' => 'دوره فعلی',
-        'day_of_month' => 'روز :day از :days',
-        'elapsed' => ':progress٪ از ماه گذشته',
+        'day_of_month' => 'روز {day} از {days}',
+        'elapsed' => '{progress}٪ از ماه گذشته',
     ],
     'categories' => [
         'cost' => [
@@ -61,7 +61,7 @@ return [
         'no_incomes' => 'هنوز درآمدی ثبت نشده است.',
     ],
     'delete' => [
-        'transaction_title' => 'حذف «:title»؟',
+        'transaction_title' => 'حذف «{title}»؟',
         'transaction_description' => 'این تراکنش برای همیشه حذف می‌شود.',
         'investment_title' => 'حذف رکورد سرمایه‌گذاری؟',
         'investment_description' => 'این رکورد برای همیشه از پرتفوی شما حذف می‌شود.',
@@ -159,6 +159,10 @@ return [
         'this_season' => 'این فصل',
         'yearly' => 'سالانه',
         'custom' => 'سفارشی',
+        'income_vs_costs' => 'درآمد در برابر هزینه به تفکیک دسته',
+        'top_categories' => 'دسته برتر',
+        'cost_breakdown' => 'تفکیک هزینه‌ها',
+        'by_category' => 'بر اساس دسته',
     ],
     'tables' => [
         'money_coming_in' => 'پول ورودی',

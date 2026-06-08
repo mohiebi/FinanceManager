@@ -145,6 +145,32 @@
             </div>
         </section>
 
+        <!-- ── Allocation chart ──────────────────────────────────── -->
+        <div
+            v-if="props.assets.length > 0"
+            class="mx-[18px] mt-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)] xl:max-w-[420px]"
+        >
+            <div class="mb-4 flex items-center justify-between">
+                <h2 class="text-[18px] leading-none font-normal text-white">
+                    {{ t('finance.investments.allocation') }}
+                </h2>
+                <span class="text-xs text-[#989898]">{{
+                    t('finance.investments.by_current_value')
+                }}</span>
+            </div>
+            <DonutChart
+                :series="allocationDonut.series"
+                :labels="allocationDonut.labels"
+                :colors="allocationDonut.colors"
+                :center-label="t('finance.portfolio.current_value')"
+                :center-value="
+                    props.summary.total_current_value_formatted +
+                    ' ' +
+                    currencySymbol
+                "
+            />
+        </div>
+
         <!-- ── Asset breakdown table ─────────────────────────────── -->
         <div
             v-if="props.assets.length > 0"
@@ -401,6 +427,7 @@ import { Head, router, usePage } from '@inertiajs/vue3';
 import { Wallet } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import DonutChart from '@/components/charts/DonutChart.vue';
 import { formatAppDate } from '@/lib/date';
 import { dashboard, portfolio } from '@/routes';
 
@@ -487,6 +514,12 @@ const currencySymbol = computed(() => {
         default: return 'T';
     }
 });
+
+const allocationDonut = computed(() => ({
+    series: props.assets.map((asset) => asset.current_value),
+    labels: props.assets.map((asset) => asset.label),
+    colors: props.assets.map((asset) => asset.color),
+}));
 
 function changeCurrency(currency: string) {
     if (currency === selectedCurrency.value) {

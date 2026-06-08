@@ -49,6 +49,10 @@ class HandleInertiaRequests extends Middleware
             'dir' => FrontendLocalization::direction($locale),
             'calendar' => $calendar,
             'translations' => fn () => FrontendLocalization::messages($locale),
+            'fallbackLocale' => FrontendLocalization::DEFAULT_LOCALE,
+            'fallbackTranslations' => fn () => $locale === FrontendLocalization::DEFAULT_LOCALE
+                ? null
+                : FrontendLocalization::messages(FrontendLocalization::DEFAULT_LOCALE),
             'authFlow' => fn () => $request->session()->get('auth_flow'),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

@@ -12,6 +12,8 @@ type InitialPage = {
         locale?: string;
         dir?: string;
         translations?: Record<string, any>;
+        fallbackLocale?: string;
+        fallbackTranslations?: Record<string, any> | null;
     };
 };
 
@@ -33,16 +35,21 @@ function applyLocale(locale = 'en', dir = 'ltr'): void {
 const page = initialPage();
 const initialLocale = page.props?.locale ?? 'en';
 const initialDir = page.props?.dir ?? 'ltr';
+const initialFallbackLocale = page.props?.fallbackLocale ?? 'en';
 const messages = {
     [initialLocale]: page.props?.translations ?? {},
 } as Record<string, any>;
+
+if (page.props?.fallbackTranslations) {
+    messages[initialFallbackLocale] = page.props.fallbackTranslations;
+}
 
 applyLocale(initialLocale, initialDir);
 
 const i18n = createI18n({
     legacy: false,
     locale: initialLocale,
-    fallbackLocale: 'en',
+    fallbackLocale: initialFallbackLocale,
     messages,
 });
 
@@ -73,13 +80,21 @@ router.on('success', (event) => {
         locale?: string;
         dir?: string;
         translations?: Record<string, any>;
+        fallbackLocale?: string;
+        fallbackTranslations?: Record<string, any> | null;
     };
     const locale = props.locale ?? 'en';
+    const fallbackLocale = props.fallbackLocale ?? 'en';
 
     if (props.translations) {
         i18n.global.setLocaleMessage(locale, props.translations);
     }
 
+    if (props.fallbackTranslations) {
+        i18n.global.setLocaleMessage(fallbackLocale, props.fallbackTranslations);
+    }
+
+    (i18n.global.fallbackLocale as unknown as { value: string }).value = fallbackLocale;
     (i18n.global.locale as unknown as { value: string }).value = locale;
     applyLocale(locale, props.dir ?? 'ltr');
 });

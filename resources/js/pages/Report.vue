@@ -75,7 +75,7 @@
                                 'rounded-full px-4 py-1.5 text-sm font-normal transition',
                                 selectedRange === range.value
                                     ? 'bg-[#111111] text-white'
-                                    : 'bg-white text-[#2d2d2d] ring-1 ring-[#e6e6e6] hover:bg-[#f7f7f7]',
+                                    : 'bg-white/5 text-[#989898] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
                             ]"
                             @click="selectRange(range.value)"
                         >
@@ -627,7 +627,7 @@ const ranges = computed<Array<{ label: string; value: ReportRange }>>(() => [
 ]);
 
 const filterFieldClass =
-    'h-9 w-full rounded-md !border-[#989898] !bg-[#f4f4f4] px-3 text-sm font-normal !text-[#2d2d2d] shadow-none [color-scheme:light] placeholder:!text-[#989898] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 dark:!border-[#989898] dark:!bg-[#f4f4f4] dark:!text-[#2d2d2d] dark:hover:!bg-[#eeeeee] [&_svg]:!text-[#2d2d2d]';
+    'h-9 w-full rounded-md !border-white/10 !bg-[#252525] px-3 text-sm font-normal !text-white shadow-none [color-scheme:dark] placeholder:!text-[#686868] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 [&_svg]:!text-[#989898]';
 
 const selectedRange = ref<ReportRange>(props.filters.range);
 const fromDate = ref(props.filters.from);

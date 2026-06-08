@@ -381,7 +381,7 @@
             v-if="props.assets.length === 0"
             class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
-            <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f0ecff]">
+            <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#24212f]">
                 <Wallet class="size-8 text-[#6C4EE9]" />
             </span>
             <h2 class="mt-4 text-xl font-semibold text-white">

@@ -37,6 +37,7 @@ const mainNavItems = computed<NavItem[]>(() => [
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+const isRtl = computed(() => page.props.dir === 'rtl');
 const { isMobile, state, toggleSidebar } = useSidebar();
 const { isCurrentUrl } = useCurrentUrl();
 
@@ -47,7 +48,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="sidebar" class="border-0 p-0">
+    <Sidebar :side="isRtl ? 'right' : 'left'" collapsible="icon" variant="sidebar" class="border-0 p-0">
         <div
             class="flex h-full w-full flex-col justify-between bg-[#353535] px-5 pb-11 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0"
         >

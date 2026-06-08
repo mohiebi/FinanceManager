@@ -20,10 +20,11 @@ return [
         'bitcoin' => 'Bitcoin',
         'total' => 'Total Portfolio',
     ],
+    'calculating' => 'Calculating…',
     'calendar' => [
         'current_period' => 'Current Period',
-        'day_of_month' => 'Day :day of :days',
-        'elapsed' => ':progress% of month elapsed',
+        'day_of_month' => 'Day {day} of {days}',
+        'elapsed' => '{progress}% of month elapsed',
     ],
     'categories' => [
         'cost' => [
@@ -61,7 +62,7 @@ return [
         'no_incomes' => 'No incomes yet. Add income when money comes in.',
     ],
     'delete' => [
-        'transaction_title' => 'Delete ":title"?',
+        'transaction_title' => 'Delete "{title}"?',
         'transaction_description' => 'This transaction will be permanently deleted.',
         'investment_title' => 'Delete investment entry?',
         'investment_description' => 'This entry will be permanently removed from your portfolio.',
@@ -159,6 +160,10 @@ return [
         'this_season' => 'This season',
         'yearly' => 'Yearly',
         'custom' => 'Custom',
+        'income_vs_costs' => 'Income vs. costs by category',
+        'top_categories' => 'top categories',
+        'cost_breakdown' => 'Cost breakdown',
+        'by_category' => 'by category',
     ],
     'tables' => [
         'money_coming_in' => 'Money coming in',

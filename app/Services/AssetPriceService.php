@@ -64,6 +64,11 @@ class AssetPriceService
         return $this->priceFor($type) * $quantity;
     }
 
+    public function pricesAvailable(): bool
+    {
+        return $this->tgjuPrices() !== [];
+    }
+
     /**
      * @return array<string, float>
      */
@@ -104,11 +109,31 @@ class AssetPriceService
     {
         $prices = [];
 
+        // Keep the total time spent fetching well under PHP's max_execution_time
+        // (each source/URL pair has its own request timeout, and they run
+        // sequentially, so without an overall budget they can add up and
+        // trigger a fatal "Maximum execution time exceeded" error).
+        $deadline = microtime(true) + (float) config('services.tgju.total_budget_seconds', 18);
+
         foreach ($this->tgjuSourceUrls() as $source => $urls) {
             foreach ($urls as $url) {
+                $remaining = $deadline - microtime(true);
+
+                if ($remaining <= 0) {
+                    break 2;
+                }
+
+                $requestTimeout = min(
+                    (int) config('services.tgju.timeout', 8),
+                    max(1, (int) ceil($remaining)),
+                );
+
                 try {
-                    $response = Http::timeout((int) config('services.tgju.timeout', 8))
-                        ->connectTimeout((int) config('services.tgju.connect_timeout', 4))
+                    $response = Http::timeout($requestTimeout)
+                        ->connectTimeout(min(
+                            (int) config('services.tgju.connect_timeout', 4),
+                            $requestTimeout,
+                        ))
                         ->get($url);
 
                     if (! $response->successful()) {

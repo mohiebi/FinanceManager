@@ -150,6 +150,7 @@ class PortfolioController extends Controller
                 'value' => $c->value,
             ]),
             'selectedCurrency' => $selectedCurrency->value,
+            'pricesAvailable' => $priceService->pricesAvailable(),
         ]);
     }
 }

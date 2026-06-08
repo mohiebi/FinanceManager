@@ -683,7 +683,7 @@
                                         type="number"
                                         min="0.01"
                                         step="0.01"
-                                        placeholder="000.000.000"
+                                        placeholder="0.00"
                                     />
                                     <InputError :message="form.errors.amount" />
                                 </div>
@@ -782,6 +782,7 @@ import BarChart from '@/components/charts/BarChart.vue';
 import GaugeChart from '@/components/charts/GaugeChart.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
+import { monthBucketKeyFromIso, recentMonthBuckets } from '@/lib/date';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -842,6 +843,7 @@ const { locale, t } = useI18n();
 const user = computed(
     () => (page.props.auth as { user?: { name: string } } | undefined)?.user,
 );
+const displayCalendar = computed(() => (page.props.calendar as string | undefined) ?? 'gregorian');
 
 function parseNum(value: string | number): number {
     return parseFloat(String(value).replace(/,/g, '')) || 0;
@@ -886,25 +888,15 @@ const period = computed(() => {
 });
 
 const monthlyData = computed(() => {
-    const now = new Date();
-    const monthBuckets = Array.from({ length: 6 }, (_, monthIndex) => {
-        const monthDate = new Date(
-            now.getFullYear(),
-            now.getMonth() - (5 - monthIndex),
-            1,
-        );
-        const key = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
-        const label = monthDate.toLocaleDateString(
-            locale.value === 'fa' ? 'fa-IR' : 'en-US',
-            { month: 'short' },
-        );
-
-        return { key, label, income: 0, cost: 0 };
-    });
+    const monthBuckets = recentMonthBuckets(
+        6,
+        displayCalendar.value,
+        locale.value === 'fa' ? 'fa-IR' : 'en-US',
+    ).map((bucket) => ({ ...bucket, income: 0, cost: 0 }));
 
     for (const transaction of props.transactions.costs) {
         const monthBucket = monthBuckets.find(
-            (bucket) => bucket.key === transaction.occurred_at.slice(0, 7),
+            (bucket) => bucket.key === monthBucketKeyFromIso(transaction.occurred_at, displayCalendar.value),
         );
 
         if (monthBucket) {
@@ -914,7 +906,7 @@ const monthlyData = computed(() => {
 
     for (const transaction of props.transactions.incomes) {
         const monthBucket = monthBuckets.find(
-            (bucket) => bucket.key === transaction.occurred_at.slice(0, 7),
+            (bucket) => bucket.key === monthBucketKeyFromIso(transaction.occurred_at, displayCalendar.value),
         );
 
         if (monthBucket) {

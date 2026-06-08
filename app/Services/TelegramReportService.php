@@ -22,7 +22,7 @@ class TelegramReportService
     {
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
 
-        return $this->buildReport($user, $date->copy()->startOfWeek(), $date->copy()->endOfWeek(), 'Weekly Report - '.DateFormatter::format($date, $calendar, 'Y-m-d').' week');
+        return $this->buildReport($user, $date->copy()->startOfWeek(), $date->copy()->endOfWeek(), 'Weekly Report - '.DateFormatter::format($date, $calendar, 'M j').' week');
     }
 
     public function monthly(User $user, Carbon $date): string

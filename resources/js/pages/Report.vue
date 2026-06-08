@@ -305,6 +305,55 @@
             </article>
         </div>
 
+        <!-- Charts row -->
+        <div
+            v-if="props.summary.count > 0"
+            class="grid items-start gap-[18px] px-[18px] pt-[18px] xl:grid-cols-[1fr_380px]"
+        >
+            <!-- Bar chart — income vs costs by category -->
+            <section
+                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+            >
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-[18px] leading-none font-normal text-white">
+                        {{ t('finance.reports.income_vs_costs') }}
+                    </h2>
+                    <span class="text-xs text-[#989898]">{{
+                        t('finance.reports.top_categories')
+                    }}</span>
+                </div>
+                <BarChart
+                    :income-data="categoryChartData.incomeData"
+                    :cost-data="categoryChartData.costData"
+                    :categories="categoryChartData.categories"
+                    :height="280"
+                />
+            </section>
+
+            <!-- Donut chart — cost breakdown by category -->
+            <section
+                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+            >
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-[18px] leading-none font-normal text-white">
+                        {{ t('finance.reports.cost_breakdown') }}
+                    </h2>
+                    <span class="text-xs text-[#989898]">{{
+                        t('finance.reports.by_category')
+                    }}</span>
+                </div>
+                <DonutChart
+                    :series="costBreakdown.series"
+                    :labels="costBreakdown.labels"
+                    :colors="costBreakdown.colors"
+                    :center-label="t('finance.metrics.costs')"
+                    :center-value="
+                        formatMoney(props.summary.cost, props.selectedCurrency)
+                    "
+                />
+            </section>
+        </div>
+
         <!-- Transaction tables -->
         <div
             class="grid items-start gap-[18px] px-[18px] py-[18px] pb-[38px] lg:grid-cols-2"
@@ -531,6 +580,8 @@ import { RotateCcw, Search } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
+import BarChart from '@/components/charts/BarChart.vue';
+import DonutChart from '@/components/charts/DonutChart.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -646,6 +697,64 @@ const balanceLabel = computed(() => {
     const cost = Number(props.summary.cost);
 
     return formatMoney((income - cost).toFixed(2), props.selectedCurrency);
+});
+
+const chartPalette = [
+    '#02CD86',
+    '#6C4EE9',
+    '#947BFF',
+    '#E94E50',
+    '#F2B441',
+    '#4EA1E9',
+    '#E94EBE',
+    '#7ee8c4',
+];
+
+const categoryChartData = computed(() => {
+    const totals = new Map<string, { income: number; cost: number }>();
+
+    const accumulate = (transactions: Transaction[], key: 'income' | 'cost') => {
+        for (const transaction of transactions) {
+            const name =
+                transaction.category?.name ??
+                t('finance.categories.uncategorized');
+            const entry = totals.get(name) ?? { income: 0, cost: 0 };
+            entry[key] += Number(transaction.display_amount);
+            totals.set(name, entry);
+        }
+    };
+
+    accumulate(props.transactions.incomes, 'income');
+    accumulate(props.transactions.costs, 'cost');
+
+    const entries = [...totals.entries()]
+        .sort((a, b) => b[1].income + b[1].cost - (a[1].income + a[1].cost))
+        .slice(0, 8);
+
+    return {
+        categories: entries.map(([name]) => name),
+        incomeData: entries.map(([, totalsForName]) => totalsForName.income),
+        costData: entries.map(([, totalsForName]) => totalsForName.cost),
+    };
+});
+
+const costBreakdown = computed(() => {
+    const totals = new Map<string, number>();
+
+    for (const transaction of props.transactions.costs) {
+        const name =
+            transaction.category?.name ??
+            t('finance.categories.uncategorized');
+        totals.set(name, (totals.get(name) ?? 0) + Number(transaction.display_amount));
+    }
+
+    const entries = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+
+    return {
+        labels: entries.map(([name]) => name),
+        series: entries.map(([, total]) => total),
+        colors: entries.map((_, index) => chartPalette[index % chartPalette.length]),
+    };
 });
 
 const reportCategories = computed(() => {

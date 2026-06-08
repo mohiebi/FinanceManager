@@ -18,9 +18,16 @@ class CategoryResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $name = $this->name;
+
+        if ($this->is_default) {
+            $translationKey = "finance.categories.{$this->type->value}.{$this->slug}";
+            $name = __($translationKey) === $translationKey ? $this->name : __($translationKey);
+        }
+
         return [
             'id' => $this->id,
-            'name' => $this->name,
+            'name' => $name,
             'slug' => $this->slug,
             'type' => $this->type->value,
             'is_default' => $this->is_default,

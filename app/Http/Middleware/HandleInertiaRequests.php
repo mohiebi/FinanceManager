@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\FrontendLocalization;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,12 +36,23 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $locale = FrontendLocalization::normalizeLocale($request->user()?->locale);
+        $calendar = FrontendLocalization::normalizeCalendar($request->user()?->calendar);
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
             ],
+            'locale' => $locale,
+            'dir' => FrontendLocalization::direction($locale),
+            'calendar' => $calendar,
+            'translations' => fn () => FrontendLocalization::messages($locale),
+            'fallbackLocale' => FrontendLocalization::DEFAULT_LOCALE,
+            'fallbackTranslations' => fn () => $locale === FrontendLocalization::DEFAULT_LOCALE
+                ? null
+                : FrontendLocalization::messages(FrontendLocalization::DEFAULT_LOCALE),
             'authFlow' => fn () => $request->session()->get('auth_flow'),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

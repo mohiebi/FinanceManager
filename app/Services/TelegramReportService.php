@@ -5,23 +5,31 @@ namespace App\Services;
 use App\Enums\AssetType;
 use App\Enums\TransactionType;
 use App\Models\User;
+use App\Support\DateFormatter;
+use App\Support\FrontendLocalization;
 use Carbon\Carbon;
 
 class TelegramReportService
 {
     public function daily(User $user, Carbon $date): string
     {
-        return $this->buildReport($user, $date->copy()->startOfDay(), $date->copy()->endOfDay(), "Daily Report - {$date->format('D, M j')}");
+        $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
+
+        return $this->buildReport($user, $date->copy()->startOfDay(), $date->copy()->endOfDay(), 'Daily Report - '.DateFormatter::format($date, $calendar, 'Y-m-d'));
     }
 
     public function weekly(User $user, Carbon $date): string
     {
-        return $this->buildReport($user, $date->copy()->startOfWeek(), $date->copy()->endOfWeek(), "Weekly Report - {$date->format('M j')} week");
+        $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
+
+        return $this->buildReport($user, $date->copy()->startOfWeek(), $date->copy()->endOfWeek(), 'Weekly Report - '.DateFormatter::format($date, $calendar, 'Y-m-d').' week');
     }
 
     public function monthly(User $user, Carbon $date): string
     {
-        return $this->buildReport($user, $date->copy()->startOfMonth(), $date->copy()->endOfMonth(), "Monthly Report - {$date->format('F Y')}");
+        $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
+
+        return $this->buildReport($user, $date->copy()->startOfMonth(), $date->copy()->endOfMonth(), 'Monthly Report - '.DateFormatter::format($date, $calendar, 'Y-m'));
     }
 
     private function buildReport(User $user, Carbon $from, Carbon $to, string $title): string

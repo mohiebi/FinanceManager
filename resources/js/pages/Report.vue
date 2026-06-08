@@ -1,5 +1,5 @@
 <template>
-    <Head title="Reports" />
+    <Head :title="t('finance.reports.title')" />
 
     <div
         class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
@@ -13,19 +13,16 @@
                     <p
                         class="text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase"
                     >
-                        Time-based reports
+                        {{ t('finance.reports.eyebrow') }}
                     </p>
                     <div class="space-y-2">
                         <h1
                             class="text-3xl font-semibold tracking-tight text-white sm:text-4xl"
                         >
-                            Slice your money story by month, season, year, or
-                            any custom range.
+                            {{ t('finance.reports.heading') }}
                         </h1>
                         <p class="text-sm text-[#989898]">
-                            Each filter refreshes the transaction list and
-                            totals so you can compare what came in and what went
-                            out over the period you care about.
+                            {{ t('finance.reports.description') }}
                         </p>
                     </div>
                 </div>
@@ -37,7 +34,7 @@
                         <p
                             class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                         >
-                            Range
+                            {{ t('finance.fields.range') }}
                         </p>
                         <p class="mt-2 text-sm font-semibold text-white">
                             {{ props.period.label }}
@@ -50,7 +47,7 @@
                         <p
                             class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                         >
-                            Transactions
+                            {{ t('finance.reports.transactions') }}
                         </p>
                         <p class="mt-2 text-sm font-semibold text-white">
                             {{ props.summary.count }}
@@ -78,7 +75,7 @@
                                 'rounded-full px-4 py-1.5 text-sm font-normal transition',
                                 selectedRange === range.value
                                     ? 'bg-[#111111] text-white'
-                                    : 'bg-white text-[#2d2d2d] ring-1 ring-[#e6e6e6] hover:bg-[#f7f7f7]',
+                                    : 'bg-white/5 text-[#989898] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
                             ]"
                             @click="selectRange(range.value)"
                         >
@@ -88,13 +85,19 @@
 
                     <!-- Currency selector -->
                     <div class="grid gap-2 lg:min-w-56">
-                        <Label for="report_currency">Display currency</Label>
+                        <Label for="report_currency">{{
+                            t('finance.fields.display_currency')
+                        }}</Label>
                         <Select v-model="selectedCurrency">
                             <SelectTrigger
                                 id="report_currency"
                                 :class="filterFieldClass"
                             >
-                                <SelectValue placeholder="Select currency" />
+                                <SelectValue
+                                    :placeholder="
+                                        t('finance.filters.select_currency')
+                                    "
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
@@ -112,18 +115,22 @@
                 <!-- Search / type / category filters -->
                 <div class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.9fr_auto]">
                     <div class="grid gap-2">
-                        <Label for="report_search">Search</Label>
+                        <Label for="report_search">{{
+                            t('finance.fields.search')
+                        }}</Label>
                         <Input
                             id="report_search"
                             v-model="search"
                             :class="filterFieldClass"
-                            placeholder="Title or note"
+                            :placeholder="t('finance.filters.title_or_note')"
                             @keyup.enter="applyFilters()"
                         />
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="report_type">Type</Label>
+                        <Label for="report_type">{{
+                            t('finance.fields.type')
+                        }}</Label>
                         <Select
                             v-model="selectedType"
                             @update:model-value="applyTypeFilter"
@@ -132,18 +139,30 @@
                                 id="report_type"
                                 :class="filterFieldClass"
                             >
-                                <SelectValue placeholder="All types" />
+                                <SelectValue
+                                    :placeholder="
+                                        t('finance.filters.all_types')
+                                    "
+                                />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All types</SelectItem>
-                                <SelectItem value="cost">Costs</SelectItem>
-                                <SelectItem value="income">Incomes</SelectItem>
+                                <SelectItem value="all">{{
+                                    t('finance.filters.all_types')
+                                }}</SelectItem>
+                                <SelectItem value="cost">{{
+                                    t('finance.filters.costs')
+                                }}</SelectItem>
+                                <SelectItem value="income">{{
+                                    t('finance.filters.incomes')
+                                }}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="report_category">Category</Label>
+                        <Label for="report_category">{{
+                            t('finance.fields.category')
+                        }}</Label>
                         <Select
                             v-model="selectedCategory"
                             @update:model-value="applyFilters()"
@@ -152,12 +171,16 @@
                                 id="report_category"
                                 :class="filterFieldClass"
                             >
-                                <SelectValue placeholder="All categories" />
+                                <SelectValue
+                                    :placeholder="
+                                        t('finance.filters.all_categories')
+                                    "
+                                />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all"
-                                    >All categories</SelectItem
-                                >
+                                <SelectItem value="all">{{
+                                    t('finance.filters.all_categories')
+                                }}</SelectItem>
                                 <SelectItem
                                     v-for="category in reportCategories"
                                     :key="category.id"
@@ -175,7 +198,7 @@
                             @click="applyFilters()"
                         >
                             <Search class="size-4" />
-                            Filter
+                            {{ t('finance.actions.filter') }}
                         </Button>
                         <Button
                             variant="outline"
@@ -183,7 +206,9 @@
                             @click="clearTransactionFilters"
                         >
                             <RotateCcw class="size-4" />
-                            <span class="sr-only">Reset filters</span>
+                            <span class="sr-only">{{
+                                t('finance.actions.reset_filters')
+                            }}</span>
                         </Button>
                     </div>
                 </div>
@@ -194,7 +219,9 @@
                     class="grid gap-4 lg:grid-cols-[1fr_1fr_auto]"
                 >
                     <div class="grid gap-2">
-                        <Label for="from_date">From</Label>
+                        <Label for="from_date">{{
+                            t('finance.fields.from')
+                        }}</Label>
                         <BirthdatePicker
                             v-model="fromDate"
                             name="from_date"
@@ -206,7 +233,7 @@
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="to_date">To</Label>
+                        <Label for="to_date">{{ t('finance.fields.to') }}</Label>
                         <BirthdatePicker
                             v-model="toDate"
                             name="to_date"
@@ -222,7 +249,7 @@
                             class="w-full rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15 lg:w-auto"
                             @click="applyFilters()"
                         >
-                            Apply custom range
+                            {{ t('finance.actions.apply_custom_range') }}
                         </Button>
                     </div>
                 </div>
@@ -237,7 +264,7 @@
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
                 >
-                    Income
+                    {{ t('finance.metrics.income') }}
                 </p>
                 <p class="mt-3 text-2xl font-semibold text-white">
                     {{
@@ -255,7 +282,7 @@
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#6C4EE9] uppercase"
                 >
-                    Costs
+                    {{ t('finance.metrics.costs') }}
                 </p>
                 <p class="mt-3 text-2xl font-semibold text-white">
                     {{
@@ -270,7 +297,7 @@
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                 >
-                    Balance
+                    {{ t('finance.metrics.balance') }}
                 </p>
                 <p class="mt-3 text-2xl font-semibold text-white">
                     {{ balanceLabel }}
@@ -289,16 +316,17 @@
                 >
                     <div>
                         <p class="text-xs font-medium text-[#6C4EE9] uppercase">
-                            Costs
+                            {{ t('finance.metrics.costs') }}
                         </p>
                         <h2
                             class="text-[22px] leading-none font-normal text-white"
                         >
-                            Money going out
+                            {{ t('finance.tables.money_going_out') }}
                         </h2>
                     </div>
                     <span class="text-xs text-[#989898]">
-                        {{ props.transactions.costs.length }} entries
+                        {{ props.transactions.costs.length }}
+                        {{ t('finance.metrics.entries') }}
                     </span>
                 </div>
 
@@ -311,22 +339,22 @@
                                 <th
                                     class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
-                                    Subject
+                                    {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
                                     class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
-                                    Category
+                                    {{ t('finance.fields.category') }}
                                 </th>
                                 <th
                                     class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
-                                    Amount
+                                    {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
                                     class="hidden rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                                 >
-                                    Date
+                                    {{ t('finance.fields.date') }}
                                 </th>
                             </tr>
                         </thead>
@@ -353,7 +381,7 @@
                                     >
                                         {{
                                             transaction.category?.name ??
-                                            'Uncategorized'
+                                            t('finance.categories.uncategorized')
                                         }}
                                     </span>
                                 </td>
@@ -370,7 +398,7 @@
                                 <td
                                     class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
                                 >
-                                    {{ transaction.occurred_at }}
+                                    {{ displayDate(transaction.occurred_at) }}
                                 </td>
                             </tr>
                             <tr v-if="props.transactions.costs.length === 0">
@@ -378,7 +406,7 @@
                                     colspan="4"
                                     class="px-5 py-12 text-center text-[#989898]"
                                 >
-                                    No costs matched this range.
+                                    {{ t('finance.dashboard.no_costs') }}
                                 </td>
                             </tr>
                         </tbody>
@@ -395,16 +423,17 @@
                         <p
                             class="text-xs font-medium text-[#02CD86] uppercase"
                         >
-                            Incomes
+                            {{ t('finance.filters.incomes') }}
                         </p>
                         <h2
                             class="text-[22px] leading-none font-normal text-white"
                         >
-                            Money coming in
+                            {{ t('finance.tables.money_coming_in') }}
                         </h2>
                     </div>
                     <span class="text-xs text-[#989898]">
-                        {{ props.transactions.incomes.length }} entries
+                        {{ props.transactions.incomes.length }}
+                        {{ t('finance.metrics.entries') }}
                     </span>
                 </div>
 
@@ -417,22 +446,22 @@
                                 <th
                                     class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
-                                    Subject
+                                    {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
                                     class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
-                                    Category
+                                    {{ t('finance.fields.category') }}
                                 </th>
                                 <th
                                     class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
-                                    Amount
+                                    {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
                                     class="hidden rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                                 >
-                                    Date
+                                    {{ t('finance.fields.date') }}
                                 </th>
                             </tr>
                         </thead>
@@ -460,7 +489,7 @@
                                     >
                                         {{
                                             transaction.category?.name ??
-                                            'Uncategorized'
+                                            t('finance.categories.uncategorized')
                                         }}
                                     </span>
                                 </td>
@@ -477,7 +506,7 @@
                                 <td
                                     class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
                                 >
-                                    {{ transaction.occurred_at }}
+                                    {{ displayDate(transaction.occurred_at) }}
                                 </td>
                             </tr>
                             <tr v-if="props.transactions.incomes.length === 0">
@@ -485,7 +514,7 @@
                                     colspan="4"
                                     class="px-5 py-12 text-center text-[#989898]"
                                 >
-                                    No incomes matched this range.
+                                    {{ t('finance.dashboard.no_incomes') }}
                                 </td>
                             </tr>
                         </tbody>
@@ -497,9 +526,10 @@
 </template>
 
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { RotateCcw, Search } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -511,6 +541,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { formatAppDate } from '@/lib/date';
 import { dashboard, report } from '@/routes';
 
 type ReportRange = 'this_month' | 'this_season' | 'yearly' | 'custom';
@@ -586,15 +617,17 @@ defineOptions({
     },
 });
 
-const ranges: Array<{ label: string; value: ReportRange }> = [
-    { label: 'This month', value: 'this_month' },
-    { label: 'This season', value: 'this_season' },
-    { label: 'Yearly', value: 'yearly' },
-    { label: 'Custom', value: 'custom' },
-];
+const { t } = useI18n();
+
+const ranges = computed<Array<{ label: string; value: ReportRange }>>(() => [
+    { label: t('finance.reports.this_month'), value: 'this_month' },
+    { label: t('finance.reports.this_season'), value: 'this_season' },
+    { label: t('finance.reports.yearly'), value: 'yearly' },
+    { label: t('finance.reports.custom'), value: 'custom' },
+]);
 
 const filterFieldClass =
-    'h-9 w-full rounded-md !border-[#989898] !bg-[#f4f4f4] px-3 text-sm font-normal !text-[#2d2d2d] shadow-none [color-scheme:light] placeholder:!text-[#989898] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 dark:!border-[#989898] dark:!bg-[#f4f4f4] dark:!text-[#2d2d2d] dark:hover:!bg-[#eeeeee] [&_svg]:!text-[#2d2d2d]';
+    'h-9 w-full rounded-md !border-white/10 !bg-[#252525] px-3 text-sm font-normal !text-white shadow-none [color-scheme:dark] placeholder:!text-[#686868] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 [&_svg]:!text-[#989898]';
 
 const selectedRange = ref<ReportRange>(props.filters.range);
 const fromDate = ref(props.filters.from);
@@ -603,6 +636,10 @@ const search = ref(props.filters.search);
 const selectedType = ref<FilterType>(props.filters.type);
 const selectedCategory = ref(props.filters.category?.toString() ?? 'all');
 const selectedCurrency = ref<Currency>(props.selectedCurrency);
+const page = usePage();
+const displayCalendar = computed(
+    () => (page.props.calendar as string | undefined) ?? 'gregorian',
+);
 
 const balanceLabel = computed(() => {
     const income = Number(props.summary.income);
@@ -721,5 +758,9 @@ function formatMoney(amount: string | number, currency: Currency): string {
         maximumFractionDigits: 2,
         minimumFractionDigits: value % 1 === 0 ? 0 : 2,
     }).format(value)} ${currency.toUpperCase()}`;
+}
+
+function displayDate(value: string): string {
+    return formatAppDate(value, displayCalendar.value);
 }
 </script>

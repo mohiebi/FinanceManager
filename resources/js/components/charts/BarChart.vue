@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ApexCharts from 'apexcharts';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
     incomeData: number[];
@@ -11,6 +12,7 @@ const props = defineProps<{
 
 const chartRef = ref<HTMLElement | null>(null);
 let chart: ApexCharts | null = null;
+const { t } = useI18n();
 
 const formatAxisAmount = (amount: number) => {
     if (amount >= 1_000_000_000) {
@@ -56,8 +58,8 @@ const buildOptions = () => ({
         fontFamily: 'inherit',
     },
     series: [
-        { name: 'Income', data: props.incomeData },
-        { name: 'Costs', data: props.costData },
+        { name: t('finance.metrics.income'), data: props.incomeData },
+        { name: t('finance.metrics.costs'), data: props.costData },
     ],
     colors: ['#02CD86', '#6C4EE9'],
     xaxis: {

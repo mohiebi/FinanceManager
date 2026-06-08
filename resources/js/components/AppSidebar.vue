@@ -11,6 +11,7 @@ import {
     Wallet,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -24,16 +25,19 @@ import { index as investmentsIndex } from '@/routes/investments';
 import { index as transactionsIndex } from '@/routes/transactions';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
-    { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
-    { title: 'Transactions', href: transactionsIndex(), icon: ReceiptText },
-    { title: 'Report', href: report(), icon: ChartPie },
-    { title: 'Investments', href: investmentsIndex(), icon: TrendingUp },
-    { title: 'Portfolio', href: portfolio(), icon: Wallet },
-];
+const { t } = useI18n();
+
+const mainNavItems = computed<NavItem[]>(() => [
+    { title: t('navigation.dashboard'), href: dashboard(), icon: LayoutGrid },
+    { title: t('navigation.transactions'), href: transactionsIndex(), icon: ReceiptText },
+    { title: t('navigation.report'), href: report(), icon: ChartPie },
+    { title: t('navigation.investments'), href: investmentsIndex(), icon: TrendingUp },
+    { title: t('navigation.portfolio'), href: portfolio(), icon: Wallet },
+]);
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+const isRtl = computed(() => page.props.dir === 'rtl');
 const { isMobile, state, toggleSidebar } = useSidebar();
 const { isCurrentUrl } = useCurrentUrl();
 
@@ -44,7 +48,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="sidebar" class="border-0 p-0">
+    <Sidebar :side="isRtl ? 'right' : 'left'" collapsible="icon" variant="sidebar" class="border-0 p-0">
         <div
             class="flex h-full w-full flex-col justify-between bg-[#353535] px-5 pb-11 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0"
         >
@@ -56,7 +60,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                     type="button"
                     class="flex w-full cursor-pointer items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#02cd86]"
                     data-sidebar="trigger"
-                    :title="state === 'collapsed' ? 'Expand sidebar' : 'Collapse sidebar'"
+                    :title="state === 'collapsed' ? t('navigation.expand_sidebar') : t('navigation.collapse_sidebar')"
                     @click="toggleSidebar"
                 >
                     <!-- Icon box -->
@@ -76,14 +80,14 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                     <span
                         class="cursor-pointer truncate text-sm font-medium text-white/60 transition-colors hover:text-white group-data-[collapsible=icon]:sr-only"
                     >
-                        Menu toggle
+                        {{ t('navigation.menu_toggle') }}
                     </span>
                 </button>
 
                 <!-- ── Primary navigation ──────────────────────────── -->
                 <nav
                     class="flex w-full flex-col gap-3 group-data-[collapsible=icon]:items-center"
-                    aria-label="Primary navigation"
+                    :aria-label="t('navigation.primary')"
                 >
                     <Link
                         v-for="item in mainNavItems"
@@ -128,13 +132,13 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
             <!-- ── Settings / account dropdown ────────────────────── -->
             <nav
                 class="flex w-full flex-col gap-3 group-data-[collapsible=icon]:items-center"
-                aria-label="Account navigation"
+                :aria-label="t('navigation.account')"
             >
                 <DropdownMenu>
                     <DropdownMenuTrigger as-child>
                         <button
-                            class="flex w-full items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#353535] focus-visible:outline-none"
-                            title="Settings"
+                            class="flex w-full cursor-pointer items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#353535] focus-visible:outline-none"
+                            :title="t('settings.title')"
                             type="button"
                             data-test="sidebar-menu-button"
                         >
@@ -149,14 +153,14 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                             <span
                                 class="truncate text-sm font-medium text-white group-data-[collapsible=icon]:sr-only"
                             >
-                                Settings
+                                {{ t('settings.title') }}
                             </span>
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
-                        class="w-64 rounded-lg"
-                        :side="isMobile ? 'bottom' : 'right'"
-                        align="end"
+                        class="w-64"
+                        side="top"
+                        align="start"
                         :side-offset="12"
                     >
                         <UserMenuContent :user="user" />

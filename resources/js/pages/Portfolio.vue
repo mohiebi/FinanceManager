@@ -1,5 +1,5 @@
 <template>
-    <Head title="Portfolio" />
+    <Head :title="t('finance.portfolio.title')" />
 
     <div
         class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
@@ -14,7 +14,7 @@
                         <p
                             class="text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase"
                         >
-                            Portfolio overview
+                            {{ t('finance.portfolio.overview') }}
                         </p>
                         <!-- Currency pills -->
                         <div class="flex gap-1">
@@ -54,7 +54,7 @@
                         <p
                             class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
                         >
-                            Current value
+                            {{ t('finance.portfolio.current_value') }}
                         </p>
                         <p class="mt-2 text-base font-bold text-white">
                             {{ props.summary.total_current_value_formatted }}
@@ -70,7 +70,7 @@
                         <p
                             class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                         >
-                            Invested
+                            {{ t('finance.portfolio.invested') }}
                         </p>
                         <p class="mt-2 text-base font-bold text-white">
                             <template v-if="props.summary.has_cost_basis_data">
@@ -80,7 +80,7 @@
                             <span
                                 v-else
                                 class="text-sm font-normal text-[#989898]"
-                                >No cost basis yet</span
+                                >{{ t('finance.portfolio.no_cost_basis') }}</span
                             >
                         </p>
                     </div>
@@ -101,7 +101,7 @@
                                       : 'text-[#989898]'
                             "
                         >
-                            P&amp;L
+                            {{ t('finance.portfolio.profit_loss') }}
                         </p>
                         <p
                             class="mt-2 text-base font-bold"
@@ -152,7 +152,7 @@
         >
             <div class="px-5 py-[29px]">
                 <h2 class="text-[22px] leading-none font-normal text-white">
-                    Per-asset breakdown
+                    {{ t('finance.portfolio.per_asset_breakdown') }}
                 </h2>
             </div>
 
@@ -165,27 +165,27 @@
                             <th
                                 class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
-                                Asset
+                                {{ t('finance.fields.asset') }}
                             </th>
                             <th
                                 class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
-                                Holdings
+                                {{ t('finance.fields.holdings') }}
                             </th>
                             <th
                                 class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                             >
-                                Avg cost / unit
+                                {{ t('finance.fields.avg_cost_per_unit') }}
                             </th>
                             <th
                                 class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
-                                Current value
+                                {{ t('finance.portfolio.current_value') }}
                             </th>
                             <th
                                 class="rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
-                                P&amp;L
+                                {{ t('finance.portfolio.profit_loss') }}
                             </th>
                         </tr>
                     </thead>
@@ -264,11 +264,10 @@
         >
             <div class="px-5 py-[29px]">
                 <h2 class="text-[22px] leading-none font-normal text-white">
-                    Entry-level detail
+                    {{ t('finance.portfolio.entry_level_detail') }}
                 </h2>
                 <p class="mt-1 text-sm text-[#989898]">
-                    Every investment record with current value and cost-basis
-                    P/L.
+                    {{ t('finance.portfolio.entry_history_description') }}
                 </p>
             </div>
 
@@ -281,32 +280,32 @@
                             <th
                                 class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
-                                Asset
+                                {{ t('finance.fields.asset') }}
                             </th>
                             <th
                                 class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
-                                Qty
+                                {{ t('finance.fields.quantity_short') }}
                             </th>
                             <th
                                 class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                             >
-                                Cost basis / u
+                                {{ t('finance.fields.cost_basis_per_unit') }}
                             </th>
                             <th
                                 class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
-                                Current value
+                                {{ t('finance.portfolio.current_value') }}
                             </th>
                             <th
                                 class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
-                                P&amp;L
+                                {{ t('finance.portfolio.profit_loss') }}
                             </th>
                             <th
                                 class="hidden rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                             >
-                                Date
+                                {{ t('finance.fields.date') }}
                             </th>
                         </tr>
                     </thead>
@@ -369,7 +368,7 @@
                             <td
                                 class="hidden px-3 py-[14px] text-center text-[16px] leading-none text-[#989898] sm:table-cell sm:px-5"
                             >
-                                {{ entry.occurred_at }}
+                                {{ displayDate(entry.occurred_at) }}
                             </td>
                         </tr>
                     </tbody>
@@ -382,11 +381,11 @@
             v-if="props.assets.length === 0"
             class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
-            <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f0ecff]">
+            <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#24212f]">
                 <Wallet class="size-8 text-[#6C4EE9]" />
             </span>
             <h2 class="mt-4 text-xl font-semibold text-white">
-                Portfolio is empty
+                {{ t('finance.portfolio.empty') }}
             </h2>
             <p class="mt-2 max-w-sm text-center text-sm text-[#989898]">
                 Head over to the Investments page and add your first entry. Come
@@ -398,9 +397,11 @@
 </template>
 
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { Wallet } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { formatAppDate } from '@/lib/date';
 import { dashboard, portfolio } from '@/routes';
 
 type AssetKey = 'gold' | 'silver' | 'usd' | 'eur' | 'coin' | 'bitcoin';
@@ -473,6 +474,11 @@ const props = defineProps<{
 }>();
 
 const selectedCurrency = ref(props.selectedCurrency);
+const page = usePage();
+const { t } = useI18n();
+const displayCalendar = computed(
+    () => (page.props.calendar as string | undefined) ?? 'gregorian',
+);
 
 const currencySymbol = computed(() => {
     switch (selectedCurrency.value) {
@@ -513,5 +519,9 @@ defineOptions({
 
 function formatMoney(val: number): string {
     return new Intl.NumberFormat('en-US').format(Math.round(val));
+}
+
+function displayDate(value: string): string {
+    return formatAppDate(value, displayCalendar.value);
 }
 </script>

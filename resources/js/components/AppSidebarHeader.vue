@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { router, usePage } from '@inertiajs/vue3';
-import { Bell, User } from 'lucide-vue-next';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { User } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Label } from '@/components/ui/label';
 import {
     Select,
@@ -10,6 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem } from '@/types';
 import logoGreen from '../../img/Logo-green.svg';
 
@@ -33,14 +35,22 @@ type CurrencyPageProps = {
 };
 
 const page = usePage();
+const { t } = useI18n();
 
 const pageTitle = computed(() => {
     const title = props.breadcrumbs.at(-1)?.title ?? 'Dashboard';
 
     return (
         {
-            Reports: 'Report',
-            Transactions: 'Transaction',
+            Dashboard: t('finance.dashboard.title'),
+            Reports: t('finance.reports.title'),
+            Report: t('finance.reports.title'),
+            Transactions: t('finance.transactions.title'),
+            Transaction: t('finance.transactions.title'),
+            Investments: t('finance.investments.title'),
+            Portfolio: t('finance.portfolio.title'),
+            Preferences: t('settings.preferences.title'),
+            Settings: t('settings.title'),
         }[title] ?? title
     );
 });
@@ -95,25 +105,13 @@ const selectedCurrency = computed({
             </div>
 
             <div class="hidden items-center gap-2 lg:flex">
-                <button
-                    class="relative grid size-9 place-items-center rounded-md bg-[#2d2d2d] text-white"
-                    type="button"
-                >
-                    <Bell class="size-5" />
-                    <span
-                        class="absolute -top-2 -left-2 rounded-full bg-[#02cd86] px-1.5 py-0.5 text-[10px] leading-none font-bold text-[#2d2d2d]"
-                    >
-                        12
-                    </span>
-                    <span class="sr-only">Notifications</span>
-                </button>
-                <button
-                    class="grid size-9 place-items-center rounded-md bg-[#2d2d2d] text-white"
-                    type="button"
+                <Link
+                    :href="editProfile()"
+                    class="grid size-9 cursor-pointer place-items-center rounded-md bg-[#2d2d2d] text-white transition-colors duration-150 hover:bg-[#02cd86] hover:text-[#1a1a1a]"
                 >
                     <User class="size-5" />
-                    <span class="sr-only">Account</span>
-                </button>
+                    <span class="sr-only">{{ t('navigation.account') }}</span>
+                </Link>
             </div>
 
             <div
@@ -124,7 +122,7 @@ const selectedCurrency = computed({
                     for="layout_display_currency"
                     class="text-[22px] font-normal text-white"
                 >
-                    Currency
+                    {{ t('finance.fields.currency') }}
                 </Label>
                 <Select
                     v-model="selectedCurrency"
@@ -134,7 +132,9 @@ const selectedCurrency = computed({
                         id="layout_display_currency"
                         class="h-10 min-w-36 rounded-md border-0 bg-[#2d2d2d] px-5 text-base text-white shadow-none disabled:opacity-100"
                     >
-                        <SelectValue placeholder="Select currency" />
+                        <SelectValue
+                            :placeholder="t('finance.filters.select_currency')"
+                        />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem

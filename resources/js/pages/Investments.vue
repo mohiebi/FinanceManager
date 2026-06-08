@@ -1,5 +1,5 @@
 <template>
-    <Head title="Investments" />
+    <Head :title="t('finance.investments.title')" />
 
     <div
         class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
@@ -12,7 +12,7 @@
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
                 >
-                    Total Portfolio Value
+                    {{ t('finance.investments.total_portfolio_value') }}
                 </p>
                 <p class="mt-3 text-2xl font-bold text-white">
                     {{ props.summary.total_value_formatted }}
@@ -26,11 +26,13 @@
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#6C4EE9] uppercase"
                 >
-                    Asset Types
+                    {{ t('finance.investments.asset_types') }}
                 </p>
                 <p class="mt-3 text-2xl font-bold text-white">
                     {{ props.summary.asset_count }}
-                    <span class="text-sm font-normal text-[#989898]">held</span>
+                    <span class="text-sm font-normal text-[#989898]">{{
+                        t('finance.investments.held')
+                    }}</span>
                 </p>
             </article>
 
@@ -40,12 +42,12 @@
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                 >
-                    Total Entries
+                    {{ t('finance.investments.total_entries') }}
                 </p>
                 <p class="mt-3 text-2xl font-bold text-white">
                     {{ props.summary.entry_count }}
                     <span class="text-sm font-normal text-[#989898]"
-                        >records</span
+                        >{{ t('finance.investments.records') }}</span
                     >
                 </p>
             </article>
@@ -62,15 +64,17 @@
             >
                 <div class="mb-4 flex items-center justify-between">
                     <h2 class="text-[18px] leading-none font-normal text-white">
-                        Allocation
+                        {{ t('finance.investments.allocation') }}
                     </h2>
-                    <span class="text-xs text-[#989898]">by current value</span>
+                    <span class="text-xs text-[#989898]">{{
+                        t('finance.investments.by_current_value')
+                    }}</span>
                 </div>
                 <DonutChart
                     :series="donutSeries"
                     :labels="donutLabels"
                     :colors="donutColors"
-                    center-label="Portfolio"
+                    :center-label="t('finance.investments.portfolio')"
                     :center-value="props.summary.total_value_formatted + ' T'"
                     @slice-click="onSliceClick"
                 />
@@ -84,7 +88,7 @@
                     class="mb-4 flex flex-wrap items-center justify-between gap-3"
                 >
                     <h2 class="text-[18px] leading-none font-normal text-white">
-                        Value over time
+                        {{ t('finance.investments.value_over_time') }}
                     </h2>
                     <div class="flex flex-wrap items-center gap-3">
                         <!-- Currency pills -->
@@ -164,22 +168,21 @@
             v-if="props.assets.length === 0"
             class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
-            <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f0ecff]">
+            <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#24212f]">
                 <TrendingUp class="size-8 text-[#6C4EE9]" />
             </span>
             <h2 class="mt-4 text-xl font-semibold text-white">
-                No investments yet
+                {{ t('finance.investments.no_entries_title') }}
             </h2>
             <p class="mt-2 max-w-sm text-center text-sm text-[#989898]">
-                Start tracking your assets — gold, silver, USD, crypto, and
-                more. Add your first entry to see your portfolio come to life.
+                {{ t('finance.investments.no_entries_description') }}
             </p>
             <Button
                 class="mt-6 h-11 rounded-full bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-6 text-white shadow-[0_8px_20px_rgba(108,78,233,0.25)] hover:brightness-105"
                 @click="openCreateDialog()"
             >
                 <Plus class="size-4" />
-                Add first entry
+                {{ t('finance.actions.add_first_entry') }}
             </Button>
         </div>
 
@@ -223,13 +226,13 @@
         >
             <div class="flex items-center justify-between gap-4 px-5 py-[29px]">
                 <h2 class="text-[22px] leading-none font-normal text-white">
-                    Investment entries
+                    {{ t('finance.investments.investment_entries') }}
                 </h2>
                 <Button
                     class="h-12 w-max justify-between rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-3.5 text-lg font-bold text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
                     @click="openCreateDialog()"
                 >
-                    <span>Add Entry</span>
+                    <span>{{ t('finance.actions.add_entry') }}</span>
                     <span
                         class="ml-2 grid h-[1.55em] w-[1.55em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
                     >
@@ -247,22 +250,22 @@
                             <th
                                 class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
-                                Asset
+                                {{ t('finance.fields.asset') }}
                             </th>
                             <th
                                 class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
-                                Quantity
+                                {{ t('finance.fields.quantity') }}
                             </th>
                             <th
                                 class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
-                                Value
+                                {{ t('finance.fields.value') }}
                             </th>
                             <th
                                 class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                             >
-                                Date
+                                {{ t('finance.fields.date') }}
                             </th>
                             <th
                                 class="rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
@@ -300,7 +303,7 @@
                             <td
                                 class="hidden px-3 py-[14px] text-center text-[16px] leading-none font-normal text-[#989898] sm:table-cell sm:px-5"
                             >
-                                {{ entry.occurred_at }}
+                                {{ displayDate(entry.occurred_at) }}
                             </td>
                             <td class="px-3 py-[14px] text-center sm:px-5">
                                 <div
@@ -308,10 +311,10 @@
                                 >
                                     <button
                                         type="button"
-                                        class="rounded-md bg-[#f0ecff] px-2 py-1 text-xs text-[#6C4EE9] hover:bg-[#e4dfff]"
+                                        class="rounded-md bg-white/5 px-2 py-1 text-xs text-[#6C4EE9] ring-1 ring-white/10 hover:bg-white/10"
                                         @click="openEditDialog(entry)"
                                     >
-                                        Edit
+                                        {{ t('common.edit') }}
                                     </button>
                                     <button
                                         type="button"
@@ -344,15 +347,14 @@
                         >
                             {{
                                 editingId !== null
-                                    ? 'Edit entry'
-                                    : 'Add investment entry'
+                                    ? t('finance.form.edit_investment')
+                                    : t('finance.form.add_investment')
                             }}
                         </DialogTitle>
                         <DialogDescription
                             class="text-[15px] leading-[18px] font-light text-[#989898]"
                         >
-                            Record how much of an asset you held on a given
-                            date.
+                            {{ t('finance.form.investment_description') }}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -364,7 +366,7 @@
                                     class="finance-dialog-label"
                                     for="asset_type"
                                 >
-                                    Asset
+                                    {{ t('finance.fields.asset') }}
                                 </Label>
                                 <select
                                     id="asset_type"
@@ -374,7 +376,7 @@
                                     :class="fieldClass"
                                 >
                                     <option value="" disabled>
-                                        Select asset
+                                        {{ t('finance.filters.select_asset') }}
                                     </option>
                                     <option
                                         v-for="assetType in props.assetTypes"
@@ -395,7 +397,7 @@
                                     class="finance-dialog-label"
                                     for="quantity"
                                 >
-                                    Quantity
+                                    {{ t('finance.fields.quantity') }}
                                 </Label>
                                 <Input
                                     id="quantity"
@@ -413,75 +415,25 @@
 
                         <!-- Date -->
                         <div class="grid gap-2">
-                            <Label class="finance-dialog-label">Date</Label>
-                            <div class="grid gap-2 sm:grid-cols-[1fr_1fr_1fr]">
-                                <Select v-model="selectedMonth" required>
-                                    <SelectTrigger
-                                        class="finance-dialog-field"
-                                        :class="fieldClass"
-                                    >
-                                        <SelectValue placeholder="Month" />
-                                    </SelectTrigger>
-                                    <SelectContent
-                                        class="finance-dialog-select-content"
-                                    >
-                                        <SelectItem
-                                            v-for="monthOption in months"
-                                            :key="monthOption.value"
-                                            :value="monthOption.value"
-                                        >
-                                            {{ monthOption.label }}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <Select v-model="selectedDay" required>
-                                    <SelectTrigger
-                                        class="finance-dialog-field"
-                                        :class="fieldClass"
-                                    >
-                                        <SelectValue placeholder="Day" />
-                                    </SelectTrigger>
-                                    <SelectContent
-                                        class="finance-dialog-select-content"
-                                    >
-                                        <SelectItem
-                                            v-for="dayOption in daysInMonth"
-                                            :key="dayOption"
-                                            :value="dayOption"
-                                        >
-                                            {{ Number(dayOption) }}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <Select v-model="selectedYear" required>
-                                    <SelectTrigger
-                                        class="finance-dialog-field"
-                                        :class="fieldClass"
-                                    >
-                                        <SelectValue placeholder="Year" />
-                                    </SelectTrigger>
-                                    <SelectContent
-                                        class="finance-dialog-select-content"
-                                    >
-                                        <SelectItem
-                                            v-for="yearOption in years"
-                                            :key="yearOption"
-                                            :value="yearOption"
-                                        >
-                                            {{ yearOption }}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            <Label class="finance-dialog-label">{{
+                                t('finance.fields.date')
+                            }}</Label>
+                            <BirthdatePicker
+                                v-model="form.occurred_at"
+                                name="occurred_at"
+                                :trigger-class="fieldClass"
+                                :years-back="16"
+                                :years-forward="1"
+                            />
                             <InputError :message="form.errors.occurred_at" />
                         </div>
 
                         <!-- Note -->
                         <div class="grid gap-2">
                             <Label class="finance-dialog-label" for="note">
-                                Note
+                                {{ t('finance.fields.note') }}
                                 <span class="font-light text-[#989898]"
-                                    >(optional)</span
+                                    >({{ t('finance.fields.optional') }})</span
                                 >
                             </Label>
                             <textarea
@@ -490,7 +442,9 @@
                                 rows="2"
                                 class="finance-dialog-field min-h-9 resize-none"
                                 :class="fieldClass"
-                                placeholder="e.g. bought at Tejarat bank"
+                                :placeholder="
+                                    t('finance.form.investment_note_placeholder')
+                                "
                             />
                             <InputError :message="form.errors.note" />
                         </div>
@@ -502,7 +456,7 @@
                             class="h-9 w-[90px] rounded-[8px] bg-white/5 px-[10px] text-[16px] font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
                             @click="isDialogOpen = false"
                         >
-                            Cancel
+                            {{ t('common.cancel') }}
                         </Button>
                         <Button
                             type="submit"
@@ -510,28 +464,17 @@
                             :disabled="form.processing"
                         >
                             <Spinner v-if="form.processing" />
-                            Confirm
+                            {{ t('common.confirm') }}
                         </Button>
                     </div>
                 </form>
             </DialogContent>
         </Dialog>
 
-        <!-- Floating add button when there are already entries -->
-        <div v-if="props.assets.length > 0" class="fixed right-6 bottom-6 z-10">
-            <Button
-                class="h-14 w-14 rounded-full bg-[linear-gradient(135deg,#947BFF_0%,#6C4EE9_100%)] p-0 text-white shadow-[0_8px_24px_rgba(108,78,233,0.35)] hover:brightness-105"
-                @click="openCreateDialog()"
-            >
-                <Plus class="size-6" />
-                <span class="sr-only">Add investment entry</span>
-            </Button>
-        </div>
-
         <ConfirmDeleteModal
             :open="deleteTargetId !== null"
-            title="Delete investment entry?"
-            description="This entry will be permanently removed from your portfolio."
+            :title="t('finance.delete.investment_title')"
+            :description="t('finance.delete.investment_description')"
             @update:open="deleteTargetId = null"
             @confirm="confirmDeleteEntry"
         />
@@ -539,9 +482,11 @@
 </template>
 
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { Plus, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import type { ChartSeries } from '@/components/charts/LineChart.vue';
@@ -557,14 +502,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { formatAppDate } from '@/lib/date';
 import { dashboard } from '@/routes';
 import { index as investmentsIndex } from '@/routes/investments';
 
@@ -653,6 +592,11 @@ const ranges = [
 
 const selectedRange = ref(props.selectedRange);
 const selectedCurrency = ref(props.selectedCurrency);
+const page = usePage();
+const { t } = useI18n();
+const displayCalendar = computed(
+    () => (page.props.calendar as string | undefined) ?? 'gregorian',
+);
 
 const currencySymbol = computed(() => {
     switch (selectedCurrency.value) {
@@ -770,49 +714,6 @@ const editingId = ref<number | null>(null);
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-const selectedYear = ref('');
-const selectedMonth = ref('');
-const selectedDay = ref('');
-
-const years = computed(() => {
-    const currentYear = new Date().getFullYear();
-
-    return Array.from({ length: 17 }, (_, yearIndex) =>
-        String(currentYear + 1 - yearIndex),
-    );
-});
-
-const months = [
-    { value: '01', label: 'January' },
-    { value: '02', label: 'February' },
-    { value: '03', label: 'March' },
-    { value: '04', label: 'April' },
-    { value: '05', label: 'May' },
-    { value: '06', label: 'June' },
-    { value: '07', label: 'July' },
-    { value: '08', label: 'August' },
-    { value: '09', label: 'September' },
-    { value: '10', label: 'October' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'December' },
-];
-
-const daysInMonth = computed(() => {
-    const selectedYearNumber = Number(
-        selectedYear.value || new Date().getFullYear(),
-    );
-    const selectedMonthNumber = Number(selectedMonth.value || 1);
-    const dayCount = new Date(
-        selectedYearNumber,
-        selectedMonthNumber,
-        0,
-    ).getDate();
-
-    return Array.from({ length: dayCount }, (_, dayIndex) =>
-        String(dayIndex + 1).padStart(2, '0'),
-    );
-});
-
 const form = useForm({
     asset_type: '',
     quantity: '',
@@ -825,34 +726,12 @@ const form = useForm({
 const fieldClass =
     'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25';
 
-function syncDatePicker(date: string) {
-    const [yearPart, monthPart, dayPart] = date.split('-');
-    selectedYear.value = yearPart ?? '';
-    selectedMonth.value = monthPart ?? '';
-    selectedDay.value = dayPart ?? '';
-}
-
-watch([selectedYear, selectedMonth, selectedDay], () => {
-    if (!selectedYear.value || !selectedMonth.value || !selectedDay.value) {
-        return;
-    }
-
-    form.occurred_at = `${selectedYear.value}-${selectedMonth.value}-${selectedDay.value}`;
-});
-
-watch(daysInMonth, (days) => {
-    if (selectedDay.value && !days.includes(selectedDay.value)) {
-        selectedDay.value = days.at(-1) ?? '';
-    }
-});
-
 function openCreateDialog(defaultType?: AssetKey) {
     editingId.value = null;
     form.reset();
     form.clearErrors();
     form.asset_type = defaultType ?? props.assetTypes[0]?.value ?? '';
     form.occurred_at = today();
-    syncDatePicker(form.occurred_at);
     isDialogOpen.value = true;
 }
 
@@ -865,7 +744,6 @@ function openEditDialog(entry: Entry) {
     form.occurred_at = entry.occurred_at;
     form.cost_basis = entry.cost_basis !== null ? String(entry.cost_basis) : '';
     form.cost_basis_currency = entry.cost_basis_currency ?? '';
-    syncDatePicker(entry.occurred_at);
     isDialogOpen.value = true;
 }
 
@@ -917,5 +795,7 @@ function formatEntryValue(quantity: number, assetType: AssetKey): string {
     return new Intl.NumberFormat('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(converted);
 }
 
-syncDatePicker(form.occurred_at);
+function displayDate(value: string): string {
+    return formatAppDate(value, displayCalendar.value);
+}
 </script>

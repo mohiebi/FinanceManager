@@ -1,5 +1,13 @@
 <script setup lang="ts">
+import { usePage } from '@inertiajs/vue3';
+import {
+    isValidJalaaliDate,
+    jalaaliMonthLength,
+    toGregorian,
+    toJalaali,
+} from 'jalaali-js';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
     Select,
     SelectContent,
@@ -29,37 +37,83 @@ const props = withDefaults(
 );
 
 const modelValue = defineModel<string>({ default: '' });
-const currentYear = new Date().getFullYear();
+const page = usePage();
+const { t } = useI18n();
 const selectedYear = ref('');
 const selectedMonth = ref('');
 const selectedDay = ref('');
 
+const calendar = computed(() =>
+    ((page.props.calendar as string | undefined) ?? 'gregorian') === 'jalali'
+        ? 'jalali'
+        : 'gregorian',
+);
+const today = new Date();
+const currentYear = computed(() => {
+    if (calendar.value === 'jalali') {
+        return toJalaali(
+            today.getFullYear(),
+            today.getMonth() + 1,
+            today.getDate(),
+        ).jy;
+    }
+
+    return today.getFullYear();
+});
+
 const years = computed(() =>
     Array.from(
         { length: props.yearsBack + props.yearsForward + 1 },
-        (_, index) => String(currentYear + props.yearsForward - index),
+        (_, index) => String(currentYear.value + props.yearsForward - index),
     ),
 );
 
-const months = [
-    { value: '01', label: 'January' },
-    { value: '02', label: 'February' },
-    { value: '03', label: 'March' },
-    { value: '04', label: 'April' },
-    { value: '05', label: 'May' },
-    { value: '06', label: 'June' },
-    { value: '07', label: 'July' },
-    { value: '08', label: 'August' },
-    { value: '09', label: 'September' },
-    { value: '10', label: 'October' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'December' },
+const gregorianMonths = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
 ];
 
+const jalaliMonths = [
+    'فروردین',
+    'اردیبهشت',
+    'خرداد',
+    'تیر',
+    'مرداد',
+    'شهریور',
+    'مهر',
+    'آبان',
+    'آذر',
+    'دی',
+    'بهمن',
+    'اسفند',
+];
+
+const months = computed(() =>
+    (calendar.value === 'jalali' ? jalaliMonths : gregorianMonths).map(
+        (label, index) => ({
+            value: String(index + 1).padStart(2, '0'),
+            label,
+        }),
+    ),
+);
+
 const days = computed(() => {
-    const year = Number(selectedYear.value || currentYear);
+    const year = Number(selectedYear.value || currentYear.value);
     const month = Number(selectedMonth.value || 1);
-    const daysInMonth = new Date(year, month, 0).getDate();
+    const daysInMonth =
+        calendar.value === 'jalali'
+            ? jalaaliMonthLength(year, month)
+            : new Date(year, month, 0).getDate();
 
     return Array.from({ length: daysInMonth }, (_, index) =>
         String(index + 1).padStart(2, '0'),
@@ -71,7 +125,21 @@ const birthdate = computed(() => {
         return '';
     }
 
-    return `${selectedYear.value}-${selectedMonth.value}-${selectedDay.value}`;
+    if (calendar.value === 'gregorian') {
+        return `${selectedYear.value}-${selectedMonth.value}-${selectedDay.value}`;
+    }
+
+    const year = Number(selectedYear.value);
+    const month = Number(selectedMonth.value);
+    const day = Number(selectedDay.value);
+
+    if (!isValidJalaaliDate(year, month, day)) {
+        return '';
+    }
+
+    const gregorian = toGregorian(year, month, day);
+
+    return `${gregorian.gy}-${String(gregorian.gm).padStart(2, '0')}-${String(gregorian.gd).padStart(2, '0')}`;
 });
 
 watch(
@@ -104,6 +172,10 @@ watch(days, (availableDays) => {
     }
 });
 
+watch(calendar, () => {
+    syncDate(modelValue.value);
+});
+
 function syncDate(value: string): void {
     if (!value) {
         selectedYear.value = '';
@@ -113,11 +185,21 @@ function syncDate(value: string): void {
         return;
     }
 
-    const [year, month, day] = value.split('-');
+    const [year, month, day] = value.split('-').map(Number);
 
-    selectedYear.value = year ?? '';
-    selectedMonth.value = month ?? '';
-    selectedDay.value = day ?? '';
+    if (calendar.value === 'jalali') {
+        const jalali = toJalaali(year, month, day);
+
+        selectedYear.value = String(jalali.jy);
+        selectedMonth.value = String(jalali.jm).padStart(2, '0');
+        selectedDay.value = String(jalali.jd).padStart(2, '0');
+
+        return;
+    }
+
+    selectedYear.value = String(year);
+    selectedMonth.value = String(month).padStart(2, '0');
+    selectedDay.value = String(day).padStart(2, '0');
 }
 </script>
 
@@ -127,9 +209,9 @@ function syncDate(value: string): void {
     <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1.2fr_1fr_1fr]">
         <Select v-model="selectedMonth" :required="required">
             <SelectTrigger :class="cn('w-full', triggerClass)">
-                <SelectValue placeholder="Month" />
+                <SelectValue :placeholder="t('common.month')" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent class="finance-dialog-select-content">
                 <SelectItem
                     v-for="month in months"
                     :key="month.value"
@@ -142,9 +224,9 @@ function syncDate(value: string): void {
 
         <Select v-model="selectedDay" :required="required">
             <SelectTrigger :class="cn('w-full', triggerClass)">
-                <SelectValue placeholder="Day" />
+                <SelectValue :placeholder="t('common.day')" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent class="finance-dialog-select-content">
                 <SelectItem v-for="day in days" :key="day" :value="day">
                     {{ Number(day) }}
                 </SelectItem>
@@ -153,9 +235,9 @@ function syncDate(value: string): void {
 
         <Select v-model="selectedYear" :required="required">
             <SelectTrigger :class="cn('w-full', triggerClass)">
-                <SelectValue placeholder="Year" />
+                <SelectValue :placeholder="t('common.year')" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent class="finance-dialog-select-content">
                 <SelectItem v-for="year in years" :key="year" :value="year">
                     {{ year }}
                 </SelectItem>

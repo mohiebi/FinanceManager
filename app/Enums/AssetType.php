@@ -13,6 +13,13 @@ enum AssetType: string
 
     public function label(): string
     {
+        $translationKey = "finance.assets.{$this->value}";
+        $translatedLabel = __($translationKey);
+
+        if ($translatedLabel !== $translationKey) {
+            return $translatedLabel;
+        }
+
         return match ($this) {
             self::Gold => 'Gold',
             self::Silver => 'Silver',

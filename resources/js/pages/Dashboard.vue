@@ -683,7 +683,7 @@
                                         type="number"
                                         min="0.01"
                                         step="0.01"
-                                        placeholder="000.000.000"
+                                        placeholder="0.00"
                                     />
                                     <InputError :message="form.errors.amount" />
                                 </div>
@@ -782,6 +782,7 @@ import BarChart from '@/components/charts/BarChart.vue';
 import GaugeChart from '@/components/charts/GaugeChart.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
+import { monthBucketKeyFromIso, recentMonthBuckets } from '@/lib/date';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -842,6 +843,7 @@ const { locale, t } = useI18n();
 const user = computed(
     () => (page.props.auth as { user?: { name: string } } | undefined)?.user,
 );
+const displayCalendar = computed(() => (page.props.calendar as string | undefined) ?? 'gregorian');
 
 function parseNum(value: string | number): number {
     return parseFloat(String(value).replace(/,/g, '')) || 0;

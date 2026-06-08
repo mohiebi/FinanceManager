@@ -529,7 +529,7 @@
                                         type="number"
                                         min="0.01"
                                         step="0.01"
-                                        placeholder="000.000.000"
+                                        placeholder="0.00"
                                     />
                                     <InputError :message="form.errors.amount" />
                                 </div>

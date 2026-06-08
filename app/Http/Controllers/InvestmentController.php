@@ -252,7 +252,7 @@ class InvestmentController extends Controller
         }
 
         array_unshift($seriesList, [
-            'name' => 'Total Portfolio',
+            'name' => __('finance.assets.total'),
             'key' => 'total',
             'color' => '#02CD86',
             'data' => array_values($totalByDate),

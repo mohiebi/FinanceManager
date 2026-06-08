@@ -45,6 +45,8 @@ return [
         'enabled' => env('TGJU_PRICES_ENABLED', env('APP_ENV') !== 'testing'),
         'url' => env('TGJU_PRICE_URL', 'https://www.tgju.org/'),
         'fallback_url' => env('TGJU_PRICE_FALLBACK_URL', 'http://www.tgju.org/'),
+        'currency_url' => env('TGJU_CURRENCY_PRICE_URL', 'https://www.tgju.org/currency'),
+        'currency_fallback_url' => env('TGJU_CURRENCY_PRICE_FALLBACK_URL', 'http://www.tgju.org/currency'),
         'cache_seconds' => env('TGJU_PRICE_CACHE_SECONDS', 300),
         'timeout' => env('TGJU_PRICE_TIMEOUT', 8),
         'connect_timeout' => env('TGJU_PRICE_CONNECT_TIMEOUT', 4),

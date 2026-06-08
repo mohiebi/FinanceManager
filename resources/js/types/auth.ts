@@ -3,6 +3,8 @@ export type User = {
     name: string;
     email: string;
     birthdate: string | null;
+    locale: 'en' | 'fa';
+    calendar: 'gregorian' | 'jalali';
     avatar?: string;
     email_verified_at: string | null;
     created_at: string;

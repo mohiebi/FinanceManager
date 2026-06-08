@@ -12,6 +12,8 @@ test('asset price service reads tgju prices from configured xpaths', function ()
         'services.tgju.enabled' => true,
         'services.tgju.url' => 'https://www.tgju.org/',
         'services.tgju.fallback_url' => 'http://www.tgju.org/',
+        'services.tgju.currency_url' => 'https://www.tgju.org/currency',
+        'services.tgju.currency_fallback_url' => 'http://www.tgju.org/currency',
     ]);
 
     Http::fake([
@@ -19,8 +21,13 @@ test('asset price service reads tgju prices from configured xpaths', function ()
             '/html/body/main/div[4]/div[8]/div[2]/div/div[1]/div[2]/div/div[1]/table/tbody/tr[1]/td[1]' => '1,000,000',
             '/html/body/main/div[1]/div[2]/div/ul/li[8]/span[1]/span' => '1,010,000',
             '/html/body/main/div[1]/div[2]/div/ul/li[4]/span[1]/span' => '120,000,000',
+            '/html/body/main/div[1]/div[2]/div/ul/li[5]/span[1]/span' => '970,000,000',
             '/html/body/main/div[4]/div[3]/div[2]/table/tbody/tr[4]/td[1]' => '1,400,000',
             '/html/body/main/div[1]/div[2]/div/ul/li[2]/span[1]/span' => '2,350.50',
+            '/html/body/main/div[1]/div[2]/div/ul/li[9]/span[1]/span' => '108,500',
+        ])),
+        'https://www.tgju.org/currency' => Http::response(tgjuHtml([
+            '/html/body/main/div[4]/div/div/div[1]/table/tbody/tr[2]/td[1]' => '1,180,000',
         ])),
     ]);
 
@@ -29,32 +36,43 @@ test('asset price service reads tgju prices from configured xpaths', function ()
     expect($service->priceFor(AssetType::Usd))->toBe(100000.0)
         ->and($service->priceFor(AssetType::Gold))->toBe(12000000.0)
         ->and($service->priceFor(AssetType::Silver))->toBe(140000.0)
+        ->and($service->priceFor(AssetType::Eur))->toBe(118000.0)
+        ->and($service->priceFor(AssetType::Coin))->toBe(97000000.0)
+        ->and($service->priceFor(AssetType::Bitcoin))->toBe(10850000000.0)
         ->and($service->tgjuPrices())->toMatchArray([
             'usdt' => 101000.0,
             'gold_900' => 14400000.0,
             'gold_ounce' => 2350.5,
+            'bitcoin_usd' => 108500.0,
         ]);
 });
 
-test('asset price service falls back when tgju is unavailable', function () {
+test('asset price service returns zero when tgju is unavailable', function () {
     Cache::flush();
 
     config([
         'services.tgju.enabled' => true,
         'services.tgju.url' => 'https://www.tgju.org/',
         'services.tgju.fallback_url' => 'http://www.tgju.org/',
+        'services.tgju.currency_url' => 'https://www.tgju.org/currency',
+        'services.tgju.currency_fallback_url' => 'http://www.tgju.org/currency',
     ]);
 
     Http::fake([
         'https://www.tgju.org/' => Http::response('', 500),
         'http://www.tgju.org/' => Http::response('', 500),
+        'https://www.tgju.org/currency' => Http::response('', 500),
+        'http://www.tgju.org/currency' => Http::response('', 500),
     ]);
 
     $service = app(AssetPriceService::class);
 
-    expect($service->priceFor(AssetType::Usd))->toBe(91500.0)
-        ->and($service->priceFor(AssetType::Gold))->toBe(12000000.0)
-        ->and($service->priceFor(AssetType::Silver))->toBe(140000.0);
+    expect($service->priceFor(AssetType::Usd))->toBe(0.0)
+        ->and($service->priceFor(AssetType::Gold))->toBe(0.0)
+        ->and($service->priceFor(AssetType::Silver))->toBe(0.0)
+        ->and($service->priceFor(AssetType::Eur))->toBe(0.0)
+        ->and($service->priceFor(AssetType::Coin))->toBe(0.0)
+        ->and($service->priceFor(AssetType::Bitcoin))->toBe(0.0);
 });
 
 /**

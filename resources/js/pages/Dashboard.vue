@@ -1,5 +1,5 @@
 <template>
-    <Head title="Dashboard" />
+    <Head :title="t('finance.dashboard.title')" />
 
     <div
         class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#101010] text-white"
@@ -14,17 +14,17 @@
                     <p
                         class="text-xs font-semibold tracking-[0.3em] text-[#989898] uppercase"
                     >
-                        Finance command center
+                        {{ t('finance.dashboard.eyebrow') }}
                     </p>
                     <h1
                         class="mt-1 text-[26px] leading-tight font-bold text-white sm:text-[30px]"
                     >
-                        Your money, on Autopilot.
+                        {{ t('finance.dashboard.heading') }}
                     </h1>
                     <p class="mt-0.5 text-sm text-[#989898]">
-                        Welcome back,
+                        {{ t('finance.dashboard.welcome') }}
                         <span class="font-semibold text-white">{{
-                            user?.name ?? 'there'
+                            user?.name ?? t('finance.dashboard.guest')
                         }}</span>
                     </p>
                 </div>
@@ -50,7 +50,7 @@
                             <p
                                 class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase"
                             >
-                                Income
+                                {{ t('finance.metrics.income') }}
                             </p>
                         </div>
                         <p
@@ -63,11 +63,7 @@
                         </p>
                         <p class="mt-1.5 text-xs text-[#989898]">
                             {{ props.transactions.incomes.length }}
-                            transaction{{
-                                props.transactions.incomes.length !== 1
-                                    ? 's'
-                                    : ''
-                            }}
+                            {{ t('finance.reports.transactions') }}
                         </p>
                     </article>
                     <!-- Cost KPI -->
@@ -85,7 +81,7 @@
                             <p
                                 class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase"
                             >
-                                Costs
+                                {{ t('finance.metrics.costs') }}
                             </p>
                         </div>
                         <p
@@ -98,9 +94,7 @@
                         </p>
                         <p class="mt-1.5 text-xs text-[#989898]">
                             {{ props.transactions.costs.length }}
-                            transaction{{
-                                props.transactions.costs.length !== 1 ? 's' : ''
-                            }}
+                            {{ t('finance.reports.transactions') }}
                         </p>
                     </article>
                     <!-- Balance KPI -->
@@ -129,7 +123,7 @@
                             <p
                                 class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase"
                             >
-                                Balance
+                                {{ t('finance.metrics.balance') }}
                             </p>
                         </div>
                         <p
@@ -147,7 +141,11 @@
                             }}</span>
                         </p>
                         <p class="mt-1.5 text-xs text-[#989898]">
-                            {{ balance >= 0 ? 'In the positive' : 'Overspent' }}
+                            {{
+                                balance >= 0
+                                    ? t('finance.metrics.in_the_positive')
+                                    : t('finance.metrics.overspent')
+                            }}
                         </p>
                     </article>
                 </div>
@@ -160,11 +158,11 @@
                         <p
                             class="mb-1 text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                         >
-                            Finance Rate
+                            {{ t('finance.dashboard.finance_rate') }}
                         </p>
                         <GaugeChart :value="financeRate" />
                         <p class="mt-1 text-center text-xs text-[#989898]">
-                            Income / total flow
+                            {{ t('finance.dashboard.finance_rate_subtitle') }}
                         </p>
                     </div>
                     <div
@@ -172,7 +170,7 @@
                     >
                         <div class="mb-3 flex items-center justify-between">
                             <h2 class="text-[17px] font-normal text-white">
-                                Monthly overview
+                                {{ t('finance.dashboard.monthly_overview') }}
                             </h2>
                             <div
                                 class="flex items-center gap-4 text-xs text-[#989898]"
@@ -181,13 +179,13 @@
                                     <span
                                         class="h-2 w-2 rounded-full bg-[#02CD86]"
                                     />
-                                    Income
+                                    {{ t('finance.metrics.income') }}
                                 </span>
                                 <span class="flex items-center gap-1.5">
                                     <span
                                         class="h-2 w-2 rounded-full bg-[#6C4EE9]"
                                     />
-                                    Costs
+                                    {{ t('finance.metrics.costs') }}
                                 </span>
                             </div>
                         </div>
@@ -219,7 +217,7 @@
                     <p
                         class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                     >
-                        Current Period
+                        {{ t('finance.calendar.current_period') }}
                     </p>
                     <p
                         class="mt-2 text-[26px] leading-none font-bold text-white"
@@ -227,8 +225,13 @@
                         {{ period.month }}
                     </p>
                     <p class="mt-1 text-xs text-[#989898]">
-                        {{ period.year }} &middot; Day
-                        {{ period.dayOfMonth }} of {{ period.daysInMonth }}
+                        {{ period.year }} &middot;
+                        {{
+                            t('finance.calendar.day_of_month', {
+                                day: period.dayOfMonth,
+                                days: period.daysInMonth,
+                            })
+                        }}
                     </p>
                     <div
                         class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10"
@@ -239,7 +242,11 @@
                         />
                     </div>
                     <p class="mt-1.5 text-right text-xs text-[#989898]">
-                        {{ period.progress }}% of month elapsed
+                        {{
+                            t('finance.calendar.elapsed', {
+                                progress: period.progress,
+                            })
+                        }}
                     </p>
                 </div>
                 <div
@@ -248,7 +255,7 @@
                     <p
                         class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                     >
-                        Cost Optimize
+                        {{ t('finance.dashboard.cost_optimize') }}
                     </p>
                     <p
                         class="mt-2 text-[26px] leading-none font-bold"
@@ -260,7 +267,9 @@
                     >
                         {{ costOptimize >= 0 ? '+' : '' }}{{ costOptimize }}%
                     </p>
-                    <p class="mt-1 text-xs text-[#989898]">Savings rate</p>
+                    <p class="mt-1 text-xs text-[#989898]">
+                        {{ t('finance.dashboard.savings_rate') }}
+                    </p>
                     <div
                         class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10"
                     >
@@ -284,7 +293,9 @@
                         class="flex h-[60px] w-full items-center justify-between rounded-[16px] bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-4 text-white shadow-[0_10px_24px_rgba(108,78,233,0.28)] transition hover:brightness-105 active:scale-[0.98]"
                         @click="openCreateForm('cost')"
                     >
-                        <span class="text-[19px] font-bold">Add Cost</span>
+                        <span class="text-[19px] font-bold">{{
+                            t('finance.actions.add_cost')
+                        }}</span>
                         <span
                             class="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/10 shadow-inner"
                         >
@@ -297,7 +308,9 @@
                         class="flex h-[60px] w-full items-center justify-between rounded-[16px] bg-[linear-gradient(90deg,#02CD86_0%,#00A96F_100%)] px-4 text-white shadow-[0_10px_24px_rgba(2,205,134,0.25)] transition hover:brightness-105 active:scale-[0.98]"
                         @click="openCreateForm('income')"
                     >
-                        <span class="text-[19px] font-bold">Add Income</span>
+                        <span class="text-[19px] font-bold">{{
+                            t('finance.actions.add_income')
+                        }}</span>
                         <span
                             class="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/10 shadow-inner"
                         >
@@ -314,13 +327,13 @@
             >
                 <div class="flex items-center justify-between px-5 py-[24px]">
                     <h2 class="text-[20px] leading-none font-normal text-white">
-                        Recently Costs
+                        {{ t('finance.dashboard.recent_costs') }}
                     </h2>
                     <Link
                         :href="transactionsIndex()"
                         class="text-xs text-[#6C4EE9] hover:underline"
                     >
-                        See all →
+                        {{ t('finance.actions.see_all') }}
                     </Link>
                 </div>
 
@@ -333,17 +346,17 @@
                                 <th
                                     class="rounded-l-2xl bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
                                 >
-                                    Subject
+                                    {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
                                     class="bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
                                 >
-                                    Category
+                                    {{ t('finance.fields.category') }}
                                 </th>
                                 <th
                                     class="bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
                                 >
-                                    Amount
+                                    {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
                                     class="rounded-r-2xl bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
@@ -421,7 +434,7 @@
                                     colspan="4"
                                     class="px-5 py-10 text-center text-[#989898]"
                                 >
-                                    No costs yet — add one when money leaves!
+                                    {{ t('finance.dashboard.no_costs') }}
                                 </td>
                             </tr>
                         </tbody>
@@ -434,13 +447,13 @@
             >
                 <div class="flex items-center justify-between px-5 py-[24px]">
                     <h2 class="text-[20px] leading-none font-normal text-white">
-                        Recently Incomes
+                        {{ t('finance.dashboard.recent_incomes') }}
                     </h2>
                     <Link
                         :href="transactionsIndex()"
                         class="text-xs text-[#02CD86] hover:underline"
                     >
-                        See all →
+                        {{ t('finance.actions.see_all') }}
                     </Link>
                 </div>
 
@@ -453,17 +466,17 @@
                                 <th
                                     class="rounded-l-2xl bg-[#0d2620] px-3 py-3.5 text-center text-sm font-normal text-[#7ee8c4] sm:px-5"
                                 >
-                                    Subject
+                                    {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
                                     class="bg-[#0d2620] px-3 py-3.5 text-center text-sm font-normal text-[#7ee8c4] sm:px-5"
                                 >
-                                    Category
+                                    {{ t('finance.fields.category') }}
                                 </th>
                                 <th
                                     class="bg-[#0d2620] px-3 py-3.5 text-center text-sm font-normal text-[#7ee8c4] sm:px-5"
                                 >
-                                    Amount
+                                    {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
                                     class="rounded-r-2xl bg-[#0d2620] px-3 py-3.5 text-center text-sm font-normal text-[#7ee8c4] sm:px-5"
@@ -541,8 +554,7 @@
                                     colspan="4"
                                     class="px-5 py-10 text-center text-[#989898]"
                                 >
-                                    No incomes yet — add salary or freelance
-                                    wins here!
+                                    {{ t('finance.dashboard.no_incomes') }}
                                 </td>
                             </tr>
                         </tbody>
@@ -568,8 +580,7 @@
                         <DialogDescription
                             class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#989898]"
                         >
-                            The same form handles both tables. The transaction
-                            type follows the table action you selected.
+                            {{ t('finance.form.transaction_description') }}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -579,13 +590,13 @@
                         <div class="grid gap-2">
                             <div class="grid gap-2 sm:grid-cols-[276px_134px]">
                                 <Label class="finance-dialog-label" for="title">
-                                    Subject
+                                    {{ t('finance.fields.subject') }}
                                 </Label>
                                 <Label
                                     class="finance-dialog-label"
                                     for="category"
                                 >
-                                    Category
+                                    {{ t('finance.fields.category') }}
                                 </Label>
                             </div>
                             <div class="grid gap-2 sm:grid-cols-[276px_134px]">
@@ -595,7 +606,9 @@
                                         v-model="form.title"
                                         :class="fieldControlClass"
                                         required
-                                        placeholder="Hamburger, Fresh Restaurant"
+                                        :placeholder="
+                                            t('finance.form.subject_placeholder')
+                                        "
                                     />
                                     <InputError :message="form.errors.title" />
                                 </div>
@@ -608,7 +621,7 @@
                                         :class="fieldControlClass"
                                     >
                                         <option value="" disabled>
-                                            Select
+                                            {{ t('common.select') }}
                                         </option>
                                         <option
                                             v-for="category in selectedCategories"
@@ -629,74 +642,20 @@
                                 class="finance-dialog-label"
                                 for="occurred_at"
                             >
-                                Date
+                                {{ t('finance.fields.date') }}
                             </Label>
                             <input
                                 id="occurred_at"
                                 type="hidden"
                                 :value="form.occurred_at"
                             />
-                            <div
-                                class="grid gap-2 sm:grid-cols-[134px_134px_134px]"
-                            >
-                                <Select v-model="selectedDateMonth" required>
-                                    <SelectTrigger
-                                        class="finance-dialog-field"
-                                        :class="fieldControlClass"
-                                    >
-                                        <SelectValue placeholder="Month" />
-                                    </SelectTrigger>
-                                    <SelectContent
-                                        class="finance-dialog-select-content"
-                                    >
-                                        <SelectItem
-                                            v-for="month in months"
-                                            :key="month.value"
-                                            :value="month.value"
-                                        >
-                                            {{ month.label }}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <Select v-model="selectedDateDay" required>
-                                    <SelectTrigger
-                                        class="finance-dialog-field"
-                                        :class="fieldControlClass"
-                                    >
-                                        <SelectValue placeholder="Day" />
-                                    </SelectTrigger>
-                                    <SelectContent
-                                        class="finance-dialog-select-content"
-                                    >
-                                        <SelectItem
-                                            v-for="day in transactionDays"
-                                            :key="day"
-                                            :value="day"
-                                        >
-                                            {{ Number(day) }}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <Select v-model="selectedDateYear" required>
-                                    <SelectTrigger
-                                        class="finance-dialog-field"
-                                        :class="fieldControlClass"
-                                    >
-                                        <SelectValue placeholder="Year" />
-                                    </SelectTrigger>
-                                    <SelectContent
-                                        class="finance-dialog-select-content"
-                                    >
-                                        <SelectItem
-                                            v-for="year in transactionYears"
-                                            :key="year"
-                                            :value="year"
-                                        >
-                                            {{ year }}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            <BirthdatePicker
+                                v-model="form.occurred_at"
+                                name="occurred_at"
+                                :trigger-class="fieldControlClass"
+                                :years-back="16"
+                                :years-forward="1"
+                            />
                             <InputError :message="form.errors.occurred_at" />
                         </div>
                         <div class="grid gap-2">
@@ -705,13 +664,13 @@
                                     class="finance-dialog-label"
                                     for="amount"
                                 >
-                                    Amount
+                                    {{ t('finance.fields.amount') }}
                                 </Label>
                                 <Label
                                     class="finance-dialog-label"
                                     for="currency"
                                 >
-                                    Currency
+                                    {{ t('finance.fields.currency') }}
                                 </Label>
                             </div>
                             <div class="grid gap-2 sm:grid-cols-[276px_134px]">
@@ -754,7 +713,7 @@
                                 class="finance-dialog-label"
                                 for="description"
                             >
-                                Description
+                                {{ t('finance.fields.description') }}
                             </Label>
                             <textarea
                                 id="description"
@@ -762,7 +721,7 @@
                                 rows="1"
                                 class="finance-dialog-field min-h-9 resize-none"
                                 :class="fieldControlClass"
-                                placeholder="Optional note"
+                                :placeholder="t('finance.form.note_placeholder')"
                             />
                             <InputError :message="form.errors.description" />
                         </div>
@@ -774,7 +733,7 @@
                             class="h-9 w-[99px] cursor-pointer rounded-[8px] bg-white/5 px-[10px] py-[3px] text-[20px] font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
                             @click="isDialogOpen = false"
                         >
-                            Cancel
+                            {{ t('common.cancel') }}
                         </Button>
                         <Button
                             type="submit"
@@ -785,7 +744,7 @@
                             "
                         >
                             <Spinner v-if="form.processing" />
-                            Confirm
+                            {{ t('common.confirm') }}
                         </Button>
                     </div>
                 </form>
@@ -794,8 +753,12 @@
 
         <ConfirmDeleteModal
             :open="deleteTarget !== null"
-            :title="`Delete &quot;${deleteTarget?.title}&quot;?`"
-            description="This transaction will be permanently deleted."
+            :title="
+                t('finance.delete.transaction_title', {
+                    title: deleteTarget?.title ?? '',
+                })
+            "
+            :description="t('finance.delete.transaction_description')"
             @update:open="deleteTarget = null"
             @confirm="confirmDelete"
         />
@@ -812,7 +775,9 @@ import {
     TrendingUp,
     Wallet,
 } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import BarChart from '@/components/charts/BarChart.vue';
 import GaugeChart from '@/components/charts/GaugeChart.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
@@ -827,13 +792,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard } from '@/routes';
 import { index as transactionsIndex } from '@/routes/transactions';
@@ -880,6 +838,7 @@ defineOptions({
 });
 
 const page = usePage();
+const { locale, t } = useI18n();
 const user = computed(
     () => (page.props.auth as { user?: { name: string } } | undefined)?.user,
 );
@@ -914,7 +873,10 @@ const costOptimize = computed(() => {
 
 const period = computed(() => {
     const now = new Date();
-    const month = now.toLocaleDateString('en-US', { month: 'long' });
+    const month = now.toLocaleDateString(
+        locale.value === 'fa' ? 'fa-IR' : 'en-US',
+        { month: 'long' },
+    );
     const year = now.getFullYear();
     const dayOfMonth = now.getDate();
     const daysInMonth = new Date(year, now.getMonth() + 1, 0).getDate();
@@ -932,7 +894,10 @@ const monthlyData = computed(() => {
             1,
         );
         const key = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
-        const label = monthDate.toLocaleDateString('en-US', { month: 'short' });
+        const label = monthDate.toLocaleDateString(
+            locale.value === 'fa' ? 'fa-IR' : 'en-US',
+            { month: 'short' },
+        );
 
         return { key, label, income: 0, cost: 0 };
     });
@@ -974,50 +939,8 @@ function formatAmount(amount: string | number): string {
 
 const isDialogOpen = ref(false);
 const editingTransactionId = ref<number | null>(null);
-const selectedDateYear = ref('');
-const selectedDateMonth = ref('');
-const selectedDateDay = ref('');
 
 const today = () => new Date().toISOString().slice(0, 10);
-
-const transactionYears = computed(() => {
-    const currentYear = new Date().getFullYear();
-
-    return Array.from({ length: 17 }, (_, yearIndex) =>
-        String(currentYear + 1 - yearIndex),
-    );
-});
-
-const months = [
-    { value: '01', label: 'January' },
-    { value: '02', label: 'February' },
-    { value: '03', label: 'March' },
-    { value: '04', label: 'April' },
-    { value: '05', label: 'May' },
-    { value: '06', label: 'June' },
-    { value: '07', label: 'July' },
-    { value: '08', label: 'August' },
-    { value: '09', label: 'September' },
-    { value: '10', label: 'October' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'December' },
-];
-
-const transactionDays = computed(() => {
-    const selectedYearNumber = Number(
-        selectedDateYear.value || new Date().getFullYear(),
-    );
-    const selectedMonthNumber = Number(selectedDateMonth.value || 1);
-    const dayCount = new Date(
-        selectedYearNumber,
-        selectedMonthNumber,
-        0,
-    ).getDate();
-
-    return Array.from({ length: dayCount }, (_, dayIndex) =>
-        String(dayIndex + 1).padStart(2, '0'),
-    );
-});
 
 const form = useForm({
     type: 'cost' as TransactionType,
@@ -1033,8 +956,16 @@ const selectedCategories = computed(() => props.categories[form.type] ?? []);
 const isEditing = computed(() => editingTransactionId.value !== null);
 const dialogTitle = computed(() =>
     isEditing.value
-        ? `Edit ${form.type === 'cost' ? 'cost' : 'income'}`
-        : `Add ${form.type === 'cost' ? 'cost' : 'income'}`,
+        ? t(
+              form.type === 'cost'
+                  ? 'finance.form.edit_cost'
+                  : 'finance.form.edit_income',
+          )
+        : t(
+              form.type === 'cost'
+                  ? 'finance.form.add_cost'
+                  : 'finance.form.add_income',
+          ),
 );
 const fieldControlClass = computed(() =>
     form.type === 'cost'
@@ -1050,27 +981,8 @@ function categoryName(transaction: Transaction): string {
     return (
         (props.categories[transaction.type] ?? []).find(
             (category) => category.id === transaction.category_id,
-        )?.name ?? 'Uncategorized'
+        )?.name ?? t('finance.categories.uncategorized')
     );
-}
-
-function syncDatePicker(date: string): void {
-    const [yearPart, monthPart, dayPart] = date.split('-');
-    selectedDateYear.value = yearPart ?? '';
-    selectedDateMonth.value = monthPart ?? '';
-    selectedDateDay.value = dayPart ?? '';
-}
-
-function updateOccurredAt(): void {
-    if (
-        !selectedDateYear.value ||
-        !selectedDateMonth.value ||
-        !selectedDateDay.value
-    ) {
-        return;
-    }
-
-    form.occurred_at = `${selectedDateYear.value}-${selectedDateMonth.value}-${selectedDateDay.value}`;
 }
 
 const resetForm = (type: TransactionType) => {
@@ -1084,7 +996,6 @@ const resetForm = (type: TransactionType) => {
     form.title = '';
     form.description = '';
     form.occurred_at = today();
-    syncDatePicker(form.occurred_at);
 };
 
 const openCreateForm = (type: TransactionType) => {
@@ -1103,7 +1014,6 @@ const openEditForm = (transaction: Transaction) => {
     form.title = transaction.title;
     form.description = transaction.description ?? '';
     form.occurred_at = transaction.occurred_at;
-    syncDatePicker(transaction.occurred_at);
     isDialogOpen.value = true;
 };
 
@@ -1141,13 +1051,4 @@ const confirmDelete = () => {
     deleteTarget.value = null;
 };
 
-watch([selectedDateYear, selectedDateMonth, selectedDateDay], updateOccurredAt);
-
-watch(transactionDays, (days) => {
-    if (selectedDateDay.value && !days.includes(selectedDateDay.value)) {
-        selectedDateDay.value = days.at(-1) ?? '';
-    }
-});
-
-syncDatePicker(form.occurred_at);
 </script>

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
 import { edit as editProfile } from '@/routes/profile';
@@ -7,11 +9,14 @@ import { edit as editSecurity } from '@/routes/security';
 import { edit as editTelegram } from '@/routes/telegram';
 import type { NavItem } from '@/types';
 
-const sidebarNavItems: NavItem[] = [
-    { title: 'Profile', href: editProfile() },
-    { title: 'Security', href: editSecurity() },
-    { title: 'Telegram', href: editTelegram() },
-];
+const { t } = useI18n();
+
+const sidebarNavItems = computed<NavItem[]>(() => [
+    { title: t('settings.navigation.profile'), href: editProfile() },
+    { title: t('settings.navigation.security'), href: editSecurity() },
+    { title: t('settings.navigation.preferences'), href: '/settings/preferences' },
+    { title: t('settings.navigation.telegram'), href: editTelegram() },
+]);
 
 const { isCurrentOrParentUrl } = useCurrentUrl();
 </script>
@@ -21,9 +26,11 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
         class="flex h-full min-h-[calc(100vh-92px)] flex-col bg-[#101010] px-[18px] py-[18px]"
     >
         <div class="mb-[18px]">
-            <h1 class="text-[22px] font-normal text-white">Settings</h1>
+            <h1 class="text-[22px] font-normal text-white">
+                {{ t('settings.title') }}
+            </h1>
             <p class="mt-1 text-sm text-[#989898]">
-                Manage your profile and account settings
+                {{ t('settings.description') }}
             </p>
         </div>
 
@@ -32,7 +39,7 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
             <aside class="w-full shrink-0 lg:w-44">
                 <nav
                     class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-2 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
-                    aria-label="Settings"
+                    :aria-label="t('settings.title')"
                 >
                     <Link
                         v-for="item in sidebarNavItems"

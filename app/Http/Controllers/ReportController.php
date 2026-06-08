@@ -9,6 +9,8 @@ use App\Http\Resources\CategoryResource;
 use App\Http\Resources\TransactionResource;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Support\DateFormatter;
+use App\Support\FrontendLocalization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
@@ -27,6 +29,7 @@ class ReportController extends Controller
     {
         $selectedRange = $this->resolveRange((string) $request->query('range'));
         $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
+        $calendar = FrontendLocalization::normalizeCalendar($request->user()?->calendar);
         $selectedType = $this->resolveTransactionType((string) $request->query('type'));
         $selectedCategoryId = $this->resolveCategoryId($request);
         $search = trim((string) $request->query('search'));
@@ -84,7 +87,7 @@ class ReportController extends Controller
                 'category' => $selectedCategoryId,
             ],
             'period' => [
-                'label' => $this->makePeriodLabel($selectedRange, $fromDate, $toDate),
+                'label' => $this->makePeriodLabel($selectedRange, $fromDate, $toDate, $calendar),
             ],
             'transactions' => [
                 'costs' => $this->transformTransactions(
@@ -197,17 +200,17 @@ class ReportController extends Controller
         }
     }
 
-    private function makePeriodLabel(string $range, Carbon $fromDate, Carbon $toDate): string
+    private function makePeriodLabel(string $range, Carbon $fromDate, Carbon $toDate, string $calendar): string
     {
         return match ($range) {
-            'this_season' => sprintf('This season (Q%s %s)', $fromDate->quarter, $fromDate->year),
-            'yearly' => sprintf('Year to date (%s)', $fromDate->year),
+            'this_season' => sprintf('This season (%s)', DateFormatter::format($fromDate, $calendar, 'Y-m')),
+            'yearly' => sprintf('Year to date (%s)', DateFormatter::format($fromDate, $calendar, 'Y')),
             'custom' => sprintf(
                 'Custom range: %s to %s',
-                $fromDate->format('M j, Y'),
-                $toDate->format('M j, Y'),
+                DateFormatter::format($fromDate, $calendar, 'Y-m-d'),
+                DateFormatter::format($toDate, $calendar, 'Y-m-d'),
             ),
-            default => $fromDate->format('F Y'),
+            default => DateFormatter::format($fromDate, $calendar, 'Y-m'),
         };
     }
 

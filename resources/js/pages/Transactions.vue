@@ -1,5 +1,5 @@
 <template>
-    <Head title="Transactions" />
+    <Head :title="t('finance.transactions.title')" />
 
     <div
         class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
@@ -9,18 +9,22 @@
                 class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.9fr_0.8fr_0.8fr_auto]"
             >
                 <div class="grid gap-2">
-                    <Label for="transaction_search">Search</Label>
+                    <Label for="transaction_search">{{
+                        t('finance.fields.search')
+                    }}</Label>
                     <Input
                         id="transaction_search"
                         v-model="filterSearch"
                         :class="filterFieldClass"
-                        placeholder="Title or note"
+                        :placeholder="t('finance.filters.title_or_note')"
                         @keyup.enter="applyFilters()"
                     />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="transaction_type">Type</Label>
+                    <Label for="transaction_type">{{
+                        t('finance.fields.type')
+                    }}</Label>
                     <Select
                         v-model="filterType"
                         @update:model-value="applyTypeFilter"
@@ -29,18 +33,28 @@
                             id="transaction_type"
                             :class="filterFieldClass"
                         >
-                            <SelectValue placeholder="All types" />
+                            <SelectValue
+                                :placeholder="t('finance.filters.all_types')"
+                            />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All types</SelectItem>
-                            <SelectItem value="cost">Costs</SelectItem>
-                            <SelectItem value="income">Incomes</SelectItem>
+                            <SelectItem value="all">{{
+                                t('finance.filters.all_types')
+                            }}</SelectItem>
+                            <SelectItem value="cost">{{
+                                t('finance.filters.costs')
+                            }}</SelectItem>
+                            <SelectItem value="income">{{
+                                t('finance.filters.incomes')
+                            }}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="transaction_category">Category</Label>
+                    <Label for="transaction_category">{{
+                        t('finance.fields.category')
+                    }}</Label>
                     <Select
                         v-model="filterCategory"
                         @update:model-value="applyFilters()"
@@ -49,10 +63,16 @@
                             id="transaction_category"
                             :class="filterFieldClass"
                         >
-                            <SelectValue placeholder="All categories" />
+                            <SelectValue
+                                :placeholder="
+                                    t('finance.filters.all_categories')
+                                "
+                            />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All categories</SelectItem>
+                            <SelectItem value="all">{{
+                                t('finance.filters.all_categories')
+                            }}</SelectItem>
                             <SelectItem
                                 v-for="category in filterCategories"
                                 :key="category.id"
@@ -65,7 +85,9 @@
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="transaction_from">From</Label>
+                    <Label for="transaction_from">{{
+                        t('finance.fields.from')
+                    }}</Label>
                     <BirthdatePicker
                         v-model="filterFrom"
                         name="transaction_from"
@@ -77,7 +99,9 @@
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="transaction_to">To</Label>
+                    <Label for="transaction_to">{{
+                        t('finance.fields.to')
+                    }}</Label>
                     <BirthdatePicker
                         v-model="filterTo"
                         name="transaction_to"
@@ -94,7 +118,7 @@
                         @click="applyFilters()"
                     >
                         <Search class="size-4" />
-                        Filter
+                        {{ t('finance.actions.filter') }}
                     </Button>
                     <Button
                         variant="outline"
@@ -102,7 +126,9 @@
                         @click="clearFilters"
                     >
                         <RotateCcw class="size-4" />
-                        <span class="sr-only">Reset filters</span>
+                        <span class="sr-only">{{
+                            t('finance.actions.reset_filters')
+                        }}</span>
                     </Button>
                 </div>
             </div>
@@ -119,7 +145,7 @@
                         <h2
                             class="text-[22px] leading-none font-normal text-white"
                         >
-                            Money going out
+                            {{ t('finance.tables.money_going_out') }}
                         </h2>
                     </div>
                     <Button
@@ -128,13 +154,13 @@
                     >
                         <span class="grid text-left">
                             <span class="col-start-1 row-start-1">
-                                Add Cost
+                                {{ t('finance.actions.add_cost') }}
                             </span>
                             <span
                                 class="invisible col-start-1 row-start-1"
                                 aria-hidden="true"
                             >
-                                Add Income
+                                {{ t('finance.actions.add_income') }}
                             </span>
                         </span>
                         <span
@@ -154,22 +180,22 @@
                                 <th
                                     class="rounded-l-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                                 >
-                                    Subject
+                                    {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
                                     class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                                 >
-                                    Category
+                                    {{ t('finance.fields.category') }}
                                 </th>
                                 <th
                                     class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                                 >
-                                    Amount
+                                    {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
                                     class="hidden bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
                                 >
-                                    Date
+                                    {{ t('finance.fields.date') }}
                                 </th>
                                 <th
                                     class="rounded-r-2xl bg-[#24212f] px-3 py-4 sm:px-5"
@@ -218,7 +244,7 @@
                                 <td
                                     class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
                                 >
-                                    {{ transaction.occurred_at }}
+                                    {{ displayDate(transaction.occurred_at) }}
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
                                     <div class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
@@ -236,8 +262,7 @@
                                     colspan="5"
                                     class="px-5 py-12 text-center text-[#989898]"
                                 >
-                                    No costs yet. Add the first one when money
-                                    leaves the building.
+                                    {{ t('finance.dashboard.no_costs') }}
                                 </td>
                             </tr>
                         </tbody>
@@ -253,7 +278,7 @@
                         <h2
                             class="text-[22px] leading-none font-normal text-white"
                         >
-                            Money coming in
+                            {{ t('finance.tables.money_coming_in') }}
                         </h2>
                     </div>
                     <Button
@@ -262,13 +287,13 @@
                     >
                         <span class="grid text-left">
                             <span class="col-start-1 row-start-1">
-                                Add Income
+                                {{ t('finance.actions.add_income') }}
                             </span>
                             <span
                                 class="invisible col-start-1 row-start-1"
                                 aria-hidden="true"
                             >
-                                Add Income
+                                {{ t('finance.actions.add_income') }}
                             </span>
                         </span>
                         <span
@@ -288,22 +313,22 @@
                                 <th
                                     class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
-                                    Subject
+                                    {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
                                     class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
-                                    Category
+                                    {{ t('finance.fields.category') }}
                                 </th>
                                 <th
                                     class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
-                                    Amount
+                                    {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
                                     class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                                 >
-                                    Date
+                                    {{ t('finance.fields.date') }}
                                 </th>
                                 <th
                                     class="rounded-r-2xl bg-[#0d2620] px-3 py-4 sm:px-5"
@@ -353,7 +378,7 @@
                                 <td
                                     class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
                                 >
-                                    {{ transaction.occurred_at }}
+                                    {{ displayDate(transaction.occurred_at) }}
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
                                     <div class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
@@ -371,8 +396,7 @@
                                     colspan="5"
                                     class="px-5 py-12 text-center text-[#989898]"
                                 >
-                                    No incomes yet. Add salary, gifts, or
-                                    freelance wins here.
+                                    {{ t('finance.dashboard.no_incomes') }}
                                 </td>
                             </tr>
                         </tbody>
@@ -399,8 +423,7 @@
                         <DialogDescription
                             class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#989898]"
                         >
-                            The same form handles both tables. The transaction
-                            type follows the table action you selected.
+                            {{ t('finance.form.transaction_description') }}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -410,13 +433,13 @@
                         <div class="grid gap-2">
                             <div class="grid gap-2 sm:grid-cols-[276px_134px]">
                                 <Label class="finance-dialog-label" for="title">
-                                    Subject
+                                    {{ t('finance.fields.subject') }}
                                 </Label>
                                 <Label
                                     class="finance-dialog-label"
                                     for="category"
                                 >
-                                    Category
+                                    {{ t('finance.fields.category') }}
                                 </Label>
                             </div>
                             <div class="grid gap-2 sm:grid-cols-[276px_134px]">
@@ -426,7 +449,9 @@
                                         v-model="form.title"
                                         :class="fieldControlClass"
                                         required
-                                        placeholder="Hamburger, Fresh Restaurant"
+                                        :placeholder="
+                                            t('finance.form.subject_placeholder')
+                                        "
                                     />
                                     <InputError :message="form.errors.title" />
                                 </div>
@@ -440,7 +465,7 @@
                                         :class="fieldControlClass"
                                     >
                                         <option value="" disabled>
-                                            Select
+                                            {{ t('common.select') }}
                                         </option>
                                         <option
                                             v-for="category in selectedCategories"
@@ -462,76 +487,20 @@
                                 class="finance-dialog-label"
                                 for="occurred_at"
                             >
-                                Date
+                                {{ t('finance.fields.date') }}
                             </Label>
                             <input
                                 id="occurred_at"
                                 type="hidden"
                                 :value="form.occurred_at"
                             />
-                            <div
-                                class="grid gap-2 sm:grid-cols-[134px_134px_134px]"
-                            >
-                                <Select v-model="selectedDateMonth" required>
-                                    <SelectTrigger
-                                        class="finance-dialog-field"
-                                        :class="fieldControlClass"
-                                    >
-                                        <SelectValue placeholder="Month" />
-                                    </SelectTrigger>
-                                    <SelectContent
-                                        class="finance-dialog-select-content"
-                                    >
-                                        <SelectItem
-                                            v-for="month in months"
-                                            :key="month.value"
-                                            :value="month.value"
-                                        >
-                                            {{ month.label }}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                <Select v-model="selectedDateDay" required>
-                                    <SelectTrigger
-                                        class="finance-dialog-field"
-                                        :class="fieldControlClass"
-                                    >
-                                        <SelectValue placeholder="Day" />
-                                    </SelectTrigger>
-                                    <SelectContent
-                                        class="finance-dialog-select-content"
-                                    >
-                                        <SelectItem
-                                            v-for="day in transactionDays"
-                                            :key="day"
-                                            :value="day"
-                                        >
-                                            {{ Number(day) }}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                <Select v-model="selectedDateYear" required>
-                                    <SelectTrigger
-                                        class="finance-dialog-field"
-                                        :class="fieldControlClass"
-                                    >
-                                        <SelectValue placeholder="Year" />
-                                    </SelectTrigger>
-                                    <SelectContent
-                                        class="finance-dialog-select-content"
-                                    >
-                                        <SelectItem
-                                            v-for="year in transactionYears"
-                                            :key="year"
-                                            :value="year"
-                                        >
-                                            {{ year }}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            <BirthdatePicker
+                                v-model="form.occurred_at"
+                                name="occurred_at"
+                                :trigger-class="fieldControlClass"
+                                :years-back="16"
+                                :years-forward="1"
+                            />
                             <InputError :message="form.errors.occurred_at" />
                         </div>
 
@@ -541,13 +510,13 @@
                                     class="finance-dialog-label"
                                     for="amount"
                                 >
-                                    Amount
+                                    {{ t('finance.fields.amount') }}
                                 </Label>
                                 <Label
                                     class="finance-dialog-label"
                                     for="currency"
                                 >
-                                    Currency
+                                    {{ t('finance.fields.currency') }}
                                 </Label>
                             </div>
                             <div class="grid gap-2 sm:grid-cols-[276px_134px]">
@@ -592,7 +561,7 @@
                                 class="finance-dialog-label"
                                 for="description"
                             >
-                                Description
+                                {{ t('finance.fields.description') }}
                             </Label>
                             <textarea
                                 id="description"
@@ -600,7 +569,7 @@
                                 rows="1"
                                 class="finance-dialog-field min-h-9 resize-none"
                                 :class="fieldControlClass"
-                                placeholder="Optional note"
+                                :placeholder="t('finance.form.note_placeholder')"
                             />
                             <InputError :message="form.errors.description" />
                         </div>
@@ -612,7 +581,7 @@
                             class="h-9 w-[99px] cursor-pointer rounded-[8px] bg-white/5 px-[10px] py-[3px] text-[20px] font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
                             @click="isDialogOpen = false"
                         >
-                            Cancel
+                            {{ t('common.cancel') }}
                         </Button>
                         <Button
                             type="submit"
@@ -623,7 +592,7 @@
                             "
                         >
                             <Spinner v-if="form.processing" />
-                            Confirm
+                            {{ t('common.confirm') }}
                         </Button>
                     </div>
                 </form>
@@ -632,8 +601,12 @@
 
         <ConfirmDeleteModal
             :open="deleteTarget !== null"
-            :title="`Delete &quot;${deleteTarget?.title}&quot;?`"
-            description="This transaction will be permanently deleted."
+            :title="
+                t('finance.delete.transaction_title', {
+                    title: deleteTarget?.title ?? '',
+                })
+            "
+            :description="t('finance.delete.transaction_description')"
             @update:open="deleteTarget = null"
             @confirm="confirmDelete"
         />
@@ -641,9 +614,10 @@
 </template>
 
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
@@ -665,6 +639,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { formatAppDate } from '@/lib/date';
 import { dashboard } from '@/routes';
 import { index as transactionsIndex } from '@/routes/transactions';
 
@@ -739,6 +714,11 @@ defineOptions({
 const isDialogOpen = ref(false);
 const editingTransactionId = ref<number | null>(null);
 const deleteTarget = ref<Transaction | null>(null);
+const page = usePage();
+const { t } = useI18n();
+const displayCalendar = computed(
+    () => (page.props.calendar as string | undefined) ?? 'gregorian',
+);
 
 const requestDelete = (transaction: Transaction) => {
     deleteTarget.value = transaction;
@@ -752,9 +732,6 @@ const confirmDelete = () => {
     router.delete(`/transactions/${deleteTarget.value.id}`, { preserveScroll: true });
     deleteTarget.value = null;
 };
-const selectedDateYear = ref('');
-const selectedDateMonth = ref('');
-const selectedDateDay = ref('');
 const selectedCurrency = ref<Currency>(props.selectedCurrency);
 const filterSearch = ref(props.filters.search);
 const filterType = ref<FilterType>(props.filters.type);
@@ -765,39 +742,6 @@ const filterFieldClass =
     'h-9 w-full rounded-md !border-[#989898] !bg-[#f4f4f4] px-3 text-sm font-normal !text-[#2d2d2d] shadow-none [color-scheme:light] placeholder:!text-[#989898] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 dark:!border-[#989898] dark:!bg-[#f4f4f4] dark:!text-[#2d2d2d] dark:hover:!bg-[#eeeeee] [&_svg]:!text-[#2d2d2d]';
 
 const today = () => new Date().toISOString().slice(0, 10);
-
-const transactionYears = computed(() => {
-    const currentYear = new Date().getFullYear();
-
-    return Array.from({ length: 17 }, (_, index) =>
-        String(currentYear + 1 - index),
-    );
-});
-
-const months = [
-    { value: '01', label: 'January' },
-    { value: '02', label: 'February' },
-    { value: '03', label: 'March' },
-    { value: '04', label: 'April' },
-    { value: '05', label: 'May' },
-    { value: '06', label: 'June' },
-    { value: '07', label: 'July' },
-    { value: '08', label: 'August' },
-    { value: '09', label: 'September' },
-    { value: '10', label: 'October' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'December' },
-];
-
-const transactionDays = computed(() => {
-    const year = Number(selectedDateYear.value || new Date().getFullYear());
-    const month = Number(selectedDateMonth.value || 1);
-    const daysInMonth = new Date(year, month, 0).getDate();
-
-    return Array.from({ length: daysInMonth }, (_, index) =>
-        String(index + 1).padStart(2, '0'),
-    );
-});
 
 const form = useForm({
     type: 'cost' as TransactionType,
@@ -820,8 +764,16 @@ const filterCategories = computed(() => {
 const isEditing = computed(() => editingTransactionId.value !== null);
 const dialogTitle = computed(() =>
     isEditing.value
-        ? `Edit ${form.type === 'cost' ? 'cost' : 'income'}`
-        : `Add ${form.type === 'cost' ? 'cost' : 'income'}`,
+        ? t(
+              form.type === 'cost'
+                  ? 'finance.form.edit_cost'
+                  : 'finance.form.edit_income',
+          )
+        : t(
+              form.type === 'cost'
+                  ? 'finance.form.add_cost'
+                  : 'finance.form.add_income',
+          ),
 );
 const fieldControlClass = computed(() =>
     form.type === 'cost'
@@ -837,7 +789,7 @@ function categoryName(transaction: Transaction): string {
     return (
         (props.categories[transaction.type] ?? []).find(
             (category) => category.id === transaction.category_id,
-        )?.name ?? 'Uncategorized'
+        )?.name ?? t('finance.categories.uncategorized')
     );
 }
 
@@ -853,7 +805,6 @@ const resetForm = (type: TransactionType) => {
     form.title = '';
     form.description = '';
     form.occurred_at = today();
-    syncDatePicker(form.occurred_at);
 };
 
 const openCreateForm = (type: TransactionType) => {
@@ -872,7 +823,6 @@ const openEditForm = (transaction: Transaction) => {
     form.title = transaction.title;
     form.description = transaction.description ?? '';
     form.occurred_at = transaction.occurred_at;
-    syncDatePicker(transaction.occurred_at);
     isDialogOpen.value = true;
 };
 
@@ -894,11 +844,6 @@ const submitTransaction = () => {
 
     form.post('/transactions', options);
 };
-
-watch(
-    [selectedDateYear, selectedDateMonth, selectedDateDay],
-    updateOccurredAtFromPicker,
-);
 
 watch(
     () => props.selectedCurrency,
@@ -935,15 +880,6 @@ watch(filterType, () => {
         )
     ) {
         filterCategory.value = 'all';
-    }
-});
-
-watch(transactionDays, (availableDays) => {
-    if (
-        selectedDateDay.value &&
-        !availableDays.includes(selectedDateDay.value)
-    ) {
-        selectedDateDay.value = availableDays.at(-1) ?? '';
     }
 });
 
@@ -989,26 +925,6 @@ function clearFilters(): void {
     applyFilters();
 }
 
-function syncDatePicker(date: string): void {
-    const [year, month, day] = date.split('-');
-
-    selectedDateYear.value = year ?? '';
-    selectedDateMonth.value = month ?? '';
-    selectedDateDay.value = day ?? '';
-}
-
-function updateOccurredAtFromPicker(): void {
-    if (
-        !selectedDateYear.value ||
-        !selectedDateMonth.value ||
-        !selectedDateDay.value
-    ) {
-        return;
-    }
-
-    form.occurred_at = `${selectedDateYear.value}-${selectedDateMonth.value}-${selectedDateDay.value}`;
-}
-
 function formatAmount(amount: string | number): string {
     const number = Number(amount);
 
@@ -1018,5 +934,7 @@ function formatAmount(amount: string | number): string {
     }).format(number);
 }
 
-syncDatePicker(form.occurred_at);
+function displayDate(value: string): string {
+    return formatAppDate(value, displayCalendar.value);
+}
 </script>

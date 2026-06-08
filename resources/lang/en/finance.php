@@ -20,6 +20,7 @@ return [
         'bitcoin' => 'Bitcoin',
         'total' => 'Total Portfolio',
     ],
+    'calculating' => 'Calculating…',
     'calendar' => [
         'current_period' => 'Current Period',
         'day_of_month' => 'Day {day} of {days}',

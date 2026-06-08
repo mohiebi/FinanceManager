@@ -15,8 +15,11 @@
                     {{ t('finance.investments.total_portfolio_value') }}
                 </p>
                 <p class="mt-3 text-2xl font-bold text-white">
-                    {{ props.summary.total_value_formatted }}
-                    <span class="text-sm font-normal text-[#989898]">{{ currencySymbol }}</span>
+                    <template v-if="props.pricesAvailable">
+                        {{ props.summary.total_value_formatted }}
+                        <span class="text-sm font-normal text-[#989898]">{{ currencySymbol }}</span>
+                    </template>
+                    <span v-else class="text-base font-medium text-[#989898]">{{ t('finance.calculating') }}</span>
                 </p>
             </article>
 
@@ -75,7 +78,7 @@
                     :labels="donutLabels"
                     :colors="donutColors"
                     :center-label="t('finance.investments.portfolio')"
-                    :center-value="props.summary.total_value_formatted + ' T'"
+                    :center-value="props.pricesAvailable ? props.summary.total_value_formatted + ' T' : t('finance.calculating')"
                     @slice-click="onSliceClick"
                 />
             </section>
@@ -204,7 +207,8 @@
                         class="rounded-md px-2 py-0.5 text-xs font-semibold text-white"
                         :style="{ backgroundColor: asset.color }"
                     >
-                        {{ asset.allocation }}%
+                        <template v-if="props.pricesAvailable">{{ asset.allocation }}%</template>
+                        <template v-else>{{ t('finance.calculating') }}</template>
                     </span>
                 </div>
                 <p class="text-sm font-semibold text-white">
@@ -214,8 +218,11 @@
                     {{ asset.quantity_display }} {{ asset.unit }}
                 </p>
                 <p class="mt-2 text-sm font-bold text-white">
-                    {{ asset.value_formatted }}
-                    <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
+                    <template v-if="props.pricesAvailable">
+                        {{ asset.value_formatted }}
+                        <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
+                    </template>
+                    <span v-else class="text-xs font-medium text-[#989898]">{{ t('finance.calculating') }}</span>
                 </p>
             </div>
         </div>
@@ -572,6 +579,7 @@ const props = defineProps<{
     prices: Record<AssetKey, number>;
     currencies: CurrencyOption[];
     selectedCurrency: string;
+    pricesAvailable: boolean;
 }>();
 
 defineOptions({

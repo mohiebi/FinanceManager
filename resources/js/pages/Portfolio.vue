@@ -57,8 +57,11 @@
                             {{ t('finance.portfolio.current_value') }}
                         </p>
                         <p class="mt-2 text-base font-bold text-white">
-                            {{ props.summary.total_current_value_formatted }}
-                            <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
+                            <template v-if="props.pricesAvailable">
+                                {{ props.summary.total_current_value_formatted }}
+                                <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
+                            </template>
+                            <span v-else class="text-sm font-normal text-[#989898]">{{ t('finance.calculating') }}</span>
                         </p>
                     </div>
 
@@ -114,7 +117,12 @@
                                       : 'text-[#989898]'
                             "
                         >
-                            <template v-if="props.summary.total_pnl !== null">
+                            <span
+                                v-if="!props.pricesAvailable"
+                                class="text-sm font-normal text-[#989898]"
+                                >{{ t('finance.calculating') }}</span
+                            >
+                            <template v-else-if="props.summary.total_pnl !== null">
                                 <span>{{
                                     props.summary.total_pnl_is_positive
                                         ? '+'
@@ -164,9 +172,9 @@
                 :colors="allocationDonut.colors"
                 :center-label="t('finance.portfolio.current_value')"
                 :center-value="
-                    props.summary.total_current_value_formatted +
-                    ' ' +
-                    currencySymbol
+                    props.pricesAvailable
+                        ? props.summary.total_current_value_formatted + ' ' + currencySymbol
+                        : t('finance.calculating')
                 "
             />
         </div>
@@ -251,8 +259,11 @@
                             <td
                                 class="px-3 py-[17px] text-center text-[17px] leading-none font-bold text-white sm:px-5"
                             >
-                                {{ asset.current_value_formatted }}
-                                <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
+                                <template v-if="props.pricesAvailable">
+                                    {{ asset.current_value_formatted }}
+                                    <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
+                                </template>
+                                <span v-else class="text-sm font-normal text-[#989898]">{{ t('finance.calculating') }}</span>
                             </td>
                             <td
                                 class="px-3 py-[17px] text-center text-[17px] leading-none font-bold sm:px-5"
@@ -264,7 +275,12 @@
                                           : 'text-[#989898]'
                                 "
                             >
-                                <template v-if="asset.pnl !== null">
+                                <span
+                                    v-if="!props.pricesAvailable"
+                                    class="text-sm font-normal text-[#989898]"
+                                    >{{ t('finance.calculating') }}</span
+                                >
+                                <template v-else-if="asset.pnl !== null">
                                     {{ asset.pnl_is_positive ? '+' : '−' }}
                                     {{ asset.pnl_formatted }} {{ currencySymbol }}
                                     <span
@@ -372,8 +388,11 @@
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-bold text-white sm:px-5"
                             >
-                                {{ entry.current_value_fmt }}
-                                <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
+                                <template v-if="props.pricesAvailable">
+                                    {{ entry.current_value_fmt }}
+                                    <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
+                                </template>
+                                <span v-else class="text-sm font-normal text-[#989898]">{{ t('finance.calculating') }}</span>
                             </td>
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-bold sm:px-5"
@@ -385,7 +404,12 @@
                                           : 'text-[#989898]'
                                 "
                             >
-                                <template v-if="entry.pnl !== null">
+                                <span
+                                    v-if="!props.pricesAvailable"
+                                    class="text-sm font-normal text-[#989898]"
+                                    >{{ t('finance.calculating') }}</span
+                                >
+                                <template v-else-if="entry.pnl !== null">
                                     {{ entry.pnl_is_positive ? '+' : '−' }}
                                     {{ entry.pnl_formatted }} {{ currencySymbol }}
                                 </template>
@@ -498,6 +522,7 @@ const props = defineProps<{
     };
     currencies: CurrencyOption[];
     selectedCurrency: string;
+    pricesAvailable: boolean;
 }>();
 
 const selectedCurrency = ref(props.selectedCurrency);

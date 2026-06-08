@@ -20,6 +20,7 @@ return [
         'bitcoin' => 'بیت‌کوین',
         'total' => 'کل پرتفوی',
     ],
+    'calculating' => 'در حال محاسبه…',
     'calendar' => [
         'current_period' => 'دوره فعلی',
         'day_of_month' => 'روز {day} از {days}',

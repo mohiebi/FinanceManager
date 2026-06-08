@@ -94,6 +94,7 @@ class InvestmentController extends Controller
             'entries' => $recentEntries,
             'selectedRange' => $range,
             'prices' => $priceService->allPrices(),
+            'pricesAvailable' => $priceService->pricesAvailable(),
             'currencies' => collect(Currency::cases())->map(fn (Currency $c) => [
                 'label' => strtoupper($c->value),
                 'value' => $c->value,

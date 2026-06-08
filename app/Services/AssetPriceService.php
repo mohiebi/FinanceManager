@@ -64,6 +64,11 @@ class AssetPriceService
         return $this->priceFor($type) * $quantity;
     }
 
+    public function pricesAvailable(): bool
+    {
+        return $this->tgjuPrices() !== [];
+    }
+
     /**
      * @return array<string, float>
      */

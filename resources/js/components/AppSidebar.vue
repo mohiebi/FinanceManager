@@ -158,9 +158,9 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
-                        class="w-64 rounded-lg"
-                        :side="isMobile ? 'bottom' : 'right'"
-                        align="end"
+                        class="w-64"
+                        side="top"
+                        align="start"
                         :side-offset="12"
                     >
                         <UserMenuContent :user="user" />

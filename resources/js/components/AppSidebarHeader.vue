@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { router, usePage } from '@inertiajs/vue3';
-import { Bell, User } from 'lucide-vue-next';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { User } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem } from '@/types';
 import logoGreen from '../../img/Logo-green.svg';
 
@@ -104,27 +105,13 @@ const selectedCurrency = computed({
             </div>
 
             <div class="hidden items-center gap-2 lg:flex">
-                <button
-                    class="relative grid size-9 place-items-center rounded-md bg-[#2d2d2d] text-white"
-                    type="button"
-                >
-                    <Bell class="size-5" />
-                    <span
-                        class="absolute -top-2 -left-2 rounded-full bg-[#02cd86] px-1.5 py-0.5 text-[10px] leading-none font-bold text-[#2d2d2d]"
-                    >
-                        12
-                    </span>
-                    <span class="sr-only">{{
-                        t('navigation.notifications')
-                    }}</span>
-                </button>
-                <button
-                    class="grid size-9 place-items-center rounded-md bg-[#2d2d2d] text-white"
-                    type="button"
+                <Link
+                    :href="editProfile()"
+                    class="grid size-9 cursor-pointer place-items-center rounded-md bg-[#2d2d2d] text-white transition-colors duration-150 hover:bg-[#02cd86] hover:text-[#1a1a1a]"
                 >
                     <User class="size-5" />
                     <span class="sr-only">{{ t('navigation.account') }}</span>
-                </button>
+                </Link>
             </div>
 
             <div

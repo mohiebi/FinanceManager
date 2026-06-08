@@ -290,7 +290,7 @@
                 <div class="flex flex-col gap-3">
                     <button
                         type="button"
-                        class="flex h-[60px] w-full items-center justify-between rounded-[16px] bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-4 text-white shadow-[0_10px_24px_rgba(108,78,233,0.28)] transition hover:brightness-105 active:scale-[0.98]"
+                        class="flex h-[60px] w-full items-center justify-between rounded-[16px] bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-4 text-white shadow-[0_10px_24px_rgba(108,78,233,0.28)] transition hover:cursor-pointer hover:brightness-105 active:scale-[0.98]"
                         @click="openCreateForm('cost')"
                     >
                         <span class="text-[19px] font-bold">{{
@@ -305,7 +305,7 @@
 
                     <button
                         type="button"
-                        class="flex h-[60px] w-full items-center justify-between rounded-[16px] bg-[linear-gradient(90deg,#02CD86_0%,#00A96F_100%)] px-4 text-white shadow-[0_10px_24px_rgba(2,205,134,0.25)] transition hover:brightness-105 active:scale-[0.98]"
+                        class="flex h-[60px] w-full items-center justify-between rounded-[16px] bg-[linear-gradient(90deg,#02CD86_0%,#00A96F_100%)] px-4 text-white shadow-[0_10px_24px_rgba(2,205,134,0.25)] transition hover:cursor-pointer hover:brightness-105 active:scale-[0.98]"
                         @click="openCreateForm('income')"
                     >
                         <span class="text-[19px] font-bold">{{

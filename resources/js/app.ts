@@ -18,6 +18,26 @@ type InitialPage = {
 };
 
 function initialPage(): InitialPage {
+    if (typeof document === 'undefined') {
+        return {};
+    }
+
+    // Inertia renders the initial page payload as a JSON <script> tag
+    // (`<script data-page="app" type="application/json">...</script>`),
+    // not as a `data-page` attribute on the `#app` element itself.
+    const script = document.querySelector<HTMLScriptElement>(
+        'script[data-page="app"][type="application/json"]',
+    );
+
+    if (script?.textContent) {
+        try {
+            return JSON.parse(script.textContent) as InitialPage;
+        } catch {
+            // fall through to legacy lookup below
+        }
+    }
+
+    // Fallback for the legacy `<div id="app" data-page="...">` markup.
     const page = document.getElementById('app')?.dataset.page;
 
     if (!page) {
@@ -28,6 +48,10 @@ function initialPage(): InitialPage {
 }
 
 function applyLocale(locale = 'en', dir = 'ltr'): void {
+    if (typeof document === 'undefined') {
+        return;
+    }
+
     document.documentElement.lang = locale;
     document.documentElement.dir = dir;
 }

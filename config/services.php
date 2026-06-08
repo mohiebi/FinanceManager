@@ -50,6 +50,7 @@ return [
         'cache_seconds' => env('TGJU_PRICE_CACHE_SECONDS', 300),
         'timeout' => env('TGJU_PRICE_TIMEOUT', 8),
         'connect_timeout' => env('TGJU_PRICE_CONNECT_TIMEOUT', 4),
+        'total_budget_seconds' => env('TGJU_PRICE_TOTAL_BUDGET_SECONDS', 18),
     ],
 
 ];

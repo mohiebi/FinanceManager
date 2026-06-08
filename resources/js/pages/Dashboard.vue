@@ -888,25 +888,15 @@ const period = computed(() => {
 });
 
 const monthlyData = computed(() => {
-    const now = new Date();
-    const monthBuckets = Array.from({ length: 6 }, (_, monthIndex) => {
-        const monthDate = new Date(
-            now.getFullYear(),
-            now.getMonth() - (5 - monthIndex),
-            1,
-        );
-        const key = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
-        const label = monthDate.toLocaleDateString(
-            locale.value === 'fa' ? 'fa-IR' : 'en-US',
-            { month: 'short' },
-        );
-
-        return { key, label, income: 0, cost: 0 };
-    });
+    const monthBuckets = recentMonthBuckets(
+        6,
+        displayCalendar.value,
+        locale.value === 'fa' ? 'fa-IR' : 'en-US',
+    ).map((bucket) => ({ ...bucket, income: 0, cost: 0 }));
 
     for (const transaction of props.transactions.costs) {
         const monthBucket = monthBuckets.find(
-            (bucket) => bucket.key === transaction.occurred_at.slice(0, 7),
+            (bucket) => bucket.key === monthBucketKeyFromIso(transaction.occurred_at, displayCalendar.value),
         );
 
         if (monthBucket) {
@@ -916,7 +906,7 @@ const monthlyData = computed(() => {
 
     for (const transaction of props.transactions.incomes) {
         const monthBucket = monthBuckets.find(
-            (bucket) => bucket.key === transaction.occurred_at.slice(0, 7),
+            (bucket) => bucket.key === monthBucketKeyFromIso(transaction.occurred_at, displayCalendar.value),
         );
 
         if (monthBucket) {

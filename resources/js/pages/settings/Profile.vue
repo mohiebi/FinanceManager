@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Form, Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import DeleteUser from '@/components/DeleteUser.vue';
@@ -23,14 +24,15 @@ defineOptions({
     },
 });
 
+const { t } = useI18n();
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 </script>
 
 <template>
-    <Head title="Profile settings" />
+    <Head :title="t('settings.profile.title')" />
 
-    <h1 class="sr-only">Profile settings</h1>
+    <h1 class="sr-only">{{ t('settings.profile.title') }}</h1>
 
     <div class="flex flex-col gap-8">
         <!-- Banner -->
@@ -38,7 +40,7 @@ const user = computed(() => page.props.auth.user);
             v-if="requiresProfileCompletion"
             class="rounded-xl bg-[#02CD86]/10 px-4 py-3 text-sm text-[#02CD86] ring-1 ring-[#02CD86]/20"
         >
-            Finish your profile to start using the dashboard.
+            {{ t('settings.profile.finish_banner') }}
         </div>
 
         <!-- Heading -->
@@ -46,13 +48,13 @@ const user = computed(() => page.props.auth.user);
             <p
                 class="text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
             >
-                {{ requiresProfileCompletion ? 'Complete your profile' : 'Profile information' }}
+                {{ requiresProfileCompletion ? t('settings.profile.complete_heading') : t('settings.profile.heading') }}
             </p>
             <p class="mt-1 text-sm text-[#989898]">
                 {{
                     requiresProfileCompletion
-                        ? 'We already verified your Google account. Add the last details to continue.'
-                        : 'Update your personal information'
+                        ? t('settings.profile.complete_description')
+                        : t('settings.profile.description')
                 }}
             </p>
         </div>
@@ -66,7 +68,7 @@ const user = computed(() => page.props.auth.user);
                 <label
                     for="name"
                     class="text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
-                    >Name</label
+                    >{{ t('fields.name') }}</label
                 >
                 <Input
                     id="name"
@@ -74,7 +76,7 @@ const user = computed(() => page.props.auth.user);
                     :default-value="user.name"
                     required
                     autocomplete="name"
-                    placeholder="Full name"
+                    :placeholder="t('settings.profile.placeholder_full_name')"
                     class="border-white/10 bg-[#252525] dark:bg-[#252525] text-white placeholder:text-[#686868] focus-visible:ring-1 focus-visible:ring-[#02cd86] focus-visible:border-[#02cd86]"
                 />
                 <InputError :message="errors.name" />
@@ -84,7 +86,7 @@ const user = computed(() => page.props.auth.user);
                 <label
                     for="email"
                     class="text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
-                    >Email address</label
+                    >{{ t('fields.email_address') }}</label
                 >
                 <Input
                     id="email"
@@ -92,11 +94,11 @@ const user = computed(() => page.props.auth.user);
                     :default-value="user.email"
                     disabled
                     autocomplete="username"
-                    placeholder="Email address"
+                    :placeholder="t('fields.email_address')"
                     class="border-white/10 bg-[#252525] dark:bg-[#252525] text-white opacity-60 placeholder:text-[#686868]"
                 />
                 <p class="text-xs text-[#686868]">
-                    Email changes need a separate verification step.
+                    {{ t('settings.profile.email_note') }}
                 </p>
             </div>
 
@@ -104,7 +106,7 @@ const user = computed(() => page.props.auth.user);
                 <label
                     for="birthdate"
                     class="text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
-                    >Birthdate</label
+                    >{{ t('fields.birthdate') }}</label
                 >
                 <BirthdatePicker
                     name="birthdate"
@@ -120,7 +122,7 @@ const user = computed(() => page.props.auth.user);
                     data-test="update-profile-button"
                     class="rounded-xl bg-[#02CD86] px-5 py-2.5 text-sm font-medium text-[#101010] transition hover:brightness-110 disabled:opacity-50"
                 >
-                    Save
+                    {{ t('common.save') }}
                 </button>
 
                 <Transition
@@ -130,7 +132,7 @@ const user = computed(() => page.props.auth.user);
                     leave-to-class="opacity-0"
                 >
                     <p v-show="recentlySuccessful" class="text-sm text-[#02CD86]">
-                        Saved.
+                        {{ t('common.saved') }}
                     </p>
                 </Transition>
             </div>

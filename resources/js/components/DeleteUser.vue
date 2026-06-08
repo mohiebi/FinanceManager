@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Form } from '@inertiajs/vue3';
 import { useTemplateRef } from 'vue';
+import { useI18n } from 'vue-i18n';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
+const { t } = useI18n();
 const passwordInput = useTemplateRef('passwordInput');
 
 withDefaults(defineProps<{
@@ -31,22 +33,22 @@ withDefaults(defineProps<{
     <div class="space-y-6">
         <Heading
             variant="small"
-            title="Delete account"
-            description="Delete your account and all of its resources"
+            :title="t('settings.profile.delete_heading')"
+            :description="t('settings.profile.delete_description')"
         />
         <div
             class="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10"
         >
             <div class="relative space-y-0.5 text-red-600 dark:text-red-100">
-                <p class="font-medium">Warning</p>
+                <p class="font-medium">{{ t('settings.profile.delete_warning_title') }}</p>
                 <p class="text-sm">
-                    Please proceed with caution, this cannot be undone.
+                    {{ t('settings.profile.delete_warning_description') }}
                 </p>
             </div>
             <Dialog>
                 <DialogTrigger as-child>
                     <Button variant="destructive" data-test="delete-user-button"
-                        >Delete account</Button
+                        >{{ t('settings.profile.delete_button') }}</Button
                     >
                 </DialogTrigger>
                 <DialogContent>
@@ -61,31 +63,26 @@ withDefaults(defineProps<{
                         v-slot="{ errors, processing, reset, clearErrors }"
                     >
                         <DialogHeader class="space-y-3">
-                            <DialogTitle
-                                >Are you sure you want to delete your
-                                account?</DialogTitle
-                            >
+                            <DialogTitle>{{ t('settings.profile.delete_confirm_title') }}</DialogTitle>
                             <DialogDescription>
-                                Once your account is deleted, all of its
-                                resources and data will also be permanently
-                                deleted.
+                                {{ t('settings.profile.delete_confirm_description') }}
                                 {{
                                     hasPassword
-                                        ? ' Please enter your password to confirm you would like to permanently delete your account.'
-                                        : ' Confirm below to permanently delete your account.'
+                                        ? t('settings.profile.delete_confirm_description_password')
+                                        : t('settings.profile.delete_confirm_description_no_password')
                                 }}
                             </DialogDescription>
                         </DialogHeader>
 
                         <div v-if="hasPassword" class="grid gap-2">
                             <Label for="password" class="sr-only"
-                                >Password</Label
+                                >{{ t('fields.password') }}</Label
                             >
                             <PasswordInput
                                 id="password"
                                 name="password"
                                 ref="passwordInput"
-                                placeholder="Password"
+                                :placeholder="t('fields.password')"
                             />
                             <InputError :message="errors.password" />
                         </div>
@@ -101,7 +98,7 @@ withDefaults(defineProps<{
                                         }
                                     "
                                 >
-                                    Cancel
+                                    {{ t('common.cancel') }}
                                 </Button>
                             </DialogClose>
 
@@ -111,7 +108,7 @@ withDefaults(defineProps<{
                                 :disabled="processing"
                                 data-test="confirm-delete-user-button"
                             >
-                                Delete account
+                                {{ t('settings.profile.delete_confirm_button') }}
                             </Button>
                         </DialogFooter>
                     </Form>

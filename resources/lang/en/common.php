@@ -7,6 +7,7 @@ return [
     'edit' => 'Edit',
     'delete' => 'Delete',
     'select' => 'Select',
+    'saved' => 'Saved.',
     'date' => 'Date',
     'month' => 'Month',
     'day' => 'Day',

@@ -3,29 +3,20 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
-use App\Http\Middleware\ConfirmPasswordIfAvailable;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
 use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
+use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Routing\Controllers\HasMiddleware;
-use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Laravel\Fortify\Actions\ConfirmPassword;
 use Laravel\Fortify\Features;
 
-class SecurityController extends Controller implements HasMiddleware
+class SecurityController extends Controller
 {
-    /**
-     * Get the middleware that should be assigned to the controller.
-     */
-    public static function middleware(): array
-    {
-        return Features::canManageTwoFactorAuthentication()
-            && Features::optionEnabled(Features::twoFactorAuthentication(), 'confirmPassword')
-                ? [new Middleware(ConfirmPasswordIfAvailable::class, only: ['edit'])]
-                : [];
-    }
-
     /**
      * Show the user's security settings page.
      */
@@ -34,6 +25,7 @@ class SecurityController extends Controller implements HasMiddleware
         $props = [
             'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
             'hasPassword' => $request->user()->hasPassword(),
+            'needsPasswordConfirmation' => $this->needsPasswordConfirmation($request),
         ];
 
         if (Features::canManageTwoFactorAuthentication()) {
@@ -56,5 +48,38 @@ class SecurityController extends Controller implements HasMiddleware
         ]);
 
         return back();
+    }
+
+    /**
+     * Confirm the user's password to unlock the security settings page.
+     */
+    public function confirmPassword(Request $request, StatefulGuard $guard, ConfirmPassword $confirmPassword): RedirectResponse
+    {
+        if (! $confirmPassword($guard, $request->user(), $request->input('password'))) {
+            throw ValidationException::withMessages([
+                'password' => __('auth.password'),
+            ]);
+        }
+
+        $request->session()->put('auth.password_confirmed_at', Date::now()->unix());
+
+        return back();
+    }
+
+    /**
+     * Determine whether the user must reconfirm their password before
+     * accessing the security settings page.
+     */
+    private function needsPasswordConfirmation(Request $request): bool
+    {
+        if (! Features::canManageTwoFactorAuthentication()
+            || ! Features::optionEnabled(Features::twoFactorAuthentication(), 'confirmPassword')
+            || ! $request->user()->hasPassword()) {
+            return false;
+        }
+
+        $confirmedAt = Date::now()->unix() - $request->session()->get('auth.password_confirmed_at', 0);
+
+        return $confirmedAt > config('auth.password_timeout', 10800);
     }
 }

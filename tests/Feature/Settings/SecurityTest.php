@@ -35,10 +35,79 @@ test('security page requires password confirmation when enabled', function () {
         'confirmPassword' => true,
     ]);
 
-    $response = $this->actingAs($user)
-        ->get(route('security.edit'));
+    $this->actingAs($user)
+        ->get(route('security.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/Security')
+            ->where('needsPasswordConfirmation', true),
+        );
+});
 
-    $response->assertRedirect(route('password.confirm'));
+test('security page does not require password confirmation once confirmed', function () {
+    $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
+
+    $user = User::factory()->create();
+
+    Features::twoFactorAuthentication([
+        'confirm' => true,
+        'confirmPassword' => true,
+    ]);
+
+    $this->actingAs($user)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->get(route('security.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/Security')
+            ->where('needsPasswordConfirmation', false),
+        );
+});
+
+test('users can confirm their password from the security page modal', function () {
+    $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
+
+    $user = User::factory()->create();
+
+    Features::twoFactorAuthentication([
+        'confirm' => true,
+        'confirmPassword' => true,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->from(route('security.edit'))
+        ->put(route('security.confirm-password'), [
+            'password' => 'password',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('security.edit'));
+
+    $this->assertTrue(session()->has('auth.password_confirmed_at'));
+});
+
+test('confirming the password fails with an incorrect password', function () {
+    $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
+
+    $user = User::factory()->create();
+
+    Features::twoFactorAuthentication([
+        'confirm' => true,
+        'confirmPassword' => true,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->from(route('security.edit'))
+        ->put(route('security.confirm-password'), [
+            'password' => 'wrong-password',
+        ]);
+
+    $response
+        ->assertSessionHasErrors('password')
+        ->assertRedirect(route('security.edit'));
+
+    $this->assertFalse(session()->has('auth.password_confirmed_at'));
 });
 
 test('security page does not require password confirmation when disabled', function () {

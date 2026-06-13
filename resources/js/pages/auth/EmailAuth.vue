@@ -125,12 +125,13 @@ const returnToEmail = () => {
 };
 
 const googleError = computed(() => page.props.errors.google);
-const formClass = 'auth-login-form mx-auto grid w-full max-w-[420px] gap-4';
-const fieldClass = 'auth-field text-xs';
+const formClass = 'auth-login-form mx-auto grid w-full max-w-[418px] gap-3';
+const profileFormClass =
+    'auth-login-form mx-auto -mt-20 grid w-full max-w-[418px] gap-2';
+const fieldClass = 'auth-field text-base font-light';
 const labelClass = 'auth-label text-base font-normal';
-const primaryButtonClass = 'auth-primary-button w-full text-base font-medium';
-const secondaryButtonClass =
-    'auth-secondary-button w-full text-base font-medium';
+const primaryButtonClass = 'auth-primary-button w-full text-xl font-normal';
+const secondaryButtonClass = 'auth-secondary-button w-full text-xl font-normal';
 const linkClass =
     'auth-inline-link cursor-pointer bg-transparent p-0 text-xl font-normal underline decoration-transparent underline-offset-4 transition hover:decoration-current';
 </script>
@@ -252,29 +253,21 @@ const linkClass =
             v-if="step === 'password'"
             v-bind="WebEmailAuthController.sendRecovery.form()"
             v-slot="{ errors, processing }"
-            class="auth-login-form mx-auto -mt-1 w-full max-w-[420px]"
+            class="auth-login-form mx-auto mt-10 w-full max-w-[418px]"
         >
             <input type="hidden" name="email" :value="email" />
             <InputError :message="errors.email" />
-            <div class="grid gap-3 text-center">
+            <div class="grid gap-3 text-left">
                 <Button
                     type="submit"
                     variant="link"
                     size="sm"
-                    class="auth-inline-link mx-auto px-0 text-base font-normal"
+                    class="auth-inline-link justify-start px-0 text-base font-medium"
                     :disabled="processing"
                 >
                     <Spinner v-if="processing" />
                     Forgot password?
                 </Button>
-                <button
-                    type="button"
-                    :class="linkClass"
-                    class="mx-auto"
-                    @click="returnToEmail"
-                >
-                    Use another email
-                </button>
             </div>
         </Form>
 
@@ -328,7 +321,7 @@ const linkClass =
             v-bind="WebEmailAuthController.completeSignup.form()"
             :reset-on-success="['password', 'password_confirmation']"
             v-slot="{ errors, processing }"
-            :class="formClass"
+            :class="profileFormClass"
         >
             <input type="hidden" name="signup_token" :value="signupToken" />
             <input type="hidden" name="email" :value="email" />
@@ -351,7 +344,13 @@ const linkClass =
 
             <div class="grid gap-1.5">
                 <Label for="birthdate" :class="labelClass">Birthdate</Label>
-                <BirthdatePicker name="birthdate" :trigger-class="fieldClass" />
+                <BirthdatePicker
+                    name="birthdate"
+                    :trigger-class="fieldClass"
+                    month-placeholder="April"
+                    day-placeholder="02"
+                    year-placeholder="2006"
+                />
                 <InputError :message="errors.birthdate" />
             </div>
 

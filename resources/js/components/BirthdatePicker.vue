@@ -25,6 +25,9 @@ const props = withDefaults(
         required?: boolean;
         yearsBack?: number;
         yearsForward?: number;
+        monthPlaceholder?: string;
+        dayPlaceholder?: string;
+        yearPlaceholder?: string;
     }>(),
     {
         name: 'birthdate',
@@ -33,6 +36,9 @@ const props = withDefaults(
         required: true,
         yearsBack: 120,
         yearsForward: 0,
+        monthPlaceholder: '',
+        dayPlaceholder: '',
+        yearPlaceholder: '',
     },
 );
 
@@ -209,7 +215,9 @@ function syncDate(value: string): void {
     <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1.2fr_1fr_1fr]">
         <Select v-model="selectedMonth" :required="required">
             <SelectTrigger :class="cn('w-full', triggerClass)">
-                <SelectValue :placeholder="t('common.month')" />
+                <SelectValue
+                    :placeholder="monthPlaceholder || t('common.month')"
+                />
             </SelectTrigger>
             <SelectContent class="finance-dialog-select-content">
                 <SelectItem
@@ -224,7 +232,7 @@ function syncDate(value: string): void {
 
         <Select v-model="selectedDay" :required="required">
             <SelectTrigger :class="cn('w-full', triggerClass)">
-                <SelectValue :placeholder="t('common.day')" />
+                <SelectValue :placeholder="dayPlaceholder || t('common.day')" />
             </SelectTrigger>
             <SelectContent class="finance-dialog-select-content">
                 <SelectItem v-for="day in days" :key="day" :value="day">
@@ -235,7 +243,9 @@ function syncDate(value: string): void {
 
         <Select v-model="selectedYear" :required="required">
             <SelectTrigger :class="cn('w-full', triggerClass)">
-                <SelectValue :placeholder="t('common.year')" />
+                <SelectValue
+                    :placeholder="yearPlaceholder || t('common.year')"
+                />
             </SelectTrigger>
             <SelectContent class="finance-dialog-select-content">
                 <SelectItem v-for="year in years" :key="year" :value="year">

@@ -421,6 +421,55 @@
                             </div>
                         </div>
 
+                        <!-- Cost basis + Currency -->
+                        <div class="grid gap-2 sm:grid-cols-[1fr_140px]">
+                            <div class="grid gap-2">
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="cost_basis"
+                                >
+                                    {{ t('finance.fields.cost_basis_per_unit') }}
+                                    <span class="font-light text-[#989898]"
+                                        >({{ t('finance.fields.optional') }})</span
+                                    >
+                                </Label>
+                                <Input
+                                    id="cost_basis"
+                                    v-model="form.cost_basis"
+                                    :class="fieldClass"
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    placeholder="0.00"
+                                />
+                                <InputError :message="form.errors.cost_basis" />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="cost_basis_currency"
+                                >
+                                    {{ t('finance.fields.currency') }}
+                                </Label>
+                                <select
+                                    id="cost_basis_currency"
+                                    v-model="form.cost_basis_currency"
+                                    class="finance-dialog-field"
+                                    :class="fieldClass"
+                                >
+                                    <option
+                                        v-for="currency in props.currencies"
+                                        :key="currency.value"
+                                        :value="currency.value"
+                                    >
+                                        {{ currency.label }}
+                                    </option>
+                                </select>
+                                <InputError :message="form.errors.cost_basis_currency" />
+                            </div>
+                        </div>
+
                         <!-- Date -->
                         <div class="grid gap-2">
                             <Label class="finance-dialog-label">{{
@@ -741,6 +790,7 @@ function openCreateDialog(defaultType?: AssetKey) {
     form.clearErrors();
     form.asset_type = defaultType ?? props.assetTypes[0]?.value ?? '';
     form.occurred_at = today();
+    form.cost_basis_currency = props.selectedCurrency || props.currencies[0]?.value || '';
     isDialogOpen.value = true;
 }
 
@@ -752,7 +802,7 @@ function openEditDialog(entry: Entry) {
     form.note = entry.note ?? '';
     form.occurred_at = entry.occurred_at;
     form.cost_basis = entry.cost_basis !== null ? String(entry.cost_basis) : '';
-    form.cost_basis_currency = entry.cost_basis_currency ?? '';
+    form.cost_basis_currency = entry.cost_basis_currency ?? (props.selectedCurrency || props.currencies[0]?.value || '');
     isDialogOpen.value = true;
 }
 

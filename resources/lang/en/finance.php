@@ -21,6 +21,7 @@ return [
         'total' => 'Total Portfolio',
     ],
     'calculating' => 'Calculating…',
+    'price_unavailable' => 'Price unavailable',
     'calendar' => [
         'current_period' => 'Current Period',
         'day_of_month' => 'Day {day} of {days}',

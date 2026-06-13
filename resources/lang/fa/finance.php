@@ -21,6 +21,7 @@ return [
         'total' => 'کل پرتفوی',
     ],
     'calculating' => 'در حال محاسبه…',
+    'price_unavailable' => 'قیمت در دسترس نیست',
     'calendar' => [
         'current_period' => 'دوره فعلی',
         'day_of_month' => 'روز {day} از {days}',

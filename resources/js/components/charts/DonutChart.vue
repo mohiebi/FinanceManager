@@ -97,7 +97,12 @@ return;
                         fontWeight: 700,
                         color: '#ffffff',
                         offsetY: 4,
-                        formatter: (v: string) => v + '%',
+                        formatter: (v: string) => {
+                            const total = props.series.reduce((acc, val) => acc + val, 0);
+                            const percentage = total > 0 ? (Number(v) / total) * 100 : 0;
+
+                            return percentage.toFixed(1) + '%';
+                        },
                     },
                     total: {
                         show: true,

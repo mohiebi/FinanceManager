@@ -4,7 +4,9 @@
     <div
         class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
     >
-        <section class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
+        <section
+            class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+        >
             <div
                 class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.9fr_0.8fr_0.8fr_auto]"
             >
@@ -115,6 +117,13 @@
                 <div class="flex items-end gap-2">
                     <Button
                         class="rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15"
+                        @click="openImportDialog"
+                    >
+                        <Upload class="size-4" />
+                        {{ t('finance.actions.import_transactions') }}
+                    </Button>
+                    <Button
+                        class="rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15"
                         @click="applyFilters()"
                     >
                         <Search class="size-4" />
@@ -137,7 +146,9 @@
         <div
             class="grid items-start gap-[18px] px-[18px] py-[38px] lg:grid-cols-2"
         >
-            <section class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
+            <section
+                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            >
                 <div
                     class="flex items-center justify-between gap-4 px-5 py-[29px]"
                 >
@@ -229,9 +240,7 @@
                                     <span
                                         class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
                                     >
-                                        {{
-                                            categoryName(transaction)
-                                        }}
+                                        {{ categoryName(transaction) }}
                                     </span>
                                 </td>
                                 <td
@@ -247,12 +256,26 @@
                                     {{ displayDate(transaction.occurred_at) }}
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
-                                    <div class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                                        <button type="button" class="rounded-md p-1.5 hover:bg-white/10" @click="openEditForm(transaction)">
-                                            <Pencil class="size-3.5 text-[#6C4EE9]" />
+                                    <div
+                                        class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+                                    >
+                                        <button
+                                            type="button"
+                                            class="rounded-md p-1.5 hover:bg-white/10"
+                                            @click="openEditForm(transaction)"
+                                        >
+                                            <Pencil
+                                                class="size-3.5 text-[#6C4EE9]"
+                                            />
                                         </button>
-                                        <button type="button" class="rounded-md p-1.5 hover:bg-[#fff0f0]" @click="requestDelete(transaction)">
-                                            <Trash2 class="size-3.5 text-[#E94E50]" />
+                                        <button
+                                            type="button"
+                                            class="rounded-md p-1.5 hover:bg-[#fff0f0]"
+                                            @click="requestDelete(transaction)"
+                                        >
+                                            <Trash2
+                                                class="size-3.5 text-[#E94E50]"
+                                            />
                                         </button>
                                     </div>
                                 </td>
@@ -270,7 +293,9 @@
                 </div>
             </section>
 
-            <section class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
+            <section
+                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            >
                 <div
                     class="flex items-center justify-between gap-4 px-5 py-[29px]"
                 >
@@ -363,9 +388,7 @@
                                     <span
                                         class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
                                     >
-                                        {{
-                                            categoryName(transaction)
-                                        }}
+                                        {{ categoryName(transaction) }}
                                     </span>
                                 </td>
                                 <td
@@ -381,12 +404,26 @@
                                     {{ displayDate(transaction.occurred_at) }}
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
-                                    <div class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                                        <button type="button" class="rounded-md p-1.5 hover:bg-white/10" @click="openEditForm(transaction)">
-                                            <Pencil class="size-3.5 text-[#6C4EE9]" />
+                                    <div
+                                        class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+                                    >
+                                        <button
+                                            type="button"
+                                            class="rounded-md p-1.5 hover:bg-white/10"
+                                            @click="openEditForm(transaction)"
+                                        >
+                                            <Pencil
+                                                class="size-3.5 text-[#6C4EE9]"
+                                            />
                                         </button>
-                                        <button type="button" class="rounded-md p-1.5 hover:bg-[#fff0f0]" @click="requestDelete(transaction)">
-                                            <Trash2 class="size-3.5 text-[#E94E50]" />
+                                        <button
+                                            type="button"
+                                            class="rounded-md p-1.5 hover:bg-[#fff0f0]"
+                                            @click="requestDelete(transaction)"
+                                        >
+                                            <Trash2
+                                                class="size-3.5 text-[#E94E50]"
+                                            />
                                         </button>
                                     </div>
                                 </td>
@@ -450,7 +487,9 @@
                                         :class="fieldControlClass"
                                         required
                                         :placeholder="
-                                            t('finance.form.subject_placeholder')
+                                            t(
+                                                'finance.form.subject_placeholder',
+                                            )
                                         "
                                     />
                                     <InputError :message="form.errors.title" />
@@ -569,7 +608,9 @@
                                 rows="1"
                                 class="finance-dialog-field min-h-9 resize-none"
                                 :class="fieldControlClass"
-                                :placeholder="t('finance.form.note_placeholder')"
+                                :placeholder="
+                                    t('finance.form.note_placeholder')
+                                "
                             />
                             <InputError :message="form.errors.description" />
                         </div>
@@ -599,6 +640,305 @@
             </DialogContent>
         </Dialog>
 
+        <Dialog v-model:open="isImportDialogOpen">
+            <DialogContent
+                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-[#1a1a1a] p-0 text-white shadow-2xl ring-1 ring-white/10 sm:max-w-[980px]"
+            >
+                <div class="space-y-6 px-6 py-8">
+                    <DialogHeader class="space-y-2 text-left">
+                        <DialogTitle
+                            class="text-[22px] leading-tight font-medium text-white"
+                        >
+                            {{ t('finance.import.title') }}
+                        </DialogTitle>
+                        <DialogDescription
+                            class="max-w-3xl text-sm leading-6 text-[#989898]"
+                        >
+                            {{ t('finance.import.description') }}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div
+                        v-if="importResult"
+                        class="rounded-md bg-[#0d2620] px-4 py-3 text-sm text-[#7ee8c4] ring-1 ring-[#02CD86]/20"
+                    >
+                        {{
+                            t('finance.import.result', {
+                                imported: importResult.imported,
+                                skipped: importResult.skipped,
+                            })
+                        }}
+                    </div>
+
+                    <div class="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+                        <div class="space-y-3">
+                            <div
+                                class="flex flex-wrap items-center justify-between gap-3"
+                            >
+                                <h3 class="text-base font-medium text-white">
+                                    {{ t('finance.import.prompt_title') }}
+                                </h3>
+                                <Button
+                                    type="button"
+                                    class="h-9 rounded-md bg-white/10 px-3 text-sm text-white shadow-none ring-1 ring-white/15 hover:bg-white/15"
+                                    @click="copyImportPrompt"
+                                >
+                                    <ClipboardCheck
+                                        v-if="promptCopied"
+                                        class="size-4"
+                                    />
+                                    <Clipboard v-else class="size-4" />
+                                    {{
+                                        promptCopied
+                                            ? t('finance.import.copied')
+                                            : t('finance.import.copy_prompt')
+                                    }}
+                                </Button>
+                            </div>
+                            <textarea
+                                class="min-h-[260px] w-full resize-y rounded-md border border-white/10 bg-[#111111] p-4 font-mono text-xs leading-5 text-[#d8d8d8] [color-scheme:dark] focus-visible:border-[#947BFF] focus-visible:ring-2 focus-visible:ring-[#947BFF]/25 focus-visible:outline-none"
+                                readonly
+                                :value="importPrompt"
+                            />
+                        </div>
+
+                        <div class="space-y-4">
+                            <a
+                                class="inline-flex h-10 items-center gap-2 rounded-md bg-white/10 px-4 text-sm text-white ring-1 ring-white/15 hover:bg-white/15"
+                                href="/transactions/import-template"
+                            >
+                                <FileDown class="size-4" />
+                                {{ t('finance.import.download_template') }}
+                            </a>
+
+                            <form
+                                class="space-y-3"
+                                @submit.prevent="submitImportPreview"
+                            >
+                                <Label for="transaction_import_file">
+                                    {{ t('finance.import.file_label') }}
+                                </Label>
+                                <Input
+                                    id="transaction_import_file"
+                                    ref="importFileInput"
+                                    class="h-11 rounded-md !border-white/10 !bg-[#252525] text-sm !text-white [color-scheme:dark] file:mr-4 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-white"
+                                    type="file"
+                                    accept=".csv,text/csv"
+                                    @change="selectImportFile"
+                                />
+                                <InputError :message="importForm.errors.file" />
+                                <Button
+                                    type="submit"
+                                    class="h-10 rounded-md bg-[#111111] px-4 text-sm text-white shadow-none ring-1 ring-white/10 hover:bg-[#1f1f1f]"
+                                    :disabled="
+                                        importForm.processing ||
+                                        importForm.file === null
+                                    "
+                                >
+                                    <Spinner v-if="importForm.processing" />
+                                    <Upload class="size-4" />
+                                    {{ t('finance.import.preview') }}
+                                </Button>
+                            </form>
+
+                            <div
+                                v-if="importPreview"
+                                class="grid grid-cols-2 gap-2 text-sm"
+                            >
+                                <div
+                                    class="rounded-md bg-white/5 px-3 py-2 ring-1 ring-white/10"
+                                >
+                                    <span class="block text-[#989898]">{{
+                                        t('finance.import.total_rows')
+                                    }}</span>
+                                    <span class="text-lg text-white">{{
+                                        importPreview.summary.total
+                                    }}</span>
+                                </div>
+                                <div
+                                    class="rounded-md bg-white/5 px-3 py-2 ring-1 ring-white/10"
+                                >
+                                    <span class="block text-[#989898]">{{
+                                        t('finance.import.importable_rows')
+                                    }}</span>
+                                    <span class="text-lg text-white">{{
+                                        importPreview.summary.importable
+                                    }}</span>
+                                </div>
+                                <div
+                                    class="rounded-md bg-white/5 px-3 py-2 ring-1 ring-white/10"
+                                >
+                                    <span class="block text-[#989898]">{{
+                                        t('finance.import.invalid_rows')
+                                    }}</span>
+                                    <span class="text-lg text-white">{{
+                                        importPreview.summary.invalid
+                                    }}</span>
+                                </div>
+                                <div
+                                    class="rounded-md bg-white/5 px-3 py-2 ring-1 ring-white/10"
+                                >
+                                    <span class="block text-[#989898]">{{
+                                        t('finance.import.duplicate_rows')
+                                    }}</span>
+                                    <span class="text-lg text-white">{{
+                                        importPreview.summary.duplicate
+                                    }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="previewRows.length > 0"
+                        class="overflow-x-auto rounded-md ring-1 ring-white/10"
+                    >
+                        <table class="w-full min-w-[900px] text-sm">
+                            <thead class="bg-[#111111] text-[#989898]">
+                                <tr>
+                                    <th class="px-3 py-3 text-left">
+                                        {{ t('finance.import.row') }}
+                                    </th>
+                                    <th class="px-3 py-3 text-left">
+                                        {{ t('finance.import.status') }}
+                                    </th>
+                                    <th class="px-3 py-3 text-left">
+                                        {{ t('finance.fields.date') }}
+                                    </th>
+                                    <th class="px-3 py-3 text-left">
+                                        {{ t('finance.fields.type') }}
+                                    </th>
+                                    <th class="px-3 py-3 text-left">
+                                        {{ t('finance.fields.category') }}
+                                    </th>
+                                    <th class="px-3 py-3 text-left">
+                                        {{ t('finance.fields.amount') }}
+                                    </th>
+                                    <th class="px-3 py-3 text-left">
+                                        {{ t('finance.fields.subject') }}
+                                    </th>
+                                    <th class="px-3 py-3 text-left">
+                                        {{ t('finance.import.notes') }}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="row in previewRows"
+                                    :key="row.row_number"
+                                    class="border-t border-white/10"
+                                >
+                                    <td class="px-3 py-3 text-[#989898]">
+                                        {{ row.row_number }}
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        <span
+                                            class="inline-flex rounded-md px-2 py-1 text-xs"
+                                            :class="
+                                                importStatusClass(row.status)
+                                            "
+                                        >
+                                            {{
+                                                t(
+                                                    `finance.import.statuses.${row.status}`,
+                                                )
+                                            }}
+                                        </span>
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        {{
+                                            row.data?.occurred_at ??
+                                            row.original.occurred_at ??
+                                            '-'
+                                        }}
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        {{
+                                            row.data?.type ??
+                                            row.original.type ??
+                                            '-'
+                                        }}
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        {{
+                                            row.data?.category ??
+                                            row.original.category ??
+                                            '-'
+                                        }}
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        {{
+                                            row.data
+                                                ? formatAmount(row.data.amount)
+                                                : (row.original.amount ?? '-')
+                                        }}
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        {{
+                                            row.data?.title ??
+                                            row.original.title ??
+                                            '-'
+                                        }}
+                                    </td>
+                                    <td class="max-w-[260px] px-3 py-3">
+                                        <div
+                                            v-if="
+                                                row.errors.length > 0 ||
+                                                row.warnings.length > 0
+                                            "
+                                            class="space-y-1"
+                                        >
+                                            <p
+                                                v-for="error in row.errors"
+                                                :key="`error-${row.row_number}-${error}`"
+                                                class="text-xs text-[#ffb4b4]"
+                                            >
+                                                {{ error }}
+                                            </p>
+                                            <p
+                                                v-for="warning in row.warnings"
+                                                :key="`warning-${row.row_number}-${warning}`"
+                                                class="text-xs text-[#ffd58a]"
+                                            >
+                                                {{ warning }}
+                                            </p>
+                                        </div>
+                                        <span v-else class="text-[#989898]">
+                                            {{ t('finance.import.ready') }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex flex-wrap justify-end gap-2">
+                        <Button
+                            type="button"
+                            class="h-10 rounded-md bg-white/5 px-4 text-sm text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
+                            @click="isImportDialogOpen = false"
+                        >
+                            {{ t('common.cancel') }}
+                        </Button>
+                        <Button
+                            type="button"
+                            class="h-10 rounded-md bg-[#111111] px-4 text-sm text-white shadow-none ring-1 ring-white/10 hover:bg-[#1f1f1f]"
+                            :disabled="
+                                importProcessing ||
+                                !importPreview ||
+                                importPreview.summary.importable === 0
+                            "
+                            @click="confirmImport"
+                        >
+                            <Spinner v-if="importProcessing" />
+                            <Check class="size-4" />
+                            {{ t('finance.import.confirm') }}
+                        </Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+
         <ConfirmDeleteModal
             :open="deleteTarget !== null"
             :title="
@@ -615,7 +955,18 @@
 
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-vue-next';
+import {
+    Check,
+    Clipboard,
+    ClipboardCheck,
+    FileDown,
+    Pencil,
+    Plus,
+    RotateCcw,
+    Search,
+    Trash2,
+    Upload,
+} from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
@@ -674,6 +1025,44 @@ type CurrencyOption = {
     value: Currency;
 };
 
+type ImportStatus = 'valid' | 'invalid' | 'duplicate';
+
+type ImportPreviewRow = {
+    row_number: number;
+    status: ImportStatus;
+    original: Record<string, string>;
+    data: {
+        type: TransactionType;
+        category_id: number | null;
+        category: string;
+        category_is_new: boolean;
+        amount: string;
+        currency: Currency;
+        title: string;
+        description: string | null;
+        occurred_at: string;
+    } | null;
+    errors: string[];
+    warnings: string[];
+};
+
+type ImportPreview = {
+    rows: ImportPreviewRow[];
+    summary: {
+        total: number;
+        valid: number;
+        invalid: number;
+        duplicate: number;
+        importable: number;
+    };
+};
+
+type ImportResult = {
+    imported: number;
+    skipped: number;
+    skipped_duplicates: number;
+};
+
 const props = defineProps<{
     filters: {
         search: string;
@@ -712,6 +1101,7 @@ defineOptions({
 });
 
 const isDialogOpen = ref(false);
+const isImportDialogOpen = ref(false);
 const editingTransactionId = ref<number | null>(null);
 const deleteTarget = ref<Transaction | null>(null);
 const page = usePage();
@@ -729,10 +1119,17 @@ const confirmDelete = () => {
         return;
     }
 
-    router.delete(`/transactions/${deleteTarget.value.id}`, { preserveScroll: true });
+    router.delete(`/transactions/${deleteTarget.value.id}`, {
+        preserveScroll: true,
+    });
     deleteTarget.value = null;
 };
 const selectedCurrency = ref<Currency>(props.selectedCurrency);
+const importFileInput = ref<HTMLInputElement | null>(null);
+const importPreview = ref<ImportPreview | null>(null);
+const importResult = ref<ImportResult | null>(null);
+const importProcessing = ref(false);
+const promptCopied = ref(false);
 const filterSearch = ref(props.filters.search);
 const filterType = ref<FilterType>(props.filters.type);
 const filterCategory = ref(props.filters.category?.toString() ?? 'all');
@@ -753,7 +1150,34 @@ const form = useForm({
     occurred_at: today(),
 });
 
+const importForm = useForm<{
+    file: File | null;
+}>({
+    file: null,
+});
+
+const importPrompt = `Convert the attached bank statement/report into a CSV for my finance app.
+
+The bank report may be Persian or English. Analyze Persian descriptions, Persian dates, Persian digits, deposits, withdrawals, and Rial/Toman amounts correctly.
+
+Create a downloadable CSV file named transactions.csv as the final result. Do not return explanations, markdown, code fences, totals, or extra columns. The file content must be raw CSV only.
+
+Required English header:
+occurred_at,type,category,amount,currency,title,description
+
+Rules:
+- occurred_at may be converted to Gregorian YYYY-MM-DD if possible. If the report uses Jalali dates, convert them to Gregorian.
+- type must be cost for money leaving the account and income for money entering the account.
+- category must be one of: Food, Transport, Housing, Health, Shopping, Bills, Other, Salary, Freelance, Gift, Investment.
+- amount must be positive, with no thousands separators.
+- If the report amount is in Rial, convert it to Toman by dividing by 10 and set currency to toman.
+- currency must be one of: toman, usd, eur.
+- title can be Persian or English, but keep it short and human-readable.
+- description can include the original bank description.
+- Ignore balance-only rows, headers, footers, failed transactions, and duplicate summary lines.`;
+
 const selectedCategories = computed(() => props.categories[form.type] ?? []);
+const previewRows = computed(() => importPreview.value?.rows ?? []);
 const filterCategories = computed(() => {
     if (filterType.value === 'cost' || filterType.value === 'income') {
         return props.categories[filterType.value] ?? [];
@@ -826,6 +1250,69 @@ const openEditForm = (transaction: Transaction) => {
     isDialogOpen.value = true;
 };
 
+const openImportDialog = () => {
+    isImportDialogOpen.value = true;
+};
+
+const selectImportFile = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    importForm.file = input.files?.[0] ?? null;
+};
+
+const submitImportPreview = () => {
+    importForm.post('/transactions/imports/preview', {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => {
+            importForm.reset('file');
+
+            if (importFileInput.value) {
+                importFileInput.value.value = '';
+            }
+        },
+    });
+};
+
+const confirmImport = () => {
+    importProcessing.value = true;
+
+    router.post(
+        '/transactions/imports',
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                importProcessing.value = false;
+            },
+        },
+    );
+};
+
+const copyImportPrompt = async () => {
+    if (!navigator.clipboard) {
+        return;
+    }
+
+    await navigator.clipboard.writeText(importPrompt);
+    promptCopied.value = true;
+
+    window.setTimeout(() => {
+        promptCopied.value = false;
+    }, 1800);
+};
+
+function importStatusClass(status: ImportStatus): string {
+    if (status === 'valid') {
+        return 'bg-[#0d2620] text-[#7ee8c4]';
+    }
+
+    if (status === 'duplicate') {
+        return 'bg-[#2f2815] text-[#ffd58a]';
+    }
+
+    return 'bg-[#2f1717] text-[#ffb4b4]';
+}
+
 const submitTransaction = () => {
     const options = {
         preserveScroll: true,
@@ -850,6 +1337,30 @@ watch(
     (value) => {
         selectedCurrency.value = value;
     },
+);
+
+watch(
+    () => page.props.transactionImportPreview,
+    (value) => {
+        if (value) {
+            importPreview.value = value as ImportPreview;
+            importResult.value = null;
+            isImportDialogOpen.value = true;
+        }
+    },
+    { immediate: true },
+);
+
+watch(
+    () => page.props.transactionImportResult,
+    (value) => {
+        if (value) {
+            importResult.value = value as ImportResult;
+            importPreview.value = null;
+            isImportDialogOpen.value = true;
+        }
+    },
+    { immediate: true },
 );
 
 watch(selectedCurrency, (value) => {

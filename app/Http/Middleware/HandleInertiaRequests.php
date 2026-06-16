@@ -54,6 +54,8 @@ class HandleInertiaRequests extends Middleware
                 ? null
                 : FrontendLocalization::messages(FrontendLocalization::DEFAULT_LOCALE),
             'authFlow' => fn () => $request->session()->get('auth_flow'),
+            'transactionImportPreview' => fn () => $request->session()->get('transaction_import_preview'),
+            'transactionImportResult' => fn () => $request->session()->get('transaction_import_result'),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

@@ -59,6 +59,11 @@ class TransactionController extends Controller
         $fromDate = $withFilters ? $this->parseDate((string) $request->query('from')) : null;
         $toDate = $withFilters ? $this->parseDate((string) $request->query('to')) : null;
 
+        // Default to current calendar month when no date range is explicitly set
+        if (! $fromDate instanceof Carbon && ! $toDate instanceof Carbon) {
+            [$fromDate, $toDate] = $this->currentMonthRange($calendar);
+        }
+
         if ($fromDate instanceof Carbon && $toDate instanceof Carbon && $fromDate->gt($toDate)) {
             [$fromDate, $toDate] = [$toDate, $fromDate];
         }
@@ -192,6 +197,33 @@ class TransactionController extends Controller
             'daysInMonth' => $daysInMonth,
             'progress' => (int) round(($dayOfMonth / $daysInMonth) * 100),
         ];
+    }
+
+    /**
+     * @return array{Carbon, Carbon}
+     */
+    private function currentMonthRange(string $calendar): array
+    {
+        $now = Carbon::now();
+
+        if ($calendar === 'jalali') {
+            $jalali = Jalalian::fromCarbon($now);
+            // Jalalian::toCarbon() returns \Carbon\Carbon (not \Illuminate\Support\Carbon),
+            // so we wrap with Carbon::instance() to satisfy instanceof checks downstream.
+            $from = Carbon::instance(
+                (new Jalalian($jalali->getYear(), $jalali->getMonth(), 1))->toCarbon()
+            )->startOfDay();
+
+            $daysInMonth = (int) $jalali->format('t');
+            $to = Carbon::instance(
+                (new Jalalian($jalali->getYear(), $jalali->getMonth(), $daysInMonth))->toCarbon()
+            )->endOfDay();
+        } else {
+            $from = $now->copy()->startOfMonth()->startOfDay();
+            $to   = $now->copy()->endOfMonth()->endOfDay();
+        }
+
+        return [$from, $to];
     }
 
     private function resolveTransactionType(string $type): ?TransactionType

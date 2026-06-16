@@ -125,9 +125,9 @@ const returnToEmail = () => {
 };
 
 const googleError = computed(() => page.props.errors.google);
-const formClass = 'auth-login-form mx-auto grid w-full max-w-[418px] gap-3';
+const formClass = 'auth-login-form mx-auto grid w-full max-w-[418px] gap-5';
 const profileFormClass =
-    'auth-login-form mx-auto -mt-20 grid w-full max-w-[418px] gap-2';
+    'auth-login-form mx-auto -mt-20 grid w-full max-w-[418px] gap-4';
 const fieldClass = 'auth-field text-base font-light';
 const labelClass = 'auth-label text-base font-normal';
 const primaryButtonClass = 'auth-primary-button w-full text-xl font-normal';
@@ -160,7 +160,7 @@ const linkClass =
             v-slot="{ errors, processing }"
             :class="formClass"
         >
-            <div class="grid gap-1.5">
+            <div class="grid gap-2">
                 <Label for="email" :class="labelClass">Email</Label>
                 <Input
                     id="email"
@@ -222,7 +222,7 @@ const linkClass =
         >
             <input type="hidden" name="email" :value="email" />
 
-            <div class="grid gap-1.5">
+            <div class="grid gap-2">
                 <Label for="password" :class="labelClass">Password</Label>
                 <PasswordInput
                     id="password"
@@ -281,7 +281,7 @@ const linkClass =
             <input type="hidden" name="email" :value="email" />
             <input type="hidden" name="code" :value="signupCode" />
 
-            <div class="grid gap-1.5">
+            <div class="grid gap-2">
                 <Label for="signup-code" :class="labelClass">
                     Verification code
                 </Label>
@@ -326,7 +326,7 @@ const linkClass =
             <input type="hidden" name="signup_token" :value="signupToken" />
             <input type="hidden" name="email" :value="email" />
 
-            <div class="grid gap-1.5">
+            <div class="grid gap-2">
                 <Label for="name" :class="labelClass">Name</Label>
                 <Input
                     id="name"
@@ -342,7 +342,7 @@ const linkClass =
                 <InputError :message="errors.name" />
             </div>
 
-            <div class="grid gap-1.5">
+            <div class="grid gap-2">
                 <Label for="birthdate" :class="labelClass">Birthdate</Label>
                 <BirthdatePicker
                     name="birthdate"
@@ -354,7 +354,7 @@ const linkClass =
                 <InputError :message="errors.birthdate" />
             </div>
 
-            <div class="grid gap-1.5">
+            <div class="grid gap-2">
                 <Label for="new-password" :class="labelClass">Password</Label>
                 <PasswordInput
                     id="new-password"
@@ -368,7 +368,7 @@ const linkClass =
                 <InputError :message="errors.password" />
             </div>
 
-            <div class="grid gap-1.5">
+            <div class="grid gap-2">
                 <Label for="password-confirmation" :class="labelClass">
                     Confirm password
                 </Label>
@@ -404,7 +404,7 @@ const linkClass =
             <input type="hidden" name="email" :value="email" />
             <input type="hidden" name="code" :value="recoveryCode" />
 
-            <div class="grid gap-1.5">
+            <div class="grid gap-2">
                 <Label for="recovery-code" :class="labelClass">
                     Verification code
                 </Label>

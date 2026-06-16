@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import AuthIllustration from '@/components/auth/AuthIllustration.vue';
 import { home } from '@/routes';
-import authIllustration from '../../../img/auth/investor-illustration-dark.png';
-import authLogo from '../../../img/Logo-dark.svg';
+import authLogo from '../../../img/Logo-green.svg';
 
 withDefaults(
     defineProps<{
@@ -24,22 +24,21 @@ withDefaults(
             class="mx-auto flex min-h-[calc(100svh-2rem)] max-w-[1318px] items-center lg:min-h-svh"
         >
             <div
-                class="grid w-full gap-0 overflow-hidden rounded-[2rem] border-[8px] border-white bg-white lg:h-[min(894px,calc(100svh-4rem))] lg:min-h-[760px] lg:grid-cols-[minmax(0,688px)_minmax(0,1fr)]"
+                class="grid w-full gap-0 overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 lg:h-[min(894px,calc(100svh-4rem))] lg:min-h-[760px] lg:grid-cols-[minmax(0,688px)_minmax(0,1fr)]"
             >
                 <aside
-                    class="auth-surface flex min-h-[20rem] flex-col bg-[#0B191D] p-6 text-white sm:p-8 lg:min-h-0 lg:rounded-[1.5rem] lg:px-10 lg:py-[35px]"
+                    class="flex min-h-[20rem] flex-col bg-[#161616] p-6 text-white sm:p-8 lg:min-h-0 lg:border-r lg:border-white/10 lg:px-10 lg:py-[35px]"
                 >
                     <p class="text-[0.95rem] font-medium text-white/90">
                         All in one simple, powerful place
                     </p>
 
                     <div
-                        class="flex flex-1 items-start justify-center py-6 lg:pt-[52px]"
+                        class="flex flex-1 items-center justify-center py-6 lg:pt-[52px]"
                     >
-                        <img
-                            :src="authIllustration"
-                            alt="Investor illustration"
-                            class="w-full max-w-[515px] object-contain"
+                        <AuthIllustration
+                            class="w-full max-w-[420px] object-contain"
+                            aria-hidden="true"
                         />
                     </div>
 

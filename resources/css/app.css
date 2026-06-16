@@ -12,7 +12,6 @@
         Instrument Sans, ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
-    --font-auth: var(--auth-font-family);
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -154,10 +153,6 @@
     --sidebar-border: hsl(0 0% 91%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
     --sidebar: hsl(0 0% 98%);
-    --auth-font-family:
-        'Poppins', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
     --auth-color-dark-gray: #0b191d;
     --auth-color-green: #02cd86;
     --auth-color-green-light: #e1fff5;
@@ -169,22 +164,22 @@
     --auth-color-light: #f0ecff;
     --auth-color-red: #e94e50;
     --auth-color-ink: #07161c;
-    --auth-page-bg: var(--auth-color-dark-gray);
-    --auth-frame-bg: var(--auth-color-ink);
-    --auth-surface-bg: #ffffff;
-    --auth-surface-foreground: #121212;
-    --auth-label: #34343c;
-    --auth-copy: #2f2f32;
-    --auth-copy-muted: #5a5a65;
-    --auth-copy-caption: #6e6d77;
-    --auth-input-bg: var(--auth-color-light);
-    --auth-input-border: #ece7ff;
-    --auth-input-placeholder: #9e98b6;
-    --auth-outline-border: #d9d9df;
-    --auth-button-bg: #2d2d2d;
-    --auth-button-foreground: #ffffff;
-    --auth-radius-frame: 2rem;
-    --auth-radius-panel: 2rem;
+    --auth-page-bg: #111111;
+    --auth-frame-bg: #1a1a1a;
+    --auth-surface-bg: #1a1a1a;
+    --auth-surface-foreground: #ffffff;
+    --auth-label: #989898;
+    --auth-copy: #e5e5e5;
+    --auth-copy-muted: #989898;
+    --auth-copy-caption: #686868;
+    --auth-input-bg: #252525;
+    --auth-input-border: rgb(255 255 255 / 10%);
+    --auth-input-placeholder: #686868;
+    --auth-outline-border: rgb(255 255 255 / 10%);
+    --auth-button-bg: #02cd86;
+    --auth-button-foreground: #101010;
+    --auth-radius-frame: 1.375rem;
+    --auth-radius-panel: 1.375rem;
     --auth-radius-control: 0.75rem;
     --auth-control-height: 2.25rem;
     --auth-shadow-frame: 0 32px 80px rgb(0 0 0 / 28%);
@@ -237,13 +232,13 @@
 
 @layer components {
     .auth-theme {
-        font-family: var(--font-auth);
+        font-family: var(--font-sans);
     }
 
     .auth-surface {
         background-color: var(--auth-surface-bg);
         color: var(--auth-surface-foreground);
-        border-radius: 1.5rem;
+        border-radius: var(--auth-radius-panel);
     }
 
     .auth-copy-muted {
@@ -264,11 +259,11 @@
 
     .auth-field {
         height: var(--auth-control-height) !important;
-        border-width: 0;
-        border-radius: 0.5rem;
+        border-width: 1px;
+        border-radius: var(--auth-radius-control);
         border-color: var(--auth-input-border) !important;
         background-color: var(--auth-input-bg) !important;
-        color: #191723 !important;
+        color: #ffffff !important;
         box-shadow: none;
         padding-inline: 1rem;
     }
@@ -278,10 +273,10 @@
     }
 
     .auth-field:focus-visible {
-        border-color: var(--auth-color-purple-light);
+        border-color: var(--auth-color-green);
         --tw-ring-color: color-mix(
             in srgb,
-            var(--auth-color-purple-light) 25%,
+            var(--auth-color-green) 25%,
             transparent
         );
     }
@@ -302,33 +297,30 @@
     .auth-primary-button {
         height: var(--auth-control-height) !important;
         min-height: var(--auth-control-height);
-        border-radius: 0.5rem;
+        border-radius: var(--auth-radius-control);
         background-color: var(--auth-button-bg) !important;
         color: var(--auth-button-foreground) !important;
         padding-block: 0;
     }
 
     .auth-primary-button:hover {
-        background-color: color-mix(
-            in srgb,
-            var(--auth-button-bg) 88%,
-            black
-        ) !important;
+        filter: brightness(1.1);
     }
 
     .auth-secondary-button {
         height: var(--auth-control-height) !important;
         min-height: var(--auth-control-height);
-        border-radius: 0.5rem;
-        border-color: var(--auth-color-gray) !important;
-        background-color: var(--auth-surface-bg) !important;
+        border-radius: var(--auth-radius-control);
+        border-width: 1px;
+        border-color: var(--auth-input-border) !important;
+        background-color: var(--auth-input-bg) !important;
         color: var(--auth-copy) !important;
         box-shadow: none;
         padding-block: 0;
     }
 
     .auth-secondary-button:hover {
-        background-color: #f8f8fb !important;
+        background-color: #2f2f2f !important;
     }
 
     .auth-inline-link {
@@ -339,32 +331,32 @@
         height: var(--auth-control-height);
         width: 100%;
         min-width: 0;
-        border-radius: 0.5rem;
-        border-width: 0;
-        border-color: #e7e0ff;
+        border-radius: var(--auth-radius-control);
+        border-width: 1px;
+        border-color: var(--auth-input-border);
         background-color: var(--auth-input-bg);
         color: var(--auth-copy);
     }
 
     .auth-otp-slot:focus {
-        border-color: var(--auth-color-purple-light);
-        box-shadow: 0 0 0 2px rgb(148 123 255 / 20%);
+        border-color: var(--auth-color-green);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--auth-color-green) 20%, transparent);
     }
 
     .auth-otp-slot[aria-invalid='true'] {
-        border-color: #f2a9ab;
+        border-color: var(--auth-color-red);
     }
 
     .auth-status-success {
-        border-color: color-mix(in srgb, var(--auth-color-green) 30%, white);
-        background-color: var(--auth-color-green-light);
-        color: color-mix(in srgb, var(--auth-color-green) 65%, black);
+        border-color: color-mix(in srgb, var(--auth-color-green) 35%, transparent);
+        background-color: color-mix(in srgb, var(--auth-color-green) 12%, transparent);
+        color: var(--auth-color-green);
     }
 
     .auth-status-error {
-        border-color: color-mix(in srgb, var(--auth-color-red) 30%, white);
-        background-color: color-mix(in srgb, var(--auth-color-red) 8%, white);
-        color: color-mix(in srgb, var(--auth-color-red) 78%, black);
+        border-color: color-mix(in srgb, var(--auth-color-red) 35%, transparent);
+        background-color: color-mix(in srgb, var(--auth-color-red) 12%, transparent);
+        color: var(--auth-color-red);
     }
 
     .finance-dialog-label {

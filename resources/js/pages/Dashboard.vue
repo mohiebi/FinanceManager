@@ -782,7 +782,6 @@ import BarChart from '@/components/charts/BarChart.vue';
 import GaugeChart from '@/components/charts/GaugeChart.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
-import { monthBucketKeyFromIso, recentMonthBuckets } from '@/lib/date';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -794,6 +793,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { monthBucketKeyFromIso, recentMonthBuckets } from '@/lib/date';
 import { dashboard } from '@/routes';
 import { index as transactionsIndex } from '@/routes/transactions';
 
@@ -823,6 +823,13 @@ type Transaction = {
 };
 
 type CurrencyOption = { label: string; value: Currency };
+type Period = {
+    month: string;
+    year: number;
+    dayOfMonth: number;
+    daysInMonth: number;
+    progress: number;
+};
 
 const props = defineProps<{
     transactions: { costs: Transaction[]; incomes: Transaction[] };
@@ -830,6 +837,7 @@ const props = defineProps<{
     currencies: CurrencyOption[];
     selectedCurrency: Currency;
     summary: { cost: string; income: string };
+    period: Period;
 }>();
 
 defineOptions({
@@ -843,7 +851,10 @@ const { locale, t } = useI18n();
 const user = computed(
     () => (page.props.auth as { user?: { name: string } } | undefined)?.user,
 );
-const displayCalendar = computed(() => (page.props.calendar as string | undefined) ?? 'gregorian');
+const displayCalendar = computed(
+    () => (page.props.calendar as string | undefined) ?? 'gregorian',
+);
+const period = computed(() => props.period);
 
 function parseNum(value: string | number): number {
     return parseFloat(String(value).replace(/,/g, '')) || 0;
@@ -873,20 +884,6 @@ const costOptimize = computed(() => {
     );
 });
 
-const period = computed(() => {
-    const now = new Date();
-    const month = now.toLocaleDateString(
-        locale.value === 'fa' ? 'fa-IR' : 'en-US',
-        { month: 'long' },
-    );
-    const year = now.getFullYear();
-    const dayOfMonth = now.getDate();
-    const daysInMonth = new Date(year, now.getMonth() + 1, 0).getDate();
-    const progress = Math.round((dayOfMonth / daysInMonth) * 100);
-
-    return { month, year, dayOfMonth, daysInMonth, progress };
-});
-
 const monthlyData = computed(() => {
     const monthBuckets = recentMonthBuckets(
         6,
@@ -896,7 +893,12 @@ const monthlyData = computed(() => {
 
     for (const transaction of props.transactions.costs) {
         const monthBucket = monthBuckets.find(
-            (bucket) => bucket.key === monthBucketKeyFromIso(transaction.occurred_at, displayCalendar.value),
+            (bucket) =>
+                bucket.key ===
+                monthBucketKeyFromIso(
+                    transaction.occurred_at,
+                    displayCalendar.value,
+                ),
         );
 
         if (monthBucket) {
@@ -906,7 +908,12 @@ const monthlyData = computed(() => {
 
     for (const transaction of props.transactions.incomes) {
         const monthBucket = monthBuckets.find(
-            (bucket) => bucket.key === monthBucketKeyFromIso(transaction.occurred_at, displayCalendar.value),
+            (bucket) =>
+                bucket.key ===
+                monthBucketKeyFromIso(
+                    transaction.occurred_at,
+                    displayCalendar.value,
+                ),
         );
 
         if (monthBucket) {

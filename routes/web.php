@@ -7,6 +7,7 @@ use App\Http\Controllers\InvestmentController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\TransactionImportController;
 use App\Http\Middleware\EnsureProfileIsComplete;
 use Illuminate\Support\Facades\Route;
 
@@ -52,6 +53,9 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(function () {
     Route::get('dashboard', [TransactionController::class, 'dashboard'])->name('dashboard');
     Route::get('reports', ReportController::class)->name('report');
+    Route::get('transactions/import-template', [TransactionImportController::class, 'template'])->name('transactions.import-template');
+    Route::post('transactions/imports/preview', [TransactionImportController::class, 'preview'])->name('transactions.imports.preview');
+    Route::post('transactions/imports', [TransactionImportController::class, 'store'])->name('transactions.imports.store');
     Route::resource('transactions', TransactionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('investments', InvestmentController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('portfolio', PortfolioController::class)->name('portfolio');

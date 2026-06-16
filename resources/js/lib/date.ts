@@ -61,16 +61,24 @@ export function formatChartDateLabel(
         });
     }
 
-    const jalali = toJalaali(date.getFullYear(), date.getMonth() + 1, date.getDate());
+    const jalali = toJalaali(
+        date.getFullYear(),
+        date.getMonth() + 1,
+        date.getDate(),
+    );
 
     return `${jalaliMonthAbbreviations[jalali.jm - 1]} ${jalali.jd}`;
 }
 
-export function monthBucketKeyFromIso(value: string, calendar: string | undefined): string {
+export function monthBucketKeyFromIso(
+    value: string,
+    calendar: string | undefined,
+): string {
     const [year, month] = value.split('-').map(Number);
 
     if (calendar === 'jalali') {
         const jalali = toJalaali(year, month, 1);
+
         return `${jalali.jy}-${pad(jalali.jm)}`;
     }
 
@@ -87,7 +95,11 @@ export function recentMonthBuckets(
     const now = new Date();
 
     if (calendar === 'jalali') {
-        const today = toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+        const today = toJalaali(
+            now.getFullYear(),
+            now.getMonth() + 1,
+            now.getDate(),
+        );
         const buckets: MonthBucket[] = [];
 
         for (let i = count - 1; i >= 0; i--) {
@@ -109,11 +121,17 @@ export function recentMonthBuckets(
     }
 
     return Array.from({ length: count }, (_, index) => {
-        const monthDate = new Date(now.getFullYear(), now.getMonth() - (count - 1 - index), 1);
+        const monthDate = new Date(
+            now.getFullYear(),
+            now.getMonth() - (count - 1 - index),
+            1,
+        );
 
         return {
             key: `${monthDate.getFullYear()}-${pad(monthDate.getMonth() + 1)}`,
-            label: monthDate.toLocaleDateString(monthLabelLocale, { month: 'short' }),
+            label: monthDate.toLocaleDateString(monthLabelLocale, {
+                month: 'short',
+            }),
         };
     });
 }

@@ -12,12 +12,14 @@ use App\Http\Resources\CategoryResource;
 use App\Http\Resources\TransactionResource;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Support\FrontendLocalization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
+use Morilog\Jalali\Jalalian;
 use Throwable;
 
 class TransactionController extends Controller
@@ -43,9 +45,9 @@ class TransactionController extends Controller
         CurrencyConverter $currencyConverter,
         string $component,
         bool $withFilters,
-    ): Response
-    {
+    ): Response {
         $user = $request->user();
+        $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
         $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
         $selectedType = $withFilters
             ? $this->resolveTransactionType((string) $request->query('type'))
@@ -155,7 +157,41 @@ class TransactionController extends Controller
                 'income' => $currencyConverter->sumFormatted($incomes, $selectedCurrency),
                 'count' => $transactions->count(),
             ],
+            'period' => $this->currentPeriod($calendar),
         ]);
+    }
+
+    /**
+     * @return array{month: string, year: int, dayOfMonth: int, daysInMonth: int, progress: int}
+     */
+    private function currentPeriod(string $calendar): array
+    {
+        $now = Carbon::now();
+
+        if ($calendar === 'jalali') {
+            $jalali = Jalalian::fromCarbon($now);
+            $dayOfMonth = (int) $jalali->format('j');
+            $daysInMonth = (int) $jalali->format('t');
+
+            return [
+                'month' => $jalali->format('F'),
+                'year' => (int) $jalali->format('Y'),
+                'dayOfMonth' => $dayOfMonth,
+                'daysInMonth' => $daysInMonth,
+                'progress' => (int) round(($dayOfMonth / $daysInMonth) * 100),
+            ];
+        }
+
+        $dayOfMonth = (int) $now->format('j');
+        $daysInMonth = (int) $now->format('t');
+
+        return [
+            'month' => $now->translatedFormat('F'),
+            'year' => (int) $now->format('Y'),
+            'dayOfMonth' => $dayOfMonth,
+            'daysInMonth' => $daysInMonth,
+            'progress' => (int) round(($dayOfMonth / $daysInMonth) * 100),
+        ];
     }
 
     private function resolveTransactionType(string $type): ?TransactionType

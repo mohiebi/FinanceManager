@@ -23,6 +23,10 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
         ->middleware('throttle:6,1')
         ->name('user-password.update');
 
+    Route::put('settings/security/confirm-password', [SecurityController::class, 'confirmPassword'])
+        ->middleware('throttle:6,1')
+        ->name('security.confirm-password');
+
     Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
 
     Route::get('settings/preferences', [PreferencesController::class, 'edit'])->name('preferences.edit');

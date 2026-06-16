@@ -40,6 +40,9 @@ return [
         'continue_setup' => 'Continue setup',
         'enable_2fa' => 'Enable 2FA',
         'disable_2fa' => 'Disable 2FA',
+        'confirm_password_title' => 'Confirm your password',
+        'confirm_password_description' => 'For your security, please confirm your password to continue.',
+        'confirm_password_button' => 'Confirm',
     ],
     'telegram' => [
         'title' => 'Telegram settings',

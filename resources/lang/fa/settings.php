@@ -42,6 +42,9 @@ return [
         'continue_setup' => 'ادامه‌ی راه‌اندازی',
         'enable_2fa' => 'فعال‌سازی تأیید دومرحله‌ای',
         'disable_2fa' => 'غیرفعال‌سازی تأیید دومرحله‌ای',
+        'confirm_password_title' => 'تأیید رمز عبور',
+        'confirm_password_description' => 'برای امنیت بیشتر، لطفاً رمز عبور خود را تأیید کنید.',
+        'confirm_password_button' => 'تأیید',
     ],
     'telegram' => [
         'title' => 'تنظیمات تلگرام',

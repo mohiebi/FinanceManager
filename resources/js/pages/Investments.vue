@@ -16,9 +16,10 @@
                 </p>
                 <p class="mt-3 text-2xl font-bold text-white">
                     <template v-if="props.pricesAvailable">
-                        {{ props.summary.total_value_formatted }}
+                        {{ props.summary?.total_value_formatted }}
                         <span class="text-sm font-normal text-[#989898]">{{ currencySymbol }}</span>
                     </template>
+                    <span v-else-if="pricesResolved" class="text-base font-medium text-[#989898]">{{ t('finance.price_unavailable') }}</span>
                     <span v-else class="text-base font-medium text-[#989898]">{{ t('finance.calculating') }}</span>
                 </p>
             </article>
@@ -32,7 +33,7 @@
                     {{ t('finance.investments.asset_types') }}
                 </p>
                 <p class="mt-3 text-2xl font-bold text-white">
-                    {{ props.summary.asset_count }}
+                    {{ props.assetTypeCount }}
                     <span class="text-sm font-normal text-[#989898]">{{
                         t('finance.investments.held')
                     }}</span>
@@ -48,7 +49,7 @@
                     {{ t('finance.investments.total_entries') }}
                 </p>
                 <p class="mt-3 text-2xl font-bold text-white">
-                    {{ props.summary.entry_count }}
+                    {{ props.entryCount }}
                     <span class="text-sm font-normal text-[#989898]"
                         >{{ t('finance.investments.records') }}</span
                     >
@@ -56,9 +57,19 @@
             </article>
         </div>
 
+        <Deferred :data="['assets', 'chartData', 'summary', 'prices', 'pricesAvailable']">
+            <template #fallback>
+                <div
+                    class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+                >
+                    <Spinner class="size-8 text-[#02CD86]" />
+                    <p class="mt-4 text-sm text-[#989898]">{{ t('finance.calculating') }}</p>
+                </div>
+            </template>
+
         <!-- ── Charts row ────────────────────────────────────────── -->
         <div
-            v-if="props.assets.length > 0"
+            v-if="(props.assets ?? []).length > 0"
             class="grid items-start gap-[18px] px-[18px] py-[18px] xl:grid-cols-[380px_1fr]"
         >
             <!-- Donut / allocation chart -->
@@ -78,7 +89,7 @@
                     :labels="donutLabels"
                     :colors="donutColors"
                     :center-label="t('finance.investments.portfolio')"
-                    :center-value="props.pricesAvailable ? props.summary.total_value_formatted + ' T' : t('finance.calculating')"
+                    :center-value="props.pricesAvailable ? props.summary?.total_value_formatted + ' T' : t('finance.price_unavailable')"
                     @slice-click="onSliceClick"
                 />
             </section>
@@ -160,7 +171,7 @@
 
                 <LineChart
                     :series="filteredChartSeries"
-                    :categories="props.chartData.categories"
+                    :categories="props.chartData?.categories ?? []"
                     :calendar="displayCalendar"
                     :height="280"
                 />
@@ -169,7 +180,7 @@
 
         <!-- ── Empty state when no entries yet ──────────────────── -->
         <div
-            v-if="props.assets.length === 0"
+            v-if="(props.assets ?? []).length === 0"
             class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
             <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#24212f]">
@@ -192,11 +203,11 @@
 
         <!-- ── Asset summary cards ───────────────────────────────── -->
         <div
-            v-if="props.assets.length > 0"
+            v-if="(props.assets ?? []).length > 0"
             class="grid grid-cols-2 gap-[18px] px-[18px] sm:grid-cols-3 xl:grid-cols-6"
         >
             <div
-                v-for="asset in props.assets"
+                v-for="asset in props.assets ?? []"
                 :key="asset.key"
                 class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-4 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
                 :style="{ borderTop: `2.5px solid ${asset.color}` }"
@@ -208,7 +219,7 @@
                         :style="{ backgroundColor: asset.color }"
                     >
                         <template v-if="props.pricesAvailable">{{ asset.allocation }}%</template>
-                        <template v-else>{{ t('finance.calculating') }}</template>
+                        <template v-else>{{ t('finance.price_unavailable') }}</template>
                     </span>
                 </div>
                 <p class="text-sm font-semibold text-white">
@@ -222,10 +233,11 @@
                         {{ asset.value_formatted }}
                         <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
                     </template>
-                    <span v-else class="text-xs font-medium text-[#989898]">{{ t('finance.calculating') }}</span>
+                    <span v-else class="text-xs font-medium text-[#989898]">{{ t('finance.price_unavailable') }}</span>
                 </p>
             </div>
         </div>
+        </Deferred>
 
         <!-- ── Recent entries table ──────────────────────────────── -->
         <div
@@ -300,13 +312,17 @@
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-white sm:px-5"
                             >
-                                {{
-                                    formatEntryValue(
-                                        entry.quantity,
-                                        entry.asset_type,
-                                    )
-                                }}
-                                <span class="text-xs text-[#989898]">{{ currencySymbol }}</span>
+                                <template v-if="props.pricesAvailable">
+                                    {{
+                                        formatEntryValue(
+                                            entry.quantity,
+                                            entry.asset_type,
+                                        )
+                                    }}
+                                    <span class="text-xs text-[#989898]">{{ currencySymbol }}</span>
+                                </template>
+                                <span v-else-if="pricesResolved" class="text-xs text-[#989898]">{{ t('finance.price_unavailable') }}</span>
+                                <span v-else class="text-xs text-[#989898]">{{ t('finance.calculating') }}</span>
                             </td>
                             <td
                                 class="hidden px-3 py-[14px] text-center text-[16px] leading-none font-normal text-[#989898] sm:table-cell sm:px-5"
@@ -421,6 +437,55 @@
                             </div>
                         </div>
 
+                        <!-- Cost basis + Currency -->
+                        <div class="grid gap-2 sm:grid-cols-[1fr_140px]">
+                            <div class="grid gap-2">
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="cost_basis"
+                                >
+                                    {{ t('finance.fields.cost_basis_per_unit') }}
+                                    <span class="font-light text-[#989898]"
+                                        >({{ t('finance.fields.optional') }})</span
+                                    >
+                                </Label>
+                                <Input
+                                    id="cost_basis"
+                                    v-model="form.cost_basis"
+                                    :class="fieldClass"
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    placeholder="0.00"
+                                />
+                                <InputError :message="form.errors.cost_basis" />
+                            </div>
+
+                            <div class="grid gap-2">
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="cost_basis_currency"
+                                >
+                                    {{ t('finance.fields.currency') }}
+                                </Label>
+                                <select
+                                    id="cost_basis_currency"
+                                    v-model="form.cost_basis_currency"
+                                    class="finance-dialog-field"
+                                    :class="fieldClass"
+                                >
+                                    <option
+                                        v-for="currency in props.currencies"
+                                        :key="currency.value"
+                                        :value="currency.value"
+                                    >
+                                        {{ currency.label }}
+                                    </option>
+                                </select>
+                                <InputError :message="form.errors.cost_basis_currency" />
+                            </div>
+                        </div>
+
                         <!-- Date -->
                         <div class="grid gap-2">
                             <Label class="finance-dialog-label">{{
@@ -490,7 +555,7 @@
 </template>
 
 <script setup lang="ts">
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { Deferred, Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { Plus, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -565,21 +630,23 @@ type CurrencyOption = {
 };
 
 const props = defineProps<{
-    assets: AssetSummary[];
-    summary: {
+    assets?: AssetSummary[];
+    summary?: {
         total_value: number;
         total_value_formatted: string;
         asset_count: number;
         entry_count: number;
     };
-    chartData: ChartData;
+    chartData?: ChartData;
     assetTypes: AssetTypeOption[];
     entries: Entry[];
     selectedRange: string;
-    prices: Record<AssetKey, number>;
+    entryCount: number;
+    assetTypeCount: number;
+    prices?: Record<AssetKey, number>;
     currencies: CurrencyOption[];
     selectedCurrency: string;
-    pricesAvailable: boolean;
+    pricesAvailable?: boolean;
 }>();
 
 defineOptions({
@@ -616,7 +683,7 @@ const currencySymbol = computed(() => {
 });
 
 const availableSeries = computed<ChartSeries[]>(
-    () => props.chartData.series ?? [],
+    () => props.chartData?.series ?? [],
 );
 const activeSeries = ref<Set<string>>(
     new Set(availableSeries.value.map((seriesItem) => seriesItem.key)),
@@ -628,11 +695,13 @@ const filteredChartSeries = computed<ChartSeries[]>(() =>
     ),
 );
 
+const pricesResolved = computed(() => props.pricesAvailable !== undefined);
+
 const donutSeries = computed(() =>
-    props.assets.map((asset) => asset.allocation),
+    (props.assets ?? []).map((asset) => asset.allocation),
 );
-const donutLabels = computed(() => props.assets.map((asset) => asset.label));
-const donutColors = computed(() => props.assets.map((asset) => asset.color));
+const donutLabels = computed(() => (props.assets ?? []).map((asset) => asset.label));
+const donutColors = computed(() => (props.assets ?? []).map((asset) => asset.color));
 
 function toggleSeries(key: string) {
     if (activeSeries.value.has(key)) {
@@ -654,7 +723,7 @@ function onSliceClick(sliceIndex: number | null) {
             availableSeries.value.map((seriesItem) => seriesItem.key),
         );
     } else {
-        const asset = props.assets[sliceIndex];
+        const asset = (props.assets ?? [])[sliceIndex];
 
         if (!asset) {
             return;
@@ -696,10 +765,10 @@ function changeCurrency(currency: string) {
 }
 
 watch(
-    () => props.chartData.series,
+    () => props.chartData?.series,
     () => {
         activeSeries.value = new Set(
-            (props.chartData.series ?? []).map((seriesItem) => seriesItem.key),
+            (props.chartData?.series ?? []).map((seriesItem) => seriesItem.key),
         );
     },
 );
@@ -741,6 +810,7 @@ function openCreateDialog(defaultType?: AssetKey) {
     form.clearErrors();
     form.asset_type = defaultType ?? props.assetTypes[0]?.value ?? '';
     form.occurred_at = today();
+    form.cost_basis_currency = props.selectedCurrency || props.currencies[0]?.value || '';
     isDialogOpen.value = true;
 }
 
@@ -752,7 +822,7 @@ function openEditDialog(entry: Entry) {
     form.note = entry.note ?? '';
     form.occurred_at = entry.occurred_at;
     form.cost_basis = entry.cost_basis !== null ? String(entry.cost_basis) : '';
-    form.cost_basis_currency = entry.cost_basis_currency ?? '';
+    form.cost_basis_currency = entry.cost_basis_currency ?? (props.selectedCurrency || props.currencies[0]?.value || '');
     isDialogOpen.value = true;
 }
 
@@ -796,7 +866,7 @@ function convertFromToman(amount: number, currency: string): number {
 }
 
 function formatEntryValue(quantity: number, assetType: AssetKey): string {
-    const price = props.prices[assetType] ?? 0;
+    const price = (props.prices ?? {})[assetType] ?? 0;
     const valueInToman = quantity * price;
     const converted = convertFromToman(valueInToman, selectedCurrency.value);
     const decimals = selectedCurrency.value === 'toman' ? 0 : 2;

@@ -31,7 +31,7 @@ const primaryButtonClass = 'auth-primary-button w-full text-base font-medium';
         :class="formClass"
     >
         <div class="space-y-3">
-            <div class="grid gap-1.5">
+            <div class="grid gap-2">
                 <Label for="password" :class="labelClass">Password</Label>
                 <PasswordInput
                     id="password"

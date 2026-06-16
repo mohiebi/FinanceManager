@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class WebGoogleAuthController extends Controller
@@ -23,10 +24,27 @@ class WebGoogleAuthController extends Controller
         try {
             $user = $this->broker->userFromCallback();
         } catch (ValidationException $exception) {
+            // A duplicate/late callback request (e.g. a double-click on "Sign in
+            // with Google") reuses an already-consumed authorization code and
+            // fails here, but the original request may have already
+            // authenticated this session. Don't show an error in that case.
+            if (Auth::check()) {
+                return redirect()->intended(route('dashboard', absolute: false));
+            }
+
             return to_route('login')->withErrors([
                 'google' => $exception->errors()['token'][0] ?? 'We could not sign you in with Google.',
             ]);
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
+            if (Auth::check()) {
+                return redirect()->intended(route('dashboard', absolute: false));
+            }
+
+            Log::warning('Google sign-in failed', [
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+
             return to_route('login')->withErrors([
                 'google' => 'We could not sign you in with Google.',
             ]);

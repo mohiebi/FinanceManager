@@ -33,6 +33,25 @@ class PortfolioController extends Controller
             ->orderBy('created_at')
             ->get();
 
+        return Inertia::render('Portfolio', [
+            'currencies' => collect(Currency::cases())->map(fn (Currency $c) => [
+                'label' => strtoupper($c->value),
+                'value' => $c->value,
+            ]),
+            'selectedCurrency' => $selectedCurrency->value,
+            'assets' => Inertia::defer(fn () => $this->buildAssetBreakdown($allEntries, $priceService, $fmt)['assets']),
+            'summary' => Inertia::defer(fn () => $this->buildAssetBreakdown($allEntries, $priceService, $fmt)['summary']),
+            'entries' => Inertia::defer(fn () => $this->buildEntryBreakdown($allEntries, $priceService, $fmt)),
+            'pricesAvailable' => Inertia::defer(fn () => $priceService->pricesAvailable()),
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, Investment>  $allEntries
+     * @return array{assets: array<int, array<string, mixed>>, summary: array<string, mixed>}
+     */
+    private function buildAssetBreakdown(Collection $allEntries, AssetPriceService $priceService, callable $fmt): array
+    {
         $grouped = $allEntries->groupBy(fn (Investment $investment) => $investment->asset_type->value);
 
         $assets = [];
@@ -96,11 +115,32 @@ class PortfolioController extends Controller
             ? round(($totalProfitAndLoss / $totalCostBasis) * 100, 2)
             : null;
 
-        $entries = $user->investments()
-            ->orderByDesc('occurred_at')
-            ->orderByDesc('created_at')
-            ->limit(200)
-            ->get()
+        return [
+            'assets' => $assets,
+            'summary' => [
+                'total_current_value' => $totalCurrentValue,
+                'total_current_value_formatted' => $fmt($totalCurrentValue),
+                'total_cost_basis' => $totalCostBasis,
+                'total_cost_basis_formatted' => $fmt($totalCostBasis),
+                'total_pnl' => $totalProfitAndLoss,
+                'total_pnl_formatted' => $totalProfitAndLoss !== null ? $fmt(abs($totalProfitAndLoss)) : null,
+                'total_pnl_percent' => $totalProfitAndLossPercent,
+                'total_pnl_is_positive' => $totalProfitAndLoss !== null ? $totalProfitAndLoss >= 0 : null,
+                'has_cost_basis_data' => $hasCostBasisData,
+                'asset_count' => count($assets),
+            ],
+        ];
+    }
+
+    /**
+     * @param  Collection<int, Investment>  $allEntries
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildEntryBreakdown(Collection $allEntries, AssetPriceService $priceService, callable $fmt): array
+    {
+        return $allEntries
+            ->sortByDesc(fn (Investment $investment) => [$investment->occurred_at, $investment->created_at])
+            ->take(200)
             ->map(function (Investment $investment) use ($priceService, $fmt) {
                 $currentPrice = $priceService->priceFor($investment->asset_type);
                 $currentValue = $priceService->valueOf($investment->asset_type, (float) $investment->quantity);
@@ -128,29 +168,8 @@ class PortfolioController extends Controller
                     'note' => $investment->note,
                     'occurred_at' => $investment->occurred_at->toDateString(),
                 ];
-            });
-
-        return Inertia::render('Portfolio', [
-            'assets' => $assets,
-            'entries' => $entries,
-            'summary' => [
-                'total_current_value' => $totalCurrentValue,
-                'total_current_value_formatted' => $fmt($totalCurrentValue),
-                'total_cost_basis' => $totalCostBasis,
-                'total_cost_basis_formatted' => $fmt($totalCostBasis),
-                'total_pnl' => $totalProfitAndLoss,
-                'total_pnl_formatted' => $totalProfitAndLoss !== null ? $fmt(abs($totalProfitAndLoss)) : null,
-                'total_pnl_percent' => $totalProfitAndLossPercent,
-                'total_pnl_is_positive' => $totalProfitAndLoss !== null ? $totalProfitAndLoss >= 0 : null,
-                'has_cost_basis_data' => $hasCostBasisData,
-                'asset_count' => count($assets),
-            ],
-            'currencies' => collect(Currency::cases())->map(fn (Currency $c) => [
-                'label' => strtoupper($c->value),
-                'value' => $c->value,
-            ]),
-            'selectedCurrency' => $selectedCurrency->value,
-            'pricesAvailable' => $priceService->pricesAvailable(),
-        ]);
+            })
+            ->values()
+            ->all();
     }
 }

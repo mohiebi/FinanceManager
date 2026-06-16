@@ -45,6 +45,20 @@
                     </p>
                 </div>
 
+                <Deferred :data="['assets', 'entries', 'summary', 'pricesAvailable']">
+                    <template #fallback>
+                        <div class="grid gap-3 sm:grid-cols-3 xl:min-w-2xl">
+                            <div
+                                v-for="i in 3"
+                                :key="i"
+                                class="flex items-center justify-center rounded-[14px] border border-white/10 bg-[#252525] p-4"
+                            >
+                                <Spinner class="size-5 text-[#989898]" />
+                                <span class="ml-2 text-sm text-[#989898]">{{ t('finance.calculating') }}</span>
+                            </div>
+                        </div>
+                    </template>
+
                 <div class="grid gap-3 sm:grid-cols-3 xl:min-w-2xl">
                     <!-- Current value -->
                     <div
@@ -58,10 +72,10 @@
                         </p>
                         <p class="mt-2 text-base font-bold text-white">
                             <template v-if="props.pricesAvailable">
-                                {{ props.summary.total_current_value_formatted }}
+                                {{ summary.total_current_value_formatted }}
                                 <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
                             </template>
-                            <span v-else class="text-sm font-normal text-[#989898]">{{ t('finance.calculating') }}</span>
+                            <span v-else class="text-sm font-normal text-[#989898]">{{ t('finance.price_unavailable') }}</span>
                         </p>
                     </div>
 
@@ -76,8 +90,8 @@
                             {{ t('finance.portfolio.invested') }}
                         </p>
                         <p class="mt-2 text-base font-bold text-white">
-                            <template v-if="props.summary.has_cost_basis_data">
-                                {{ props.summary.total_cost_basis_formatted }}
+                            <template v-if="summary.has_cost_basis_data">
+                                {{ summary.total_cost_basis_formatted }}
                                 <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
                             </template>
                             <span
@@ -91,14 +105,14 @@
                     <!-- P&L -->
                     <div
                         class="rounded-[14px] border border-white/10 bg-[#252525] p-4"
-                        :style="{ borderTop: props.summary.total_pnl_is_positive === true ? '2.5px solid #02CD86' : props.summary.total_pnl_is_positive === false ? '2.5px solid #E94E50' : '2.5px solid #989898' }"
+                        :style="{ borderTop: summary.total_pnl_is_positive === true ? '2.5px solid #02CD86' : summary.total_pnl_is_positive === false ? '2.5px solid #E94E50' : '2.5px solid #989898' }"
                     >
                         <p
                             class="text-xs font-medium tracking-[0.2em] uppercase"
                             :class="
-                                props.summary.total_pnl_is_positive === true
+                                summary.total_pnl_is_positive === true
                                     ? 'text-[#02CD86]'
-                                    : props.summary.total_pnl_is_positive ===
+                                    : summary.total_pnl_is_positive ===
                                         false
                                       ? 'text-[#E94E50]'
                                       : 'text-[#989898]'
@@ -109,9 +123,9 @@
                         <p
                             class="mt-2 text-base font-bold"
                             :class="
-                                props.summary.total_pnl_is_positive === true
+                                summary.total_pnl_is_positive === true
                                     ? 'text-[#02CD86]'
-                                    : props.summary.total_pnl_is_positive ===
+                                    : summary.total_pnl_is_positive ===
                                         false
                                       ? 'text-[#E94E50]'
                                       : 'text-[#989898]'
@@ -120,26 +134,26 @@
                             <span
                                 v-if="!props.pricesAvailable"
                                 class="text-sm font-normal text-[#989898]"
-                                >{{ t('finance.calculating') }}</span
+                                >{{ t('finance.price_unavailable') }}</span
                             >
-                            <template v-else-if="props.summary.total_pnl !== null">
+                            <template v-else-if="summary.total_pnl !== null">
                                 <span>{{
-                                    props.summary.total_pnl_is_positive
+                                    summary.total_pnl_is_positive
                                         ? '+'
                                         : '−'
                                 }}</span>
-                                {{ props.summary.total_pnl_formatted }} {{ currencySymbol }}
+                                {{ summary.total_pnl_formatted }} {{ currencySymbol }}
                                 <span
                                     v-if="
-                                        props.summary.total_pnl_percent !== null
+                                        summary.total_pnl_percent !== null
                                     "
                                     class="text-xs font-normal"
                                 >
                                     ({{
-                                        props.summary.total_pnl_is_positive
+                                        summary.total_pnl_is_positive
                                             ? '+'
                                             : ''
-                                    }}{{ props.summary.total_pnl_percent }}%)
+                                    }}{{ summary.total_pnl_percent }}%)
                                 </span>
                             </template>
                             <span
@@ -150,12 +164,21 @@
                         </p>
                     </div>
                 </div>
+                </Deferred>
             </div>
         </section>
 
+        <Deferred :data="['assets', 'entries', 'summary', 'pricesAvailable']">
+            <template #fallback>
+                <div class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10">
+                    <Spinner class="size-8 text-[#02CD86]" />
+                    <p class="mt-4 text-sm text-[#989898]">{{ t('finance.calculating') }}</p>
+                </div>
+            </template>
+
         <!-- ── Allocation chart ──────────────────────────────────── -->
         <div
-            v-if="props.assets.length > 0"
+            v-if="assets.length > 0"
             class="mx-[18px] mt-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)] xl:max-w-[420px]"
         >
             <div class="mb-4 flex items-center justify-between">
@@ -173,15 +196,15 @@
                 :center-label="t('finance.portfolio.current_value')"
                 :center-value="
                     props.pricesAvailable
-                        ? props.summary.total_current_value_formatted + ' ' + currencySymbol
-                        : t('finance.calculating')
+                        ? summary.total_current_value_formatted + ' ' + currencySymbol
+                        : t('finance.price_unavailable')
                 "
             />
         </div>
 
         <!-- ── Asset breakdown table ─────────────────────────────── -->
         <div
-            v-if="props.assets.length > 0"
+            v-if="assets.length > 0"
             class="mx-[18px] mt-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
         >
             <div class="px-5 py-[29px]">
@@ -225,7 +248,7 @@
                     </thead>
                     <tbody>
                         <tr
-                            v-for="asset in props.assets"
+                            v-for="asset in assets"
                             :key="asset.key"
                             class="group"
                         >
@@ -263,7 +286,7 @@
                                     {{ asset.current_value_formatted }}
                                     <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
                                 </template>
-                                <span v-else class="text-sm font-normal text-[#989898]">{{ t('finance.calculating') }}</span>
+                                <span v-else class="text-sm font-normal text-[#989898]">{{ t('finance.price_unavailable') }}</span>
                             </td>
                             <td
                                 class="px-3 py-[17px] text-center text-[17px] leading-none font-bold sm:px-5"
@@ -278,7 +301,7 @@
                                 <span
                                     v-if="!props.pricesAvailable"
                                     class="text-sm font-normal text-[#989898]"
-                                    >{{ t('finance.calculating') }}</span
+                                    >{{ t('finance.price_unavailable') }}</span
                                 >
                                 <template v-else-if="asset.pnl !== null">
                                     {{ asset.pnl_is_positive ? '+' : '−' }}
@@ -301,7 +324,7 @@
 
         <!-- ── Per-entry breakdown ───────────────────────────────── -->
         <div
-            v-if="props.entries.length > 0"
+            v-if="entries.length > 0"
             class="mx-[18px] my-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
         >
             <div class="px-5 py-[29px]">
@@ -353,7 +376,7 @@
                     </thead>
                     <tbody>
                         <tr
-                            v-for="entry in props.entries"
+                            v-for="entry in entries"
                             :key="entry.id"
                             class="group"
                         >
@@ -392,7 +415,7 @@
                                     {{ entry.current_value_fmt }}
                                     <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
                                 </template>
-                                <span v-else class="text-sm font-normal text-[#989898]">{{ t('finance.calculating') }}</span>
+                                <span v-else class="text-sm font-normal text-[#989898]">{{ t('finance.price_unavailable') }}</span>
                             </td>
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-bold sm:px-5"
@@ -407,7 +430,7 @@
                                 <span
                                     v-if="!props.pricesAvailable"
                                     class="text-sm font-normal text-[#989898]"
-                                    >{{ t('finance.calculating') }}</span
+                                    >{{ t('finance.price_unavailable') }}</span
                                 >
                                 <template v-else-if="entry.pnl !== null">
                                     {{ entry.pnl_is_positive ? '+' : '−' }}
@@ -428,7 +451,7 @@
 
         <!-- ── Empty state ───────────────────────────────────────── -->
         <div
-            v-if="props.assets.length === 0"
+            v-if="assets.length === 0"
             class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
             <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#24212f]">
@@ -443,15 +466,17 @@
                 basis info.
             </p>
         </div>
+        </Deferred>
     </div>
 </template>
 
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Deferred, Head, router, usePage } from '@inertiajs/vue3';
 import { Wallet } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import DonutChart from '@/components/charts/DonutChart.vue';
+import { Spinner } from '@/components/ui/spinner';
 import { formatAppDate } from '@/lib/date';
 import { dashboard, portfolio } from '@/routes';
 
@@ -506,9 +531,9 @@ type PortfolioEntry = {
 };
 
 const props = defineProps<{
-    assets: PortfolioAsset[];
-    entries: PortfolioEntry[];
-    summary: {
+    assets?: PortfolioAsset[];
+    entries?: PortfolioEntry[];
+    summary?: {
         total_current_value: number;
         total_current_value_formatted: string;
         total_cost_basis: number;
@@ -522,8 +547,26 @@ const props = defineProps<{
     };
     currencies: CurrencyOption[];
     selectedCurrency: string;
-    pricesAvailable: boolean;
+    pricesAvailable?: boolean;
 }>();
+
+const assets = computed(() => props.assets ?? []);
+const entries = computed(() => props.entries ?? []);
+const summary = computed(
+    () =>
+        props.summary ?? {
+            total_current_value: 0,
+            total_current_value_formatted: '0',
+            total_cost_basis: 0,
+            total_cost_basis_formatted: '0',
+            total_pnl: null,
+            total_pnl_formatted: null,
+            total_pnl_percent: null,
+            total_pnl_is_positive: null,
+            has_cost_basis_data: false,
+            asset_count: 0,
+        },
+);
 
 const selectedCurrency = ref(props.selectedCurrency);
 const page = usePage();
@@ -541,9 +584,9 @@ const currencySymbol = computed(() => {
 });
 
 const allocationDonut = computed(() => ({
-    series: props.assets.map((asset) => asset.current_value),
-    labels: props.assets.map((asset) => asset.label),
-    colors: props.assets.map((asset) => asset.color),
+    series: assets.value.map((asset) => asset.current_value),
+    labels: assets.value.map((asset) => asset.label),
+    colors: assets.value.map((asset) => asset.color),
 }));
 
 function changeCurrency(currency: string) {

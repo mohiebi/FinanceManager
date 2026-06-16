@@ -80,6 +80,18 @@ class GoogleAuthBroker
             }
 
             if (! $socialAccount instanceof SocialAccount) {
+                // The user may already have a Google account linked under a
+                // different provider_user_id (e.g. they're signing in with a
+                // different Google account that shares this email). Reuse
+                // that record instead of inserting a duplicate, which would
+                // violate the unique(user_id, provider) constraint.
+                $socialAccount = SocialAccount::query()
+                    ->where('user_id', $user->id)
+                    ->where('provider', SocialAccount::ProviderGoogle)
+                    ->first();
+            }
+
+            if (! $socialAccount instanceof SocialAccount) {
                 SocialAccount::query()->create([
                     'user_id' => $user->id,
                     'provider' => SocialAccount::ProviderGoogle,
@@ -90,6 +102,7 @@ class GoogleAuthBroker
             } else {
                 $socialAccount->forceFill([
                     'user_id' => $user->id,
+                    'provider_user_id' => $providerUserId,
                     'provider_email' => $email,
                     'avatar' => $googleUser->getAvatar(),
                 ])->save();

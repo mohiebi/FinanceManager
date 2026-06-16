@@ -40,20 +40,6 @@ class InvestmentController extends Controller
 
         $holdings = $this->computeHoldings($allEntries);
 
-        $assets = $this->buildAssets($holdings, $priceService);
-        $totalValue = array_sum(array_column($assets, 'value'));
-
-        $assets = array_map(function (array $asset) use ($totalValue, $fmt) {
-            return [
-                ...$asset,
-                'allocation' => $totalValue > 0 ? round($asset['value'] / $totalValue * 100, 1) : 0,
-                'price_formatted' => $fmt($asset['price']),
-                'value_formatted' => $fmt($asset['value']),
-            ];
-        }, $assets);
-
-        $chartData = $this->generateChartData($allEntries, $range, $priceService);
-
         $assetTypes = collect(AssetType::cases())->map(fn (AssetType $assetType) => [
             'value' => $assetType->value,
             'label' => $assetType->label(),
@@ -82,24 +68,43 @@ class InvestmentController extends Controller
             ]);
 
         return Inertia::render('Investments', [
-            'assets' => $assets,
-            'summary' => [
-                'total_value' => $totalValue,
-                'total_value_formatted' => $fmt($totalValue),
-                'asset_count' => count($assets),
-                'entry_count' => $allEntries->count(),
-            ],
-            'chartData' => $chartData,
             'assetTypes' => $assetTypes,
             'entries' => $recentEntries,
             'selectedRange' => $range,
-            'prices' => $priceService->allPrices(),
-            'pricesAvailable' => $priceService->pricesAvailable(),
             'currencies' => collect(Currency::cases())->map(fn (Currency $c) => [
                 'label' => strtoupper($c->value),
                 'value' => $c->value,
             ]),
             'selectedCurrency' => $selectedCurrency->value,
+            'entryCount' => $allEntries->count(),
+            'assetTypeCount' => count($holdings),
+            'assets' => Inertia::defer(function () use ($holdings, $priceService, $fmt) {
+                $assets = $this->buildAssets($holdings, $priceService);
+                $totalValue = array_sum(array_column($assets, 'value'));
+
+                return array_map(function (array $asset) use ($totalValue, $fmt) {
+                    return [
+                        ...$asset,
+                        'allocation' => $totalValue > 0 ? round($asset['value'] / $totalValue * 100, 1) : 0,
+                        'price_formatted' => $fmt($asset['price']),
+                        'value_formatted' => $fmt($asset['value']),
+                    ];
+                }, $assets);
+            }),
+            'summary' => Inertia::defer(function () use ($holdings, $priceService, $fmt, $allEntries) {
+                $assets = $this->buildAssets($holdings, $priceService);
+                $totalValue = array_sum(array_column($assets, 'value'));
+
+                return [
+                    'total_value' => $totalValue,
+                    'total_value_formatted' => $fmt($totalValue),
+                    'asset_count' => count($assets),
+                    'entry_count' => $allEntries->count(),
+                ];
+            }),
+            'chartData' => Inertia::defer(fn () => $this->generateChartData($allEntries, $range, $priceService)),
+            'prices' => Inertia::defer(fn () => $priceService->allPrices()),
+            'pricesAvailable' => Inertia::defer(fn () => $priceService->pricesAvailable()),
         ]);
     }
 

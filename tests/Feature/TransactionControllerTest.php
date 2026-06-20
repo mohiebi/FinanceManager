@@ -5,40 +5,53 @@ use App\Enums\TransactionType;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('dashboard shows separated cost and income transactions', function () {
-    $user = User::factory()->create();
-    $costCategory = Category::factory()->cost()->forUser($user)->create();
-    $incomeCategory = Category::factory()->income()->forUser($user)->create();
+    Carbon::setTestNow(Carbon::parse('2026-06-20 12:00:00'));
 
-    Transaction::factory()
-        ->cost()
-        ->for($user)
-        ->for($costCategory)
-        ->create(['title' => 'Groceries']);
-    Transaction::factory()
-        ->income()
-        ->for($user)
-        ->for($incomeCategory)
-        ->create(['title' => 'Salary']);
+    try {
+        $user = User::factory()->create();
+        $costCategory = Category::factory()->cost()->forUser($user)->create();
+        $incomeCategory = Category::factory()->income()->forUser($user)->create();
 
-    $response = $this->actingAs($user)->get(route('dashboard'));
+        Transaction::factory()
+            ->cost()
+            ->for($user)
+            ->for($costCategory)
+            ->create([
+                'title' => 'Groceries',
+                'occurred_at' => '2026-06-10',
+            ]);
+        Transaction::factory()
+            ->income()
+            ->for($user)
+            ->for($incomeCategory)
+            ->create([
+                'title' => 'Salary',
+                'occurred_at' => '2026-06-15',
+            ]);
 
-    $response
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('Dashboard')
-            ->has('transactions.costs', 1)
-            ->where('transactions.costs.0.title', 'Groceries')
-            ->where('transactions.costs.0.category.name', $costCategory->name)
-            ->has('transactions.incomes', 1)
-            ->where('transactions.incomes.0.title', 'Salary')
-            ->where('transactions.incomes.0.category.name', $incomeCategory->name)
-            ->has('categories.cost', 1)
-            ->has('categories.income', 1)
-            ->has('currencies', 3)
-        );
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->has('transactions.costs', 1)
+                ->where('transactions.costs.0.title', 'Groceries')
+                ->where('transactions.costs.0.category.name', $costCategory->name)
+                ->has('transactions.incomes', 1)
+                ->where('transactions.incomes.0.title', 'Salary')
+                ->where('transactions.incomes.0.category.name', $incomeCategory->name)
+                ->has('categories.cost', 1)
+                ->has('categories.income', 1)
+                ->has('currencies', 3)
+            );
+    } finally {
+        Carbon::setTestNow();
+    }
 });
 
 test('transactions page filters by type category date and search', function () {

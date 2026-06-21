@@ -263,13 +263,21 @@ class TelegramHandler extends WebhookHandler
                 $categories = Category::query()
                     ->availableFor($user)
                     ->where('type', $type)
+                    ->orderBy('is_default', 'desc')
+                    ->orderBy('name')
                     ->get();
 
-                $buttons = $categories
-                    ->map(fn (Category $category): Button => Button::make($category->name)->action('pick_category')->param('cat_id', (string) $category->id));
+                $keyboard = Keyboard::make();
+                foreach ($categories as $category) {
+                    $keyboard = $keyboard
+                        ->button($category->name)
+                        ->action('pick_category')
+                        ->param('cat_id', (string) $category->id)
+                        ->width(0.5);
+                }
 
                 $this->chat->message('Choose a category:')
-                    ->keyboard(Keyboard::make()->buttons($buttons)->chunk(2))
+                    ->keyboard($keyboard)
                     ->send();
                 break;
 

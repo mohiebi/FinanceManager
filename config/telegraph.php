@@ -139,7 +139,7 @@ return [
         /**
          * Default storage driver to be used for Telegraph data
          */
-        'default' => 'file',
+        'default' => env('TELEGRAPH_STORAGE_DRIVER', 'cache'),
 
         'stores' => [
             'file' => [

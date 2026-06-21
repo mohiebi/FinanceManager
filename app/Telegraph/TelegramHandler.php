@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use Illuminate\Support\Facades\Log;
 
 class TelegramHandler extends WebhookHandler
 {
@@ -276,9 +277,13 @@ class TelegramHandler extends WebhookHandler
                         ->width(0.5);
                 }
 
-                $this->chat->message('Choose a category:')
+                Log::info('[TG category keyboard] rows', ['keyboard' => $keyboard->toArray()]);
+
+                $response = $this->chat->message('Choose a category:')
                     ->keyboard($keyboard)
                     ->send();
+
+                Log::info('[TG category keyboard] api response', ['body' => $response->body()]);
                 break;
 
             case 'category':

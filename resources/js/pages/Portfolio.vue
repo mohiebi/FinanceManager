@@ -10,30 +10,11 @@
                 class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between"
             >
                 <div class="space-y-2">
-                    <div class="flex flex-wrap items-center gap-3">
-                        <p
-                            class="text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase"
-                        >
-                            {{ t('finance.portfolio.overview') }}
-                        </p>
-                        <!-- Currency pills -->
-                        <div class="flex gap-1">
-                            <button
-                                v-for="c in props.currencies"
-                                :key="c.value"
-                                type="button"
-                                :class="[
-                                    'cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition',
-                                    selectedCurrency === c.value
-                                        ? 'bg-[#02CD86]/10 text-[#02CD86] ring-1 ring-[#02CD86]/25'
-                                        : 'text-[#686868] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
-                                ]"
-                                @click="changeCurrency(c.value)"
-                            >
-                                {{ c.label }}
-                            </button>
-                        </div>
-                    </div>
+                    <p
+                        class="text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase"
+                    >
+                        {{ t('finance.portfolio.overview') }}
+                    </p>
                     <h1
                         class="text-3xl font-semibold tracking-tight text-white sm:text-4xl"
                     >

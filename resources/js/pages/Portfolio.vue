@@ -579,19 +579,6 @@ const allocationDonut = computed(() => ({
     colors: assets.value.map((asset) => asset.color),
 }));
 
-function changeCurrency(currency: string) {
-    if (currency === selectedCurrency.value) {
-        return;
-    }
-
-    selectedCurrency.value = currency;
-    router.get(
-        portfolio.url({ query: { currency } }),
-        {},
-        { preserveScroll: true, preserveState: true, replace: true },
-    );
-}
-
 watch(
     () => props.selectedCurrency,
     (value) => {

@@ -122,6 +122,13 @@
                         <Upload class="size-4" />
                         {{ t('finance.actions.import_transactions') }}
                     </Button>
+                    <a
+                        :href="`/transactions/export?currency=${selectedCurrency}`"
+                        class="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm text-white ring-1 ring-white/20 transition-colors hover:bg-white/15"
+                    >
+                        <Download class="size-4" />
+                        Export
+                    </a>
                     <Button
                         class="rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15"
                         @click="applyFilters()"
@@ -962,6 +969,7 @@ import {
     FileDown,
     Pencil,
     Plus,
+    Download,
     RotateCcw,
     Search,
     Trash2,

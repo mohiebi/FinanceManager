@@ -248,17 +248,26 @@
                 <h2 class="text-[22px] leading-none font-normal text-white">
                     {{ t('finance.investments.investment_entries') }}
                 </h2>
-                <Button
-                    class="h-12 w-max justify-between rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-3.5 text-lg font-bold text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
-                    @click="openCreateDialog()"
-                >
-                    <span>{{ t('finance.actions.add_entry') }}</span>
-                    <span
-                        class="ml-2 grid h-[1.55em] w-[1.55em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
+                <div class="flex items-center gap-2">
+                    <a
+                        :href="`/investments/export?currency=${props.selectedCurrency}`"
+                        class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-white ring-1 ring-white/20 transition-colors hover:bg-white/15"
                     >
-                        <Plus class="size-4" />
-                    </span>
-                </Button>
+                        <Download class="size-4" />
+                        Export
+                    </a>
+                    <Button
+                        class="h-12 w-max justify-between rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-3.5 text-lg font-bold text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
+                        @click="openCreateDialog()"
+                    >
+                        <span>{{ t('finance.actions.add_entry') }}</span>
+                        <span
+                            class="ml-2 grid h-[1.55em] w-[1.55em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
+                        >
+                            <Plus class="size-4" />
+                        </span>
+                    </Button>
+                </div>
             </div>
 
             <div class="overflow-x-auto px-3 pb-5">
@@ -556,7 +565,7 @@
 
 <script setup lang="ts">
 import { Deferred, Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Plus, Trash2, TrendingUp } from 'lucide-vue-next';
+import { Download, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';

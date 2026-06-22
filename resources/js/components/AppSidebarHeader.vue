@@ -29,6 +29,7 @@ const { toggleSidebar } = useSidebar();
 
 const pageTitle = computed(() => {
     const title = props.breadcrumbs.at(-1)?.title ?? 'Dashboard';
+
     return (
         {
             Dashboard:    t('finance.dashboard.title'),
@@ -51,7 +52,10 @@ const hasCurrencySelector = computed(() => currencies.value.length > 0);
 const selectedCurrency = computed({
     get: () => currencyProps.value.selectedCurrency ?? '',
     set: (value: string) => {
-        if (!value || value === currencyProps.value.selectedCurrency) return;
+        if (!value || value === currencyProps.value.selectedCurrency) {
+return;
+}
+
         const currentUrl = new URL(
             page.url,
             typeof window !== 'undefined' ? window.location.origin : 'http://localhost',

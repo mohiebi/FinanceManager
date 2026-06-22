@@ -10,11 +10,20 @@
                 class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between"
             >
                 <div class="space-y-2">
-                    <p
-                        class="text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase"
-                    >
-                        {{ t('finance.portfolio.overview') }}
-                    </p>
+                    <div class="flex items-center gap-3">
+                        <p
+                            class="text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase"
+                        >
+                            {{ t('finance.portfolio.overview') }}
+                        </p>
+                        <a
+                            :href="`/portfolio/export?currency=${selectedCurrency}`"
+                            class="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-xs text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white"
+                        >
+                            <Download class="size-3" />
+                            Export P&amp;L
+                        </a>
+                    </div>
                     <h1
                         class="text-3xl font-semibold tracking-tight text-white sm:text-4xl"
                     >
@@ -452,8 +461,8 @@
 </template>
 
 <script setup lang="ts">
-import { Deferred, Head, router, usePage } from '@inertiajs/vue3';
-import { Wallet } from 'lucide-vue-next';
+import { Deferred, Head, usePage } from '@inertiajs/vue3';
+import { Download, Wallet } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import DonutChart from '@/components/charts/DonutChart.vue';
@@ -569,19 +578,6 @@ const allocationDonut = computed(() => ({
     labels: assets.value.map((asset) => asset.label),
     colors: assets.value.map((asset) => asset.color),
 }));
-
-function changeCurrency(currency: string) {
-    if (currency === selectedCurrency.value) {
-        return;
-    }
-
-    selectedCurrency.value = currency;
-    router.get(
-        portfolio.url({ query: { currency } }),
-        {},
-        { preserveScroll: true, preserveState: true, replace: true },
-    );
-}
 
 watch(
     () => props.selectedCurrency,

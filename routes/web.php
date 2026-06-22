@@ -4,9 +4,12 @@ use App\Http\Controllers\Auth\EmailAuthPageController;
 use App\Http\Controllers\Auth\WebEmailAuthController;
 use App\Http\Controllers\Auth\WebGoogleAuthController;
 use App\Http\Controllers\InvestmentController;
+use App\Http\Controllers\InvestmentExportController;
 use App\Http\Controllers\PortfolioController;
+use App\Http\Controllers\PortfolioExportController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\TransactionExportController;
 use App\Http\Controllers\TransactionImportController;
 use App\Http\Middleware\EnsureProfileIsComplete;
 use Illuminate\Support\Facades\Route;
@@ -56,8 +59,11 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     Route::get('transactions/import-template', [TransactionImportController::class, 'template'])->name('transactions.import-template');
     Route::post('transactions/imports/preview', [TransactionImportController::class, 'preview'])->name('transactions.imports.preview');
     Route::post('transactions/imports', [TransactionImportController::class, 'store'])->name('transactions.imports.store');
+    Route::get('transactions/export', TransactionExportController::class)->name('transactions.export');
     Route::resource('transactions', TransactionController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::get('investments/export', InvestmentExportController::class)->name('investments.export');
     Route::resource('investments', InvestmentController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::get('portfolio/export', PortfolioExportController::class)->name('portfolio.export');
     Route::get('portfolio', PortfolioController::class)->name('portfolio');
 });
 

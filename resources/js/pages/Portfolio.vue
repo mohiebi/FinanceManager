@@ -461,7 +461,7 @@
 </template>
 
 <script setup lang="ts">
-import { Deferred, Head, router, usePage } from '@inertiajs/vue3';
+import { Deferred, Head, usePage } from '@inertiajs/vue3';
 import { Download, Wallet } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';

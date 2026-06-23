@@ -633,13 +633,13 @@
                                     <InputError
                                         :message="form.errors.category_id"
                                     />
-                                    <CategoryCreator
-                                        :type="form.type"
-                                        :field-class="fieldControlClass"
-                                        @created="form.category_id = $event"
-                                    />
                                 </div>
                             </div>
+                            <CategoryCreator
+                                :type="form.type"
+                                :field-class="fieldControlClass"
+                                @created="form.category_id = $event"
+                            />
                             <div class="grid gap-2">
                                 <Label
                                     class="finance-dialog-label"

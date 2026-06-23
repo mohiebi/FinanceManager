@@ -641,7 +641,7 @@
                         </Button>
                         <Button
                             type="submit"
-                            class="h-11 flex-1 rounded-[8px] bg-[#111111] px-[10px] py-[3px] text-base font-normal text-white shadow-none hover:bg-[#1f1f1f] sm:h-9 sm:w-[135px] sm:flex-none sm:text-[20px]"
+                            :class="confirmButtonClass"
                             :disabled="
                                 form.processing ||
                                 selectedCategories.length === 0
@@ -1220,6 +1220,11 @@ const fieldControlClass = computed(() =>
     form.type === 'cost'
         ? 'finance-dialog-field finance-dialog-field-cost focus-visible:ring-[#947BFF]/30'
         : 'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25',
+);
+const confirmButtonClass = computed(() =>
+    form.type === 'cost'
+        ? 'h-11 flex-1 rounded-[8px] bg-[#6C4EE9] px-[10px] py-[3px] text-base font-semibold text-white shadow-none hover:bg-[#7D61F0] disabled:opacity-50 sm:h-9 sm:w-[135px] sm:flex-none sm:text-[20px]'
+        : 'h-11 flex-1 rounded-[8px] bg-[#02CD86] px-[10px] py-[3px] text-base font-semibold text-[#101010] shadow-none hover:bg-[#08dd93] disabled:opacity-50 sm:h-9 sm:w-[135px] sm:flex-none sm:text-[20px]',
 );
 
 function categoryName(transaction: Transaction): string {

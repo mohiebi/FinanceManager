@@ -23,11 +23,22 @@ class Category extends Model
     {
         static::saving(function (Category $category): void {
             if (! $category->slug) {
-                $category->slug = Str::slug($category->name);
+                $category->slug = self::slugForName($category->name);
             }
 
             $category->is_default = $category->user_id === null;
         });
+    }
+
+    public static function slugForName(string $name): string
+    {
+        $slug = Str::slug($name);
+
+        if ($slug !== '') {
+            return $slug;
+        }
+
+        return 'category-'.substr(sha1(mb_strtolower(trim($name))), 0, 16);
     }
 
     /**

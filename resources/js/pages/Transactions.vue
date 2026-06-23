@@ -526,6 +526,11 @@
                                     <InputError
                                         :message="form.errors.category_id"
                                     />
+                                    <CategoryCreator
+                                        :type="form.type"
+                                        :field-class="fieldControlClass"
+                                        @created="form.category_id = $event"
+                                    />
                                 </div>
                             </div>
 
@@ -981,6 +986,7 @@ import {
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
+import CategoryCreator from '@/components/CategoryCreator.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';

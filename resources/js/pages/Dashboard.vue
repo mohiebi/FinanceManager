@@ -633,6 +633,11 @@
                                     <InputError
                                         :message="form.errors.category_id"
                                     />
+                                    <CategoryCreator
+                                        :type="form.type"
+                                        :field-class="fieldControlClass"
+                                        @created="form.category_id = $event"
+                                    />
                                 </div>
                             </div>
                             <div class="grid gap-2">
@@ -781,6 +786,7 @@ import {
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
+import CategoryCreator from '@/components/CategoryCreator.vue';
 import BarChart from '@/components/charts/BarChart.vue';
 import GaugeChart from '@/components/charts/GaugeChart.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';

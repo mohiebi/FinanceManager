@@ -45,6 +45,10 @@ return [
             'investment' => 'Investment',
             'other' => 'Other',
         ],
+        'add_custom' => 'New category',
+        'already_exists' => 'That category already exists for this type.',
+        'name_placeholder' => 'Category name',
+        'new_name' => 'New category name',
         'uncategorized' => 'Uncategorized',
     ],
     'dashboard' => [

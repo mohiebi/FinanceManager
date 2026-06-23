@@ -46,7 +46,7 @@ const navItems = computed(() => [
         <!-- Main nav items -->
         <Link
             v-for="item in navItems"
-            :key="item.href"
+            :key="item.title"
             :href="item.href"
             :aria-current="isCurrentUrl(item.href) ? 'page' : undefined"
             class="relative flex flex-1 flex-col items-center justify-center gap-1 transition-colors duration-150"

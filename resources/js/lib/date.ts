@@ -74,10 +74,14 @@ export function monthBucketKeyFromIso(
     value: string,
     calendar: string | undefined,
 ): string {
-    const [year, month] = value.split('-').map(Number);
+    const [year, month, day] = value.split('-').map(Number);
 
     if (calendar === 'jalali') {
-        const jalali = toJalaali(year, month, 1);
+        if (!year || !month || !day) {
+            return value;
+        }
+
+        const jalali = toJalaali(year, month, day);
 
         return `${jalali.jy}-${pad(jalali.jm)}`;
     }

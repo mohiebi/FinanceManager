@@ -14,7 +14,6 @@ use Carbon\Carbon;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use Illuminate\Support\Facades\Log;
 
 class TelegramHandler extends WebhookHandler
 {
@@ -247,8 +246,6 @@ class TelegramHandler extends WebhookHandler
 
     private function handleTransactionWizard(array $wizard, string $text, User $user): void
     {
-        $type = TransactionType::from($wizard['type']);
-
         switch ($wizard['step']) {
             case 'amount':
                 if (! is_numeric($text)) {
@@ -258,32 +255,16 @@ class TelegramHandler extends WebhookHandler
                 }
 
                 $wizard['amount'] = (float) $text;
-                $wizard['step'] = 'category';
+                $wizard['step'] = 'currency';
                 $this->chat->storage()->set('wizard', $wizard);
 
-                $categories = Category::query()
-                    ->availableFor($user)
-                    ->where('type', $type)
-                    ->orderBy('is_default', 'desc')
-                    ->orderBy('name')
-                    ->get();
-
-                $keyboard = Keyboard::make();
-                foreach ($categories as $category) {
-                    $keyboard = $keyboard
-                        ->button($category->name)
-                        ->action('pick_category')
-                        ->param('cat_id', (string) $category->id)
-                        ->width(0.5);
-                }
-
-                Log::info('[TG category keyboard] rows', ['keyboard' => $keyboard->toArray()]);
-
-                $response = $this->chat->message('Choose a category:')
-                    ->keyboard($keyboard)
+                $this->chat->message('Choose a currency:')
+                    ->keyboard($this->currencyKeyboard())
                     ->send();
+                break;
 
-                Log::info('[TG category keyboard] api response', ['body' => $response->body()]);
+            case 'currency':
+                $this->chat->message('Please choose a currency using the buttons above.')->send();
                 break;
 
             case 'category':
@@ -301,7 +282,7 @@ class TelegramHandler extends WebhookHandler
 
                 $summary = "*Confirm transaction:*\n".
                     "Type: {$wizard['type']}\n".
-                    "Amount: {$wizard['amount']}\n".
+                    'Amount: '.$this->formatWizardAmount($wizard)."\n".
                     "Title: {$wizard['title']}\n".
                     'Date: today';
 
@@ -357,7 +338,7 @@ class TelegramHandler extends WebhookHandler
         $catId = $cat_id ?? $this->data->get('cat_id');
         $wizard = $this->chat->storage()->get('wizard', []);
 
-        if (! isset($wizard['amount'], $wizard['type'])) {
+        if (! isset($wizard['amount'], $wizard['currency'], $wizard['type'])) {
             $this->chat->message('The transaction draft expired. Choose Add cost or Add income to start again.')
                 ->keyboard($this->mainKeyboard())
                 ->send();
@@ -370,6 +351,54 @@ class TelegramHandler extends WebhookHandler
         $this->chat->storage()->set('wizard', $wizard);
 
         $this->chat->message('Enter a title for this transaction:')->send();
+    }
+
+    public function pick_currency(?string $currency = null): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user) {
+            return;
+        }
+
+        $currency = $currency ?? $this->data->get('currency');
+        $currency = Currency::tryFrom((string) $currency);
+        $wizard = $this->chat->storage()->get('wizard', []);
+
+        if (! $currency || ! isset($wizard['amount'], $wizard['type'])) {
+            $this->chat->message('The transaction draft expired. Choose Add cost or Add income to start again.')
+                ->keyboard($this->mainKeyboard())
+                ->send();
+
+            return;
+        }
+
+        $wizard['currency'] = $currency->value;
+        $wizard['step'] = 'category';
+        $this->chat->storage()->set('wizard', $wizard);
+
+        $type = TransactionType::from($wizard['type']);
+        $categories = Category::query()
+            ->availableFor($user)
+            ->where('type', $type)
+            ->orderBy('is_default', 'desc')
+            ->orderBy('name')
+            ->get();
+
+        $keyboard = Keyboard::make();
+        foreach ($categories as $category) {
+            $keyboard = $keyboard
+                ->button($category->name)
+                ->action('pick_category')
+                ->param('cat_id', (string) $category->id)
+                ->width(0.5);
+        }
+
+        $this->chat->message('Choose a category:')
+            ->keyboard($keyboard)
+            ->send();
     }
 
     public function confirm_tx(): void
@@ -394,7 +423,7 @@ class TelegramHandler extends WebhookHandler
             'user_id' => $user->id,
             'type' => $wizard['type'],
             'amount' => $wizard['amount'],
-            'currency' => Currency::Toman->value,
+            'currency' => $wizard['currency'] ?? Currency::Toman->value,
             'title' => $wizard['title'],
             'category_id' => $wizard['category_id'],
             'occurred_at' => now()->toDateString(),
@@ -483,6 +512,27 @@ class TelegramHandler extends WebhookHandler
             Button::make('Week report')->action('report_week')->width(1 / 3),
             Button::make('Month report')->action('report_month')->width(1 / 3),
         ]);
+    }
+
+    private function currencyKeyboard(): Keyboard
+    {
+        return Keyboard::make()->buttons(
+            collect(Currency::cases())
+                ->map(fn (Currency $currency): Button => Button::make(strtoupper($currency->value))
+                    ->action('pick_currency')
+                    ->param('currency', $currency->value)
+                    ->width(1 / 3))
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $wizard
+     */
+    private function formatWizardAmount(array $wizard): string
+    {
+        $currency = strtoupper((string) ($wizard['currency'] ?? Currency::Toman->value));
+
+        return "{$wizard['amount']} {$currency}";
     }
 
     private function deleteKeyboardIfCallback(): void

@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
+import { edit as editCategories } from '@/routes/categories';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import { edit as editTelegram } from '@/routes/telegram';
@@ -15,6 +16,7 @@ const sidebarNavItems = computed<NavItem[]>(() => [
     { title: t('settings.navigation.profile'), href: editProfile() },
     { title: t('settings.navigation.security'), href: editSecurity() },
     { title: t('settings.navigation.preferences'), href: '/settings/preferences' },
+    { title: t('settings.navigation.categories'), href: editCategories() },
     { title: t('settings.navigation.telegram'), href: editTelegram() },
 ]);
 

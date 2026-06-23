@@ -73,6 +73,19 @@ return [
             'report_month' => "This month's financial summary",
         ],
     ],
+    'categories' => [
+        'title' => 'Category settings',
+        'eyebrow' => 'Custom categories',
+        'description' => 'Create and manage the categories that only belong to your account.',
+        'name' => 'Name',
+        'name_placeholder' => 'e.g. Coffee shops',
+        'add' => 'Add',
+        'empty' => 'No custom categories yet.',
+        'usage' => '{count} transaction(s)',
+        'delete_title' => 'Delete "{name}"?',
+        'delete_description' => 'Only unused custom categories can be deleted.',
+        'delete_in_use' => 'This category is used by existing transactions and cannot be deleted.',
+    ],
     'appearance' => [
         'title' => 'Appearance settings',
         'heading' => 'Appearance',
@@ -96,6 +109,7 @@ return [
         'profile' => 'Profile',
         'security' => 'Security',
         'preferences' => 'Preferences',
+        'categories' => 'Categories',
         'telegram' => 'Telegram',
     ],
     'general' => [

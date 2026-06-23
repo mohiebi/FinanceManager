@@ -100,7 +100,9 @@
                     <!-- Balance KPI -->
                     <article
                         class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
-                        :class="balance >= 0 ? 'kpi-card-income' : 'kpi-card-cost'"
+                        :class="
+                            balance >= 0 ? 'kpi-card-income' : 'kpi-card-cost'
+                        "
                     >
                         <div class="flex items-center gap-2.5">
                             <span
@@ -390,9 +392,7 @@
                                     <span
                                         class="inline-flex min-w-[90px] justify-center rounded-md bg-white/10 px-3 py-1.5 text-[15px] font-normal text-white"
                                     >
-                                        {{
-                                            categoryName(transaction)
-                                        }}
+                                        {{ categoryName(transaction) }}
                                     </span>
                                 </td>
                                 <td
@@ -418,9 +418,7 @@
                                         <button
                                             type="button"
                                             class="rounded-md p-1.5 hover:bg-[#fff0f0]"
-                                            @click="
-                                                requestDelete(transaction)
-                                            "
+                                            @click="requestDelete(transaction)"
                                         >
                                             <Trash2
                                                 class="size-3.5 text-[#E94E50]"
@@ -510,9 +508,7 @@
                                     <span
                                         class="inline-flex min-w-[90px] justify-center rounded-md bg-white/10 px-3 py-1.5 text-[15px] font-normal text-white"
                                     >
-                                        {{
-                                            categoryName(transaction)
-                                        }}
+                                        {{ categoryName(transaction) }}
                                     </span>
                                 </td>
                                 <td
@@ -538,9 +534,7 @@
                                         <button
                                             type="button"
                                             class="rounded-md p-1.5 hover:bg-[#fff0f0]"
-                                            @click="
-                                                requestDelete(transaction)
-                                            "
+                                            @click="requestDelete(transaction)"
                                         >
                                             <Trash2
                                                 class="size-3.5 text-[#E94E50]"
@@ -564,55 +558,60 @@
         </div>
         <Dialog v-model:open="isDialogOpen">
             <DialogContent
-                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-[#1a1a1a] p-0 shadow-2xl ring-1 ring-white/10 sm:min-h-[654px] sm:max-w-[618px]"
+                class="max-h-[calc(100dvh-1rem)] overflow-hidden rounded-[20px] border-0 bg-[#1a1a1a] p-0 shadow-2xl ring-1 ring-white/10 sm:max-h-[calc(100vh-2rem)] sm:min-h-[654px] sm:max-w-[618px] sm:rounded-[25px]"
                 :show-close-button="false"
             >
                 <form
-                    class="px-6 pt-16 pb-12 sm:px-[100px] sm:pt-[83px]"
+                    class="flex max-h-[calc(100dvh-1rem)] flex-col sm:max-h-[calc(100vh-2rem)]"
                     @submit.prevent="submitTransaction"
                 >
-                    <DialogHeader class="mb-7 space-y-2 text-left">
-                        <DialogTitle
-                            class="text-[20px] leading-normal font-medium text-white"
-                        >
-                            {{ dialogTitle }}
-                        </DialogTitle>
-                        <DialogDescription
-                            class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#989898]"
-                        >
-                            {{ t('finance.form.transaction_description') }}
-                        </DialogDescription>
-                    </DialogHeader>
+                    <div
+                        class="flex-1 overflow-y-auto px-4 pt-10 pb-5 sm:px-[100px] sm:pt-[83px] sm:pb-6"
+                    >
+                        <DialogHeader class="mb-7 space-y-2 text-left">
+                            <DialogTitle
+                                class="text-[20px] leading-normal font-medium text-white"
+                            >
+                                {{ dialogTitle }}
+                            </DialogTitle>
+                            <DialogDescription
+                                class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#989898]"
+                            >
+                                {{ t('finance.form.transaction_description') }}
+                            </DialogDescription>
+                        </DialogHeader>
 
-                    <input type="hidden" name="type" :value="form.type" />
+                        <input type="hidden" name="type" :value="form.type" />
 
-                    <div class="space-y-5">
-                        <div class="grid gap-2">
-                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
-                                <Label class="finance-dialog-label" for="title">
-                                    {{ t('finance.fields.subject') }}
-                                </Label>
-                                <Label
-                                    class="finance-dialog-label"
-                                    for="category"
-                                >
-                                    {{ t('finance.fields.category') }}
-                                </Label>
-                            </div>
-                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
-                                <div>
+                        <div class="space-y-5">
+                            <div class="grid gap-4 sm:grid-cols-[276px_134px]">
+                                <div class="grid gap-2">
+                                    <Label
+                                        class="finance-dialog-label"
+                                        for="title"
+                                    >
+                                        {{ t('finance.fields.subject') }}
+                                    </Label>
                                     <Input
                                         id="title"
                                         v-model="form.title"
                                         :class="fieldControlClass"
                                         required
                                         :placeholder="
-                                            t('finance.form.subject_placeholder')
+                                            t(
+                                                'finance.form.subject_placeholder',
+                                            )
                                         "
                                     />
                                     <InputError :message="form.errors.title" />
                                 </div>
-                                <div>
+                                <div class="grid gap-2">
+                                    <Label
+                                        class="finance-dialog-label"
+                                        for="category"
+                                    >
+                                        {{ t('finance.fields.category') }}
+                                    </Label>
                                     <select
                                         id="category"
                                         v-model="form.category_id"
@@ -636,45 +635,37 @@
                                     />
                                 </div>
                             </div>
-                        </div>
-                        <div class="grid gap-2">
-                            <Label
-                                class="finance-dialog-label"
-                                for="occurred_at"
-                            >
-                                {{ t('finance.fields.date') }}
-                            </Label>
-                            <input
-                                id="occurred_at"
-                                type="hidden"
-                                :value="form.occurred_at"
-                            />
-                            <BirthdatePicker
-                                v-model="form.occurred_at"
-                                name="occurred_at"
-                                :trigger-class="fieldControlClass"
-                                :years-back="16"
-                                :years-forward="1"
-                            />
-                            <InputError :message="form.errors.occurred_at" />
-                        </div>
-                        <div class="grid gap-2">
-                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
+                            <div class="grid gap-2">
                                 <Label
                                     class="finance-dialog-label"
-                                    for="amount"
+                                    for="occurred_at"
                                 >
-                                    {{ t('finance.fields.amount') }}
+                                    {{ t('finance.fields.date') }}
                                 </Label>
-                                <Label
-                                    class="finance-dialog-label"
-                                    for="currency"
-                                >
-                                    {{ t('finance.fields.currency') }}
-                                </Label>
+                                <input
+                                    id="occurred_at"
+                                    type="hidden"
+                                    :value="form.occurred_at"
+                                />
+                                <BirthdatePicker
+                                    v-model="form.occurred_at"
+                                    name="occurred_at"
+                                    :trigger-class="fieldControlClass"
+                                    :years-back="16"
+                                    :years-forward="1"
+                                />
+                                <InputError
+                                    :message="form.errors.occurred_at"
+                                />
                             </div>
-                            <div class="grid gap-2 sm:grid-cols-[276px_134px]">
-                                <div>
+                            <div class="grid gap-4 sm:grid-cols-[276px_134px]">
+                                <div class="grid gap-2">
+                                    <Label
+                                        class="finance-dialog-label"
+                                        for="amount"
+                                    >
+                                        {{ t('finance.fields.amount') }}
+                                    </Label>
                                     <Input
                                         id="amount"
                                         v-model="form.amount"
@@ -687,7 +678,13 @@
                                     />
                                     <InputError :message="form.errors.amount" />
                                 </div>
-                                <div>
+                                <div class="grid gap-2">
+                                    <Label
+                                        class="finance-dialog-label"
+                                        for="currency"
+                                    >
+                                        {{ t('finance.fields.currency') }}
+                                    </Label>
                                     <select
                                         id="currency"
                                         v-model="form.currency"
@@ -707,37 +704,43 @@
                                     />
                                 </div>
                             </div>
-                        </div>
-                        <div class="grid gap-2">
-                            <Label
-                                class="finance-dialog-label"
-                                for="description"
-                            >
-                                {{ t('finance.fields.description') }}
-                            </Label>
-                            <textarea
-                                id="description"
-                                v-model="form.description"
-                                rows="1"
-                                class="finance-dialog-field min-h-9 resize-none"
-                                :class="fieldControlClass"
-                                :placeholder="t('finance.form.note_placeholder')"
-                            />
-                            <InputError :message="form.errors.description" />
+                            <div class="grid gap-2">
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="description"
+                                >
+                                    {{ t('finance.fields.description') }}
+                                </Label>
+                                <textarea
+                                    id="description"
+                                    v-model="form.description"
+                                    rows="1"
+                                    class="finance-dialog-field min-h-9 resize-none"
+                                    :class="fieldControlClass"
+                                    :placeholder="
+                                        t('finance.form.note_placeholder')
+                                    "
+                                />
+                                <InputError
+                                    :message="form.errors.description"
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    <div class="mt-7 flex justify-end gap-2">
+                    <div
+                        class="flex shrink-0 justify-end gap-2 border-t border-white/10 bg-[#1a1a1a]/95 px-4 py-4 backdrop-blur sm:border-t-0 sm:bg-transparent sm:px-[100px] sm:pt-1 sm:pb-12"
+                    >
                         <Button
                             type="button"
-                            class="h-9 w-[99px] cursor-pointer rounded-[8px] bg-white/5 px-[10px] py-[3px] text-[20px] font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
+                            class="h-11 flex-1 cursor-pointer rounded-[8px] bg-white/5 px-[10px] py-[3px] text-base font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white sm:h-9 sm:w-[99px] sm:flex-none sm:text-[20px]"
                             @click="isDialogOpen = false"
                         >
                             {{ t('common.cancel') }}
                         </Button>
                         <Button
                             type="submit"
-                            class="h-9 w-[135px] rounded-[8px] bg-[#111111] px-[10px] py-[3px] text-[20px] font-normal text-white shadow-none hover:bg-[#1f1f1f]"
+                            class="h-11 flex-1 rounded-[8px] bg-[#111111] px-[10px] py-[3px] text-base font-normal text-white shadow-none hover:bg-[#1f1f1f] sm:h-9 sm:w-[135px] sm:flex-none sm:text-[20px]"
                             :disabled="
                                 form.processing ||
                                 selectedCategories.length === 0
@@ -1046,8 +1049,9 @@ const confirmDelete = () => {
         return;
     }
 
-    router.delete(`/transactions/${deleteTarget.value.id}`, { preserveScroll: true });
+    router.delete(`/transactions/${deleteTarget.value.id}`, {
+        preserveScroll: true,
+    });
     deleteTarget.value = null;
 };
-
 </script>

@@ -7,7 +7,7 @@
         <!-- ── Summary stat cards ────────────────────────────────── -->
         <div class="grid gap-[18px] px-[18px] pt-[18px] md:grid-cols-3">
             <article
-                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
@@ -17,15 +17,23 @@
                 <p class="mt-3 text-2xl font-bold text-white">
                     <template v-if="props.pricesAvailable">
                         {{ props.summary?.total_value_formatted }}
-                        <span class="text-sm font-normal text-[#989898]">{{ currencySymbol }}</span>
+                        <span class="text-sm font-normal text-[#989898]">{{
+                            currencySymbol
+                        }}</span>
                     </template>
-                    <span v-else-if="pricesResolved" class="text-base font-medium text-[#989898]">{{ t('finance.price_unavailable') }}</span>
-                    <span v-else class="text-base font-medium text-[#989898]">{{ t('finance.calculating') }}</span>
+                    <span
+                        v-else-if="pricesResolved"
+                        class="text-base font-medium text-[#989898]"
+                        >{{ t('finance.price_unavailable') }}</span
+                    >
+                    <span v-else class="text-base font-medium text-[#989898]">{{
+                        t('finance.calculating')
+                    }}</span>
                 </p>
             </article>
 
             <article
-                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#6C4EE9] uppercase"
@@ -41,7 +49,7 @@
             </article>
 
             <article
-                class="kpi-card-neutral overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+                class="kpi-card-neutral overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
@@ -50,199 +58,231 @@
                 </p>
                 <p class="mt-3 text-2xl font-bold text-white">
                     {{ props.entryCount }}
-                    <span class="text-sm font-normal text-[#989898]"
-                        >{{ t('finance.investments.records') }}</span
-                    >
+                    <span class="text-sm font-normal text-[#989898]">{{
+                        t('finance.investments.records')
+                    }}</span>
                 </p>
             </article>
         </div>
 
-        <Deferred :data="['assets', 'chartData', 'summary', 'prices', 'pricesAvailable']">
+        <Deferred
+            :data="[
+                'assets',
+                'chartData',
+                'summary',
+                'prices',
+                'pricesAvailable',
+            ]"
+        >
             <template #fallback>
                 <div
                     class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
                 >
                     <Spinner class="size-8 text-[#02CD86]" />
-                    <p class="mt-4 text-sm text-[#989898]">{{ t('finance.calculating') }}</p>
+                    <p class="mt-4 text-sm text-[#989898]">
+                        {{ t('finance.calculating') }}
+                    </p>
                 </div>
             </template>
 
-        <!-- ── Charts row ────────────────────────────────────────── -->
-        <div
-            v-if="(props.assets ?? []).length > 0"
-            class="grid items-start gap-[18px] px-[18px] py-[18px] xl:grid-cols-[380px_1fr]"
-        >
-            <!-- Donut / allocation chart -->
-            <section
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+            <!-- ── Charts row ────────────────────────────────────────── -->
+            <div
+                v-if="(props.assets ?? []).length > 0"
+                class="grid items-start gap-[18px] px-[18px] py-[18px] xl:grid-cols-[380px_1fr]"
             >
-                <div class="mb-4 flex items-center justify-between">
-                    <h2 class="text-[18px] leading-none font-normal text-white">
-                        {{ t('finance.investments.allocation') }}
-                    </h2>
-                    <span class="text-xs text-[#989898]">{{
-                        t('finance.investments.by_current_value')
-                    }}</span>
-                </div>
-                <DonutChart
-                    :series="donutSeries"
-                    :labels="donutLabels"
-                    :colors="donutColors"
-                    :center-label="t('finance.investments.portfolio')"
-                    :center-value="props.pricesAvailable ? props.summary?.total_value_formatted + ' T' : t('finance.price_unavailable')"
-                    @slice-click="onSliceClick"
-                />
-            </section>
-
-            <!-- Line chart — value over time -->
-            <section
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
-            >
-                <div
-                    class="mb-4 flex flex-wrap items-center justify-between gap-3"
+                <!-- Donut / allocation chart -->
+                <section
+                    class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 >
-                    <h2 class="text-[18px] leading-none font-normal text-white">
-                        {{ t('finance.investments.value_over_time') }}
-                    </h2>
-                    <div class="flex flex-wrap items-center gap-3">
-                        <!-- Currency pills -->
-                        <div class="flex gap-1">
-                            <button
-                                v-for="c in props.currencies"
-                                :key="c.value"
-                                type="button"
-                                :class="[
-                                    'rounded-full px-3 py-1 text-xs font-medium transition cursor-pointer',
-                                    selectedCurrency === c.value
-                                        ? 'bg-[#02CD86]/10 text-[#02CD86] ring-1 ring-[#02CD86]/25'
-                                        : 'text-[#686868] ring-1 ring-white/10 hover:text-white hover:bg-white/10',
-                                ]"
-                                @click="changeCurrency(c.value)"
-                            >
-                                {{ c.label }}
-                            </button>
-                        </div>
-                        <!-- Range buttons -->
-                        <div class="flex flex-wrap gap-1.5">
-                            <button
-                                v-for="rangeOption in ranges"
-                                :key="rangeOption.value"
-                                type="button"
-                                :class="[
-                                    'rounded-full px-3 py-1 text-xs font-medium transition cursor-pointer',
-                                    selectedRange === rangeOption.value
-                                        ? 'bg-white/15 text-white'
-                                        : 'text-[#686868] ring-1 ring-white/10 hover:text-white hover:bg-white/10',
-                                ]"
-                                @click="changeRange(rangeOption.value)"
-                            >
-                                {{ rangeOption.label }}
-                            </button>
+                    <div class="mb-4 flex items-center justify-between">
+                        <h2
+                            class="text-[18px] leading-none font-normal text-white"
+                        >
+                            {{ t('finance.investments.allocation') }}
+                        </h2>
+                        <span class="text-xs text-[#989898]">{{
+                            t('finance.investments.by_current_value')
+                        }}</span>
+                    </div>
+                    <DonutChart
+                        :series="donutSeries"
+                        :labels="donutLabels"
+                        :colors="donutColors"
+                        :center-label="t('finance.investments.portfolio')"
+                        :center-value="
+                            props.pricesAvailable
+                                ? props.summary?.total_value_formatted + ' T'
+                                : t('finance.price_unavailable')
+                        "
+                        @slice-click="onSliceClick"
+                    />
+                </section>
+
+                <!-- Line chart — value over time -->
+                <section
+                    class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                >
+                    <div
+                        class="mb-4 flex flex-wrap items-center justify-between gap-3"
+                    >
+                        <h2
+                            class="text-[18px] leading-none font-normal text-white"
+                        >
+                            {{ t('finance.investments.value_over_time') }}
+                        </h2>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <!-- Currency pills -->
+                            <div class="flex gap-1">
+                                <button
+                                    v-for="c in props.currencies"
+                                    :key="c.value"
+                                    type="button"
+                                    :class="[
+                                        'cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition',
+                                        selectedCurrency === c.value
+                                            ? 'bg-[#02CD86]/10 text-[#02CD86] ring-1 ring-[#02CD86]/25'
+                                            : 'text-[#686868] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
+                                    ]"
+                                    @click="changeCurrency(c.value)"
+                                >
+                                    {{ c.label }}
+                                </button>
+                            </div>
+                            <!-- Range buttons -->
+                            <div class="flex flex-wrap gap-1.5">
+                                <button
+                                    v-for="rangeOption in ranges"
+                                    :key="rangeOption.value"
+                                    type="button"
+                                    :class="[
+                                        'cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition',
+                                        selectedRange === rangeOption.value
+                                            ? 'bg-white/15 text-white'
+                                            : 'text-[#686868] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
+                                    ]"
+                                    @click="changeRange(rangeOption.value)"
+                                >
+                                    {{ rangeOption.label }}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Series toggle chips -->
-                <div class="mb-3 flex flex-wrap gap-2">
-                    <button
-                        v-for="seriesItem in availableSeries"
-                        :key="seriesItem.key"
-                        type="button"
-                        :class="[
-                            'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition',
-                            activeSeries.has(seriesItem.key)
-                                ? 'text-white'
-                                : 'bg-white/5 text-[#686868] ring-1 ring-white/10 hover:text-white',
-                        ]"
-                        :style="
-                            activeSeries.has(seriesItem.key)
-                                ? { backgroundColor: seriesItem.color }
-                                : {}
-                        "
-                        @click="toggleSeries(seriesItem.key)"
-                    >
-                        <span
-                            class="size-2 shrink-0 rounded-full"
-                            :style="{ backgroundColor: seriesItem.color }"
-                        />
-                        {{ seriesItem.name }}
-                    </button>
-                </div>
+                    <!-- Series toggle chips -->
+                    <div class="mb-3 flex flex-wrap gap-2">
+                        <button
+                            v-for="seriesItem in availableSeries"
+                            :key="seriesItem.key"
+                            type="button"
+                            :class="[
+                                'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition',
+                                activeSeries.has(seriesItem.key)
+                                    ? 'text-white'
+                                    : 'bg-white/5 text-[#686868] ring-1 ring-white/10 hover:text-white',
+                            ]"
+                            :style="
+                                activeSeries.has(seriesItem.key)
+                                    ? { backgroundColor: seriesItem.color }
+                                    : {}
+                            "
+                            @click="toggleSeries(seriesItem.key)"
+                        >
+                            <span
+                                class="size-2 shrink-0 rounded-full"
+                                :style="{ backgroundColor: seriesItem.color }"
+                            />
+                            {{ seriesItem.name }}
+                        </button>
+                    </div>
 
-                <LineChart
-                    :series="filteredChartSeries"
-                    :categories="props.chartData?.categories ?? []"
-                    :calendar="displayCalendar"
-                    :height="280"
-                />
-            </section>
-        </div>
-
-        <!-- ── Empty state when no entries yet ──────────────────── -->
-        <div
-            v-if="(props.assets ?? []).length === 0"
-            class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
-        >
-            <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#24212f]">
-                <TrendingUp class="size-8 text-[#6C4EE9]" />
-            </span>
-            <h2 class="mt-4 text-xl font-semibold text-white">
-                {{ t('finance.investments.no_entries_title') }}
-            </h2>
-            <p class="mt-2 max-w-sm text-center text-sm text-[#989898]">
-                {{ t('finance.investments.no_entries_description') }}
-            </p>
-            <Button
-                class="mt-6 h-11 rounded-full bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-6 text-white shadow-[0_8px_20px_rgba(108,78,233,0.25)] hover:brightness-105"
-                @click="openCreateDialog()"
-            >
-                <Plus class="size-4" />
-                {{ t('finance.actions.add_first_entry') }}
-            </Button>
-        </div>
-
-        <!-- ── Asset summary cards ───────────────────────────────── -->
-        <div
-            v-if="(props.assets ?? []).length > 0"
-            class="grid grid-cols-2 gap-[18px] px-[18px] sm:grid-cols-3 xl:grid-cols-6"
-        >
-            <div
-                v-for="asset in props.assets ?? []"
-                :key="asset.key"
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-4 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
-                :style="{ borderTop: `2.5px solid ${asset.color}` }"
-            >
-                <div class="mb-2 flex items-center justify-between">
-                    <span class="text-xl leading-none">{{ asset.icon }}</span>
-                    <span
-                        class="rounded-md px-2 py-0.5 text-xs font-semibold text-white"
-                        :style="{ backgroundColor: asset.color }"
-                    >
-                        <template v-if="props.pricesAvailable">{{ asset.allocation }}%</template>
-                        <template v-else>{{ t('finance.price_unavailable') }}</template>
-                    </span>
-                </div>
-                <p class="text-sm font-semibold text-white">
-                    {{ asset.label }}
-                </p>
-                <p class="mt-0.5 text-xs text-[#989898]">
-                    {{ asset.quantity_display }} {{ asset.unit }}
-                </p>
-                <p class="mt-2 text-sm font-bold text-white">
-                    <template v-if="props.pricesAvailable">
-                        {{ asset.value_formatted }}
-                        <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
-                    </template>
-                    <span v-else class="text-xs font-medium text-[#989898]">{{ t('finance.price_unavailable') }}</span>
-                </p>
+                    <LineChart
+                        :series="filteredChartSeries"
+                        :categories="props.chartData?.categories ?? []"
+                        :calendar="displayCalendar"
+                        :height="280"
+                    />
+                </section>
             </div>
-        </div>
+
+            <!-- ── Empty state when no entries yet ──────────────────── -->
+            <div
+                v-if="(props.assets ?? []).length === 0"
+                class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+            >
+                <span
+                    class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#24212f]"
+                >
+                    <TrendingUp class="size-8 text-[#6C4EE9]" />
+                </span>
+                <h2 class="mt-4 text-xl font-semibold text-white">
+                    {{ t('finance.investments.no_entries_title') }}
+                </h2>
+                <p class="mt-2 max-w-sm text-center text-sm text-[#989898]">
+                    {{ t('finance.investments.no_entries_description') }}
+                </p>
+                <Button
+                    class="mt-6 h-11 rounded-full bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-6 text-white shadow-[0_8px_20px_rgba(108,78,233,0.25)] hover:brightness-105"
+                    @click="openCreateDialog()"
+                >
+                    <Plus class="size-4" />
+                    {{ t('finance.actions.add_first_entry') }}
+                </Button>
+            </div>
+
+            <!-- ── Asset summary cards ───────────────────────────────── -->
+            <div
+                v-if="(props.assets ?? []).length > 0"
+                class="grid grid-cols-2 gap-[18px] px-[18px] sm:grid-cols-3 xl:grid-cols-6"
+            >
+                <div
+                    v-for="asset in props.assets ?? []"
+                    :key="asset.key"
+                    class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-4 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                    :style="{ borderTop: `2.5px solid ${asset.color}` }"
+                >
+                    <div class="mb-2 flex items-center justify-between">
+                        <span class="text-xl leading-none">{{
+                            asset.icon
+                        }}</span>
+                        <span
+                            class="rounded-md px-2 py-0.5 text-xs font-semibold text-white"
+                            :style="{ backgroundColor: asset.color }"
+                        >
+                            <template v-if="props.pricesAvailable"
+                                >{{ asset.allocation }}%</template
+                            >
+                            <template v-else>{{
+                                t('finance.price_unavailable')
+                            }}</template>
+                        </span>
+                    </div>
+                    <p class="text-sm font-semibold text-white">
+                        {{ asset.label }}
+                    </p>
+                    <p class="mt-0.5 text-xs text-[#989898]">
+                        {{ asset.quantity_display }} {{ asset.unit }}
+                    </p>
+                    <p class="mt-2 text-sm font-bold text-white">
+                        <template v-if="props.pricesAvailable">
+                            {{ asset.value_formatted }}
+                            <span class="text-xs font-normal text-[#989898]">{{
+                                currencySymbol
+                            }}</span>
+                        </template>
+                        <span
+                            v-else
+                            class="text-xs font-medium text-[#989898]"
+                            >{{ t('finance.price_unavailable') }}</span
+                        >
+                    </p>
+                </div>
+            </div>
         </Deferred>
 
         <!-- ── Recent entries table ──────────────────────────────── -->
         <div
             v-if="props.entries.length > 0"
-            class="mx-[18px] mt-[18px] mb-[38px] overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+            class="mx-[18px] mt-[18px] mb-[38px] overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
             <div class="flex items-center justify-between gap-4 px-5 py-[29px]">
                 <h2 class="text-[22px] leading-none font-normal text-white">
@@ -328,10 +368,18 @@
                                             entry.asset_type,
                                         )
                                     }}
-                                    <span class="text-xs text-[#989898]">{{ currencySymbol }}</span>
+                                    <span class="text-xs text-[#989898]">{{
+                                        currencySymbol
+                                    }}</span>
                                 </template>
-                                <span v-else-if="pricesResolved" class="text-xs text-[#989898]">{{ t('finance.price_unavailable') }}</span>
-                                <span v-else class="text-xs text-[#989898]">{{ t('finance.calculating') }}</span>
+                                <span
+                                    v-else-if="pricesResolved"
+                                    class="text-xs text-[#989898]"
+                                    >{{ t('finance.price_unavailable') }}</span
+                                >
+                                <span v-else class="text-xs text-[#989898]">{{
+                                    t('finance.calculating')
+                                }}</span>
                             </td>
                             <td
                                 class="hidden px-3 py-[14px] text-center text-[16px] leading-none font-normal text-[#989898] sm:table-cell sm:px-5"
@@ -354,7 +402,9 @@
                                         class="rounded-md p-1.5 hover:bg-[#fff0f0]"
                                         @click="requestDeleteEntry(entry.id)"
                                     >
-                                        <Trash2 class="size-3.5 text-[#E94E50]" />
+                                        <Trash2
+                                            class="size-3.5 text-[#E94E50]"
+                                        />
                                     </button>
                                 </div>
                             </td>
@@ -367,182 +417,214 @@
         <!-- ── Add / Edit dialog ─────────────────────────────────── -->
         <Dialog v-model:open="isDialogOpen">
             <DialogContent
-                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-[#1a1a1a] p-0 text-white shadow-2xl ring-1 ring-white/10 sm:min-h-[560px] sm:max-w-[560px]"
+                class="max-h-[calc(100dvh-1rem)] overflow-hidden rounded-[20px] border-0 bg-[#1a1a1a] p-0 text-white shadow-2xl ring-1 ring-white/10 sm:max-h-[calc(100vh-2rem)] sm:min-h-[560px] sm:max-w-[560px] sm:rounded-[25px]"
                 :show-close-button="false"
             >
                 <form
-                    class="px-6 pt-14 pb-10 sm:px-[80px] sm:pt-[68px]"
+                    class="flex max-h-[calc(100dvh-1rem)] flex-col sm:max-h-[calc(100vh-2rem)]"
                     @submit.prevent="submitEntry"
                 >
-                    <DialogHeader class="mb-6 space-y-2 text-left">
-                        <DialogTitle
-                            class="text-[20px] leading-normal font-medium text-white"
-                        >
-                            {{
-                                editingId !== null
-                                    ? t('finance.form.edit_investment')
-                                    : t('finance.form.add_investment')
-                            }}
-                        </DialogTitle>
-                        <DialogDescription
-                            class="text-[15px] leading-[18px] font-light text-[#989898]"
-                        >
-                            {{ t('finance.form.investment_description') }}
-                        </DialogDescription>
-                    </DialogHeader>
+                    <div
+                        class="flex-1 overflow-y-auto px-4 pt-10 pb-5 sm:px-[80px] sm:pt-[68px] sm:pb-6"
+                    >
+                        <DialogHeader class="mb-6 space-y-2 text-left">
+                            <DialogTitle
+                                class="text-[20px] leading-normal font-medium text-white"
+                            >
+                                {{
+                                    editingId !== null
+                                        ? t('finance.form.edit_investment')
+                                        : t('finance.form.add_investment')
+                                }}
+                            </DialogTitle>
+                            <DialogDescription
+                                class="text-[15px] leading-[18px] font-light text-[#989898]"
+                            >
+                                {{ t('finance.form.investment_description') }}
+                            </DialogDescription>
+                        </DialogHeader>
 
-                    <div class="space-y-5">
-                        <!-- Asset type + Quantity -->
-                        <div class="grid gap-2 sm:grid-cols-[1fr_140px]">
-                            <div class="grid gap-2">
-                                <Label
-                                    class="finance-dialog-label"
-                                    for="asset_type"
-                                >
-                                    {{ t('finance.fields.asset') }}
-                                </Label>
-                                <select
-                                    id="asset_type"
-                                    v-model="form.asset_type"
-                                    required
-                                    class="finance-dialog-field"
-                                    :class="fieldClass"
-                                >
-                                    <option value="" disabled>
-                                        {{ t('finance.filters.select_asset') }}
-                                    </option>
-                                    <option
-                                        v-for="assetType in props.assetTypes"
-                                        :key="assetType.value"
-                                        :value="assetType.value"
+                        <div class="space-y-5">
+                            <!-- Asset type + Quantity -->
+                            <div class="grid gap-4 sm:grid-cols-[1fr_140px]">
+                                <div class="grid gap-2">
+                                    <Label
+                                        class="finance-dialog-label"
+                                        for="asset_type"
                                     >
-                                        {{ assetType.icon }}
-                                        {{ assetType.label }} ({{
-                                            assetType.unit
-                                        }})
-                                    </option>
-                                </select>
-                                <InputError :message="form.errors.asset_type" />
+                                        {{ t('finance.fields.asset') }}
+                                    </Label>
+                                    <select
+                                        id="asset_type"
+                                        v-model="form.asset_type"
+                                        required
+                                        class="finance-dialog-field"
+                                        :class="fieldClass"
+                                    >
+                                        <option value="" disabled>
+                                            {{
+                                                t(
+                                                    'finance.filters.select_asset',
+                                                )
+                                            }}
+                                        </option>
+                                        <option
+                                            v-for="assetType in props.assetTypes"
+                                            :key="assetType.value"
+                                            :value="assetType.value"
+                                        >
+                                            {{ assetType.icon }}
+                                            {{ assetType.label }} ({{
+                                                assetType.unit
+                                            }})
+                                        </option>
+                                    </select>
+                                    <InputError
+                                        :message="form.errors.asset_type"
+                                    />
+                                </div>
+
+                                <div class="grid gap-2">
+                                    <Label
+                                        class="finance-dialog-label"
+                                        for="quantity"
+                                    >
+                                        {{ t('finance.fields.quantity') }}
+                                    </Label>
+                                    <Input
+                                        id="quantity"
+                                        v-model="form.quantity"
+                                        :class="fieldClass"
+                                        required
+                                        type="number"
+                                        min="0.00000001"
+                                        step="any"
+                                        placeholder="0.00"
+                                    />
+                                    <InputError
+                                        :message="form.errors.quantity"
+                                    />
+                                </div>
                             </div>
 
+                            <!-- Cost basis + Currency -->
+                            <div class="grid gap-4 sm:grid-cols-[1fr_140px]">
+                                <div class="grid gap-2">
+                                    <Label
+                                        class="finance-dialog-label"
+                                        for="cost_basis"
+                                    >
+                                        {{
+                                            t(
+                                                'finance.fields.cost_basis_per_unit',
+                                            )
+                                        }}
+                                        <span class="font-light text-[#989898]"
+                                            >({{
+                                                t('finance.fields.optional')
+                                            }})</span
+                                        >
+                                    </Label>
+                                    <Input
+                                        id="cost_basis"
+                                        v-model="form.cost_basis"
+                                        :class="fieldClass"
+                                        type="number"
+                                        min="0"
+                                        step="any"
+                                        placeholder="0.00"
+                                    />
+                                    <InputError
+                                        :message="form.errors.cost_basis"
+                                    />
+                                </div>
+
+                                <div class="grid gap-2">
+                                    <Label
+                                        class="finance-dialog-label"
+                                        for="cost_basis_currency"
+                                    >
+                                        {{ t('finance.fields.currency') }}
+                                    </Label>
+                                    <select
+                                        id="cost_basis_currency"
+                                        v-model="form.cost_basis_currency"
+                                        class="finance-dialog-field"
+                                        :class="fieldClass"
+                                    >
+                                        <option
+                                            v-for="currency in props.currencies"
+                                            :key="currency.value"
+                                            :value="currency.value"
+                                        >
+                                            {{ currency.label }}
+                                        </option>
+                                    </select>
+                                    <InputError
+                                        :message="
+                                            form.errors.cost_basis_currency
+                                        "
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- Date -->
                             <div class="grid gap-2">
-                                <Label
-                                    class="finance-dialog-label"
-                                    for="quantity"
-                                >
-                                    {{ t('finance.fields.quantity') }}
-                                </Label>
-                                <Input
-                                    id="quantity"
-                                    v-model="form.quantity"
-                                    :class="fieldClass"
-                                    required
-                                    type="number"
-                                    min="0.00000001"
-                                    step="any"
-                                    placeholder="0.00"
+                                <Label class="finance-dialog-label">{{
+                                    t('finance.fields.date')
+                                }}</Label>
+                                <BirthdatePicker
+                                    v-model="form.occurred_at"
+                                    name="occurred_at"
+                                    :trigger-class="fieldClass"
+                                    :years-back="16"
+                                    :years-forward="1"
                                 />
-                                <InputError :message="form.errors.quantity" />
+                                <InputError
+                                    :message="form.errors.occurred_at"
+                                />
                             </div>
-                        </div>
 
-                        <!-- Cost basis + Currency -->
-                        <div class="grid gap-2 sm:grid-cols-[1fr_140px]">
+                            <!-- Note -->
                             <div class="grid gap-2">
-                                <Label
-                                    class="finance-dialog-label"
-                                    for="cost_basis"
-                                >
-                                    {{ t('finance.fields.cost_basis_per_unit') }}
+                                <Label class="finance-dialog-label" for="note">
+                                    {{ t('finance.fields.note') }}
                                     <span class="font-light text-[#989898]"
-                                        >({{ t('finance.fields.optional') }})</span
+                                        >({{
+                                            t('finance.fields.optional')
+                                        }})</span
                                     >
                                 </Label>
-                                <Input
-                                    id="cost_basis"
-                                    v-model="form.cost_basis"
+                                <textarea
+                                    id="note"
+                                    v-model="form.note"
+                                    rows="2"
+                                    class="finance-dialog-field min-h-9 resize-none"
                                     :class="fieldClass"
-                                    type="number"
-                                    min="0"
-                                    step="any"
-                                    placeholder="0.00"
+                                    :placeholder="
+                                        t(
+                                            'finance.form.investment_note_placeholder',
+                                        )
+                                    "
                                 />
-                                <InputError :message="form.errors.cost_basis" />
+                                <InputError :message="form.errors.note" />
                             </div>
-
-                            <div class="grid gap-2">
-                                <Label
-                                    class="finance-dialog-label"
-                                    for="cost_basis_currency"
-                                >
-                                    {{ t('finance.fields.currency') }}
-                                </Label>
-                                <select
-                                    id="cost_basis_currency"
-                                    v-model="form.cost_basis_currency"
-                                    class="finance-dialog-field"
-                                    :class="fieldClass"
-                                >
-                                    <option
-                                        v-for="currency in props.currencies"
-                                        :key="currency.value"
-                                        :value="currency.value"
-                                    >
-                                        {{ currency.label }}
-                                    </option>
-                                </select>
-                                <InputError :message="form.errors.cost_basis_currency" />
-                            </div>
-                        </div>
-
-                        <!-- Date -->
-                        <div class="grid gap-2">
-                            <Label class="finance-dialog-label">{{
-                                t('finance.fields.date')
-                            }}</Label>
-                            <BirthdatePicker
-                                v-model="form.occurred_at"
-                                name="occurred_at"
-                                :trigger-class="fieldClass"
-                                :years-back="16"
-                                :years-forward="1"
-                            />
-                            <InputError :message="form.errors.occurred_at" />
-                        </div>
-
-                        <!-- Note -->
-                        <div class="grid gap-2">
-                            <Label class="finance-dialog-label" for="note">
-                                {{ t('finance.fields.note') }}
-                                <span class="font-light text-[#989898]"
-                                    >({{ t('finance.fields.optional') }})</span
-                                >
-                            </Label>
-                            <textarea
-                                id="note"
-                                v-model="form.note"
-                                rows="2"
-                                class="finance-dialog-field min-h-9 resize-none"
-                                :class="fieldClass"
-                                :placeholder="
-                                    t('finance.form.investment_note_placeholder')
-                                "
-                            />
-                            <InputError :message="form.errors.note" />
                         </div>
                     </div>
 
-                    <div class="mt-6 flex justify-end gap-2">
+                    <div
+                        class="flex shrink-0 justify-end gap-2 border-t border-white/10 bg-[#1a1a1a]/95 px-4 py-4 backdrop-blur sm:border-t-0 sm:bg-transparent sm:px-[80px] sm:pt-1 sm:pb-10"
+                    >
                         <Button
                             type="button"
-                            class="h-9 w-[90px] rounded-[8px] bg-white/5 px-[10px] text-[16px] font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
+                            class="h-11 flex-1 rounded-[8px] bg-white/5 px-[10px] text-base font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white sm:h-9 sm:w-[90px] sm:flex-none sm:text-[16px]"
                             @click="isDialogOpen = false"
                         >
                             {{ t('common.cancel') }}
                         </Button>
                         <Button
                             type="submit"
-                            class="h-9 w-[120px] rounded-[8px] bg-[#02CD86] px-[10px] text-[16px] font-semibold text-[#101010] shadow-none hover:bg-[#08dd93]"
+                            class="h-11 flex-1 rounded-[8px] bg-[#02CD86] px-[10px] text-base font-semibold text-[#101010] shadow-none hover:bg-[#08dd93] sm:h-9 sm:w-[120px] sm:flex-none sm:text-[16px]"
                             :disabled="form.processing"
                         >
                             <Spinner v-if="form.processing" />
@@ -685,9 +767,12 @@ const displayCalendar = computed(
 
 const currencySymbol = computed(() => {
     switch (selectedCurrency.value) {
-        case 'usd': return '$';
-        case 'eur': return '€';
-        default: return 'T';
+        case 'usd':
+            return '$';
+        case 'eur':
+            return '€';
+        default:
+            return 'T';
     }
 });
 
@@ -709,8 +794,12 @@ const pricesResolved = computed(() => props.pricesAvailable !== undefined);
 const donutSeries = computed(() =>
     (props.assets ?? []).map((asset) => asset.allocation),
 );
-const donutLabels = computed(() => (props.assets ?? []).map((asset) => asset.label));
-const donutColors = computed(() => (props.assets ?? []).map((asset) => asset.color));
+const donutLabels = computed(() =>
+    (props.assets ?? []).map((asset) => asset.label),
+);
+const donutColors = computed(() =>
+    (props.assets ?? []).map((asset) => asset.color),
+);
 
 function toggleSeries(key: string) {
     if (activeSeries.value.has(key)) {
@@ -754,7 +843,9 @@ function onSliceClick(sliceIndex: number | null) {
 function changeRange(range: string) {
     selectedRange.value = range;
     router.get(
-        investmentsIndex.url({ query: { range, currency: selectedCurrency.value } }),
+        investmentsIndex.url({
+            query: { range, currency: selectedCurrency.value },
+        }),
         {},
         { preserveScroll: true, preserveState: true, replace: true },
     );
@@ -767,7 +858,9 @@ function changeCurrency(currency: string) {
 
     selectedCurrency.value = currency;
     router.get(
-        investmentsIndex.url({ query: { range: selectedRange.value, currency } }),
+        investmentsIndex.url({
+            query: { range: selectedRange.value, currency },
+        }),
         {},
         { preserveScroll: true, preserveState: true, replace: true },
     );
@@ -819,7 +912,8 @@ function openCreateDialog(defaultType?: AssetKey) {
     form.clearErrors();
     form.asset_type = defaultType ?? props.assetTypes[0]?.value ?? '';
     form.occurred_at = today();
-    form.cost_basis_currency = props.selectedCurrency || props.currencies[0]?.value || '';
+    form.cost_basis_currency =
+        props.selectedCurrency || props.currencies[0]?.value || '';
     isDialogOpen.value = true;
 }
 
@@ -831,7 +925,9 @@ function openEditDialog(entry: Entry) {
     form.note = entry.note ?? '';
     form.occurred_at = entry.occurred_at;
     form.cost_basis = entry.cost_basis !== null ? String(entry.cost_basis) : '';
-    form.cost_basis_currency = entry.cost_basis_currency ?? (props.selectedCurrency || props.currencies[0]?.value || '');
+    form.cost_basis_currency =
+        entry.cost_basis_currency ??
+        (props.selectedCurrency || props.currencies[0]?.value || '');
     isDialogOpen.value = true;
 }
 
@@ -862,15 +958,20 @@ function confirmDeleteEntry() {
         return;
     }
 
-    router.delete(`/investments/${deleteTargetId.value}`, { preserveScroll: true });
+    router.delete(`/investments/${deleteTargetId.value}`, {
+        preserveScroll: true,
+    });
     deleteTargetId.value = null;
 }
 
 function convertFromToman(amount: number, currency: string): number {
     switch (currency) {
-        case 'usd': return amount / 150000;
-        case 'eur': return amount / 150000 / 1.17;
-        default: return amount;
+        case 'usd':
+            return amount / 150000;
+        case 'eur':
+            return amount / 150000 / 1.17;
+        default:
+            return amount;
     }
 }
 
@@ -880,7 +981,10 @@ function formatEntryValue(quantity: number, assetType: AssetKey): string {
     const converted = convertFromToman(valueInToman, selectedCurrency.value);
     const decimals = selectedCurrency.value === 'toman' ? 0 : 2;
 
-    return new Intl.NumberFormat('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(converted);
+    return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+    }).format(converted);
 }
 
 function displayDate(value: string): string {

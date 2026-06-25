@@ -7,43 +7,20 @@ services:
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
-      DB_HOST: mariadb
+      DB_HOST: portfolio-mariadb
       DB_PORT: 3306
     ports:
       - "127.0.0.1:8082:8080"
-    depends_on:
-      mariadb:
-        condition: service_healthy
     volumes:
       - storage-data:/var/www/html/storage/app
       - storage-logs:/var/www/html/storage/logs
     networks:
-      - cashpilot-net
-
-  mariadb:
-    image: mariadb:11.4
-    container_name: cashpilot-mariadb
-    restart: unless-stopped
-    environment:
-      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MARIADB_DATABASE: ${DB_DATABASE:-cashpilot_db}
-      MARIADB_USER: ${DB_USERNAME}
-      MARIADB_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - mariadb-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - cashpilot-net
+      - portfolio-net
 
 volumes:
-  mariadb-data:
   storage-data:
   storage-logs:
 
 networks:
-  cashpilot-net:
-    driver: bridge
+  portfolio-net:
+    external: true

@@ -35,12 +35,27 @@ const user = computed(() => page.props.auth.user);
     <h1 class="sr-only">{{ t('settings.profile.title') }}</h1>
 
     <div class="flex flex-col gap-8">
-        <!-- Banner -->
+        <!-- Profile-completion callout -->
         <div
             v-if="requiresProfileCompletion"
-            class="rounded-xl bg-[#02CD86]/10 px-4 py-3 text-sm text-[#02CD86] ring-1 ring-[#02CD86]/20"
+            class="flex gap-4 rounded-2xl border border-[#02CD86]/25 bg-[#02CD86]/8 p-5"
         >
-            {{ t('settings.profile.finish_banner') }}
+            <!-- Icon -->
+            <div class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#02CD86]/15">
+                <svg class="size-5 text-[#02CD86]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            </div>
+            <!-- Text -->
+            <div>
+                <p class="text-sm font-semibold text-[#02CD86]">
+                    {{ t('settings.profile.finish_banner_title') }}
+                </p>
+                <p class="mt-1 text-sm leading-relaxed text-white/70">
+                    {{ t('settings.profile.finish_banner_body') }}
+                </p>
+            </div>
         </div>
 
         <!-- Heading -->

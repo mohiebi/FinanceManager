@@ -48,9 +48,9 @@ class HandleInertiaRequests extends Middleware
             'locale' => $locale,
             'dir' => FrontendLocalization::direction($locale),
             'calendar' => $calendar,
-            'translations' => fn () => FrontendLocalization::messages($locale),
+            'translations' => FrontendLocalization::messages($locale),
             'fallbackLocale' => FrontendLocalization::DEFAULT_LOCALE,
-            'fallbackTranslations' => fn () => $locale === FrontendLocalization::DEFAULT_LOCALE
+            'fallbackTranslations' => $locale === FrontendLocalization::DEFAULT_LOCALE
                 ? null
                 : FrontendLocalization::messages(FrontendLocalization::DEFAULT_LOCALE),
             'authFlow' => fn () => $request->session()->get('auth_flow'),

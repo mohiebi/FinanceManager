@@ -397,7 +397,7 @@
                                     class="text-[15px] text-white"
                                 >
                                     {{ formatMoney(entry.cost_basis) }}
-                                    {{ currencyCodeToSymbol(entry.cost_basis_currency) }}
+                                    <span class="text-xs font-normal text-[#989898]">{{ currencyCodeToSymbol(entry.cost_basis_currency) }}</span>
                                 </span>
                                 <span v-else class="text-sm text-[#989898]">—</span>
                             </td>

@@ -87,7 +87,7 @@ function changeCurrency(value: string) {
 
                 <!-- Logo + page title -->
                 <div class="flex min-w-0 items-center gap-2.5 lg:gap-3">
-                    <img :src="logoGreen" alt="" class="h-8 w-auto shrink-0 lg:h-9" />
+                    <img :src="logoGreen" alt="" class="h-10 w-10 shrink-0 lg:h-12 lg:w-12" />
                     <div class="flex min-w-0 items-center gap-2 text-[15px] font-normal lg:gap-3 lg:text-xl">
                         <span class="shrink-0 font-bold">CashPilot</span>
                         <span class="shrink-0 text-white/55">|</span>

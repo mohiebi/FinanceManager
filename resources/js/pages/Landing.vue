@@ -47,7 +47,7 @@ const mobileMenuOpen = ref(false);
             >
                 <!-- Logo -->
                 <Link :href="home()" class="flex items-center gap-2.5 cursor-pointer">
-                    <img :src="logoGreen" alt="CashPilot logo" class="h-8 w-7" />
+                    <img :src="logoGreen" alt="CashPilot logo" class="h-12 w-10" />
                     <span class="text-[17px] font-bold text-white">CashPilot</span>
                 </Link>
 

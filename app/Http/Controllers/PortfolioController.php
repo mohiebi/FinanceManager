@@ -187,6 +187,7 @@ class PortfolioController extends Controller
                 $currentValue = $priceService->valueOf($investment->asset_type, (float) $investment->quantity);
 
                 $entryProfitAndLoss = null;
+                $totalCostBasisInToman = null;
                 if ($investment->cost_basis !== null) {
                     // Convert cost_basis to Toman so it's comparable to the Toman currentValue.
                     $costPerUnitInToman = (float) $investment->cost_basis;
@@ -196,7 +197,8 @@ class PortfolioController extends Controller
                             $costPerUnitInToman = $currencyConverter->convert($costPerUnitInToman, $fromCurrency, Currency::Toman);
                         }
                     }
-                    $entryProfitAndLoss = $currentValue - ($costPerUnitInToman * (float) $investment->quantity);
+                    $totalCostBasisInToman = $costPerUnitInToman * (float) $investment->quantity;
+                    $entryProfitAndLoss = $currentValue - $totalCostBasisInToman;
                 }
 
                 return [
@@ -209,6 +211,7 @@ class PortfolioController extends Controller
                     'quantity' => (float) $investment->quantity,
                     'cost_basis' => $investment->cost_basis !== null ? (float) $investment->cost_basis : null,
                     'cost_basis_currency' => $investment->cost_basis_currency,
+                    'total_cost_basis_fmt' => $totalCostBasisInToman !== null ? $fmt($totalCostBasisInToman) : null,
                     'current_price' => $currentPrice,
                     'current_price_fmt' => $fmt($currentPrice),
                     'current_value' => $currentValue,

@@ -348,6 +348,11 @@
                                 {{ t('finance.fields.cost_basis_per_unit') }}
                             </th>
                             <th
+                                class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] lg:table-cell lg:px-5"
+                            >
+                                Total cost basis
+                            </th>
+                            <th
                                 class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                             >
                                 {{ t('finance.portfolio.current_value') }}
@@ -392,11 +397,21 @@
                                     class="text-[15px] text-white"
                                 >
                                     {{ formatMoney(entry.cost_basis) }}
-                                    {{ (entry.cost_basis_currency ?? 'toman').toUpperCase() }}
+                                    {{ currencyCodeToSymbol(entry.cost_basis_currency) }}
                                 </span>
-                                <span v-else class="text-sm text-[#989898]">
-                                    —
+                                <span v-else class="text-sm text-[#989898]">—</span>
+                            </td>
+                            <td
+                                class="hidden px-3 py-[14px] text-center lg:table-cell lg:px-5"
+                            >
+                                <span
+                                    v-if="entry.total_cost_basis_fmt !== null"
+                                    class="text-[15px] text-white"
+                                >
+                                    {{ entry.total_cost_basis_fmt }}
+                                    <span class="text-xs text-[#989898]">{{ currencySymbol }}</span>
                                 </span>
+                                <span v-else class="text-sm text-[#989898]">—</span>
                             </td>
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-bold text-white sm:px-5"
@@ -509,6 +524,7 @@ type PortfolioEntry = {
     quantity: number;
     cost_basis: number | null;
     cost_basis_currency: string | null;
+    total_cost_basis_fmt: string | null;
     current_price: number;
     current_price_fmt: string;
     current_value: number;
@@ -572,6 +588,14 @@ const currencySymbol = computed(() => {
         default: return 'T';
     }
 });
+
+function currencyCodeToSymbol(code: string | null): string {
+    switch (code?.toLowerCase()) {
+        case 'usd': return '$';
+        case 'eur': return '€';
+        default: return 'T';
+    }
+}
 
 const allocationDonut = computed(() => ({
     series: assets.value.map((asset) => asset.current_value),

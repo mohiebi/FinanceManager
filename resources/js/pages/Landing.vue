@@ -26,7 +26,7 @@ const mobileMenuOpen = ref(false);
 </script>
 
 <template>
-    <Head title="CashPilot — Your money, on Autopilot">
+    <Head title="Your money, on Autopilot">
         <meta
             name="description"
             content="Track every transaction, manage your investment portfolio, and get smart financial reports — all in one place. Start free."

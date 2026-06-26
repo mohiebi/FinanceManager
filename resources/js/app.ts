@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'CashPilot';
 
 type InitialPage = {
     props?: {
@@ -78,7 +78,7 @@ const i18n = createI18n({
 });
 
 createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    title: (title) => (title ? `${appName} - ${title}` : appName),
     layout: (name) => {
         switch (true) {
             case name === 'Landing':

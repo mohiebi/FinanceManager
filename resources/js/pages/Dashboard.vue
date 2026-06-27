@@ -556,7 +556,7 @@
                 </div>
             </section>
         </div>
-        <Dialog v-model:open="isDialogOpen">
+        <Dialog :open="isDialogOpen" @update:open="handleDialogOpenChange">
             <DialogContent
                 class="max-h-[calc(100dvh-1rem)] overflow-hidden rounded-[20px] border-0 bg-[#1a1a1a] p-0 shadow-2xl ring-1 ring-white/10 sm:max-h-[calc(100vh-2rem)] sm:min-h-[654px] sm:max-w-[618px] sm:rounded-[25px]"
                 :show-close-button="false"
@@ -739,7 +739,7 @@
                         <Button
                             type="button"
                             class="h-11 flex-1 cursor-pointer rounded-[8px] bg-white/5 px-[10px] py-[3px] text-base font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white sm:h-9 sm:w-[99px] sm:flex-none sm:text-[20px]"
-                            @click="isDialogOpen = false"
+                            @click="closeDialog"
                         >
                             {{ t('common.cancel') }}
                         </Button>
@@ -1030,14 +1030,28 @@ const openEditForm = (transaction: Transaction) => {
     isDialogOpen.value = true;
 };
 
+const closeDialog = () => {
+    const type = form.type;
+
+    isDialogOpen.value = false;
+    editingTransactionId.value = null;
+    resetForm(type);
+};
+
+const handleDialogOpenChange = (open: boolean) => {
+    if (open) {
+        isDialogOpen.value = true;
+
+        return;
+    }
+
+    closeDialog();
+};
+
 const submitTransaction = () => {
     const opts = {
         preserveScroll: true,
-        onSuccess: () => {
-            isDialogOpen.value = false;
-            editingTransactionId.value = null;
-            resetForm(form.type);
-        },
+        onSuccess: closeDialog,
     };
 
     if (editingTransactionId.value) {

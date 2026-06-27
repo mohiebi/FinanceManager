@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\AssetType;
 use App\Enums\Currency;
-use Illuminate\Support\Carbon;
 use App\Models\Investment;
 use App\Services\AssetPriceService;
 use Illuminate\Http\Request;
@@ -42,7 +41,6 @@ class PortfolioController extends Controller
             'selectedCurrency' => $selectedCurrency->value,
             'assets' => Inertia::defer(fn () => $this->buildAssetBreakdown($allEntries, $priceService, $currencyConverter, $fmt)['assets']),
             'summary' => Inertia::defer(fn () => $this->buildAssetBreakdown($allEntries, $priceService, $currencyConverter, $fmt)['summary']),
-            'entries' => Inertia::defer(fn () => $this->buildEntryBreakdown($allEntries, $priceService, $currencyConverter, $fmt)),
             'pricesAvailable' => Inertia::defer(fn () => $priceService->pricesAvailable()),
         ]);
     }
@@ -117,25 +115,25 @@ class PortfolioController extends Controller
             }
 
             $assets[] = [
-                'key'                    => $type->value,
-                'label'                  => $type->label(),
-                'icon'                   => $type->icon(),
-                'color'                  => $type->color(),
-                'unit'                   => $type->unit(),
-                'quantity'               => round($totalQuantity, 8),
-                'current_price'          => $currentPrice,
+                'key' => $type->value,
+                'label' => $type->label(),
+                'icon' => $type->icon(),
+                'color' => $type->color(),
+                'unit' => $type->unit(),
+                'quantity' => round($totalQuantity, 8),
+                'current_price' => $currentPrice,
                 'current_price_formatted' => $fmt($currentPrice),
-                'current_value'          => $currentValue,
+                'current_value' => $currentValue,
                 'current_value_formatted' => $fmt($currentValue),
-                'avg_cost_basis'         => $averageCostBasisInToman,
+                'avg_cost_basis' => $averageCostBasisInToman,
                 'avg_cost_basis_formatted' => $averageCostBasisInToman !== null ? $fmt($averageCostBasisInToman) : null,
-                'total_cost'             => $totalCostBasisQuantity > 0 ? $totalCostBasisInToman : null,
-                'total_cost_formatted'   => $totalCostBasisQuantity > 0 ? $fmt($totalCostBasisInToman) : null,
-                'pnl'                    => $profitAndLoss,
-                'pnl_formatted'          => $profitAndLoss !== null ? $fmt(abs($profitAndLoss)) : null,
-                'pnl_percent'            => $profitAndLossPercent,
-                'pnl_is_positive'        => $profitAndLoss !== null ? $profitAndLoss >= 0 : null,
-                'entries_count'          => $typeEntries->count(),
+                'total_cost' => $totalCostBasisQuantity > 0 ? $totalCostBasisInToman : null,
+                'total_cost_formatted' => $totalCostBasisQuantity > 0 ? $fmt($totalCostBasisInToman) : null,
+                'pnl' => $profitAndLoss,
+                'pnl_formatted' => $profitAndLoss !== null ? $fmt(abs($profitAndLoss)) : null,
+                'pnl_percent' => $profitAndLossPercent,
+                'pnl_is_positive' => $profitAndLoss !== null ? $profitAndLoss >= 0 : null,
+                'entries_count' => $typeEntries->count(),
             ];
 
             $totalCurrentValue += $currentValue;
@@ -153,77 +151,19 @@ class PortfolioController extends Controller
             : null;
 
         return [
-            'assets'  => $assets,
+            'assets' => $assets,
             'summary' => [
-                'total_current_value'           => $totalCurrentValue,
+                'total_current_value' => $totalCurrentValue,
                 'total_current_value_formatted' => $fmt($totalCurrentValue),
-                'total_cost_basis'              => $totalCostBasis,
-                'total_cost_basis_formatted'    => $fmt($totalCostBasis),
-                'total_pnl'                     => $totalProfitAndLoss,
-                'total_pnl_formatted'           => $totalProfitAndLoss !== null ? $fmt(abs($totalProfitAndLoss)) : null,
-                'total_pnl_percent'             => $totalProfitAndLossPercent,
-                'total_pnl_is_positive'         => $totalProfitAndLoss !== null ? $totalProfitAndLoss >= 0 : null,
-                'has_cost_basis_data'           => $hasCostBasisData,
-                'asset_count'                   => count($assets),
+                'total_cost_basis' => $totalCostBasis,
+                'total_cost_basis_formatted' => $fmt($totalCostBasis),
+                'total_pnl' => $totalProfitAndLoss,
+                'total_pnl_formatted' => $totalProfitAndLoss !== null ? $fmt(abs($totalProfitAndLoss)) : null,
+                'total_pnl_percent' => $totalProfitAndLossPercent,
+                'total_pnl_is_positive' => $totalProfitAndLoss !== null ? $totalProfitAndLoss >= 0 : null,
+                'has_cost_basis_data' => $hasCostBasisData,
+                'asset_count' => count($assets),
             ],
         ];
-    }
-
-    /**
-     * @param  Collection<int, Investment>  $allEntries
-     * @return array<int, array<string, mixed>>
-     */
-    private function buildEntryBreakdown(
-        Collection $allEntries,
-        AssetPriceService $priceService,
-        CurrencyConverter $currencyConverter,
-        callable $fmt,
-    ): array {
-        return $allEntries
-            ->sortByDesc(fn (Investment $investment) => [$investment->occurred_at, $investment->created_at])
-            ->take(200)
-            ->map(function (Investment $investment) use ($priceService, $currencyConverter, $fmt) {
-                $currentPrice = $priceService->priceFor($investment->asset_type);
-                $currentValue = $priceService->valueOf($investment->asset_type, (float) $investment->quantity);
-
-                $entryProfitAndLoss = null;
-                $totalCostBasisInToman = null;
-                if ($investment->cost_basis !== null) {
-                    // Convert cost_basis to Toman so it's comparable to the Toman currentValue.
-                    $costPerUnitInToman = (float) $investment->cost_basis;
-                    if ($investment->cost_basis_currency && $investment->cost_basis_currency !== Currency::Toman->value) {
-                        $fromCurrency = Currency::tryFrom($investment->cost_basis_currency);
-                        if ($fromCurrency !== null) {
-                            $costPerUnitInToman = $currencyConverter->convert($costPerUnitInToman, $fromCurrency, Currency::Toman);
-                        }
-                    }
-                    $totalCostBasisInToman = $costPerUnitInToman * (float) $investment->quantity;
-                    $entryProfitAndLoss = $currentValue - $totalCostBasisInToman;
-                }
-
-                return [
-                    'id' => $investment->id,
-                    'asset_type' => $investment->asset_type->value,
-                    'asset_label' => $investment->asset_type->label(),
-                    'asset_icon' => $investment->asset_type->icon(),
-                    'asset_color' => $investment->asset_type->color(),
-                    'asset_unit' => $investment->asset_type->unit(),
-                    'quantity' => (float) $investment->quantity,
-                    'cost_basis' => $investment->cost_basis !== null ? (float) $investment->cost_basis : null,
-                    'cost_basis_currency' => $investment->cost_basis_currency,
-                    'total_cost_basis_fmt' => $totalCostBasisInToman !== null ? $fmt($totalCostBasisInToman) : null,
-                    'current_price' => $currentPrice,
-                    'current_price_fmt' => $fmt($currentPrice),
-                    'current_value' => $currentValue,
-                    'current_value_fmt' => $fmt($currentValue),
-                    'pnl' => $entryProfitAndLoss,
-                    'pnl_formatted' => $entryProfitAndLoss !== null ? $fmt(abs($entryProfitAndLoss)) : null,
-                    'pnl_is_positive' => $entryProfitAndLoss !== null ? $entryProfitAndLoss >= 0 : null,
-                    'note' => $investment->note,
-                    'occurred_at' => $investment->occurred_at->toDateString(),
-                ];
-            })
-            ->values()
-            ->all();
     }
 }

@@ -177,8 +177,8 @@ return [
         'no_cost_basis' => 'No cost basis yet',
         'per_asset_breakdown' => 'Per-asset breakdown',
         'entry_history' => 'Entry history',
-        'entry_level_detail' => 'Entry-level detail',
-        'entry_history_description' => 'Every investment record with current value and cost-basis P/L.',
+        'entry_level_detail' => 'Holdings detail',
+        'entry_history_description' => 'Merged holdings by asset with quantity, average cost, total cost, current value, and P/L.',
         'empty' => 'Portfolio is empty',
     ],
     'reports' => [

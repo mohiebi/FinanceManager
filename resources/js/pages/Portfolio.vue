@@ -35,7 +35,7 @@
                     </p>
                 </div>
 
-                <Deferred :data="['assets', 'entries', 'summary', 'pricesAvailable']">
+                <Deferred :data="['assets', 'summary', 'pricesAvailable']">
                     <template #fallback>
                         <div class="grid gap-3 sm:grid-cols-3 xl:min-w-2xl">
                             <div
@@ -158,7 +158,7 @@
             </div>
         </section>
 
-        <Deferred :data="['assets', 'entries', 'summary', 'pricesAvailable']">
+        <Deferred :data="['assets', 'summary', 'pricesAvailable']">
             <template #fallback>
                 <div class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10">
                     <Spinner class="size-8 text-[#02CD86]" />
@@ -314,7 +314,7 @@
 
         <!-- ── Per-entry breakdown ───────────────────────────────── -->
         <div
-            v-if="entries.length > 0"
+            v-if="assets.length > 0"
             class="mx-[18px] my-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
         >
             <div class="px-5 py-[29px]">
@@ -345,7 +345,7 @@
                             <th
                                 class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                             >
-                                {{ t('finance.fields.cost_basis_per_unit') }}
+                                {{ t('finance.fields.avg_cost_per_unit') }}
                             </th>
                             <th
                                 class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] lg:table-cell lg:px-5"
@@ -362,42 +362,37 @@
                             >
                                 {{ t('finance.portfolio.profit_loss') }}
                             </th>
-                            <th
-                                class="hidden rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
-                            >
-                                {{ t('finance.fields.date') }}
-                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr
-                            v-for="entry in entries"
-                            :key="entry.id"
+                            v-for="asset in assets"
+                            :key="asset.key"
                             class="group"
                         >
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none text-white sm:px-5"
                             >
-                                <span class="mr-1">{{ entry.asset_icon }}</span>
-                                {{ entry.asset_label }}
+                                <span class="mr-1">{{ asset.icon }}</span>
+                                {{ asset.label }}
                             </td>
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none text-white sm:px-5"
                             >
-                                {{ entry.quantity }}
+                                {{ asset.quantity }}
                                 <span class="text-xs text-[#989898]">{{
-                                    entry.asset_unit
+                                    asset.unit
                                 }}</span>
                             </td>
                             <td
                                 class="hidden px-3 py-[14px] text-center sm:table-cell sm:px-5"
                             >
                                 <span
-                                    v-if="entry.cost_basis !== null"
+                                    v-if="asset.avg_cost_basis_formatted"
                                     class="text-[15px] text-white"
                                 >
-                                    {{ formatMoney(entry.cost_basis) }}
-                                    <span class="text-xs font-normal text-[#989898]">{{ currencyCodeToSymbol(entry.cost_basis_currency) }}</span>
+                                    {{ asset.avg_cost_basis_formatted }}
+                                    <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
                                 </span>
                                 <span v-else class="text-sm text-[#989898]">—</span>
                             </td>
@@ -405,10 +400,10 @@
                                 class="hidden px-3 py-[14px] text-center lg:table-cell lg:px-5"
                             >
                                 <span
-                                    v-if="entry.total_cost_basis_fmt !== null"
+                                    v-if="asset.total_cost_formatted"
                                     class="text-[15px] text-white"
                                 >
-                                    {{ entry.total_cost_basis_fmt }}
+                                    {{ asset.total_cost_formatted }}
                                     <span class="text-xs text-[#989898]">{{ currencySymbol }}</span>
                                 </span>
                                 <span v-else class="text-sm text-[#989898]">—</span>
@@ -417,7 +412,7 @@
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-bold text-white sm:px-5"
                             >
                                 <template v-if="props.pricesAvailable">
-                                    {{ entry.current_value_fmt }}
+                                    {{ asset.current_value_formatted }}
                                     <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
                                 </template>
                                 <span v-else class="text-sm font-normal text-[#989898]">{{ t('finance.price_unavailable') }}</span>
@@ -425,9 +420,9 @@
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-bold sm:px-5"
                                 :class="
-                                    entry.pnl_is_positive === true
+                                    asset.pnl_is_positive === true
                                         ? 'text-[#02CD86]'
-                                        : entry.pnl_is_positive === false
+                                        : asset.pnl_is_positive === false
                                           ? 'text-[#E94E50]'
                                           : 'text-[#989898]'
                                 "
@@ -437,16 +432,18 @@
                                     class="text-sm font-normal text-[#989898]"
                                     >{{ t('finance.price_unavailable') }}</span
                                 >
-                                <template v-else-if="entry.pnl !== null">
-                                    {{ entry.pnl_is_positive ? '+' : '−' }}
-                                    {{ entry.pnl_formatted }} {{ currencySymbol }}
+                                <template v-else-if="asset.pnl !== null">
+                                    {{ asset.pnl_is_positive ? '+' : '−' }}
+                                    {{ asset.pnl_formatted }} {{ currencySymbol }}
+                                    <span
+                                        v-if="asset.pnl_percent !== null"
+                                        class="block text-xs font-normal"
+                                    >
+                                        ({{ asset.pnl_is_positive ? '+' : ''
+                                        }}{{ asset.pnl_percent }}%)
+                                    </span>
                                 </template>
                                 <span v-else>—</span>
-                            </td>
-                            <td
-                                class="hidden px-3 py-[14px] text-center text-[16px] leading-none text-[#989898] sm:table-cell sm:px-5"
-                            >
-                                {{ displayDate(entry.occurred_at) }}
                             </td>
                         </tr>
                     </tbody>
@@ -476,13 +473,12 @@
 </template>
 
 <script setup lang="ts">
-import { Deferred, Head, usePage } from '@inertiajs/vue3';
+import { Deferred, Head } from '@inertiajs/vue3';
 import { Download, Wallet } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import { Spinner } from '@/components/ui/spinner';
-import { formatAppDate } from '@/lib/date';
 import { dashboard, portfolio } from '@/routes';
 
 type AssetKey = 'gold' | 'silver' | 'usd' | 'eur' | 'coin' | 'bitcoin';
@@ -514,31 +510,8 @@ type PortfolioAsset = {
     entries_count: number;
 };
 
-type PortfolioEntry = {
-    id: number;
-    asset_type: AssetKey;
-    asset_label: string;
-    asset_icon: string;
-    asset_color: string;
-    asset_unit: string;
-    quantity: number;
-    cost_basis: number | null;
-    cost_basis_currency: string | null;
-    total_cost_basis_fmt: string | null;
-    current_price: number;
-    current_price_fmt: string;
-    current_value: number;
-    current_value_fmt: string;
-    pnl: number | null;
-    pnl_formatted: string | null;
-    pnl_is_positive: boolean | null;
-    note: string | null;
-    occurred_at: string;
-};
-
 const props = defineProps<{
     assets?: PortfolioAsset[];
-    entries?: PortfolioEntry[];
     summary?: {
         total_current_value: number;
         total_current_value_formatted: string;
@@ -557,7 +530,6 @@ const props = defineProps<{
 }>();
 
 const assets = computed(() => props.assets ?? []);
-const entries = computed(() => props.entries ?? []);
 const summary = computed(
     () =>
         props.summary ?? {
@@ -575,11 +547,7 @@ const summary = computed(
 );
 
 const selectedCurrency = ref(props.selectedCurrency);
-const page = usePage();
 const { t } = useI18n();
-const displayCalendar = computed(
-    () => (page.props.calendar as string | undefined) ?? 'gregorian',
-);
 
 const currencySymbol = computed(() => {
     switch (selectedCurrency.value) {
@@ -588,14 +556,6 @@ const currencySymbol = computed(() => {
         default: return 'T';
     }
 });
-
-function currencyCodeToSymbol(code: string | null): string {
-    switch (code?.toLowerCase()) {
-        case 'usd': return '$';
-        case 'eur': return '€';
-        default: return 'T';
-    }
-}
 
 const allocationDonut = computed(() => ({
     series: assets.value.map((asset) => asset.current_value),
@@ -619,11 +579,4 @@ defineOptions({
     },
 });
 
-function formatMoney(val: number): string {
-    return new Intl.NumberFormat('en-US').format(Math.round(val));
-}
-
-function displayDate(value: string): string {
-    return formatAppDate(value, displayCalendar.value);
-}
 </script>

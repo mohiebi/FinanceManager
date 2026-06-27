@@ -345,7 +345,7 @@
                             <th
                                 class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                             >
-                                {{ t('finance.fields.avg_cost_per_unit') }}
+                                {{ t('finance.fields.cost_basis_per_unit') }}
                             </th>
                             <th
                                 class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] lg:table-cell lg:px-5"
@@ -435,13 +435,6 @@
                                 <template v-else-if="asset.pnl !== null">
                                     {{ asset.pnl_is_positive ? '+' : '−' }}
                                     {{ asset.pnl_formatted }} {{ currencySymbol }}
-                                    <span
-                                        v-if="asset.pnl_percent !== null"
-                                        class="block text-xs font-normal"
-                                    >
-                                        ({{ asset.pnl_is_positive ? '+' : ''
-                                        }}{{ asset.pnl_percent }}%)
-                                    </span>
                                 </template>
                                 <span v-else>—</span>
                             </td>

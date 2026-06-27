@@ -88,6 +88,7 @@ return [
         'subject' => 'موضوع',
         'to' => 'تا',
         'type' => 'نوع',
+        'total_cost' => 'بهای کل',
         'value' => 'ارزش',
         'cost_basis_per_unit' => 'بهای تمام‌شده / واحد',
         'avg_cost_per_unit' => 'میانگین بهای واحد',

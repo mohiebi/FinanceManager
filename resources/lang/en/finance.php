@@ -92,6 +92,7 @@ return [
         'subject' => 'Subject',
         'to' => 'To',
         'type' => 'Type',
+        'total_cost' => 'Total cost',
         'value' => 'Value',
         'cost_basis_per_unit' => 'Cost basis / unit',
         'avg_cost_per_unit' => 'Avg cost / unit',

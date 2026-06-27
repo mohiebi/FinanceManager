@@ -110,14 +110,7 @@ class InvestmentController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'asset_type' => ['required', 'string', 'in:'.implode(',', array_column(AssetType::cases(), 'value'))],
-            'quantity' => ['required', 'numeric', 'min:0.00000001'],
-            'cost_basis' => ['nullable', 'numeric', 'min:0'],
-            'cost_basis_currency' => ['nullable', 'string', 'max:10'],
-            'note' => ['nullable', 'string', 'max:500'],
-            'occurred_at' => ['required', 'date', 'before_or_equal:today'],
-        ]);
+        $validated = $this->validatedInvestmentData($request);
 
         $request->user()->investments()->create($validated);
 
@@ -128,14 +121,7 @@ class InvestmentController extends Controller
     {
         abort_unless((int) $investment->user_id === (int) $request->user()->id, 404);
 
-        $validated = $request->validate([
-            'asset_type' => ['required', 'string', 'in:'.implode(',', array_column(AssetType::cases(), 'value'))],
-            'quantity' => ['required', 'numeric', 'min:0.00000001'],
-            'cost_basis' => ['nullable', 'numeric', 'min:0'],
-            'cost_basis_currency' => ['nullable', 'string', 'max:10'],
-            'note' => ['nullable', 'string', 'max:500'],
-            'occurred_at' => ['required', 'date', 'before_or_equal:today'],
-        ]);
+        $validated = $this->validatedInvestmentData($request);
 
         $investment->fill($validated)->save();
 
@@ -149,6 +135,53 @@ class InvestmentController extends Controller
         $investment->delete();
 
         return redirect()->back();
+    }
+
+    /**
+     * @return array{
+     *     asset_type: string,
+     *     quantity: mixed,
+     *     cost_basis: float|null,
+     *     cost_basis_currency: string|null,
+     *     note?: string|null,
+     *     occurred_at: mixed
+     * }
+     */
+    private function validatedInvestmentData(Request $request): array
+    {
+        $validated = $request->validate([
+            'asset_type' => ['required', 'string', 'in:'.implode(',', array_column(AssetType::cases(), 'value'))],
+            'quantity' => ['required', 'numeric', 'min:0.00000001'],
+            'total_cost' => ['nullable', 'numeric', 'min:0'],
+            'cost_basis' => ['nullable', 'numeric', 'min:0'],
+            'cost_basis_currency' => ['nullable', 'string', 'max:10'],
+            'note' => ['nullable', 'string', 'max:500'],
+            'occurred_at' => ['required', 'date', 'before_or_equal:today'],
+        ]);
+
+        $quantity = (float) $validated['quantity'];
+        $totalCost = $this->nullableFloat($validated['total_cost'] ?? null);
+        $costBasis = $totalCost !== null
+            ? $totalCost / $quantity
+            : $this->nullableFloat($validated['cost_basis'] ?? null);
+
+        unset($validated['total_cost']);
+
+        $validated['cost_basis'] = $costBasis;
+        $validated['cost_basis_currency'] = $costBasis !== null
+            ? ($validated['cost_basis_currency'] ?? null)
+            : null;
+
+        return $validated;
+    }
+
+    private function nullableFloat(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (float) $value;
     }
 
     /** @return array<string, float> */

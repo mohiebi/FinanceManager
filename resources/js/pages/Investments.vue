@@ -507,18 +507,14 @@
                                 </div>
                             </div>
 
-                            <!-- Cost basis + Currency -->
+                            <!-- Total cost + Currency -->
                             <div class="grid gap-4 sm:grid-cols-[1fr_140px]">
                                 <div class="grid gap-2">
                                     <Label
                                         class="finance-dialog-label"
-                                        for="cost_basis"
+                                        for="total_cost"
                                     >
-                                        {{
-                                            t(
-                                                'finance.fields.cost_basis_per_unit',
-                                            )
-                                        }}
+                                        {{ t('finance.fields.total_cost') }}
                                         <span class="font-light text-[#989898]"
                                             >({{
                                                 t('finance.fields.optional')
@@ -526,8 +522,8 @@
                                         >
                                     </Label>
                                     <Input
-                                        id="cost_basis"
-                                        v-model="form.cost_basis"
+                                        id="total_cost"
+                                        v-model="form.total_cost"
                                         :class="fieldClass"
                                         type="number"
                                         min="0"
@@ -535,7 +531,7 @@
                                         placeholder="0.00"
                                     />
                                     <InputError
-                                        :message="form.errors.cost_basis"
+                                        :message="form.errors.total_cost"
                                     />
                                 </div>
 
@@ -899,7 +895,7 @@ const form = useForm({
     quantity: '',
     note: '',
     occurred_at: today(),
-    cost_basis: '',
+    total_cost: '',
     cost_basis_currency: '',
 });
 
@@ -913,7 +909,7 @@ function resetForm(defaultType?: AssetKey): void {
     form.quantity = '';
     form.note = '';
     form.occurred_at = today();
-    form.cost_basis = '';
+    form.total_cost = '';
     form.cost_basis_currency =
         props.selectedCurrency || props.currencies[0]?.value || '';
 }
@@ -931,7 +927,10 @@ function openEditDialog(entry: Entry) {
     form.quantity = String(entry.quantity);
     form.note = entry.note ?? '';
     form.occurred_at = entry.occurred_at;
-    form.cost_basis = entry.cost_basis !== null ? String(entry.cost_basis) : '';
+    form.total_cost =
+        entry.cost_basis !== null
+            ? formatFormNumber(entry.cost_basis * entry.quantity)
+            : '';
     form.cost_basis_currency =
         entry.cost_basis_currency ??
         (props.selectedCurrency || props.currencies[0]?.value || '');
@@ -955,6 +954,11 @@ function handleDialogOpenChange(open: boolean): void {
 }
 
 function submitEntry() {
+    form.transform((data) => ({
+        ...data,
+        total_cost: data.total_cost === '' ? null : data.total_cost,
+    }));
+
     const opts = {
         preserveScroll: true,
         onSuccess: closeDialog,
@@ -965,6 +969,10 @@ function submitEntry() {
     } else {
         form.post('/investments', opts);
     }
+}
+
+function formatFormNumber(value: number): string {
+    return String(Number(value.toFixed(8)));
 }
 
 const deleteTargetId = ref<number | null>(null);

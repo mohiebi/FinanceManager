@@ -46,11 +46,11 @@ test('telegram weekly report is readable and ascii only', function () {
     $report = app(TelegramReportService::class)->weekly($user, Carbon::parse('2026-06-06'));
 
     expect($report)->toContain('Weekly Report - Jun 6 week')
-        ->toContain('Income: *5,000,000*')
-        ->toContain('Costs: *1,000,000*')
-        ->toContain('Net: *4,000,000*')
-        ->toContain('- Bills: 1,000,000')
-        ->toContain('- Gold: 1.00000000');
+        ->toContain('Income: *5,000,000 T*')
+        ->toContain('Costs: *1,000,000 T*')
+        ->toContain('Net: *4,000,000 T*')
+        ->toContain('- Bills: 1,000,000 T')
+        ->toContain('- Gold: 1 g');
 
     expect(preg_match('/[^\x00-\x7F]/', $report))->toBe(0);
 });

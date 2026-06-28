@@ -207,6 +207,9 @@ defineOptions({
                         class="finance-dialog-field finance-dialog-field-income"
                         :placeholder="t('settings.assets.name_placeholder')"
                     />
+                    <p class="text-xs leading-5 text-[#989898]">
+                        {{ t('settings.assets.name_help') }}
+                    </p>
                 </div>
                 <div class="grid gap-2">
                     <Label class="finance-dialog-label" for="asset_unit">
@@ -218,6 +221,9 @@ defineOptions({
                         class="finance-dialog-field finance-dialog-field-income"
                         :placeholder="t('settings.assets.unit_placeholder')"
                     />
+                    <p class="text-xs leading-5 text-[#989898]">
+                        {{ t('settings.assets.unit_help') }}
+                    </p>
                 </div>
                 <div class="grid gap-2">
                     <Label class="finance-dialog-label" for="asset_color">
@@ -228,6 +234,9 @@ defineOptions({
                         v-model="createForm.color"
                         class="finance-dialog-field finance-dialog-field-income"
                     />
+                    <p class="text-xs leading-5 text-[#989898]">
+                        {{ t('settings.assets.color_help') }}
+                    </p>
                 </div>
             </div>
 
@@ -242,6 +251,9 @@ defineOptions({
                         class="finance-dialog-field finance-dialog-field-income"
                         :placeholder="t('settings.assets.icon_placeholder')"
                     />
+                    <p class="text-xs leading-5 text-[#989898]">
+                        {{ t('settings.assets.icon_help') }}
+                    </p>
                 </div>
                 <div class="grid gap-2">
                     <Label class="finance-dialog-label" for="asset_icon_svg">
@@ -261,38 +273,68 @@ defineOptions({
             </div>
 
             <div class="grid gap-3 sm:grid-cols-[150px_1fr]">
-                <select
-                    v-model="createForm.price_source_type"
-                    class="finance-dialog-field finance-dialog-field-income"
+                <div class="grid gap-2">
+                    <Label class="finance-dialog-label" for="asset_source">
+                        {{ t('settings.assets.price_source') }}
+                    </Label>
+                    <select
+                        id="asset_source"
+                        v-model="createForm.price_source_type"
+                        class="finance-dialog-field finance-dialog-field-income"
+                    >
+                        <option value="manual">
+                            {{ t('settings.assets.sources.manual') }}
+                        </option>
+                        <option value="formula">
+                            {{ t('settings.assets.sources.formula') }}
+                        </option>
+                        <option value="json">
+                            {{ t('settings.assets.sources.json') }}
+                        </option>
+                        <option value="xml">
+                            {{ t('settings.assets.sources.xml') }}
+                        </option>
+                    </select>
+                    <p class="text-xs leading-5 text-[#989898]">
+                        {{ t('settings.assets.price_source_help') }}
+                    </p>
+                </div>
+                <div
+                    v-if="
+                        ['manual', 'formula'].includes(
+                            createForm.price_source_type,
+                        )
+                    "
+                    class="grid gap-2"
                 >
-                    <option value="manual">
-                        {{ t('settings.assets.sources.manual') }}
-                    </option>
-                    <option value="formula">
-                        {{ t('settings.assets.sources.formula') }}
-                    </option>
-                    <option value="json">
-                        {{ t('settings.assets.sources.json') }}
-                    </option>
-                    <option value="xml">
-                        {{ t('settings.assets.sources.xml') }}
-                    </option>
-                </select>
-                <Input
-                    v-if="createForm.price_source_type === 'manual'"
-                    v-model="createForm.price_source_config.price"
-                    class="finance-dialog-field finance-dialog-field-income"
-                    type="number"
-                    min="0"
-                    step="any"
-                    :placeholder="t('settings.assets.price_placeholder')"
-                />
-                <Input
-                    v-else-if="createForm.price_source_type === 'formula'"
-                    v-model="createForm.price_source_config.formula"
-                    class="finance-dialog-field finance-dialog-field-income"
-                    :placeholder="t('settings.assets.formula_placeholder')"
-                />
+                    <Label class="finance-dialog-label" for="asset_source_value">
+                        {{ t('settings.assets.source_value') }}
+                    </Label>
+                    <Input
+                        v-if="createForm.price_source_type === 'manual'"
+                        id="asset_source_value"
+                        v-model="createForm.price_source_config.price"
+                        class="finance-dialog-field finance-dialog-field-income"
+                        type="number"
+                        min="0"
+                        step="any"
+                        :placeholder="t('settings.assets.price_placeholder')"
+                    />
+                    <Input
+                        v-else-if="createForm.price_source_type === 'formula'"
+                        id="asset_source_value"
+                        v-model="createForm.price_source_config.formula"
+                        class="finance-dialog-field finance-dialog-field-income"
+                        :placeholder="t('settings.assets.formula_placeholder')"
+                    />
+                    <p class="text-xs leading-5 text-[#989898]">
+                        {{
+                            t(
+                                `settings.assets.source_help.${createForm.price_source_type}`,
+                            )
+                        }}
+                    </p>
+                </div>
                 <div
                     v-if="createForm.price_source_type === 'formula'"
                     class="rounded-xl bg-white/[0.03] p-3 text-xs leading-5 text-[#989898] ring-1 ring-white/10 sm:col-start-2"
@@ -321,28 +363,61 @@ defineOptions({
                     v-else-if="createForm.price_source_type === 'json'"
                     class="grid gap-2 sm:grid-cols-2"
                 >
-                    <Input
-                        v-model="createForm.price_source_config.url"
-                        class="finance-dialog-field finance-dialog-field-income"
-                        placeholder="https://api.example.com/price"
-                    />
-                    <Input
-                        v-model="createForm.price_source_config.path"
-                        class="finance-dialog-field finance-dialog-field-income"
-                        :placeholder="t('settings.assets.path_placeholder')"
-                    />
+                    <div class="grid gap-2">
+                        <Label class="finance-dialog-label" for="asset_json_url">
+                            {{ t('settings.assets.url') }}
+                        </Label>
+                        <Input
+                            id="asset_json_url"
+                            v-model="createForm.price_source_config.url"
+                            class="finance-dialog-field finance-dialog-field-income"
+                            placeholder="https://api.example.com/price"
+                        />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label class="finance-dialog-label" for="asset_json_path">
+                            {{ t('settings.assets.path') }}
+                        </Label>
+                        <Input
+                            id="asset_json_path"
+                            v-model="createForm.price_source_config.path"
+                            class="finance-dialog-field finance-dialog-field-income"
+                            :placeholder="t('settings.assets.path_placeholder')"
+                        />
+                    </div>
+                    <p class="text-xs leading-5 text-[#989898] sm:col-span-2">
+                        {{ t('settings.assets.source_help.json') }}
+                    </p>
                 </div>
-                <div v-else class="grid gap-2 sm:grid-cols-2">
-                    <Input
-                        v-model="createForm.price_source_config.url"
-                        class="finance-dialog-field finance-dialog-field-income"
-                        placeholder="https://example.com/feed.xml"
-                    />
-                    <Input
-                        v-model="createForm.price_source_config.xpath"
-                        class="finance-dialog-field finance-dialog-field-income"
-                        :placeholder="t('settings.assets.xpath_placeholder')"
-                    />
+                <div
+                    v-else-if="createForm.price_source_type === 'xml'"
+                    class="grid gap-2 sm:grid-cols-2"
+                >
+                    <div class="grid gap-2">
+                        <Label class="finance-dialog-label" for="asset_xml_url">
+                            {{ t('settings.assets.url') }}
+                        </Label>
+                        <Input
+                            id="asset_xml_url"
+                            v-model="createForm.price_source_config.url"
+                            class="finance-dialog-field finance-dialog-field-income"
+                            placeholder="https://example.com/feed.xml"
+                        />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label class="finance-dialog-label" for="asset_xpath">
+                            {{ t('settings.assets.xpath') }}
+                        </Label>
+                        <Input
+                            id="asset_xpath"
+                            v-model="createForm.price_source_config.xpath"
+                            class="finance-dialog-field finance-dialog-field-income"
+                            :placeholder="t('settings.assets.xpath_placeholder')"
+                        />
+                    </div>
+                    <p class="text-xs leading-5 text-[#989898] sm:col-span-2">
+                        {{ t('settings.assets.source_help.xml') }}
+                    </p>
                 </div>
             </div>
 
@@ -396,61 +471,131 @@ defineOptions({
                         class="space-y-2"
                         @submit.prevent="saveAsset(asset)"
                     >
-                        <div class="grid gap-2 sm:grid-cols-[1fr_80px_80px_90px]">
-                            <Input
-                                v-model="editForm.name"
-                                class="finance-dialog-field finance-dialog-field-income"
-                            />
-                            <Input
-                                v-model="editForm.unit"
-                                class="finance-dialog-field finance-dialog-field-income"
-                            />
-                            <Input
-                                v-model="editForm.icon"
-                                class="finance-dialog-field finance-dialog-field-income"
-                                :placeholder="t('settings.assets.icon_placeholder')"
-                            />
-                            <Input
-                                v-model="editForm.color"
-                                class="finance-dialog-field finance-dialog-field-income"
-                            />
-                        </div>
-                        <textarea
-                            v-model="editForm.icon_svg"
-                            rows="3"
-                            class="finance-dialog-field finance-dialog-field-income min-h-[76px] resize-y"
-                            :placeholder="t('settings.assets.svg_icon_placeholder')"
-                        />
-                        <select
-                            v-model="editForm.price_source_type"
-                            class="finance-dialog-field finance-dialog-field-income"
+                        <div
+                            class="grid gap-2 sm:grid-cols-[1fr_90px_90px_90px]"
                         >
-                            <option value="manual">
-                                {{ t('settings.assets.sources.manual') }}
-                            </option>
-                            <option value="formula">
-                                {{ t('settings.assets.sources.formula') }}
-                            </option>
-                            <option value="json">
-                                {{ t('settings.assets.sources.json') }}
-                            </option>
-                            <option value="xml">
-                                {{ t('settings.assets.sources.xml') }}
-                            </option>
-                        </select>
-                        <Input
-                            v-if="editForm.price_source_type === 'manual'"
-                            v-model="editForm.price_source_config.price"
-                            class="finance-dialog-field finance-dialog-field-income"
-                            type="number"
-                            min="0"
-                            step="any"
-                        />
-                        <Input
-                            v-else-if="editForm.price_source_type === 'formula'"
-                            v-model="editForm.price_source_config.formula"
-                            class="finance-dialog-field finance-dialog-field-income"
-                        />
+                            <div class="grid gap-1">
+                                <Label class="finance-dialog-label">
+                                    {{ t('settings.assets.name') }}
+                                </Label>
+                                <Input
+                                    v-model="editForm.name"
+                                    class="finance-dialog-field finance-dialog-field-income"
+                                />
+                            </div>
+                            <div class="grid gap-1">
+                                <Label class="finance-dialog-label">
+                                    {{ t('settings.assets.unit') }}
+                                </Label>
+                                <Input
+                                    v-model="editForm.unit"
+                                    class="finance-dialog-field finance-dialog-field-income"
+                                />
+                            </div>
+                            <div class="grid gap-1">
+                                <Label class="finance-dialog-label">
+                                    {{ t('settings.assets.icon') }}
+                                </Label>
+                                <Input
+                                    v-model="editForm.icon"
+                                    class="finance-dialog-field finance-dialog-field-income"
+                                    :placeholder="t('settings.assets.icon_placeholder')"
+                                />
+                            </div>
+                            <div class="grid gap-1">
+                                <Label class="finance-dialog-label">
+                                    {{ t('settings.assets.color') }}
+                                </Label>
+                                <Input
+                                    v-model="editForm.color"
+                                    class="finance-dialog-field finance-dialog-field-income"
+                                />
+                            </div>
+                        </div>
+                        <div class="grid gap-1">
+                            <Label class="finance-dialog-label">
+                                {{ t('settings.assets.svg_icon') }}
+                            </Label>
+                            <textarea
+                                v-model="editForm.icon_svg"
+                                rows="3"
+                                class="finance-dialog-field finance-dialog-field-income min-h-[76px] resize-y"
+                                :placeholder="t('settings.assets.svg_icon_placeholder')"
+                            />
+                            <p class="text-xs leading-5 text-[#989898]">
+                                {{ t('settings.assets.svg_icon_help') }}
+                            </p>
+                        </div>
+                        <div class="grid gap-2 sm:grid-cols-[150px_1fr]">
+                            <div class="grid gap-1">
+                                <Label class="finance-dialog-label">
+                                    {{ t('settings.assets.price_source') }}
+                                </Label>
+                                <select
+                                    v-model="editForm.price_source_type"
+                                    class="finance-dialog-field finance-dialog-field-income"
+                                >
+                                    <option value="manual">
+                                        {{ t('settings.assets.sources.manual') }}
+                                    </option>
+                                    <option value="formula">
+                                        {{
+                                            t('settings.assets.sources.formula')
+                                        }}
+                                    </option>
+                                    <option value="json">
+                                        {{ t('settings.assets.sources.json') }}
+                                    </option>
+                                    <option value="xml">
+                                        {{ t('settings.assets.sources.xml') }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div
+                                v-if="
+                                    ['manual', 'formula'].includes(
+                                        editForm.price_source_type,
+                                    )
+                                "
+                                class="grid gap-1"
+                            >
+                                <Label class="finance-dialog-label">
+                                    {{ t('settings.assets.source_value') }}
+                                </Label>
+                                <Input
+                                    v-if="
+                                        editForm.price_source_type === 'manual'
+                                    "
+                                    v-model="editForm.price_source_config.price"
+                                    class="finance-dialog-field finance-dialog-field-income"
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    :placeholder="
+                                        t('settings.assets.price_placeholder')
+                                    "
+                                />
+                                <Input
+                                    v-else-if="
+                                        editForm.price_source_type === 'formula'
+                                    "
+                                    v-model="
+                                        editForm.price_source_config.formula
+                                    "
+                                    class="finance-dialog-field finance-dialog-field-income"
+                                    :placeholder="
+                                        t('settings.assets.formula_placeholder')
+                                    "
+                                />
+                                <p class="text-xs leading-5 text-[#989898]">
+                                    {{
+                                        t(
+                                            `settings.assets.source_help.${editForm.price_source_type}`,
+                                        )
+                                    }}
+                                </p>
+                            </div>
+                        </div>
                         <div
                             v-if="editForm.price_source_type === 'formula'"
                             class="rounded-xl bg-white/[0.03] p-3 text-xs leading-5 text-[#989898] ring-1 ring-white/10"
@@ -481,24 +626,61 @@ defineOptions({
                             v-else-if="editForm.price_source_type === 'json'"
                             class="grid gap-2 sm:grid-cols-2"
                         >
-                            <Input
-                                v-model="editForm.price_source_config.url"
-                                class="finance-dialog-field finance-dialog-field-income"
-                            />
-                            <Input
-                                v-model="editForm.price_source_config.path"
-                                class="finance-dialog-field finance-dialog-field-income"
-                            />
+                            <div class="grid gap-1">
+                                <Label class="finance-dialog-label">
+                                    {{ t('settings.assets.url') }}
+                                </Label>
+                                <Input
+                                    v-model="editForm.price_source_config.url"
+                                    class="finance-dialog-field finance-dialog-field-income"
+                                    placeholder="https://api.example.com/price"
+                                />
+                            </div>
+                            <div class="grid gap-1">
+                                <Label class="finance-dialog-label">
+                                    {{ t('settings.assets.path') }}
+                                </Label>
+                                <Input
+                                    v-model="editForm.price_source_config.path"
+                                    class="finance-dialog-field finance-dialog-field-income"
+                                    :placeholder="
+                                        t('settings.assets.path_placeholder')
+                                    "
+                                />
+                            </div>
+                            <p class="text-xs leading-5 text-[#989898] sm:col-span-2">
+                                {{ t('settings.assets.source_help.json') }}
+                            </p>
                         </div>
-                        <div v-else class="grid gap-2 sm:grid-cols-2">
-                            <Input
-                                v-model="editForm.price_source_config.url"
-                                class="finance-dialog-field finance-dialog-field-income"
-                            />
-                            <Input
-                                v-model="editForm.price_source_config.xpath"
-                                class="finance-dialog-field finance-dialog-field-income"
-                            />
+                        <div
+                            v-else-if="editForm.price_source_type === 'xml'"
+                            class="grid gap-2 sm:grid-cols-2"
+                        >
+                            <div class="grid gap-1">
+                                <Label class="finance-dialog-label">
+                                    {{ t('settings.assets.url') }}
+                                </Label>
+                                <Input
+                                    v-model="editForm.price_source_config.url"
+                                    class="finance-dialog-field finance-dialog-field-income"
+                                    placeholder="https://example.com/feed.xml"
+                                />
+                            </div>
+                            <div class="grid gap-1">
+                                <Label class="finance-dialog-label">
+                                    {{ t('settings.assets.xpath') }}
+                                </Label>
+                                <Input
+                                    v-model="editForm.price_source_config.xpath"
+                                    class="finance-dialog-field finance-dialog-field-income"
+                                    :placeholder="
+                                        t('settings.assets.xpath_placeholder')
+                                    "
+                                />
+                            </div>
+                            <p class="text-xs leading-5 text-[#989898] sm:col-span-2">
+                                {{ t('settings.assets.source_help.xml') }}
+                            </p>
                         </div>
                         <InputError
                             :message="

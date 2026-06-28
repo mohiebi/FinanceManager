@@ -101,7 +101,10 @@ function submit(): void {
             <div class="grid gap-2">
                 <div class="grid gap-2 sm:grid-cols-[1fr_96px]">
                     <div class="grid gap-1">
-                        <Label class="sr-only" for="new-asset-name">
+                        <Label
+                            class="finance-dialog-label"
+                            for="new-asset-name"
+                        >
                             {{ t('settings.assets.name') }}
                         </Label>
                         <Input
@@ -111,94 +114,215 @@ function submit(): void {
                             :placeholder="t('settings.assets.name_placeholder')"
                             autocomplete="off"
                         />
+                        <p class="text-[11px] leading-4 text-[#989898]">
+                            {{ t('settings.assets.name_help') }}
+                        </p>
                     </div>
-                    <Input
-                        v-model="form.unit"
-                        :class="fieldClass"
-                        :placeholder="t('settings.assets.unit_placeholder')"
-                        autocomplete="off"
-                    />
+                    <div class="grid gap-1">
+                        <Label
+                            class="finance-dialog-label"
+                            for="new-asset-unit"
+                        >
+                            {{ t('settings.assets.unit') }}
+                        </Label>
+                        <Input
+                            id="new-asset-unit"
+                            v-model="form.unit"
+                            :class="fieldClass"
+                            :placeholder="t('settings.assets.unit_placeholder')"
+                            autocomplete="off"
+                        />
+                        <p class="text-[11px] leading-4 text-[#989898]">
+                            {{ t('settings.assets.unit_help') }}
+                        </p>
+                    </div>
                 </div>
                 <div class="grid gap-2 sm:grid-cols-[96px_1fr]">
-                    <Input
-                        v-model="form.icon"
-                        :class="fieldClass"
-                        :placeholder="t('settings.assets.icon_placeholder')"
-                        autocomplete="off"
-                    />
-                    <textarea
-                        v-model="form.icon_svg"
-                        rows="2"
-                        class="finance-dialog-field min-h-[64px] resize-y"
-                        :class="fieldClass"
-                        :placeholder="t('settings.assets.svg_icon_placeholder')"
-                    />
+                    <div class="grid gap-1">
+                        <Label
+                            class="finance-dialog-label"
+                            for="new-asset-icon"
+                        >
+                            {{ t('settings.assets.icon') }}
+                        </Label>
+                        <Input
+                            id="new-asset-icon"
+                            v-model="form.icon"
+                            :class="fieldClass"
+                            :placeholder="t('settings.assets.icon_placeholder')"
+                            autocomplete="off"
+                        />
+                        <p class="text-[11px] leading-4 text-[#989898]">
+                            {{ t('settings.assets.icon_help') }}
+                        </p>
+                    </div>
+                    <div class="grid gap-1">
+                        <Label
+                            class="finance-dialog-label"
+                            for="new-asset-svg"
+                        >
+                            {{ t('settings.assets.svg_icon') }}
+                        </Label>
+                        <textarea
+                            id="new-asset-svg"
+                            v-model="form.icon_svg"
+                            rows="2"
+                            class="finance-dialog-field min-h-[64px] resize-y"
+                            :class="fieldClass"
+                            :placeholder="t('settings.assets.svg_icon_placeholder')"
+                        />
+                        <p class="text-[11px] leading-4 text-[#989898]">
+                            {{ t('settings.assets.svg_icon_help') }}
+                        </p>
+                    </div>
                 </div>
 
                 <div class="grid gap-2 sm:grid-cols-[160px_1fr]">
-                    <select
-                        v-model="form.price_source_type"
-                        class="finance-dialog-field"
-                        :class="fieldClass"
-                    >
-                        <option value="manual">
-                            {{ t('settings.assets.sources.manual') }}
-                        </option>
-                        <option value="formula">
-                            {{ t('settings.assets.sources.formula') }}
-                        </option>
-                        <option value="json">
-                            {{ t('settings.assets.sources.json') }}
-                        </option>
-                        <option value="xml">
-                            {{ t('settings.assets.sources.xml') }}
-                        </option>
-                    </select>
+                    <div class="grid gap-1">
+                        <Label
+                            class="finance-dialog-label"
+                            for="new-asset-source"
+                        >
+                            {{ t('settings.assets.price_source') }}
+                        </Label>
+                        <select
+                            id="new-asset-source"
+                            v-model="form.price_source_type"
+                            class="finance-dialog-field"
+                            :class="fieldClass"
+                        >
+                            <option value="manual">
+                                {{ t('settings.assets.sources.manual') }}
+                            </option>
+                            <option value="formula">
+                                {{ t('settings.assets.sources.formula') }}
+                            </option>
+                            <option value="json">
+                                {{ t('settings.assets.sources.json') }}
+                            </option>
+                            <option value="xml">
+                                {{ t('settings.assets.sources.xml') }}
+                            </option>
+                        </select>
+                        <p class="text-[11px] leading-4 text-[#989898]">
+                            {{ t('settings.assets.price_source_help') }}
+                        </p>
+                    </div>
 
-                    <Input
-                        v-if="form.price_source_type === 'manual'"
-                        v-model="form.price_source_config.price"
-                        :class="fieldClass"
-                        type="number"
-                        min="0"
-                        step="any"
-                        :placeholder="t('settings.assets.price_placeholder')"
-                    />
-                    <Input
-                        v-if="form.price_source_type === 'formula'"
-                        v-model="form.price_source_config.formula"
-                        :class="fieldClass"
-                        :placeholder="t('settings.assets.formula_placeholder')"
-                    />
+                    <div
+                        v-if="
+                            ['manual', 'formula'].includes(
+                                form.price_source_type,
+                            )
+                        "
+                        class="grid gap-1"
+                    >
+                        <Label
+                            class="finance-dialog-label"
+                            for="new-asset-source-value"
+                        >
+                            {{ t('settings.assets.source_value') }}
+                        </Label>
+                        <Input
+                            v-if="form.price_source_type === 'manual'"
+                            id="new-asset-source-value"
+                            v-model="form.price_source_config.price"
+                            :class="fieldClass"
+                            type="number"
+                            min="0"
+                            step="any"
+                            :placeholder="t('settings.assets.price_placeholder')"
+                        />
+                        <Input
+                            v-if="form.price_source_type === 'formula'"
+                            id="new-asset-source-value"
+                            v-model="form.price_source_config.formula"
+                            :class="fieldClass"
+                            :placeholder="t('settings.assets.formula_placeholder')"
+                        />
+                        <p class="text-[11px] leading-4 text-[#989898]">
+                            {{
+                                t(
+                                    `settings.assets.source_help.${form.price_source_type}`,
+                                )
+                            }}
+                        </p>
+                    </div>
                     <div
                         v-if="form.price_source_type === 'json'"
-                        class="grid gap-2 sm:grid-cols-2"
+                        class="grid gap-2 sm:col-start-2 sm:grid-cols-2"
                     >
-                        <Input
-                            v-model="form.price_source_config.url"
-                            :class="fieldClass"
-                            placeholder="https://api.example.com/price"
-                        />
-                        <Input
-                            v-model="form.price_source_config.path"
-                            :class="fieldClass"
-                            :placeholder="t('settings.assets.path_placeholder')"
-                        />
+                        <div class="grid gap-1">
+                            <Label
+                                class="finance-dialog-label"
+                                for="new-asset-json-url"
+                            >
+                                {{ t('settings.assets.url') }}
+                            </Label>
+                            <Input
+                                id="new-asset-json-url"
+                                v-model="form.price_source_config.url"
+                                :class="fieldClass"
+                                placeholder="https://api.example.com/price"
+                            />
+                        </div>
+                        <div class="grid gap-1">
+                            <Label
+                                class="finance-dialog-label"
+                                for="new-asset-json-path"
+                            >
+                                {{ t('settings.assets.path') }}
+                            </Label>
+                            <Input
+                                id="new-asset-json-path"
+                                v-model="form.price_source_config.path"
+                                :class="fieldClass"
+                                :placeholder="t('settings.assets.path_placeholder')"
+                            />
+                        </div>
+                        <p
+                            class="text-[11px] leading-4 text-[#989898] sm:col-span-2"
+                        >
+                            {{ t('settings.assets.source_help.json') }}
+                        </p>
                     </div>
                     <div
                         v-if="form.price_source_type === 'xml'"
-                        class="grid gap-2 sm:grid-cols-2"
+                        class="grid gap-2 sm:col-start-2 sm:grid-cols-2"
                     >
-                        <Input
-                            v-model="form.price_source_config.url"
-                            :class="fieldClass"
-                            placeholder="https://example.com/feed.xml"
-                        />
-                        <Input
-                            v-model="form.price_source_config.xpath"
-                            :class="fieldClass"
-                            :placeholder="t('settings.assets.xpath_placeholder')"
-                        />
+                        <div class="grid gap-1">
+                            <Label
+                                class="finance-dialog-label"
+                                for="new-asset-xml-url"
+                            >
+                                {{ t('settings.assets.url') }}
+                            </Label>
+                            <Input
+                                id="new-asset-xml-url"
+                                v-model="form.price_source_config.url"
+                                :class="fieldClass"
+                                placeholder="https://example.com/feed.xml"
+                            />
+                        </div>
+                        <div class="grid gap-1">
+                            <Label
+                                class="finance-dialog-label"
+                                for="new-asset-xpath"
+                            >
+                                {{ t('settings.assets.xpath') }}
+                            </Label>
+                            <Input
+                                id="new-asset-xpath"
+                                v-model="form.price_source_config.xpath"
+                                :class="fieldClass"
+                                :placeholder="t('settings.assets.xpath_placeholder')"
+                            />
+                        </div>
+                        <p
+                            class="text-[11px] leading-4 text-[#989898] sm:col-span-2"
+                        >
+                            {{ t('settings.assets.source_help.xml') }}
+                        </p>
                     </div>
                 </div>
                 <div

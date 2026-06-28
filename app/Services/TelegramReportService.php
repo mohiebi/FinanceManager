@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\AssetType;
 use App\Enums\TransactionType;
 use App\Models\User;
 use App\Support\DateFormatter;
@@ -61,6 +60,7 @@ class TelegramReportService
         }
 
         $investments = $user->investments()
+            ->with('asset')
             ->whereBetween('occurred_at', [$from->toDateString(), $to->toDateString()])
             ->get();
 
@@ -68,9 +68,7 @@ class TelegramReportService
             $lines[] = '';
             $lines[] = '*Investments:*';
             foreach ($investments as $investment) {
-                $type = $investment->asset_type instanceof AssetType
-                    ? $investment->asset_type->label()
-                    : $investment->asset_type;
+                $type = $investment->asset?->label() ?? $investment->asset_type;
 
                 $lines[] = "- {$type}: {$investment->quantity}";
             }

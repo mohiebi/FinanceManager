@@ -3,6 +3,9 @@
 namespace App\Services;
 
 use App\Enums\AssetType;
+use App\Enums\InvestmentAssetPriceSource;
+use App\Models\InvestmentAsset;
+use App\Support\SafeFormulaEvaluator;
 use DOMDocument;
 use DOMXPath;
 use Illuminate\Support\Facades\Cache;
@@ -54,14 +57,27 @@ class AssetPriceService
         ],
     ];
 
-    public function priceFor(AssetType $type): float
+    public function __construct(private SafeFormulaEvaluator $formulaEvaluator) {}
+
+    public function priceFor(AssetType|InvestmentAsset|string $asset): float
     {
-        return (float) ($this->allPrices()[$type->value] ?? 0);
+        if ($asset instanceof InvestmentAsset) {
+            return $this->priceForInvestmentAsset($asset);
+        }
+
+        $key = $asset instanceof AssetType ? $asset->value : $asset;
+
+        return (float) ($this->allPrices()[$key] ?? 0);
     }
 
-    public function valueOf(AssetType $type, float $quantity): float
+    public function valueOf(AssetType|InvestmentAsset|string $asset, float $quantity): float
     {
-        return $this->priceFor($type) * $quantity;
+        return $this->priceFor($asset) * $quantity;
+    }
+
+    public function priceAvailableFor(AssetType|InvestmentAsset|string $asset): bool
+    {
+        return $this->priceFor($asset) > 0;
     }
 
     public function pricesAvailable(): bool
@@ -102,6 +118,226 @@ class AssetPriceService
         );
     }
 
+    private function priceForInvestmentAsset(InvestmentAsset $asset): float
+    {
+        $config = $asset->price_source_config ?? [];
+        $sourceType = $asset->price_source_type instanceof InvestmentAssetPriceSource
+            ? $asset->price_source_type
+            : InvestmentAssetPriceSource::tryFrom((string) $asset->price_source_type);
+
+        try {
+            return match ($sourceType) {
+                InvestmentAssetPriceSource::Builtin => $this->priceForBuiltinAsset($asset, $config),
+                InvestmentAssetPriceSource::Manual => $this->manualPrice($config),
+                InvestmentAssetPriceSource::Formula => $this->formulaPrice($config),
+                InvestmentAssetPriceSource::Json => $this->remotePrice($asset, $config, 'json'),
+                InvestmentAssetPriceSource::Xml => $this->remotePrice($asset, $config, 'xml'),
+                default => 0.0,
+            };
+        } catch (Throwable) {
+            return 0.0;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function priceForBuiltinAsset(InvestmentAsset $asset, array $config): float
+    {
+        $key = (string) ($config['key'] ?? $asset->slug);
+
+        return (float) ($this->allPrices()[$key] ?? 0.0);
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function manualPrice(array $config): float
+    {
+        return max(0.0, (float) ($config['price'] ?? 0));
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function formulaPrice(array $config): float
+    {
+        $formula = trim((string) ($config['formula'] ?? ''));
+
+        if ($formula === '') {
+            return 0.0;
+        }
+
+        return max(0.0, $this->formulaEvaluator->evaluate($formula, $this->formulaVariables()));
+    }
+
+    /**
+     * @return array<string, float>
+     */
+    private function formulaVariables(): array
+    {
+        $tgjuPrices = $this->tgjuPrices();
+        $prices = $this->allPrices();
+        $goldPrice = $tgjuPrices['gold_750'] ?? $prices['gold'] ?? 0.0;
+
+        return [
+            ...$tgjuPrices,
+            ...$prices,
+            'goldprice' => $goldPrice,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function remotePrice(InvestmentAsset $asset, array $config, string $format): float
+    {
+        $cacheKey = 'investment-asset-price.'.$asset->id.'.'.md5(json_encode($config) ?: '');
+
+        return Cache::remember(
+            $cacheKey,
+            now()->addSeconds((int) config('services.custom_asset_prices.cache_seconds', 300)),
+            fn (): float => $this->fetchRemotePrice($config, $format),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function fetchRemotePrice(array $config, string $format): float
+    {
+        $url = $this->safeUrl((string) ($config['url'] ?? ''));
+
+        if ($url === null) {
+            return 0.0;
+        }
+
+        $response = Http::timeout((int) config('services.custom_asset_prices.timeout', 5))
+            ->connectTimeout((int) config('services.custom_asset_prices.connect_timeout', 3))
+            ->withOptions(['allow_redirects' => false])
+            ->get($url);
+
+        if (! $response->successful()) {
+            return 0.0;
+        }
+
+        $rawValue = $format === 'json'
+            ? $this->extractJsonValue($response->body(), (string) ($config['path'] ?? ''))
+            : $this->extractXmlValue($response->body(), (string) ($config['xpath'] ?? ''));
+
+        $price = $this->parseNumber($rawValue);
+
+        if ($price === null) {
+            return 0.0;
+        }
+
+        $divideBy = max(1.0, (float) ($config['divide_by'] ?? 1));
+        $price /= $divideBy;
+        $formula = trim((string) ($config['formula'] ?? ''));
+
+        if ($formula !== '') {
+            $price = $this->formulaEvaluator->evaluate($formula, [
+                ...$this->formulaVariables(),
+                'value' => $price,
+            ]);
+        }
+
+        return max(0.0, $price);
+    }
+
+    private function safeUrl(string $url): ?string
+    {
+        $url = trim($url);
+
+        if ($url === '') {
+            return null;
+        }
+
+        $parts = parse_url($url);
+
+        if (! is_array($parts)) {
+            return null;
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+
+        if (! in_array($scheme, ['http', 'https'], true) || $host === '' || isset($parts['user'], $parts['pass'])) {
+            return null;
+        }
+
+        if ($this->hostIsUnsafe($host)) {
+            return null;
+        }
+
+        return $url;
+    }
+
+    private function hostIsUnsafe(string $host): bool
+    {
+        $trimmedHost = trim($host, '[]');
+
+        if ($trimmedHost === 'localhost' || str_ends_with($trimmedHost, '.localhost')) {
+            return true;
+        }
+
+        if (filter_var($trimmedHost, FILTER_VALIDATE_IP)) {
+            return ! filter_var($trimmedHost, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        }
+
+        if (app()->environment('testing')) {
+            return false;
+        }
+
+        $resolvedIps = gethostbynamel($trimmedHost);
+
+        if ($resolvedIps === false || $resolvedIps === []) {
+            return true;
+        }
+
+        foreach ($resolvedIps as $ip) {
+            if (! filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function extractJsonValue(string $body, string $path): string
+    {
+        $decoded = json_decode($body, true);
+
+        if (! is_array($decoded)) {
+            return '';
+        }
+
+        $value = $path === '' ? $decoded : data_get($decoded, $path);
+
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function extractXmlValue(string $body, string $xpathQuery): string
+    {
+        if (trim($body) === '' || trim($xpathQuery) === '') {
+            return '';
+        }
+
+        $document = new DOMDocument;
+        $previous = libxml_use_internal_errors(true);
+        $loaded = $document->loadHTML($body);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        if (! $loaded) {
+            return '';
+        }
+
+        $xpath = new DOMXPath($document);
+
+        return trim((string) $xpath->evaluate("string({$xpathQuery})"));
+    }
+
     /**
      * @return array<string, float>
      */
@@ -109,10 +345,6 @@ class AssetPriceService
     {
         $prices = [];
 
-        // Keep the total time spent fetching well under PHP's max_execution_time
-        // (each source/URL pair has its own request timeout, and they run
-        // sequentially, so without an overall budget they can add up and
-        // trigger a fatal "Maximum execution time exceeded" error).
         $deadline = microtime(true) + (float) config('services.tgju.total_budget_seconds', 18);
 
         foreach ($this->tgjuSourceUrls() as $source => $urls) {

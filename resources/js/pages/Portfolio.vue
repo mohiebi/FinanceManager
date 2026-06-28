@@ -253,7 +253,13 @@
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none text-white sm:px-5"
                             >
-                                <span class="mr-1">{{ asset.icon }}</span>
+                                <AssetIcon
+                                    :icon="asset.icon"
+                                    :icon-svg="asset.icon_svg"
+                                    :label="asset.label"
+                                    :color="asset.color"
+                                    size="sm"
+                                />
                                 {{ asset.label }}
                             </td>
                             <td
@@ -350,11 +356,12 @@ import { Deferred, Head } from '@inertiajs/vue3';
 import { Download, Wallet } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import AssetIcon from '@/components/AssetIcon.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard, portfolio } from '@/routes';
 
-type AssetKey = 'gold' | 'silver' | 'usd' | 'eur' | 'coin' | 'bitcoin';
+type AssetKey = string;
 
 type CurrencyOption = {
     label: string;
@@ -362,9 +369,11 @@ type CurrencyOption = {
 };
 
 type PortfolioAsset = {
+    id: number;
     key: AssetKey;
     label: string;
-    icon: string;
+    icon: string | null;
+    icon_svg: string | null;
     color: string;
     unit: string;
     quantity: number;
@@ -372,6 +381,7 @@ type PortfolioAsset = {
     current_price_formatted: string;
     current_value: number;
     current_value_formatted: string;
+    price_available: boolean;
     avg_cost_basis: number | null;
     avg_cost_basis_formatted: string | null;
     total_cost: number | null;

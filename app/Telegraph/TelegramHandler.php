@@ -2,11 +2,11 @@
 
 namespace App\Telegraph;
 
-use App\Enums\AssetType;
 use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Models\Category;
 use App\Models\Investment;
+use App\Models\InvestmentAsset;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\TelegramReportService;
@@ -110,8 +110,12 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
-        $buttons = collect(AssetType::cases())
-            ->map(fn (AssetType $asset): Button => Button::make($asset->label())->action('inv_asset')->param('asset', $asset->value));
+        $buttons = InvestmentAsset::query()
+            ->availableFor($user)
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (InvestmentAsset $asset): Button => Button::make($asset->label())->action('inv_asset')->param('asset', (string) $asset->id));
 
         $this->chat->storage()->forget('wizard');
         $this->chat->storage()->set('inv_wizard', ['step' => 'asset', 'user_id' => $user->id]);
@@ -208,12 +212,25 @@ class TelegramHandler extends WebhookHandler
         }
 
         $asset ??= $this->data->get('asset');
+        $investmentAsset = InvestmentAsset::query()
+            ->availableFor($user)
+            ->whereKey((int) $asset)
+            ->first();
+
+        if (! $investmentAsset) {
+            $this->chat->message('Investment asset not found. Choose Add investment to start again.')->send();
+
+            return;
+        }
+
         $wizard = $this->chat->storage()->get('inv_wizard', []);
-        $wizard['asset'] = $asset;
+        $wizard['asset_id'] = $investmentAsset->id;
+        $wizard['asset_slug'] = $investmentAsset->slug;
+        $wizard['asset_label'] = $investmentAsset->label();
         $wizard['step'] = 'quantity';
         $this->chat->storage()->set('inv_wizard', $wizard);
 
-        $this->chat->message("Enter quantity for {$asset}:")->send();
+        $this->chat->message("Enter quantity for {$investmentAsset->label()}:")->send();
     }
 
     protected function handleChatMessage(\Stringable $text): void
@@ -314,7 +331,8 @@ class TelegramHandler extends WebhookHandler
 
             Investment::create([
                 'user_id' => $user->id,
-                'asset_type' => $wizard['asset'],
+                'investment_asset_id' => $wizard['asset_id'],
+                'asset_type' => $wizard['asset_slug'],
                 'quantity' => $wizard['quantity'],
                 'cost_basis' => $costBasis > 0 ? $costBasis : null,
                 'occurred_at' => now()->toDateString(),

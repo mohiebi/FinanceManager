@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Transactions\CurrencyConverter;
-use App\Enums\AssetType;
 use App\Enums\Currency;
 use App\Models\Investment;
+use App\Models\InvestmentAsset;
 use App\Services\AssetPriceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -29,9 +29,11 @@ class PortfolioController extends Controller
 
         /** @var Collection<int, Investment> $allEntries */
         $allEntries = $user->investments()
+            ->with('asset')
             ->orderBy('occurred_at')
             ->orderBy('created_at')
-            ->get();
+            ->get()
+            ->filter(fn (Investment $investment) => $investment->asset !== null);
 
         return Inertia::render('Portfolio', [
             'currencies' => collect(Currency::cases())->map(fn (Currency $c) => [
@@ -55,29 +57,28 @@ class PortfolioController extends Controller
         CurrencyConverter $currencyConverter,
         callable $fmt,
     ): array {
-        $grouped = $allEntries->groupBy(fn (Investment $investment) => $investment->asset_type->value);
+        $grouped = $allEntries->groupBy('investment_asset_id');
 
         $assets = [];
         $totalCurrentValue = 0.0;
-        // Track only the current value and cost of units that actually have cost-basis data,
-        // so the summary P/L compares like-for-like instead of mixing cost-bearing and
-        // non-cost-bearing assets on different sides of the equation.
         $totalCurrentValueForCostUnits = 0.0;
         $totalCostBasis = 0.0;
         $hasCostBasisData = false;
 
-        foreach ($grouped as $typeValue => $typeEntries) {
-            $type = AssetType::from($typeValue);
-            $totalQuantity = (float) $typeEntries->sum('quantity');
-            $currentValue = $priceService->valueOf($type, $totalQuantity);
-            $currentPrice = $priceService->priceFor($type);
+        foreach ($grouped as $typeEntries) {
+            $asset = $typeEntries->first()?->asset;
 
-            // --- Cost-basis entries only --------------------------------
+            if (! $asset instanceof InvestmentAsset) {
+                continue;
+            }
+
+            $totalQuantity = (float) $typeEntries->sum('quantity');
+            $currentValue = $priceService->valueOf($asset, $totalQuantity);
+            $currentPrice = $priceService->priceFor($asset);
+
             $entriesWithCostBasis = $typeEntries->filter(fn ($entry) => $entry->cost_basis !== null);
             $totalCostBasisQuantity = (float) $entriesWithCostBasis->sum('quantity');
 
-            // Convert every entry's cost_basis to Toman before summing so that
-            // mixed-currency portfolios (e.g. USD cost_basis vs Toman price) stay consistent.
             $totalCostBasisInToman = $entriesWithCostBasis->sum(function ($entry) use ($currencyConverter): float {
                 $costPerUnit = (float) $entry->cost_basis;
                 if ($entry->cost_basis_currency && $entry->cost_basis_currency !== Currency::Toman->value) {
@@ -90,15 +91,11 @@ class PortfolioController extends Controller
                 return $costPerUnit * (float) $entry->quantity;
             });
 
-            // Average cost per unit (in Toman) — used for display only.
             $averageCostBasisInToman = $totalCostBasisQuantity > 0
                 ? $totalCostBasisInToman / $totalCostBasisQuantity
                 : null;
 
-            // Current value of ONLY the units that have known cost data.
-            // Comparing against this (instead of the full holding value) gives a
-            // correct P/L even when some entries lack a cost_basis.
-            $currentValueForCostUnits = $priceService->valueOf($type, $totalCostBasisQuantity);
+            $currentValueForCostUnits = $priceService->valueOf($asset, $totalCostBasisQuantity);
 
             $profitAndLoss = $totalCostBasisQuantity > 0
                 ? $currentValueForCostUnits - $totalCostBasisInToman
@@ -115,16 +112,19 @@ class PortfolioController extends Controller
             }
 
             $assets[] = [
-                'key' => $type->value,
-                'label' => $type->label(),
-                'icon' => $type->icon(),
-                'color' => $type->color(),
-                'unit' => $type->unit(),
+                'key' => $asset->slug,
+                'id' => $asset->id,
+                'label' => $asset->label(),
+                'icon' => $asset->icon,
+                'icon_svg' => $asset->icon_svg,
+                'color' => $asset->color,
+                'unit' => $asset->unit,
                 'quantity' => round($totalQuantity, 8),
                 'current_price' => $currentPrice,
                 'current_price_formatted' => $fmt($currentPrice),
                 'current_value' => $currentValue,
                 'current_value_formatted' => $fmt($currentValue),
+                'price_available' => $priceService->priceAvailableFor($asset),
                 'avg_cost_basis' => $averageCostBasisInToman,
                 'avg_cost_basis_formatted' => $averageCostBasisInToman !== null ? $fmt($averageCostBasisInToman) : null,
                 'total_cost' => $totalCostBasisQuantity > 0 ? $totalCostBasisInToman : null,
@@ -141,8 +141,6 @@ class PortfolioController extends Controller
 
         usort($assets, fn ($leftAsset, $rightAsset) => $rightAsset['current_value'] <=> $leftAsset['current_value']);
 
-        // Summary P/L: compare the current value of cost-bearing units only
-        // against what was actually paid for them.
         $totalProfitAndLoss = $hasCostBasisData
             ? $totalCurrentValueForCostUnits - $totalCostBasis
             : null;

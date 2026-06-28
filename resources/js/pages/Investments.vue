@@ -241,9 +241,13 @@
                     :style="{ borderTop: `2.5px solid ${asset.color}` }"
                 >
                     <div class="mb-2 flex items-center justify-between">
-                        <span class="text-xl leading-none">{{
-                            asset.icon
-                        }}</span>
+                        <AssetIcon
+                            :icon="asset.icon"
+                            :icon-svg="asset.icon_svg"
+                            :label="asset.label"
+                            :color="asset.color"
+                            size="lg"
+                        />
                         <span
                             class="rounded-md px-2 py-0.5 text-xs font-semibold text-white"
                             :style="{ backgroundColor: asset.color }"
@@ -350,7 +354,13 @@
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-white sm:px-5"
                             >
-                                <span class="mr-1">{{ entry.asset_icon }}</span>
+                                <AssetIcon
+                                    :icon="entry.asset_icon"
+                                    :icon-svg="entry.asset_icon_svg"
+                                    :label="entry.asset_label"
+                                    :color="entry.asset_color"
+                                    size="sm"
+                                />
                                 {{ entry.asset_label }}
                             </td>
                             <td
@@ -456,7 +466,7 @@
                                     </Label>
                                     <select
                                         id="asset_type"
-                                        v-model="form.asset_type"
+                                        v-model="form.investment_asset_id"
                                         required
                                         class="finance-dialog-field"
                                         :class="fieldClass"
@@ -470,17 +480,26 @@
                                         </option>
                                         <option
                                             v-for="assetType in props.assetTypes"
-                                            :key="assetType.value"
-                                            :value="assetType.value"
+                                            :key="assetType.id"
+                                            :value="String(assetType.id)"
                                         >
-                                            {{ assetType.icon }}
+                                            {{ assetType.icon ?? '' }}
                                             {{ assetType.label }} ({{
                                                 assetType.unit
                                             }})
                                         </option>
                                     </select>
+                                    <InvestmentAssetCreator
+                                        :field-class="fieldClass"
+                                        @created="
+                                            form.investment_asset_id = $event
+                                        "
+                                    />
                                     <InputError
-                                        :message="form.errors.asset_type"
+                                        :message="
+                                            form.errors.investment_asset_id ||
+                                            form.errors.asset_type
+                                        "
                                     />
                                 </div>
 
@@ -651,6 +670,8 @@ import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import type { ChartSeries } from '@/components/charts/LineChart.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
+import AssetIcon from '@/components/AssetIcon.vue';
+import InvestmentAssetCreator from '@/components/InvestmentAssetCreator.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -667,17 +688,20 @@ import { formatAppDate } from '@/lib/date';
 import { dashboard } from '@/routes';
 import { index as investmentsIndex } from '@/routes/investments';
 
-type AssetKey = 'gold' | 'silver' | 'usd' | 'eur' | 'coin' | 'bitcoin';
+type AssetKey = string;
 
 type AssetSummary = {
+    id: number;
     key: AssetKey;
     label: string;
-    icon: string;
+    icon: string | null;
+    icon_svg: string | null;
     color: string;
     unit: string;
     quantity: number;
     quantity_display: string;
     price: number;
+    price_available: boolean;
     price_formatted: string;
     value: number;
     value_formatted: string;
@@ -685,18 +709,24 @@ type AssetSummary = {
 };
 
 type AssetTypeOption = {
+    id: number;
     value: AssetKey;
+    key: AssetKey;
     label: string;
     unit: string;
-    icon: string;
+    icon: string | null;
+    icon_svg: string | null;
     color: string;
+    price_source_type: string;
 };
 
 type Entry = {
     id: number;
+    investment_asset_id: number | null;
     asset_type: AssetKey;
     asset_label: string;
-    asset_icon: string;
+    asset_icon: string | null;
+    asset_icon_svg: string | null;
     asset_color: string;
     asset_unit: string;
     quantity: number;
@@ -891,6 +921,7 @@ const editingId = ref<number | null>(null);
 const today = () => new Date().toISOString().slice(0, 10);
 
 const form = useForm({
+    investment_asset_id: '',
     asset_type: '',
     quantity: '',
     note: '',
@@ -905,7 +936,11 @@ const fieldClass =
 function resetForm(defaultType?: AssetKey): void {
     form.clearErrors();
     form.reset();
-    form.asset_type = defaultType ?? props.assetTypes[0]?.value ?? '';
+    const defaultAsset =
+        props.assetTypes.find((assetType) => assetType.key === defaultType) ??
+        props.assetTypes[0];
+    form.investment_asset_id = defaultAsset ? String(defaultAsset.id) : '';
+    form.asset_type = defaultAsset?.key ?? '';
     form.quantity = '';
     form.note = '';
     form.occurred_at = today();
@@ -923,6 +958,10 @@ function openCreateDialog(defaultType?: AssetKey) {
 function openEditDialog(entry: Entry) {
     editingId.value = entry.id;
     form.clearErrors();
+    form.investment_asset_id =
+        entry.investment_asset_id !== null
+            ? String(entry.investment_asset_id)
+            : '';
     form.asset_type = entry.asset_type;
     form.quantity = String(entry.quantity);
     form.note = entry.note ?? '';
@@ -956,6 +995,11 @@ function handleDialogOpenChange(open: boolean): void {
 function submitEntry() {
     form.transform((data) => ({
         ...data,
+        asset_type:
+            props.assetTypes.find(
+                (assetType) =>
+                    String(assetType.id) === data.investment_asset_id,
+            )?.key ?? data.asset_type,
         total_cost: data.total_cost === '' ? null : data.total_cost,
     }));
 

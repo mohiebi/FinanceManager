@@ -458,37 +458,53 @@
                             <!-- Asset type + Quantity -->
                             <div class="grid gap-4 sm:grid-cols-[1fr_140px]">
                                 <div class="grid gap-2">
-                                    <Label
-                                        class="finance-dialog-label"
-                                        for="asset_type"
-                                    >
+                                    <Label class="finance-dialog-label">
                                         {{ t('finance.fields.asset') }}
                                     </Label>
-                                    <select
-                                        id="asset_type"
-                                        v-model="form.investment_asset_id"
-                                        required
-                                        class="finance-dialog-field"
-                                        :class="fieldClass"
-                                    >
-                                        <option value="" disabled>
-                                            {{
-                                                t(
-                                                    'finance.filters.select_asset',
-                                                )
-                                            }}
-                                        </option>
-                                        <option
-                                            v-for="assetType in props.assetTypes"
-                                            :key="assetType.id"
-                                            :value="String(assetType.id)"
+                                    <!-- Custom asset dropdown (supports SVG icons) -->
+                                    <div class="relative">
+                                        <button
+                                            type="button"
+                                            :class="[fieldClass, 'flex h-9 w-full cursor-pointer items-center gap-2 px-3 text-left']"
+                                            @click="assetDropdownOpen = !assetDropdownOpen"
                                         >
-                                            {{ assetType.icon ?? '' }}
-                                            {{ assetType.label }} ({{
-                                                assetType.unit
-                                            }})
-                                        </option>
-                                    </select>
+                                            <AssetIcon
+                                                v-if="selectedAsset"
+                                                :icon="selectedAsset.icon"
+                                                :icon-svg="selectedAsset.icon_svg"
+                                                :label="selectedAsset.label"
+                                                :color="selectedAsset.color"
+                                                size="sm"
+                                            />
+                                            <span class="flex-1 truncate" :class="selectedAsset ? 'text-white' : 'text-[#686868]'">
+                                                {{ selectedAsset ? `${selectedAsset.label} (${selectedAsset.unit})` : t('finance.filters.select_asset') }}
+                                            </span>
+                                            <ChevronDown class="size-4 shrink-0 text-[#686868] transition-transform" :class="assetDropdownOpen ? 'rotate-180' : ''" />
+                                        </button>
+
+                                        <div
+                                            v-if="assetDropdownOpen"
+                                            class="absolute top-full left-0 z-50 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-[#252525] py-1 shadow-2xl"
+                                        >
+                                            <button
+                                                v-for="assetType in props.assetTypes"
+                                                :key="assetType.id"
+                                                type="button"
+                                                class="flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-white/5"
+                                                :class="String(assetType.id) === String(form.investment_asset_id) ? 'bg-[#02CD86]/8 text-[#02CD86]' : 'text-white'"
+                                                @click="form.investment_asset_id = String(assetType.id); assetDropdownOpen = false"
+                                            >
+                                                <AssetIcon
+                                                    :icon="assetType.icon"
+                                                    :icon-svg="assetType.icon_svg"
+                                                    :label="assetType.label"
+                                                    :color="assetType.color"
+                                                    size="sm"
+                                                />
+                                                <span class="text-sm">{{ assetType.label }} ({{ assetType.unit }})</span>
+                                            </button>
+                                        </div>
+                                    </div>
                                     <InputError
                                         :message="
                                             form.errors.investment_asset_id ||
@@ -661,7 +677,7 @@
 
 <script setup lang="ts">
 import { Deferred, Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Download, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
+import { ChevronDown, Download, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
@@ -916,6 +932,11 @@ watch(
 
 const isDialogOpen = ref(false);
 const editingId = ref<number | null>(null);
+const assetDropdownOpen = ref(false);
+
+const selectedAsset = computed(() =>
+    props.assetTypes.find((a) => String(a.id) === String(form.investment_asset_id)) ?? null,
+);
 
 const today = () => new Date().toISOString().slice(0, 10);
 

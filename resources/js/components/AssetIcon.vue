@@ -24,14 +24,17 @@ const sizeClasses = {
 
 <template>
     <span
-        class="asset-icon inline-flex shrink-0 items-center justify-center rounded-lg font-semibold text-[#101010]"
+        class="asset-icon inline-flex shrink-0 items-center justify-center rounded-lg font-semibold"
         :class="sizeClasses[size]"
-        :style="{ backgroundColor: iconSvg ? 'transparent' : (color ?? '#02CD86') }"
+        :style="{
+            backgroundColor: (iconSvg || icon) ? 'transparent' : (color ?? '#02CD86') + '22',
+            color: (iconSvg || icon) ? undefined : (color ?? '#02CD86'),
+        }"
         :aria-label="label"
     >
         <span
             v-if="iconSvg"
-            class="inline-flex size-full items-center justify-center text-white"
+            class="inline-flex size-full items-center justify-center"
             v-html="iconSvg"
         />
         <template v-else>{{ icon || label.slice(0, 1) }}</template>

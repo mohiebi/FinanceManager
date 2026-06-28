@@ -15,4 +15,13 @@ return [
     'use_another_email' => 'Use another email',
     'send_code_instead' => 'Send me a code instead',
     'something_went_wrong' => 'Something went wrong.',
+    'sign_in' => 'Sign In',
+    'sign_in_with_google' => 'Sign In with Google',
+    'verify_email' => 'Verify email',
+    'create_account' => 'Create account',
+    'confirm_password' => 'Confirm password',
+    'forgot_password' => 'Forgot password?',
+    'login_using_recovery_code' => 'login using a recovery code',
+    'login_using_auth_code' => 'login using an authentication code',
+    'sign_in_link' => 'sign in',
 ];

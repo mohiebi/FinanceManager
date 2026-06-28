@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Form, Head, setLayoutProps } from '@inertiajs/vue3';
 import { computed, ref, watchEffect } from 'vue';
+import { useI18n } from 'vue-i18n';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,21 +13,25 @@ import {
 import { store } from '@/routes/two-factor/login';
 import type { TwoFactorConfigContent } from '@/types';
 
+const { t } = useI18n();
+
+defineOptions({ layout: { title: '', description: '' } });
+
+const showRecoveryInput = ref<boolean>(false);
+
 const authConfigContent = computed<TwoFactorConfigContent>(() => {
     if (showRecoveryInput.value) {
         return {
-            title: 'Recovery code',
-            description:
-                'Please confirm access to your account by entering one of your emergency recovery codes.',
-            buttonText: 'login using an authentication code',
+            title: t('pages.two_factor.recovery_code.title'),
+            description: t('pages.two_factor.recovery_code.description'),
+            buttonText: t('buttons.login_using_auth_code'),
         };
     }
 
     return {
-        title: 'Authentication code',
-        description:
-            'Enter the authentication code provided by your authenticator application.',
-        buttonText: 'login using a recovery code',
+        title: t('pages.two_factor.auth_code.title'),
+        description: t('pages.two_factor.auth_code.description'),
+        buttonText: t('buttons.login_using_recovery_code'),
     };
 });
 
@@ -36,8 +41,6 @@ watchEffect(() => {
         description: authConfigContent.value.description,
     });
 });
-
-const showRecoveryInput = ref<boolean>(false);
 
 const toggleRecoveryMode = (clearErrors: () => void): void => {
     showRecoveryInput.value = !showRecoveryInput.value;
@@ -55,7 +58,7 @@ const inlineButtonClass =
 </script>
 
 <template>
-    <Head title="Two-factor authentication" />
+    <Head :title="$t('pages.two_factor.auth_code.title')" />
 
     <div class="space-y-6">
         <template v-if="!showRecoveryInput">
@@ -94,10 +97,10 @@ const inlineButtonClass =
                     :class="primaryButtonClass"
                     :disabled="processing"
                 >
-                    Continue
+                    {{ $t('buttons.continue') }}
                 </Button>
                 <div :class="helperTextClass">
-                    <span>or you can </span>
+                    <span>{{ $t('pages.or_you_can') }} </span>
                     <button
                         type="button"
                         :class="inlineButtonClass"
@@ -119,7 +122,7 @@ const inlineButtonClass =
                 <Input
                     name="recovery_code"
                     type="text"
-                    placeholder="Enter recovery code"
+                    :placeholder="$t('fields.enter_recovery_code')"
                     :autofocus="showRecoveryInput"
                     :class="fieldClass"
                     required
@@ -130,11 +133,11 @@ const inlineButtonClass =
                     :class="primaryButtonClass"
                     :disabled="processing"
                 >
-                    Continue
+                    {{ $t('buttons.continue') }}
                 </Button>
 
                 <div :class="helperTextClass">
-                    <span>or you can </span>
+                    <span>{{ $t('pages.or_you_can') }} </span>
                     <button
                         type="button"
                         :class="inlineButtonClass"

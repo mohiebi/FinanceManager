@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Form, Head, router, setLayoutProps, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch, watchEffect } from 'vue';
+import { useI18n } from 'vue-i18n';
 import WebEmailAuthController from '@/actions/App/Http/Controllers/Auth/WebEmailAuthController';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import InputError from '@/components/InputError.vue';
@@ -32,12 +33,13 @@ const props = defineProps<{
 }>();
 
 const page = usePage<{ errors: Record<string, string> }>();
+const { t } = useI18n();
 
 defineOptions({
     layout: {
-        title: 'Welcome',
-        description: 'Enter your email to access your account.',
-        caption: 'Start with your email address',
+        title: '',
+        description: '',
+        caption: '',
     },
 });
 
@@ -51,29 +53,28 @@ const stepCopy = computed(() => {
     switch (step.value) {
         case 'password':
             return {
-                title: 'Welcome back',
-                description: 'Enter your password to access your account.',
+                title: t('pages.password.title'),
+                description: t('pages.password.description'),
             };
         case 'signup_code':
             return {
-                title: 'Check your email',
-                description: 'Enter the 6-digit code we sent you.',
+                title: t('pages.signup_code.title'),
+                description: t('pages.signup_code.description'),
             };
         case 'complete_signup':
             return {
-                title: 'Finish your profile',
-                description:
-                    'Add the details you will use in your finance dashboard.',
+                title: t('pages.complete_signup.title'),
+                description: t('pages.complete_signup.description'),
             };
         case 'recovery_code':
             return {
-                title: 'Check your email',
-                description: 'Enter the 6-digit code we sent to your email.',
+                title: t('pages.recovery_code.title'),
+                description: t('pages.recovery_code.description'),
             };
         default:
             return {
-                title: 'Welcome',
-                description: 'Enter your email to access your account.',
+                title: t('pages.welcome.title'),
+                description: t('pages.welcome.description'),
             };
     }
 });
@@ -104,7 +105,7 @@ watchEffect(() => {
     setLayoutProps({
         title: stepCopy.value.title,
         description: stepCopy.value.description,
-        caption: 'Start with your email address',
+        caption: t('pages.welcome.description'),
     });
 });
 
@@ -161,7 +162,7 @@ const linkClass =
             :class="formClass"
         >
             <div class="grid gap-2">
-                <Label for="email" :class="labelClass">Email</Label>
+                <Label for="email" :class="labelClass">{{ $t('fields.email_address') }}</Label>
                 <Input
                     id="email"
                     v-model="email"
@@ -170,7 +171,7 @@ const linkClass =
                     required
                     autofocus
                     autocomplete="email"
-                    placeholder="Enter your email"
+                    :placeholder="$t('fields.enter_email')"
                     :class="fieldClass"
                     :aria-invalid="errors.email ? 'true' : undefined"
                 />
@@ -183,7 +184,7 @@ const linkClass =
                 :disabled="processing"
             >
                 <Spinner v-if="processing" />
-                Sign In
+                {{ $t('buttons.sign_in') }}
             </Button>
 
             <Button as-child variant="outline" :class="secondaryButtonClass">
@@ -209,7 +210,7 @@ const linkClass =
                             d="M12 5.1c1.4 0 2.6.5 3.6 1.4l2.7-2.7C16.8 2.3 14.6 1.4 12 1.4A9.7 9.7 0 0 0 3.4 6.5L6.6 9c.8-2.3 3-3.9 5.4-3.9Z"
                         />
                     </svg>
-                    <span>Sign In with Google</span>
+                    <span>{{ $t('buttons.sign_in_with_google') }}</span>
                 </a>
             </Button>
         </Form>
@@ -223,14 +224,14 @@ const linkClass =
             <input type="hidden" name="email" :value="email" />
 
             <div class="grid gap-2">
-                <Label for="password" :class="labelClass">Password</Label>
+                <Label for="password" :class="labelClass">{{ $t('fields.password') }}</Label>
                 <PasswordInput
                     id="password"
                     name="password"
                     required
                     autofocus
                     autocomplete="current-password"
-                    placeholder="Enter your Password"
+                    :placeholder="$t('fields.enter_password')"
                     :class="fieldClass"
                     :aria-invalid="
                         errors.email || errors.password ? 'true' : undefined
@@ -245,7 +246,7 @@ const linkClass =
                 :disabled="processing"
             >
                 <Spinner v-if="processing" />
-                Submit
+                {{ $t('buttons.submit') }}
             </Button>
         </Form>
 
@@ -266,7 +267,7 @@ const linkClass =
                     :disabled="processing"
                 >
                     <Spinner v-if="processing" />
-                    Forgot password?
+                    {{ $t('buttons.forgot_password') }}
                 </Button>
             </div>
         </Form>
@@ -283,7 +284,7 @@ const linkClass =
 
             <div class="grid gap-2">
                 <Label for="signup-code" :class="labelClass">
-                    Verification code
+                    {{ $t('fields.verification_code') }}
                 </Label>
                 <div class="pt-1">
                     <OtpCodeInput
@@ -302,7 +303,7 @@ const linkClass =
                     :disabled="processing"
                 >
                     <Spinner v-if="processing" />
-                    Verify email
+                    {{ $t('buttons.verify_email') }}
                 </Button>
 
                 <button
@@ -311,7 +312,7 @@ const linkClass =
                     class="mx-auto"
                     @click="returnToEmail"
                 >
-                    Use another email
+                    {{ $t('buttons.use_another_email') }}
                 </button>
             </div>
         </Form>
@@ -327,7 +328,7 @@ const linkClass =
             <input type="hidden" name="email" :value="email" />
 
             <div class="grid gap-2">
-                <Label for="name" :class="labelClass">Name</Label>
+                <Label for="name" :class="labelClass">{{ $t('fields.name') }}</Label>
                 <Input
                     id="name"
                     type="text"
@@ -335,7 +336,7 @@ const linkClass =
                     required
                     autofocus
                     autocomplete="name"
-                    placeholder="Enter your Name"
+                    :placeholder="$t('fields.enter_name')"
                     :class="fieldClass"
                     :aria-invalid="errors.name ? 'true' : undefined"
                 />
@@ -343,7 +344,7 @@ const linkClass =
             </div>
 
             <div class="grid gap-2">
-                <Label for="birthdate" :class="labelClass">Birthdate</Label>
+                <Label for="birthdate" :class="labelClass">{{ $t('fields.birthdate') }}</Label>
                 <BirthdatePicker
                     name="birthdate"
                     :trigger-class="fieldClass"
@@ -355,13 +356,13 @@ const linkClass =
             </div>
 
             <div class="grid gap-2">
-                <Label for="new-password" :class="labelClass">Password</Label>
+                <Label for="new-password" :class="labelClass">{{ $t('fields.password') }}</Label>
                 <PasswordInput
                     id="new-password"
                     name="password"
                     required
                     autocomplete="new-password"
-                    placeholder="Enter your Password"
+                    :placeholder="$t('fields.enter_password')"
                     :class="fieldClass"
                     :aria-invalid="errors.password ? 'true' : undefined"
                 />
@@ -370,14 +371,14 @@ const linkClass =
 
             <div class="grid gap-2">
                 <Label for="password-confirmation" :class="labelClass">
-                    Confirm password
+                    {{ $t('fields.confirm_password') }}
                 </Label>
                 <PasswordInput
                     id="password-confirmation"
                     name="password_confirmation"
                     required
                     autocomplete="new-password"
-                    placeholder="Repeat your Password"
+                    :placeholder="$t('fields.repeat_password')"
                     :class="fieldClass"
                 />
             </div>
@@ -390,7 +391,7 @@ const linkClass =
                 :disabled="processing"
             >
                 <Spinner v-if="processing" />
-                Create account
+                {{ $t('buttons.create_account') }}
             </Button>
         </Form>
 
@@ -406,7 +407,7 @@ const linkClass =
 
             <div class="grid gap-2">
                 <Label for="recovery-code" :class="labelClass">
-                    Verification code
+                    {{ $t('fields.verification_code') }}
                 </Label>
                 <div class="pt-1">
                     <OtpCodeInput
@@ -425,7 +426,7 @@ const linkClass =
                     :disabled="processing"
                 >
                     <Spinner v-if="processing" />
-                    Verify email
+                    {{ $t('buttons.verify_email') }}
                 </Button>
 
                 <button
@@ -434,7 +435,7 @@ const linkClass =
                     class="mx-auto"
                     @click="returnToEmail"
                 >
-                    Use another email
+                    {{ $t('buttons.use_another_email') }}
                 </button>
             </div>
         </Form>

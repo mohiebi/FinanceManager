@@ -1,23 +1,28 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, setLayoutProps } from '@inertiajs/vue3';
+import { watchEffect } from 'vue';
+import { useI18n } from 'vue-i18n';
 import TextLink from '@/components/TextLink.vue';
 import { login } from '@/routes';
 
-defineOptions({
-    layout: {
-        title: 'Verify your email',
-        description:
-            'Email verification now happens with a 6-digit code during signup.',
-    },
+const { t } = useI18n();
+
+defineOptions({ layout: { title: '', description: '' } });
+
+watchEffect(() => {
+    setLayoutProps({
+        title: t('pages.verify_email.title'),
+        description: t('pages.verify_email.description'),
+    });
 });
 </script>
 
 <template>
-    <Head title="Verify email" />
+    <Head :title="$t('pages.verify_email.title')" />
 
     <div class="auth-copy-muted text-center text-base font-normal">
-        Return to
-        <TextLink :href="login()">sign in</TextLink>
-        to continue verification.
+        {{ $t('pages.return_to_sign_in') }}
+        <TextLink :href="login()">{{ $t('buttons.sign_in_link') }}</TextLink>
+        {{ $t('pages.continue_verification') }}
     </div>
 </template>

@@ -1,23 +1,28 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, setLayoutProps } from '@inertiajs/vue3';
+import { watchEffect } from 'vue';
+import { useI18n } from 'vue-i18n';
 import TextLink from '@/components/TextLink.vue';
 import { login } from '@/routes';
 
-defineOptions({
-    layout: {
-        title: 'Use email sign in',
-        description:
-            'Password recovery now happens from the email-first sign-in flow.',
-    },
+const { t } = useI18n();
+
+defineOptions({ layout: { title: '', description: '' } });
+
+watchEffect(() => {
+    setLayoutProps({
+        title: t('pages.forgot_password.title'),
+        description: t('pages.forgot_password.description'),
+    });
 });
 </script>
 
 <template>
-    <Head title="Forgot password" />
+    <Head :title="$t('pages.forgot_password.title')" />
 
     <div class="auth-copy-muted text-center text-base font-normal">
-        Return to
-        <TextLink :href="login()">sign in</TextLink>
-        and choose “send me a code instead”.
+        {{ $t('pages.return_to_sign_in') }}
+        <TextLink :href="login()">{{ $t('buttons.sign_in_link') }}</TextLink>
+        {{ $t('pages.choose_recovery_code') }}
     </div>
 </template>

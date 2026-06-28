@@ -15,4 +15,13 @@ return [
     'use_another_email' => 'استفاده از ایمیل دیگر',
     'send_code_instead' => 'ارسال کد به جای رمز',
     'something_went_wrong' => 'مشکلی پیش آمد.',
+    'sign_in' => 'ورود',
+    'sign_in_with_google' => 'ورود با گوگل',
+    'verify_email' => 'تایید ایمیل',
+    'create_account' => 'ساخت حساب',
+    'confirm_password' => 'تایید رمز عبور',
+    'forgot_password' => 'رمز عبور را فراموش کردید؟',
+    'login_using_recovery_code' => 'ورود با کد بازیابی',
+    'login_using_auth_code' => 'ورود با کد احراز هویت',
+    'sign_in_link' => 'ورود',
 ];

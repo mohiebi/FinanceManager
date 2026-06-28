@@ -2,11 +2,11 @@
 
 namespace App\Telegraph;
 
-use App\Enums\AssetType;
 use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Models\Category;
 use App\Models\Investment;
+use App\Models\InvestmentAsset;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\TelegramReportService;
@@ -110,8 +110,12 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
-        $buttons = collect(AssetType::cases())
-            ->map(fn (AssetType $asset): Button => Button::make($asset->label())->action('inv_asset')->param('asset', $asset->value));
+        $buttons = InvestmentAsset::query()
+            ->availableFor($user)
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (InvestmentAsset $asset): Button => Button::make($asset->label())->action('inv_asset')->param('asset', (string) $asset->id));
 
         $this->chat->storage()->forget('wizard');
         $this->chat->storage()->set('inv_wizard', ['step' => 'asset', 'user_id' => $user->id]);
@@ -148,8 +152,9 @@ class TelegramHandler extends WebhookHandler
         $lines = ["*Last 10 transactions:*\n"];
 
         foreach ($transactions as $transaction) {
-            $type = $transaction->type === TransactionType::Cost ? 'Cost' : 'Income';
-            $lines[] = "{$type}: *{$transaction->title}* - {$transaction->amount} ({$transaction->occurred_at->format('M j')})";
+            $sign    = $transaction->type === TransactionType::Cost ? '−' : '+';
+            $date    = $transaction->occurred_at->format('M j');
+            $lines[] = "{$sign} *{$transaction->title}* — {$this->fmtAmount((float) $transaction->amount, $transaction->currency)} ({$date})";
         }
 
         $keyboard = Keyboard::make()->buttons([
@@ -208,12 +213,25 @@ class TelegramHandler extends WebhookHandler
         }
 
         $asset ??= $this->data->get('asset');
+        $investmentAsset = InvestmentAsset::query()
+            ->availableFor($user)
+            ->whereKey((int) $asset)
+            ->first();
+
+        if (! $investmentAsset) {
+            $this->chat->message('Investment asset not found. Choose Add investment to start again.')->send();
+
+            return;
+        }
+
         $wizard = $this->chat->storage()->get('inv_wizard', []);
-        $wizard['asset'] = $asset;
+        $wizard['asset_id'] = $investmentAsset->id;
+        $wizard['asset_slug'] = $investmentAsset->slug;
+        $wizard['asset_label'] = $investmentAsset->label();
         $wizard['step'] = 'quantity';
         $this->chat->storage()->set('inv_wizard', $wizard);
 
-        $this->chat->message("Enter quantity for {$asset}:")->send();
+        $this->chat->message("Enter quantity for {$investmentAsset->label()}:")->send();
     }
 
     protected function handleChatMessage(\Stringable $text): void
@@ -314,7 +332,8 @@ class TelegramHandler extends WebhookHandler
 
             Investment::create([
                 'user_id' => $user->id,
-                'asset_type' => $wizard['asset'],
+                'investment_asset_id' => $wizard['asset_id'],
+                'asset_type' => $wizard['asset_slug'],
                 'quantity' => $wizard['quantity'],
                 'cost_basis' => $costBasis > 0 ? $costBasis : null,
                 'occurred_at' => now()->toDateString(),
@@ -530,9 +549,19 @@ class TelegramHandler extends WebhookHandler
      */
     private function formatWizardAmount(array $wizard): string
     {
-        $currency = strtoupper((string) ($wizard['currency'] ?? Currency::Toman->value));
+        $currency = Currency::tryFrom((string) ($wizard['currency'] ?? Currency::Toman->value))
+            ?? Currency::Toman;
 
-        return "{$wizard['amount']} {$currency}";
+        return $this->fmtAmount((float) $wizard['amount'], $currency);
+    }
+
+    private function fmtAmount(float $amount, Currency $currency): string
+    {
+        return match ($currency) {
+            Currency::Toman => number_format((int) round($amount), 0, '.', ',').' T',
+            Currency::Usd   => '$'.number_format($amount, 2, '.', ','),
+            Currency::Eur   => '€'.number_format($amount, 2, '.', ','),
+        };
     }
 
     private function deleteKeyboardIfCallback(): void

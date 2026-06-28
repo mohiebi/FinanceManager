@@ -53,4 +53,10 @@ return [
         'total_budget_seconds' => env('TGJU_PRICE_TOTAL_BUDGET_SECONDS', 18),
     ],
 
+    'custom_asset_prices' => [
+        'cache_seconds' => env('CUSTOM_ASSET_PRICE_CACHE_SECONDS', 300),
+        'timeout' => env('CUSTOM_ASSET_PRICE_TIMEOUT', 5),
+        'connect_timeout' => env('CUSTOM_ASSET_PRICE_CONNECT_TIMEOUT', 3),
+    ],
+
 ];

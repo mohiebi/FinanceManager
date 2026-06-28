@@ -192,127 +192,7 @@
             />
         </div>
 
-        <!-- ── Asset breakdown table ─────────────────────────────── -->
-        <div
-            v-if="assets.length > 0"
-            class="mx-[18px] mt-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
-        >
-            <div class="px-5 py-[29px]">
-                <h2 class="text-[22px] leading-none font-normal text-white">
-                    {{ t('finance.portfolio.per_asset_breakdown') }}
-                </h2>
-            </div>
-
-            <div class="overflow-x-auto px-3 pb-5">
-                <table
-                    class="w-full border-separate border-spacing-y-0 text-sm"
-                >
-                    <thead>
-                        <tr class="text-base">
-                            <th
-                                class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
-                            >
-                                {{ t('finance.fields.asset') }}
-                            </th>
-                            <th
-                                class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
-                            >
-                                {{ t('finance.fields.holdings') }}
-                            </th>
-                            <th
-                                class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
-                            >
-                                {{ t('finance.fields.avg_cost_per_unit') }}
-                            </th>
-                            <th
-                                class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
-                            >
-                                {{ t('finance.portfolio.current_value') }}
-                            </th>
-                            <th
-                                class="rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
-                            >
-                                {{ t('finance.portfolio.profit_loss') }}
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="asset in assets"
-                            :key="asset.key"
-                            class="group"
-                        >
-                            <td
-                                class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
-                            >
-                                <span class="mr-1">{{ asset.icon }}</span>
-                                {{ asset.label }}
-                            </td>
-                            <td
-                                class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
-                            >
-                                {{ asset.quantity }}
-                                <span class="text-xs text-[#989898]">{{
-                                    asset.unit
-                                }}</span>
-                            </td>
-                            <td
-                                class="hidden px-3 py-[17px] text-center sm:table-cell sm:px-5"
-                            >
-                                <span
-                                    v-if="asset.avg_cost_basis_formatted"
-                                    class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[15px] leading-none font-normal text-white"
-                                >
-                                    {{ asset.avg_cost_basis_formatted }} {{ currencySymbol }}
-                                </span>
-                                <span v-else class="text-sm text-[#989898]">
-                                    —
-                                </span>
-                            </td>
-                            <td
-                                class="px-3 py-[17px] text-center text-[17px] leading-none font-bold text-white sm:px-5"
-                            >
-                                <template v-if="props.pricesAvailable">
-                                    {{ asset.current_value_formatted }}
-                                    <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
-                                </template>
-                                <span v-else class="text-sm font-normal text-[#989898]">{{ t('finance.price_unavailable') }}</span>
-                            </td>
-                            <td
-                                class="px-3 py-[17px] text-center text-[17px] leading-none font-bold sm:px-5"
-                                :class="
-                                    asset.pnl_is_positive === true
-                                        ? 'text-[#02CD86]'
-                                        : asset.pnl_is_positive === false
-                                          ? 'text-[#E94E50]'
-                                          : 'text-[#989898]'
-                                "
-                            >
-                                <span
-                                    v-if="!props.pricesAvailable"
-                                    class="text-sm font-normal text-[#989898]"
-                                    >{{ t('finance.price_unavailable') }}</span
-                                >
-                                <template v-else-if="asset.pnl !== null">
-                                    {{ asset.pnl_is_positive ? '+' : '−' }}
-                                    {{ asset.pnl_formatted }} {{ currencySymbol }}
-                                    <span
-                                        v-if="asset.pnl_percent !== null"
-                                        class="block text-xs font-normal"
-                                    >
-                                        ({{ asset.pnl_is_positive ? '+' : ''
-                                        }}{{ asset.pnl_percent }}%)
-                                    </span>
-                                </template>
-                                <span v-else>—</span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ── Per-entry breakdown ───────────────────────────────── -->
+        <!-- ── Holdings detail ───────────────────────────────── -->
         <div
             v-if="assets.length > 0"
             class="mx-[18px] my-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
@@ -373,7 +253,13 @@
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none text-white sm:px-5"
                             >
-                                <span class="mr-1">{{ asset.icon }}</span>
+                                <AssetIcon
+                                    :icon="asset.icon"
+                                    :icon-svg="asset.icon_svg"
+                                    :label="asset.label"
+                                    :color="asset.color"
+                                    size="sm"
+                                />
                                 {{ asset.label }}
                             </td>
                             <td
@@ -470,11 +356,12 @@ import { Deferred, Head } from '@inertiajs/vue3';
 import { Download, Wallet } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import AssetIcon from '@/components/AssetIcon.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard, portfolio } from '@/routes';
 
-type AssetKey = 'gold' | 'silver' | 'usd' | 'eur' | 'coin' | 'bitcoin';
+type AssetKey = string;
 
 type CurrencyOption = {
     label: string;
@@ -482,9 +369,11 @@ type CurrencyOption = {
 };
 
 type PortfolioAsset = {
+    id: number;
     key: AssetKey;
     label: string;
-    icon: string;
+    icon: string | null;
+    icon_svg: string | null;
     color: string;
     unit: string;
     quantity: number;
@@ -492,6 +381,7 @@ type PortfolioAsset = {
     current_price_formatted: string;
     current_value: number;
     current_value_formatted: string;
+    price_available: boolean;
     avg_cost_basis: number | null;
     avg_cost_basis_formatted: string | null;
     total_cost: number | null;

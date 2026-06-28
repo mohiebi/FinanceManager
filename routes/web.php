@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\EmailAuthPageController;
 use App\Http\Controllers\Auth\WebEmailAuthController;
 use App\Http\Controllers\Auth\WebGoogleAuthController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\InvestmentAssetController;
 use App\Http\Controllers\InvestmentController;
 use App\Http\Controllers\InvestmentExportController;
 use App\Http\Controllers\PortfolioController;
@@ -62,6 +63,7 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     Route::post('transactions/imports', [TransactionImportController::class, 'store'])->name('transactions.imports.store');
     Route::get('transactions/export', TransactionExportController::class)->name('transactions.export');
     Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::post('investment-assets', [InvestmentAssetController::class, 'store'])->name('investment-assets.store');
     Route::resource('transactions', TransactionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('investments/export', InvestmentExportController::class)->name('investments.export');
     Route::resource('investments', InvestmentController::class)->only(['index', 'store', 'update', 'destroy']);

@@ -6,6 +6,7 @@ defineProps<{
     title?: string;
     description?: string;
     processing?: boolean;
+    confirmDisabled?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -56,7 +57,7 @@ const emit = defineEmits<{
                         <button
                             type="button"
                             class="flex-1 rounded-xl bg-[#E94E50] py-2.5 text-sm font-medium text-white transition hover:bg-[#d43e40] disabled:opacity-50"
-                            :disabled="processing"
+                            :disabled="processing || confirmDisabled"
                             @click="emit('confirm')"
                         >
                             Delete

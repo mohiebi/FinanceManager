@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\InvestmentAssetController;
 use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -36,6 +37,10 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     Route::get('settings/categories', [CategoryController::class, 'edit'])->name('categories.edit');
     Route::patch('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
+    Route::get('settings/assets', [InvestmentAssetController::class, 'edit'])->name('investment-assets.edit');
+    Route::patch('investment-assets/{investment_asset}', [InvestmentAssetController::class, 'update'])->name('investment-assets.update');
+    Route::delete('investment-assets/{investment_asset}', [InvestmentAssetController::class, 'destroy'])->name('investment-assets.destroy');
 
     Route::get('settings/telegram', [TelegramController::class, 'edit'])->name('telegram.edit');
     Route::post('settings/telegram/connect', [TelegramController::class, 'connect'])->name('telegram.connect');

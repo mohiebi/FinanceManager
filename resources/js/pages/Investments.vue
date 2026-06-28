@@ -241,9 +241,13 @@
                     :style="{ borderTop: `2.5px solid ${asset.color}` }"
                 >
                     <div class="mb-2 flex items-center justify-between">
-                        <span class="text-xl leading-none">{{
-                            asset.icon
-                        }}</span>
+                        <AssetIcon
+                            :icon="asset.icon"
+                            :icon-svg="asset.icon_svg"
+                            :label="asset.label"
+                            :color="asset.color"
+                            size="lg"
+                        />
                         <span
                             class="rounded-md px-2 py-0.5 text-xs font-semibold text-white"
                             :style="{ backgroundColor: asset.color }"
@@ -350,7 +354,13 @@
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-white sm:px-5"
                             >
-                                <span class="mr-1">{{ entry.asset_icon }}</span>
+                                <AssetIcon
+                                    :icon="entry.asset_icon"
+                                    :icon-svg="entry.asset_icon_svg"
+                                    :label="entry.asset_label"
+                                    :color="entry.asset_color"
+                                    size="sm"
+                                />
                                 {{ entry.asset_label }}
                             </td>
                             <td
@@ -448,39 +458,58 @@
                             <!-- Asset type + Quantity -->
                             <div class="grid gap-4 sm:grid-cols-[1fr_140px]">
                                 <div class="grid gap-2">
-                                    <Label
-                                        class="finance-dialog-label"
-                                        for="asset_type"
-                                    >
+                                    <Label class="finance-dialog-label">
                                         {{ t('finance.fields.asset') }}
                                     </Label>
-                                    <select
-                                        id="asset_type"
-                                        v-model="form.asset_type"
-                                        required
-                                        class="finance-dialog-field"
-                                        :class="fieldClass"
-                                    >
-                                        <option value="" disabled>
-                                            {{
-                                                t(
-                                                    'finance.filters.select_asset',
-                                                )
-                                            }}
-                                        </option>
-                                        <option
-                                            v-for="assetType in props.assetTypes"
-                                            :key="assetType.value"
-                                            :value="assetType.value"
+                                    <!-- Custom asset dropdown (supports SVG icons) -->
+                                    <div class="relative">
+                                        <button
+                                            type="button"
+                                            :class="[fieldClass, 'flex h-9 w-full cursor-pointer items-center gap-2 px-3 text-left']"
+                                            @click="assetDropdownOpen = !assetDropdownOpen"
                                         >
-                                            {{ assetType.icon }}
-                                            {{ assetType.label }} ({{
-                                                assetType.unit
-                                            }})
-                                        </option>
-                                    </select>
+                                            <AssetIcon
+                                                v-if="selectedAsset"
+                                                :icon="selectedAsset.icon"
+                                                :icon-svg="selectedAsset.icon_svg"
+                                                :label="selectedAsset.label"
+                                                :color="selectedAsset.color"
+                                                size="sm"
+                                            />
+                                            <span class="flex-1 truncate" :class="selectedAsset ? 'text-white' : 'text-[#686868]'">
+                                                {{ selectedAsset ? `${selectedAsset.label} (${selectedAsset.unit})` : t('finance.filters.select_asset') }}
+                                            </span>
+                                            <ChevronDown class="size-4 shrink-0 text-[#686868] transition-transform" :class="assetDropdownOpen ? 'rotate-180' : ''" />
+                                        </button>
+
+                                        <div
+                                            v-if="assetDropdownOpen"
+                                            class="absolute top-full left-0 z-50 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-[#252525] py-1 shadow-2xl"
+                                        >
+                                            <button
+                                                v-for="assetType in props.assetTypes"
+                                                :key="assetType.id"
+                                                type="button"
+                                                class="flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-white/5"
+                                                :class="String(assetType.id) === String(form.investment_asset_id) ? 'bg-[#02CD86]/8 text-[#02CD86]' : 'text-white'"
+                                                @click="form.investment_asset_id = String(assetType.id); assetDropdownOpen = false"
+                                            >
+                                                <AssetIcon
+                                                    :icon="assetType.icon"
+                                                    :icon-svg="assetType.icon_svg"
+                                                    :label="assetType.label"
+                                                    :color="assetType.color"
+                                                    size="sm"
+                                                />
+                                                <span class="text-sm">{{ assetType.label }} ({{ assetType.unit }})</span>
+                                            </button>
+                                        </div>
+                                    </div>
                                     <InputError
-                                        :message="form.errors.asset_type"
+                                        :message="
+                                            form.errors.investment_asset_id ||
+                                            form.errors.asset_type
+                                        "
                                     />
                                 </div>
 
@@ -506,6 +535,11 @@
                                     />
                                 </div>
                             </div>
+
+                            <InvestmentAssetCreator
+                                :field-class="fieldClass"
+                                @created="form.investment_asset_id = $event"
+                            />
 
                             <!-- Total cost + Currency -->
                             <div class="grid gap-4 sm:grid-cols-[1fr_140px]">
@@ -643,15 +677,17 @@
 
 <script setup lang="ts">
 import { Deferred, Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Download, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
+import { ChevronDown, Download, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import AssetIcon from '@/components/AssetIcon.vue';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import type { ChartSeries } from '@/components/charts/LineChart.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
+import InvestmentAssetCreator from '@/components/InvestmentAssetCreator.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -667,17 +703,20 @@ import { formatAppDate } from '@/lib/date';
 import { dashboard } from '@/routes';
 import { index as investmentsIndex } from '@/routes/investments';
 
-type AssetKey = 'gold' | 'silver' | 'usd' | 'eur' | 'coin' | 'bitcoin';
+type AssetKey = string;
 
 type AssetSummary = {
+    id: number;
     key: AssetKey;
     label: string;
-    icon: string;
+    icon: string | null;
+    icon_svg: string | null;
     color: string;
     unit: string;
     quantity: number;
     quantity_display: string;
     price: number;
+    price_available: boolean;
     price_formatted: string;
     value: number;
     value_formatted: string;
@@ -685,18 +724,24 @@ type AssetSummary = {
 };
 
 type AssetTypeOption = {
+    id: number;
     value: AssetKey;
+    key: AssetKey;
     label: string;
     unit: string;
-    icon: string;
+    icon: string | null;
+    icon_svg: string | null;
     color: string;
+    price_source_type: string;
 };
 
 type Entry = {
     id: number;
+    investment_asset_id: number | null;
     asset_type: AssetKey;
     asset_label: string;
-    asset_icon: string;
+    asset_icon: string | null;
+    asset_icon_svg: string | null;
     asset_color: string;
     asset_unit: string;
     quantity: number;
@@ -887,10 +932,16 @@ watch(
 
 const isDialogOpen = ref(false);
 const editingId = ref<number | null>(null);
+const assetDropdownOpen = ref(false);
+
+const selectedAsset = computed(() =>
+    props.assetTypes.find((a) => String(a.id) === String(form.investment_asset_id)) ?? null,
+);
 
 const today = () => new Date().toISOString().slice(0, 10);
 
 const form = useForm({
+    investment_asset_id: '',
     asset_type: '',
     quantity: '',
     note: '',
@@ -905,7 +956,11 @@ const fieldClass =
 function resetForm(defaultType?: AssetKey): void {
     form.clearErrors();
     form.reset();
-    form.asset_type = defaultType ?? props.assetTypes[0]?.value ?? '';
+    const defaultAsset =
+        props.assetTypes.find((assetType) => assetType.key === defaultType) ??
+        props.assetTypes[0];
+    form.investment_asset_id = defaultAsset ? String(defaultAsset.id) : '';
+    form.asset_type = defaultAsset?.key ?? '';
     form.quantity = '';
     form.note = '';
     form.occurred_at = today();
@@ -923,6 +978,10 @@ function openCreateDialog(defaultType?: AssetKey) {
 function openEditDialog(entry: Entry) {
     editingId.value = entry.id;
     form.clearErrors();
+    form.investment_asset_id =
+        entry.investment_asset_id !== null
+            ? String(entry.investment_asset_id)
+            : '';
     form.asset_type = entry.asset_type;
     form.quantity = String(entry.quantity);
     form.note = entry.note ?? '';
@@ -956,6 +1015,11 @@ function handleDialogOpenChange(open: boolean): void {
 function submitEntry() {
     form.transform((data) => ({
         ...data,
+        asset_type:
+            props.assetTypes.find(
+                (assetType) =>
+                    String(assetType.id) === data.investment_asset_id,
+            )?.key ?? data.asset_type,
         total_cost: data.total_cost === '' ? null : data.total_cost,
     }));
 

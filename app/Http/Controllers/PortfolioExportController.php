@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Transactions\CurrencyConverter;
-use App\Enums\AssetType;
 use App\Enums\Currency;
+use App\Models\InvestmentAsset;
 use App\Services\AssetPriceService;
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -32,18 +33,22 @@ class PortfolioExportController extends Controller
             return round($currencyConverter->convert($amount, Currency::Toman, $selectedCurrency), 4);
         };
 
-        $allEntries = $user->investments()
+        $grouped = $user->investments()
+            ->with('asset')
             ->orderBy('occurred_at')
             ->orderBy('created_at')
-            ->get();
+            ->get()
+            ->filter(fn ($investment) => $investment->asset !== null)
+            ->groupBy('investment_asset_id')
+            ->sortByDesc(function ($entries) use ($priceService): float {
+                $asset = $entries->first()?->asset;
 
-        $grouped = $allEntries->groupBy(fn ($investment) => $investment->asset_type->value);
-        $grouped = $grouped->sortByDesc(fn ($entries, $typeValue) => $priceService->valueOf(
-            AssetType::from($typeValue),
-            (float) $entries->sum('quantity'),
-        ));
+                return $asset instanceof InvestmentAsset
+                    ? $priceService->valueOf($asset, (float) $entries->sum('quantity'))
+                    : 0.0;
+            });
 
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Portfolio P&L');
 
@@ -64,7 +69,7 @@ class PortfolioExportController extends Controller
 
         $lastCol = 'K';
         $headerStyle = $sheet->getStyle("A1:{$lastCol}1");
-        $headerStyle->getFont()->setBold(true)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FFFFFFFF'));
+        $headerStyle->getFont()->setBold(true)->setColor(new Color('FFFFFFFF'));
         $headerStyle->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF1a1a1a');
         $headerStyle->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
@@ -72,11 +77,16 @@ class PortfolioExportController extends Controller
         $totalCurrentValue = 0.0;
         $totalCost = 0.0;
 
-        foreach ($grouped as $typeValue => $typeEntries) {
-            $type = AssetType::from($typeValue);
+        foreach ($grouped as $typeEntries) {
+            $asset = $typeEntries->first()?->asset;
+
+            if (! $asset instanceof InvestmentAsset) {
+                continue;
+            }
+
             $totalQuantity = (float) $typeEntries->sum('quantity');
-            $currentPrice = $priceService->priceFor($type);
-            $currentValue = $priceService->valueOf($type, $totalQuantity);
+            $currentPrice = $priceService->priceFor($asset);
+            $currentValue = $priceService->valueOf($asset, $totalQuantity);
 
             $entriesWithCostBasis = $typeEntries->filter(fn ($e) => $e->cost_basis !== null);
             $totalCostBasisValue = $entriesWithCostBasis->sum(fn ($e) => (float) $e->cost_basis * (float) $e->quantity);
@@ -94,22 +104,21 @@ class PortfolioExportController extends Controller
             }
 
             $sheet->fromArray([
-                $type->label(),
+                $asset->label(),
                 round($totalQuantity, 8),
-                $type->unit(),
+                $asset->unit,
                 $convert($currentPrice),
                 $convert($currentValue),
                 $avgCostBasis !== null ? $convert($avgCostBasis) : '',
                 $assetTotalCost !== null ? $convert($assetTotalCost) : '',
                 $pnl !== null ? $convert(abs($pnl)) : '',
-                $pnlPercent !== null ? $pnlPercent . '%' : '',
+                $pnlPercent !== null ? $pnlPercent.'%' : '',
                 $pnl !== null ? ($pnl >= 0 ? 'Profit' : 'Loss') : '',
                 $typeEntries->count(),
             ], null, "A{$row}");
             $row++;
         }
 
-        // Summary row
         $sheet->fromArray([
             'TOTAL',
             '',
@@ -119,7 +128,7 @@ class PortfolioExportController extends Controller
             '',
             $totalCost > 0 ? $convert($totalCost) : '',
             $totalCost > 0 ? $convert(abs($totalCurrentValue - $totalCost)) : '',
-            $totalCost > 0 ? round(($totalCurrentValue - $totalCost) / $totalCost * 100, 2) . '%' : '',
+            $totalCost > 0 ? round(($totalCurrentValue - $totalCost) / $totalCost * 100, 2).'%' : '',
             $totalCost > 0 ? ($totalCurrentValue >= $totalCost ? 'Profit' : 'Loss') : '',
             '',
         ], null, "A{$row}");
@@ -132,7 +141,7 @@ class PortfolioExportController extends Controller
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
-        $filename = 'portfolio_pnl_' . now()->format('Y-m-d') . '.xlsx';
+        $filename = 'portfolio_pnl_'.now()->format('Y-m-d').'.xlsx';
 
         return response()->streamDownload(function () use ($spreadsheet) {
             $writer = new Xlsx($spreadsheet);

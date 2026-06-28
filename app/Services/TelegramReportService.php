@@ -2,7 +2,8 @@
 
 namespace App\Services;
 
-use App\Enums\AssetType;
+use App\Actions\Transactions\CurrencyConverter;
+use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Models\User;
 use App\Support\DateFormatter;
@@ -11,6 +12,8 @@ use Carbon\Carbon;
 
 class TelegramReportService
 {
+    public function __construct(private readonly CurrencyConverter $converter) {}
+
     public function daily(User $user, Carbon $date): string
     {
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
@@ -39,28 +42,45 @@ class TelegramReportService
             ->whereBetween('occurred_at', [$from->toDateString(), $to->toDateString()])
             ->get();
 
-        $income = $transactions->where('type', TransactionType::Income)->sum('amount');
-        $cost = $transactions->where('type', TransactionType::Cost)->sum('amount');
+        // Convert every transaction to Toman before summing
+        $income = 0.0;
+        $cost   = 0.0;
+
+        foreach ($transactions as $t) {
+            $toman = $this->converter->convert($t->amount, $t->currency, Currency::Toman);
+            if ($t->type === TransactionType::Income) {
+                $income += $toman;
+            } else {
+                $cost += $toman;
+            }
+        }
+
         $net = $income - $cost;
 
-        $costByCategory = $transactions
-            ->where('type', TransactionType::Cost)
-            ->groupBy(fn ($transaction) => $transaction->category?->name ?? 'Other');
+        // Cost breakdown per category — also in Toman
+        $costByCategory = [];
+        foreach ($transactions->where('type', TransactionType::Cost) as $t) {
+            $key = $t->category?->name ?? 'Other';
+            $costByCategory[$key] = ($costByCategory[$key] ?? 0.0)
+                + $this->converter->convert($t->amount, $t->currency, Currency::Toman);
+        }
 
         $lines = ["*{$title}*", ''];
-        $lines[] = 'Income: *'.number_format($income, 0).'*';
-        $lines[] = 'Costs: *'.number_format($cost, 0).'*';
-        $lines[] = 'Net: *'.number_format($net, 0).'*';
+        $lines[] = 'Income: *'.$this->fmt($income).' T*';
+        $lines[] = 'Costs: *'.$this->fmt($cost).' T*';
+        $lines[] = 'Net: *'.($net >= 0 ? '' : '-').$this->fmt(abs($net)).' T*';
 
-        if ($costByCategory->isNotEmpty()) {
+        if ($costByCategory) {
             $lines[] = '';
             $lines[] = '*Cost Breakdown:*';
-            foreach ($costByCategory as $category => $items) {
-                $lines[] = "- {$category}: ".number_format($items->sum('amount'), 0);
+            arsort($costByCategory);
+            foreach ($costByCategory as $category => $amount) {
+                $lines[] = "- {$category}: ".$this->fmt($amount).' T';
             }
         }
 
         $investments = $user->investments()
+            ->with('asset')
             ->whereBetween('occurred_at', [$from->toDateString(), $to->toDateString()])
             ->get();
 
@@ -68,11 +88,10 @@ class TelegramReportService
             $lines[] = '';
             $lines[] = '*Investments:*';
             foreach ($investments as $investment) {
-                $type = $investment->asset_type instanceof AssetType
-                    ? $investment->asset_type->label()
-                    : $investment->asset_type;
-
-                $lines[] = "- {$type}: {$investment->quantity}";
+                $label = $investment->asset?->label() ?? ($investment->asset_type ?? 'Asset');
+                $qty   = rtrim(rtrim(number_format((float) $investment->quantity, 8, '.', ''), '0'), '.');
+                $unit  = $investment->asset?->unit ?? '';
+                $lines[] = "- {$label}: {$qty} {$unit}";
             }
         }
 
@@ -82,5 +101,10 @@ class TelegramReportService
         }
 
         return implode("\n", $lines);
+    }
+
+    private function fmt(float $amount): string
+    {
+        return number_format(round($amount), 0, '.', ',');
     }
 }

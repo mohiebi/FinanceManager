@@ -489,12 +489,6 @@
                                             }})
                                         </option>
                                     </select>
-                                    <InvestmentAssetCreator
-                                        :field-class="fieldClass"
-                                        @created="
-                                            form.investment_asset_id = $event
-                                        "
-                                    />
                                     <InputError
                                         :message="
                                             form.errors.investment_asset_id ||
@@ -525,6 +519,11 @@
                                     />
                                 </div>
                             </div>
+
+                            <InvestmentAssetCreator
+                                :field-class="fieldClass"
+                                @created="form.investment_asset_id = $event"
+                            />
 
                             <!-- Total cost + Currency -->
                             <div class="grid gap-4 sm:grid-cols-[1fr_140px]">

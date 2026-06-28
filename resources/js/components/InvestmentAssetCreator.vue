@@ -96,10 +96,10 @@ function submit(): void {
 
         <div
             v-else
-            class="w-full rounded-[10px] border border-white/10 bg-white/[0.03] p-2"
+            class="w-full rounded-[10px] border border-white/10 bg-white/[0.03] p-3"
         >
             <div class="grid gap-2">
-                <div class="grid gap-2 sm:grid-cols-[1fr_72px]">
+                <div class="grid gap-2 sm:grid-cols-[1fr_96px]">
                     <div class="grid gap-1">
                         <Label class="sr-only" for="new-asset-name">
                             {{ t('settings.assets.name') }}
@@ -119,7 +119,7 @@ function submit(): void {
                         autocomplete="off"
                     />
                 </div>
-                <div class="grid gap-2 sm:grid-cols-[72px_1fr]">
+                <div class="grid gap-2 sm:grid-cols-[96px_1fr]">
                     <Input
                         v-model="form.icon"
                         :class="fieldClass"
@@ -135,40 +135,72 @@ function submit(): void {
                     />
                 </div>
 
-                <select
-                    v-model="form.price_source_type"
-                    class="finance-dialog-field"
-                    :class="fieldClass"
-                >
-                    <option value="manual">
-                        {{ t('settings.assets.sources.manual') }}
-                    </option>
-                    <option value="formula">
-                        {{ t('settings.assets.sources.formula') }}
-                    </option>
-                    <option value="json">
-                        {{ t('settings.assets.sources.json') }}
-                    </option>
-                    <option value="xml">
-                        {{ t('settings.assets.sources.xml') }}
-                    </option>
-                </select>
+                <div class="grid gap-2 sm:grid-cols-[160px_1fr]">
+                    <select
+                        v-model="form.price_source_type"
+                        class="finance-dialog-field"
+                        :class="fieldClass"
+                    >
+                        <option value="manual">
+                            {{ t('settings.assets.sources.manual') }}
+                        </option>
+                        <option value="formula">
+                            {{ t('settings.assets.sources.formula') }}
+                        </option>
+                        <option value="json">
+                            {{ t('settings.assets.sources.json') }}
+                        </option>
+                        <option value="xml">
+                            {{ t('settings.assets.sources.xml') }}
+                        </option>
+                    </select>
 
-                <Input
-                    v-if="form.price_source_type === 'manual'"
-                    v-model="form.price_source_config.price"
-                    :class="fieldClass"
-                    type="number"
-                    min="0"
-                    step="any"
-                    :placeholder="t('settings.assets.price_placeholder')"
-                />
-                <Input
-                    v-if="form.price_source_type === 'formula'"
-                    v-model="form.price_source_config.formula"
-                    :class="fieldClass"
-                    :placeholder="t('settings.assets.formula_placeholder')"
-                />
+                    <Input
+                        v-if="form.price_source_type === 'manual'"
+                        v-model="form.price_source_config.price"
+                        :class="fieldClass"
+                        type="number"
+                        min="0"
+                        step="any"
+                        :placeholder="t('settings.assets.price_placeholder')"
+                    />
+                    <Input
+                        v-if="form.price_source_type === 'formula'"
+                        v-model="form.price_source_config.formula"
+                        :class="fieldClass"
+                        :placeholder="t('settings.assets.formula_placeholder')"
+                    />
+                    <div
+                        v-if="form.price_source_type === 'json'"
+                        class="grid gap-2 sm:grid-cols-2"
+                    >
+                        <Input
+                            v-model="form.price_source_config.url"
+                            :class="fieldClass"
+                            placeholder="https://api.example.com/price"
+                        />
+                        <Input
+                            v-model="form.price_source_config.path"
+                            :class="fieldClass"
+                            :placeholder="t('settings.assets.path_placeholder')"
+                        />
+                    </div>
+                    <div
+                        v-if="form.price_source_type === 'xml'"
+                        class="grid gap-2 sm:grid-cols-2"
+                    >
+                        <Input
+                            v-model="form.price_source_config.url"
+                            :class="fieldClass"
+                            placeholder="https://example.com/feed.xml"
+                        />
+                        <Input
+                            v-model="form.price_source_config.xpath"
+                            :class="fieldClass"
+                            :placeholder="t('settings.assets.xpath_placeholder')"
+                        />
+                    </div>
+                </div>
                 <div
                     v-if="form.price_source_type === 'formula'"
                     class="rounded-[8px] bg-black/20 p-2 text-xs leading-5 text-[#989898]"
@@ -190,32 +222,8 @@ function submit(): void {
                         <code class="text-[#02CD86]">{{ formulaExample }}</code>
                     </p>
                 </div>
-                <template v-if="form.price_source_type === 'json'">
-                    <Input
-                        v-model="form.price_source_config.url"
-                        :class="fieldClass"
-                        placeholder="https://api.example.com/price"
-                    />
-                    <Input
-                        v-model="form.price_source_config.path"
-                        :class="fieldClass"
-                        :placeholder="t('settings.assets.path_placeholder')"
-                    />
-                </template>
-                <template v-if="form.price_source_type === 'xml'">
-                    <Input
-                        v-model="form.price_source_config.url"
-                        :class="fieldClass"
-                        placeholder="https://example.com/feed.xml"
-                    />
-                    <Input
-                        v-model="form.price_source_config.xpath"
-                        :class="fieldClass"
-                        :placeholder="t('settings.assets.xpath_placeholder')"
-                    />
-                </template>
 
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-2 sm:ml-auto sm:w-[220px]">
                     <Button
                         type="button"
                         class="h-9 rounded-[8px] bg-white/5 p-0 text-white/70 shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = withDefaults(
+withDefaults(
     defineProps<{
         icon?: string | null;
         iconSvg?: string | null;

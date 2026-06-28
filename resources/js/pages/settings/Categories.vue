@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { Check, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -17,10 +21,6 @@ import {
     store as storeCategory,
     update as updateCategoryRoute,
 } from '@/routes/categories';
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 type TransactionType = 'cost' | 'income';
 

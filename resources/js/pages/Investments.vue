@@ -680,14 +680,14 @@ import { Deferred, Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { ChevronDown, Download, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import AssetIcon from '@/components/AssetIcon.vue';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import type { ChartSeries } from '@/components/charts/LineChart.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
-import AssetIcon from '@/components/AssetIcon.vue';
-import InvestmentAssetCreator from '@/components/InvestmentAssetCreator.vue';
 import InputError from '@/components/InputError.vue';
+import InvestmentAssetCreator from '@/components/InvestmentAssetCreator.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,

@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { store as storeInvestmentAsset } from '@/routes/investment-assets';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { Check, ChevronDown, Plus, X } from 'lucide-vue-next';
 import { ref } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import { useI18n } from 'vue-i18n';
+import InputError from '@/components/InputError.vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { store as storeInvestmentAsset } from '@/routes/investment-assets';
 
 type CreatedInvestmentAsset = { id: number } | null;
 type PriceSourceType = 'manual' | 'formula' | 'json' | 'xml';
@@ -49,7 +49,7 @@ const formulaVariables = [
     'usd', 'eur', 'silver', 'coin',
     'bitcoin', 'bitcoin_usd', 'usdt',
 ];
-const formulaExample = 'goldprice * 900 / 750 * 8.133 / 2';
+
 
 const form = useForm({
     name: '',
@@ -91,9 +91,11 @@ function submit(): void {
         onSuccess: () => {
             const createdAsset = page.props
                 .createdInvestmentAsset as CreatedInvestmentAsset;
+
             if (createdAsset?.id) {
                 emit('created', String(createdAsset.id));
             }
+
             close();
         },
     });

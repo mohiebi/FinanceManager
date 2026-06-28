@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { Check, ChevronDown, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,10 +15,6 @@ import {
     store as storeInvestmentAsset,
     update as updateInvestmentAsset,
 } from '@/routes/investment-assets';
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Check, ChevronDown, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 type PriceSourceType = 'manual' | 'formula' | 'json' | 'xml';
 
@@ -78,7 +78,7 @@ const formulaVariables = [
     'usdt',
 ];
 
-const formulaExample = 'goldprice * 900 / 750 * 8.133 / 2';
+
 
 const blankConfig = (): Required<Record<keyof SourceConfig, string>> => ({
     price: '',

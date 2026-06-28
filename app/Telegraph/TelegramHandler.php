@@ -152,8 +152,9 @@ class TelegramHandler extends WebhookHandler
         $lines = ["*Last 10 transactions:*\n"];
 
         foreach ($transactions as $transaction) {
-            $type = $transaction->type === TransactionType::Cost ? 'Cost' : 'Income';
-            $lines[] = "{$type}: *{$transaction->title}* - {$transaction->amount} ({$transaction->occurred_at->format('M j')})";
+            $sign    = $transaction->type === TransactionType::Cost ? '−' : '+';
+            $date    = $transaction->occurred_at->format('M j');
+            $lines[] = "{$sign} *{$transaction->title}* — {$this->fmtAmount((float) $transaction->amount, $transaction->currency)} ({$date})";
         }
 
         $keyboard = Keyboard::make()->buttons([
@@ -548,9 +549,19 @@ class TelegramHandler extends WebhookHandler
      */
     private function formatWizardAmount(array $wizard): string
     {
-        $currency = strtoupper((string) ($wizard['currency'] ?? Currency::Toman->value));
+        $currency = Currency::tryFrom((string) ($wizard['currency'] ?? Currency::Toman->value))
+            ?? Currency::Toman;
 
-        return "{$wizard['amount']} {$currency}";
+        return $this->fmtAmount((float) $wizard['amount'], $currency);
+    }
+
+    private function fmtAmount(float $amount, Currency $currency): string
+    {
+        return match ($currency) {
+            Currency::Toman => number_format((int) round($amount), 0, '.', ',').' T',
+            Currency::Usd   => '$'.number_format($amount, 2, '.', ','),
+            Currency::Eur   => '€'.number_format($amount, 2, '.', ','),
+        };
     }
 
     private function deleteKeyboardIfCallback(): void

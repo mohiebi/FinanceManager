@@ -145,7 +145,7 @@ class AuthCodeEmailTemplate
 
                             <!-- Footer -->
                             <tr>
-                                <td class="email-footer" style="background-color:#0d0d0d; border-top:1px solid #1a1a1a; padding:20px 48px;">
+                                <td class="email-footer" style="background-color:#0d0d0d; border-top:1px solid #242424; padding:20px 48px;">
                                     <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                                         <tr>
                                             <td>

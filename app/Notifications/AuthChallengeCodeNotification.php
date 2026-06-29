@@ -3,9 +3,9 @@
 namespace App\Notifications;
 
 use App\Mail\Templates\AuthCodeEmailTemplate;
+use App\Notifications\Channels\ResendChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
-use Resend\Laravel\Facades\Resend;
 
 class AuthChallengeCodeNotification extends Notification
 {
@@ -21,23 +21,24 @@ class AuthChallengeCodeNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [ResendChannel::class];
     }
 
-    public function toMail(object $notifiable): void
+    /**
+     * @return array{to: string, subject: string, html: string}
+     */
+    public function toResend(object $notifiable): array
     {
         $isRecovery = $this->purpose === 'recovery';
-        $subject    = $isRecovery ? 'کد بازیابی ورود شما' : 'تأیید آدرس ایمیل';
 
         $routed = $notifiable->routeNotificationFor('mail', $this);
         $to     = is_string($routed) ? $routed : (string) ($notifiable->email ?? '');
 
-        Resend::emails()->send([
-            'from'    => config('mail.from.name') . ' <' . config('mail.from.address') . '>',
-            'to'      => [$to],
-            'subject' => $subject,
+        return [
+            'to'      => $to,
+            'subject' => $isRecovery ? 'کد بازیابی ورود شما' : 'تأیید آدرس ایمیل',
             'html'    => AuthCodeEmailTemplate::render($this->code, $this->purpose),
-        ]);
+        ];
     }
 
     /**

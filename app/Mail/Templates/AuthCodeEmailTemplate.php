@@ -69,9 +69,9 @@ class AuthCodeEmailTemplate
                 }
             </style>
         </head>
-        <body style="background-color:#0d0d0d; font-family:'IBM Plex Sans',ui-sans-serif,system-ui,-apple-system,sans-serif; margin:0; padding:0;">
+        <body style="background-color:transparent; font-family:'IBM Plex Sans',ui-sans-serif,system-ui,-apple-system,sans-serif; margin:0; padding:0;">
 
-            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#0d0d0d;">
+            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:transparent;">
                 <tr>
                     <td align="center" style="padding:48px 16px;">
 

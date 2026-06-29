@@ -2,9 +2,10 @@
 
 namespace App\Notifications;
 
+use App\Mail\Templates\AuthCodeEmailTemplate;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Resend\Laravel\Facades\Resend;
 
 class AuthChallengeCodeNotification extends Notification
 {
@@ -16,8 +17,6 @@ class AuthChallengeCodeNotification extends Notification
     ) {}
 
     /**
-     * Get the notification's delivery channels.
-     *
      * @return array<int, string>
      */
     public function via(object $notifiable): array
@@ -25,25 +24,23 @@ class AuthChallengeCodeNotification extends Notification
         return ['mail'];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(object $notifiable): void
     {
-        $subject = $this->purpose === 'recovery'
-            ? 'Your login recovery code'
-            : 'Verify your email address';
+        $isRecovery = $this->purpose === 'recovery';
+        $subject    = $isRecovery ? 'کد بازیابی ورود شما' : 'تأیید آدرس ایمیل';
 
-        return (new MailMessage)
-            ->subject($subject)
-            ->line('Use this code to continue:')
-            ->line($this->code)
-            ->line('This code expires in 5 minutes.');
+        $routed = $notifiable->routeNotificationFor('mail', $this);
+        $to     = is_string($routed) ? $routed : (string) ($notifiable->email ?? '');
+
+        Resend::emails()->send([
+            'from'    => config('mail.from.name') . ' <' . config('mail.from.address') . '>',
+            'to'      => [$to],
+            'subject' => $subject,
+            'html'    => AuthCodeEmailTemplate::render($this->code, $this->purpose),
+        ]);
     }
 
     /**
-     * Get the array representation of the notification.
-     *
      * @return array<string, mixed>
      */
     public function toArray(object $notifiable): array

@@ -40,6 +40,7 @@ return [
         'paid' => 'Paid',
         'empty' => 'No bills yet',
         'empty_description' => 'Add a bill like rent or phone payment and we will remind you before it is due.',
+        'invalid_category' => 'Please choose a valid category.',
     ],
     'calculating' => 'Calculating…',
     'price_unavailable' => 'Price unavailable',

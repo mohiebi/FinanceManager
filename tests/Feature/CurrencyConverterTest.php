@@ -4,12 +4,14 @@ use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\Currency;
 use Illuminate\Support\Facades\Cache;
 
-test('it uses the static fallback rate when live prices are unavailable', function () {
+test('it returns zero when live prices are unavailable', function () {
+    Cache::flush();
     config(['services.tgju.enabled' => false]);
 
     $converter = app(CurrencyConverter::class);
 
-    expect($converter->convert(1, Currency::Usd, Currency::Toman))->toBe(150000.0);
+    expect($converter->convert(1, Currency::Usd, Currency::Toman))->toBe(0.0)
+        ->and($converter->convert(1500000, Currency::Toman, Currency::Usd))->toBe(0.0);
 });
 
 test('it converts using the same live rate the Investments/Portfolio pages use', function () {

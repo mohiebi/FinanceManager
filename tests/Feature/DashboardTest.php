@@ -4,6 +4,7 @@ use App\Enums\Currency;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('guests are redirected to the login page', function () {
@@ -22,9 +23,14 @@ test('authenticated users can visit the dashboard', function () {
 test('dashboard converts mixed currency totals and transaction amounts to the selected currency', function () {
     Carbon::setTestNow(Carbon::parse('2026-04-22 12:00:00'));
 
-    // Force the static fallback exchange rates so this test asserts deterministic
-    // conversion arithmetic, independent of live tgju prices or local .env overrides.
-    config(['services.tgju.enabled' => false]);
+    // Seed deterministic live prices so this test asserts conversion arithmetic
+    // independent of real tgju prices or local .env overrides.
+    Cache::flush();
+    config(['services.tgju.enabled' => true]);
+    Cache::put('asset-prices.tgju', [
+        'usd' => 150000.0,
+        'eur' => 175500.0,
+    ], now()->addMinutes(5));
 
     try {
         $user = User::factory()->create();

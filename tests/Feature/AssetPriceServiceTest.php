@@ -50,7 +50,7 @@ test('asset price service reads tgju prices from configured xpaths', function ()
         ]);
 });
 
-test('asset price service returns zero when tgju is unavailable', function () {
+test('asset price service returns zero when tgju is unavailable and no price has ever been fetched', function () {
     Cache::flush();
 
     config([
@@ -76,6 +76,41 @@ test('asset price service returns zero when tgju is unavailable', function () {
         ->and($service->priceFor(AssetType::Eur))->toBe(0.0)
         ->and($service->priceFor(AssetType::Coin))->toBe(0.0)
         ->and($service->priceFor(AssetType::Bitcoin))->toBe(0.0);
+});
+
+test('asset price service falls back to the last known prices when a fresh fetch fails', function () {
+    Cache::flush();
+
+    config([
+        'services.tgju.enabled' => true,
+        'services.tgju.url' => 'https://www.tgju.org/',
+        'services.tgju.fallback_url' => 'http://www.tgju.org/',
+        'services.tgju.currency_url' => 'https://www.tgju.org/currency',
+        'services.tgju.currency_fallback_url' => 'http://www.tgju.org/currency',
+    ]);
+
+    // First call succeeds (establishing a "last known" price), every subsequent
+    // call to the same URL fails — simulating tgju going down after a TTL expiry
+    // or a manual sync forgetting the cache.
+    Http::fake([
+        'https://www.tgju.org/' => Http::sequence()
+            ->push(tgjuHtml([
+                '/html/body/main/div[4]/div[8]/div[2]/div/div[1]/div[2]/div/div[1]/table/tbody/tr[1]/td[1]' => '1,721,000',
+            ]))
+            ->push('', 500),
+        'http://www.tgju.org/' => Http::response('', 500),
+        'https://www.tgju.org/currency' => Http::response(tgjuHtml([])),
+        'http://www.tgju.org/currency' => Http::response('', 500),
+    ]);
+
+    $service = app(AssetPriceService::class);
+
+    expect($service->priceFor(AssetType::Usd))->toBe(172100.0);
+
+    Cache::forget('asset-prices.tgju');
+
+    expect($service->priceFor(AssetType::Usd))->toBe(172100.0)
+        ->and($service->pricesAvailable())->toBeTrue();
 });
 
 test('lastSyncedAt stays null when the fetch fails', function () {

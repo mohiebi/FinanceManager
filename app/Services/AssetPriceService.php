@@ -133,11 +133,20 @@ class AssetPriceService
             return [];
         }
 
-        return Cache::remember(
+        $prices = Cache::remember(
             'asset-prices.tgju',
             now()->addSeconds((int) config('services.tgju.cache_seconds', 300)),
             fn (): array => $this->fetchTgjuPrices(),
         );
+
+        if ($prices !== []) {
+            return $prices;
+        }
+
+        // The live fetch failed (or is still failing within its cache window) —
+        // fall back to the last successfully fetched prices rather than zeroing
+        // everything out.
+        return Cache::get('asset-prices.tgju.last_known', []);
     }
 
     private function priceForInvestmentAsset(InvestmentAsset $asset): float
@@ -422,6 +431,7 @@ class AssetPriceService
 
         if ($prices !== []) {
             Cache::forever('asset-prices.tgju.synced_at', now()->toIso8601String());
+            Cache::forever('asset-prices.tgju.last_known', $prices);
         }
 
         return $prices;

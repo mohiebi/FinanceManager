@@ -149,6 +149,32 @@ class AssetPriceService
         return Cache::get('asset-prices.tgju.last_known', []);
     }
 
+    /**
+     * Forces a fresh tgju fetch, bypassing the cache TTL entirely, and re-primes
+     * the cache with the result. Used by the hourly scheduled refresh and by
+     * manual sync, so prices stay current independent of page traffic.
+     *
+     * @return array<string, float>
+     */
+    public function refreshTgjuPrices(): array
+    {
+        if (! config('services.tgju.enabled', true)) {
+            return [];
+        }
+
+        $prices = $this->fetchTgjuPrices();
+
+        if ($prices !== []) {
+            Cache::put(
+                'asset-prices.tgju',
+                $prices,
+                now()->addSeconds((int) config('services.tgju.cache_seconds', 300)),
+            );
+        }
+
+        return $prices;
+    }
+
     private function priceForInvestmentAsset(InvestmentAsset $asset): float
     {
         $config = $asset->price_source_config ?? [];

@@ -25,6 +25,7 @@ return [
     'calculating' => 'Calculating…',
     'price_unavailable' => 'Price unavailable',
     'last_synced' => 'Updated {time}',
+    'sync_too_soon' => '{1}You can sync again in 1 minute.|[2,*]You can sync again in :minutes minutes.',
     'calendar' => [
         'current_period' => 'Current Period',
         'day_of_month' => 'Day {day} of {days}',

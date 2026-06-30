@@ -202,6 +202,35 @@ test('invalidateCache does not error when the user has no custom assets', functi
     expect(Cache::get('asset-prices.tgju'))->toBeNull();
 });
 
+test('refreshTgjuPrices forces a fresh fetch and re-primes the cache even when not yet expired', function () {
+    Cache::flush();
+
+    config([
+        'services.tgju.enabled' => true,
+        'services.tgju.url' => 'https://www.tgju.org/',
+        'services.tgju.fallback_url' => 'http://www.tgju.org/',
+        'services.tgju.currency_url' => 'https://www.tgju.org/currency',
+        'services.tgju.currency_fallback_url' => 'http://www.tgju.org/currency',
+    ]);
+
+    // Cache is already warm with a stale value that has NOT expired.
+    Cache::put('asset-prices.tgju', ['usd' => 1.0], now()->addMinutes(5));
+
+    Http::fake([
+        'https://www.tgju.org/' => Http::response(tgjuHtml([
+            '/html/body/main/div[4]/div[8]/div[2]/div/div[1]/div[2]/div/div[1]/table/tbody/tr[1]/td[1]' => '1,721,000',
+        ])),
+        'https://www.tgju.org/currency' => Http::response(tgjuHtml([])),
+    ]);
+
+    $service = app(AssetPriceService::class);
+    $prices = $service->refreshTgjuPrices();
+
+    expect($prices['usd'])->toBe(172100.0)
+        ->and(Cache::get('asset-prices.tgju')['usd'])->toBe(172100.0)
+        ->and($service->lastSyncedAt())->not->toBeNull();
+});
+
 /**
  * @param  array<string, string>  $values
  */

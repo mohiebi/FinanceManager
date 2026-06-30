@@ -32,7 +32,10 @@
                             <RefreshCw class="size-3" :class="{ 'animate-spin': syncing }" />
                             {{ t('finance.actions.sync_prices') }}
                         </button>
-                        <span v-if="lastSyncedLabel" class="text-xs text-[#989898]">
+                        <span v-if="syncError" class="text-xs text-[#E94E50]">
+                            {{ syncError }}
+                        </span>
+                        <span v-else-if="lastSyncedLabel" class="text-xs text-[#989898]">
                             {{ t('finance.last_synced', { time: lastSyncedLabel }) }}
                         </span>
                     </div>
@@ -550,16 +553,21 @@ const selectedCurrency = ref(props.selectedCurrency);
 const { t } = useI18n();
 
 const syncing = ref(false);
+const syncError = ref<string | null>(null);
 const { formatRelativeTime } = useRelativeTime();
 const lastSyncedLabel = computed(() => formatRelativeTime(props.pricesSyncedAt));
 
 const syncPrices = () => {
     syncing.value = true;
+    syncError.value = null;
     router.post(
         syncAssetPrices.url(),
         {},
         {
             preserveScroll: true,
+            onError: (errors) => {
+                syncError.value = errors.sync ?? null;
+            },
             onFinish: () => {
                 syncing.value = false;
             },

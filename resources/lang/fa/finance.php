@@ -25,6 +25,7 @@ return [
     'calculating' => 'در حال محاسبه…',
     'price_unavailable' => 'قیمت در دسترس نیست',
     'last_synced' => 'به‌روزرسانی شد {time}',
+    'sync_too_soon' => '{1}تا ۱ دقیقه دیگر می‌توانید دوباره به‌روزرسانی کنید.|[2,*]تا :minutes دقیقه دیگر می‌توانید دوباره به‌روزرسانی کنید.',
     'calendar' => [
         'current_period' => 'دوره فعلی',
         'day_of_month' => 'روز {day} از {days}',

@@ -5,16 +5,21 @@ namespace App\Notifications;
 use App\Mail\Templates\AuthCodeEmailTemplate;
 use App\Notifications\Channels\ResendChannel;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class AuthChallengeCodeNotification extends Notification
+class AuthChallengeCodeNotification extends Notification implements ShouldQueue
 {
     use Queueable;
+
+    public int $tries = 3;
 
     public function __construct(
         public readonly string $code,
         public readonly string $purpose,
-    ) {}
+    ) {
+        $this->onQueue('emails');
+    }
 
     /**
      * @return array<int, string>
@@ -32,12 +37,12 @@ class AuthChallengeCodeNotification extends Notification
         $isRecovery = $this->purpose === 'recovery';
 
         $routed = $notifiable->routeNotificationFor('mail', $this);
-        $to     = is_string($routed) ? $routed : (string) ($notifiable->email ?? '');
+        $to = is_string($routed) ? $routed : (string) ($notifiable->email ?? '');
 
         return [
-            'to'      => $to,
+            'to' => $to,
             'subject' => $isRecovery ? 'کد بازیابی ورود شما' : 'تأیید آدرس ایمیل',
-            'html'    => AuthCodeEmailTemplate::render($this->code, $this->purpose),
+            'html' => AuthCodeEmailTemplate::render($this->code, $this->purpose),
         ];
     }
 

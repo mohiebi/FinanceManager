@@ -4,6 +4,7 @@ use App\Http\Controllers\AssetPriceSyncController;
 use App\Http\Controllers\Auth\EmailAuthPageController;
 use App\Http\Controllers\Auth\WebEmailAuthController;
 use App\Http\Controllers\Auth\WebGoogleAuthController;
+use App\Http\Controllers\BillController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InvestmentAssetController;
 use App\Http\Controllers\InvestmentController;
@@ -75,6 +76,10 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
         ->name('asset-prices.sync');
     Route::get('portfolio/export', PortfolioExportController::class)->name('portfolio.export');
     Route::get('portfolio', PortfolioController::class)->name('portfolio');
+
+    Route::resource('bills', BillController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::post('bills/{bill}/occurrences/{occurrence}/pay', [BillController::class, 'markPaid'])
+        ->name('bills.occurrences.pay');
 });
 
 require __DIR__.'/settings.php';

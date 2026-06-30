@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     ChartPie,
     LayoutGrid,
+    Receipt,
     ReceiptText,
     Settings,
     TrendingUp,
@@ -18,6 +19,7 @@ import {
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { dashboard, portfolio, report } from '@/routes';
+import { index as billsIndex } from '@/routes/bills';
 import { index as investmentsIndex } from '@/routes/investments';
 import { index as transactionsIndex } from '@/routes/transactions';
 
@@ -33,6 +35,7 @@ const navItems = computed(() => [
     { title: t('navigation.report'),        href: report(),             icon: ChartPie     },
     { title: t('navigation.investments'),   href: investmentsIndex(),   icon: TrendingUp   },
     { title: t('navigation.portfolio'),     href: portfolio(),          icon: Wallet       },
+    { title: t('navigation.bills'),         href: billsIndex(),         icon: Receipt      },
 ]);
 </script>
 

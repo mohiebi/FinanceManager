@@ -23,6 +23,15 @@ declare module '@inertiajs/core' {
             calendar: 'gregorian' | 'jalali';
             translations: Record<string, unknown>;
             sidebarOpen: boolean;
+            notifications: {
+                unread_count: number;
+                recent: {
+                    id: string;
+                    data: { type: string; title: string; body: string; bill_id?: number; due_date?: string };
+                    read_at: string | null;
+                    created_at: string;
+                }[];
+            } | null;
             [key: string]: unknown;
         };
     }

@@ -6,6 +6,7 @@ return [
     'report' => 'گزارش',
     'investments' => 'سرمایه‌گذاری‌ها',
     'portfolio' => 'پرتفو',
+    'bills' => 'قبض‌ها',
     'primary' => 'ناوبری اصلی',
     'account' => 'ناوبری حساب',
     'notifications' => 'اعلان‌ها',

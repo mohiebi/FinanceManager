@@ -1,6 +1,9 @@
 <?php
 
 use App\Enums\AssetType;
+use App\Enums\InvestmentAssetPriceSource;
+use App\Models\InvestmentAsset;
+use App\Models\User;
 use App\Services\AssetPriceService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -73,6 +76,95 @@ test('asset price service returns zero when tgju is unavailable', function () {
         ->and($service->priceFor(AssetType::Eur))->toBe(0.0)
         ->and($service->priceFor(AssetType::Coin))->toBe(0.0)
         ->and($service->priceFor(AssetType::Bitcoin))->toBe(0.0);
+});
+
+test('lastSyncedAt stays null when the fetch fails', function () {
+    Cache::flush();
+
+    config([
+        'services.tgju.enabled' => true,
+        'services.tgju.url' => 'https://www.tgju.org/',
+        'services.tgju.fallback_url' => 'http://www.tgju.org/',
+        'services.tgju.currency_url' => 'https://www.tgju.org/currency',
+        'services.tgju.currency_fallback_url' => 'http://www.tgju.org/currency',
+    ]);
+
+    Http::fake([
+        'https://www.tgju.org/' => Http::response('', 500),
+        'http://www.tgju.org/' => Http::response('', 500),
+        'https://www.tgju.org/currency' => Http::response('', 500),
+        'http://www.tgju.org/currency' => Http::response('', 500),
+    ]);
+
+    $service = app(AssetPriceService::class);
+    $service->tgjuPrices();
+
+    expect($service->lastSyncedAt())->toBeNull();
+});
+
+test('lastSyncedAt records a timestamp after a successful fetch', function () {
+    Cache::flush();
+
+    config([
+        'services.tgju.enabled' => true,
+        'services.tgju.url' => 'https://www.tgju.org/',
+        'services.tgju.fallback_url' => 'http://www.tgju.org/',
+        'services.tgju.currency_url' => 'https://www.tgju.org/currency',
+        'services.tgju.currency_fallback_url' => 'http://www.tgju.org/currency',
+    ]);
+
+    Http::fake([
+        'https://www.tgju.org/' => Http::response(tgjuHtml([
+            '/html/body/main/div[4]/div[8]/div[2]/div/div[1]/div[2]/div/div[1]/table/tbody/tr[1]/td[1]' => '1,000,000',
+        ])),
+        'https://www.tgju.org/currency' => Http::response(tgjuHtml([])),
+    ]);
+
+    $service = app(AssetPriceService::class);
+
+    expect($service->lastSyncedAt())->toBeNull();
+
+    $prices = $service->tgjuPrices();
+
+    expect($prices)->not->toBe([])
+        ->and($service->lastSyncedAt())->not->toBeNull();
+});
+
+test('invalidateCache forgets the global tgju cache and the user custom asset caches', function () {
+    Cache::flush();
+
+    $user = User::factory()->create();
+
+    Cache::put('asset-prices.tgju', ['usd' => 100000.0], now()->addMinutes(5));
+    Cache::forever('asset-prices.tgju.synced_at', now()->toIso8601String());
+
+    $asset = InvestmentAsset::query()->create([
+        'name' => 'Custom JSON asset',
+        'unit' => 'unit',
+        'color' => '#02CD86',
+        'price_source_type' => InvestmentAssetPriceSource::Json,
+        'price_source_config' => ['url' => 'https://api.example.com/price', 'path' => 'price'],
+    ]);
+
+    $assetCacheKey = 'investment-asset-price.'.$asset->id.'.'.md5(json_encode($asset->price_source_config) ?: '');
+    Cache::put($assetCacheKey, 1234.5, now()->addMinutes(5));
+
+    $service = app(AssetPriceService::class);
+    $service->invalidateCache($user);
+
+    expect(Cache::get('asset-prices.tgju'))->toBeNull()
+        ->and(Cache::get($assetCacheKey))->toBeNull()
+        ->and($service->lastSyncedAt())->not->toBeNull();
+});
+
+test('invalidateCache does not error when the user has no custom assets', function () {
+    Cache::flush();
+
+    $user = User::factory()->create();
+
+    app(AssetPriceService::class)->invalidateCache($user);
+
+    expect(Cache::get('asset-prices.tgju'))->toBeNull();
 });
 
 /**

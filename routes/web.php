@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AssetPriceSyncController;
 use App\Http\Controllers\Auth\EmailAuthPageController;
 use App\Http\Controllers\Auth\WebEmailAuthController;
 use App\Http\Controllers\Auth\WebGoogleAuthController;
@@ -67,6 +68,11 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     Route::resource('transactions', TransactionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('investments/export', InvestmentExportController::class)->name('investments.export');
     Route::resource('investments', InvestmentController::class)->only(['index', 'store', 'update', 'destroy']);
+    // Forces a real outbound scrape against tgju.org when cache is cold, so this is
+    // throttled stricter than the codebase's usual 10,1 / 5,1 write endpoints.
+    Route::post('asset-prices/sync', AssetPriceSyncController::class)
+        ->middleware('throttle:3,1')
+        ->name('asset-prices.sync');
     Route::get('portfolio/export', PortfolioExportController::class)->name('portfolio.export');
     Route::get('portfolio', PortfolioController::class)->name('portfolio');
 });

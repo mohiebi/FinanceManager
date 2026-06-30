@@ -118,6 +118,7 @@ class InvestmentController extends Controller
                 ->mapWithKeys(fn (InvestmentAsset $asset) => [$asset->slug => $priceService->priceFor($asset)])
                 ->all()),
             'pricesAvailable' => Inertia::defer(fn () => $priceService->pricesAvailable()),
+            'pricesSyncedAt' => $priceService->lastSyncedAt(),
         ]);
     }
 

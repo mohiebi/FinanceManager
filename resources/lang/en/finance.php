@@ -11,6 +11,7 @@ return [
         'import_transactions' => 'Import',
         'reset_filters' => 'Reset filters',
         'see_all' => 'See all ->',
+        'sync_prices' => 'Sync prices',
     ],
     'assets' => [
         'gold' => 'Gold',
@@ -23,6 +24,7 @@ return [
     ],
     'calculating' => 'Calculating…',
     'price_unavailable' => 'Price unavailable',
+    'last_synced' => 'Updated {time}',
     'calendar' => [
         'current_period' => 'Current Period',
         'day_of_month' => 'Day {day} of {days}',

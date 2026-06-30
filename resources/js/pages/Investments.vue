@@ -4,8 +4,24 @@
     <div
         class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
     >
+        <!-- ── Page actions ──────────────────────────────────────── -->
+        <div class="flex items-center gap-3 px-[18px] pt-[18px]">
+            <button
+                type="button"
+                :disabled="syncing"
+                class="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-xs text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                @click="syncPrices"
+            >
+                <RefreshCw class="size-3" :class="{ 'animate-spin': syncing }" />
+                {{ t('finance.actions.sync_prices') }}
+            </button>
+            <span v-if="lastSyncedLabel" class="text-xs text-[#989898]">
+                {{ t('finance.last_synced', { time: lastSyncedLabel }) }}
+            </span>
+        </div>
+
         <!-- ── Summary stat cards ────────────────────────────────── -->
-        <div class="grid gap-[18px] px-[18px] pt-[18px] md:grid-cols-3">
+        <div class="grid gap-[18px] px-[18px] pt-3 md:grid-cols-3">
             <article
                 class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
@@ -677,7 +693,7 @@
 
 <script setup lang="ts">
 import { Deferred, Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { ChevronDown, Download, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
+import { ChevronDown, Download, Plus, RefreshCw, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
@@ -699,8 +715,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useRelativeTime } from '@/composables/useRelativeTime';
 import { formatAppDate } from '@/lib/date';
 import { dashboard } from '@/routes';
+import { sync as syncAssetPrices } from '@/routes/asset-prices';
 import { index as investmentsIndex } from '@/routes/investments';
 
 type AssetKey = string;
@@ -779,7 +797,26 @@ const props = defineProps<{
     currencies: CurrencyOption[];
     selectedCurrency: string;
     pricesAvailable?: boolean;
+    pricesSyncedAt?: string | null;
 }>();
+
+const syncing = ref(false);
+const { formatRelativeTime } = useRelativeTime();
+const lastSyncedLabel = computed(() => formatRelativeTime(props.pricesSyncedAt));
+
+const syncPrices = () => {
+    syncing.value = true;
+    router.post(
+        syncAssetPrices.url(),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                syncing.value = false;
+            },
+        },
+    );
+};
 
 defineOptions({
     layout: {

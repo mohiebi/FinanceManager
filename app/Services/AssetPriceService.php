@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\AssetType;
 use App\Enums\InvestmentAssetPriceSource;
 use App\Models\InvestmentAsset;
+use App\Models\User;
 use App\Support\SafeFormulaEvaluator;
 use DOMDocument;
 use DOMXPath;
@@ -83,6 +84,27 @@ class AssetPriceService
     public function pricesAvailable(): bool
     {
         return $this->tgjuPrices() !== [];
+    }
+
+    public function lastSyncedAt(): ?string
+    {
+        return Cache::get('asset-prices.tgju.synced_at');
+    }
+
+    public function invalidateCache(User $user): void
+    {
+        Cache::forget('asset-prices.tgju');
+
+        InvestmentAsset::query()
+            ->availableFor($user)
+            ->whereIn('price_source_type', [
+                InvestmentAssetPriceSource::Json,
+                InvestmentAssetPriceSource::Xml,
+            ])
+            ->get()
+            ->each(function (InvestmentAsset $asset): void {
+                Cache::forget($this->remotePriceCacheKey($asset, $asset->price_source_config ?? []));
+            });
     }
 
     /**
@@ -192,13 +214,19 @@ class AssetPriceService
      */
     private function remotePrice(InvestmentAsset $asset, array $config, string $format): float
     {
-        $cacheKey = 'investment-asset-price.'.$asset->id.'.'.md5(json_encode($config) ?: '');
-
         return Cache::remember(
-            $cacheKey,
+            $this->remotePriceCacheKey($asset, $config),
             now()->addSeconds((int) config('services.custom_asset_prices.cache_seconds', 300)),
             fn (): float => $this->fetchRemotePrice($config, $format),
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function remotePriceCacheKey(InvestmentAsset $asset, array $config): string
+    {
+        return 'investment-asset-price.'.$asset->id.'.'.md5(json_encode($config) ?: '');
     }
 
     /**
@@ -390,6 +418,10 @@ class AssetPriceService
 
         if (isset($prices['bitcoin_usd'], $prices['usd'])) {
             $prices['bitcoin'] = $prices['bitcoin_usd'] * $prices['usd'];
+        }
+
+        if ($prices !== []) {
+            Cache::forever('asset-prices.tgju.synced_at', now()->toIso8601String());
         }
 
         return $prices;

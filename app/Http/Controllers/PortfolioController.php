@@ -44,6 +44,7 @@ class PortfolioController extends Controller
             'assets' => Inertia::defer(fn () => $this->buildAssetBreakdown($allEntries, $priceService, $currencyConverter, $fmt)['assets']),
             'summary' => Inertia::defer(fn () => $this->buildAssetBreakdown($allEntries, $priceService, $currencyConverter, $fmt)['summary']),
             'pricesAvailable' => Inertia::defer(fn () => $priceService->pricesAvailable()),
+            'pricesSyncedAt' => $priceService->lastSyncedAt(),
         ]);
     }
 

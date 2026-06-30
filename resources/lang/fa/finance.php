@@ -11,6 +11,7 @@ return [
         'import_transactions' => 'درون‌ریزی',
         'reset_filters' => 'بازنشانی فیلترها',
         'see_all' => 'مشاهده همه ←',
+        'sync_prices' => 'به‌روزرسانی قیمت‌ها',
     ],
     'assets' => [
         'gold' => 'طلا',
@@ -23,6 +24,7 @@ return [
     ],
     'calculating' => 'در حال محاسبه…',
     'price_unavailable' => 'قیمت در دسترس نیست',
+    'last_synced' => 'به‌روزرسانی شد {time}',
     'calendar' => [
         'current_period' => 'دوره فعلی',
         'day_of_month' => 'روز {day} از {days}',

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InvestmentAssetController;
+use App\Http\Controllers\Settings\NotificationController;
 use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -18,6 +19,10 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::get('settings/notifications', [NotificationController::class, 'edit'])->name('notifications.edit');
+    Route::patch('settings/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::patch('settings/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
 

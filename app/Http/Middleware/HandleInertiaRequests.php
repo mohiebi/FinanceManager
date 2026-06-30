@@ -59,6 +59,15 @@ class HandleInertiaRequests extends Middleware
             'transactionImportPreview' => fn () => $request->session()->get('transaction_import_preview'),
             'transactionImportResult' => fn () => $request->session()->get('transaction_import_result'),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'notifications' => fn () => $request->user() ? [
+                'unread_count' => $request->user()->unreadNotifications()->count(),
+                'recent' => $request->user()->notifications()->latest()->limit(8)->get()->map(fn ($notification) => [
+                    'id' => $notification->id,
+                    'data' => $notification->data,
+                    'read_at' => $notification->read_at?->toIso8601String(),
+                    'created_at' => $notification->created_at->toIso8601String(),
+                ]),
+            ] : null,
         ];
     }
 }

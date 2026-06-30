@@ -6,6 +6,7 @@ return [
     'report' => 'Report',
     'investments' => 'Investments',
     'portfolio' => 'Portfolio',
+    'bills' => 'Bills',
     'primary' => 'Primary navigation',
     'account' => 'Account navigation',
     'notifications' => 'Notifications',

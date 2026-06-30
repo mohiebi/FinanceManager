@@ -168,6 +168,7 @@ return [
     'navigation' => [
         'assets' => 'دارایی‌ها',
         'profile' => 'پروفایل',
+        'notifications' => 'اعلان‌ها',
         'security' => 'امنیت',
         'preferences' => 'ترجیحات',
         'categories' => 'دسته‌بندی‌ها',

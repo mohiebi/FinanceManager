@@ -40,8 +40,9 @@ class Investment extends Model
     protected function casts(): array
     {
         return [
-            'quantity' => 'decimal:8',
-            'cost_basis' => 'decimal:4',
+            'quantity' => 'encrypted',
+            'cost_basis' => 'encrypted',
+            'note' => 'encrypted',
             'occurred_at' => 'date:Y-m-d',
         ];
     }

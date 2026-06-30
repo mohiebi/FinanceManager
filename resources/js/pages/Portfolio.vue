@@ -166,30 +166,106 @@
                 </div>
             </template>
 
-        <!-- ── Allocation chart ──────────────────────────────────── -->
+        <!-- ── Net worth ─────────────────────────────────────────── -->
         <div
             v-if="assets.length > 0"
-            class="mx-[18px] mt-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)] xl:max-w-[420px]"
+            class="relative mx-[18px] mt-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)] sm:p-7"
         >
-            <div class="mb-4 flex items-center justify-between">
-                <h2 class="text-[18px] leading-none font-normal text-white">
-                    {{ t('finance.investments.allocation') }}
-                </h2>
-                <span class="text-xs text-[#989898]">{{
-                    t('finance.investments.by_current_value')
-                }}</span>
+            <div
+                class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(2,205,134,0.10),transparent_55%)]"
+            ></div>
+
+            <div class="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex size-2">
+                            <span
+                                class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#02CD86] opacity-60"
+                            ></span>
+                            <span class="relative inline-flex size-2 rounded-full bg-[#02CD86]"></span>
+                        </span>
+                        <p class="text-xs font-semibold tracking-[0.35em] text-[#02CD86] uppercase">
+                            {{ t('finance.portfolio.net_worth') }}
+                        </p>
+                        <span class="rounded-full bg-white/8 px-2.5 py-0.5 text-[10px] font-medium tracking-wide text-[#989898] uppercase">
+                            {{ t('finance.portfolio.today') }}
+                        </span>
+                    </div>
+
+                    <p class="mt-3 flex items-baseline gap-2">
+                        <template v-if="props.pricesAvailable">
+                            <span class="text-[40px] font-bold tabular-nums leading-none tracking-tight text-white sm:text-[52px]">
+                                {{ summary.total_current_value_formatted }}
+                            </span>
+                            <span class="text-base font-medium text-[#989898]">{{ currencySymbol }}</span>
+                        </template>
+                        <span v-else class="text-2xl font-medium text-[#989898]">
+                            {{ t('finance.price_unavailable') }}
+                        </span>
+                    </p>
+
+                    <p class="mt-2 max-w-md text-sm text-[#989898]">
+                        {{ t('finance.portfolio.net_worth_description') }}
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-x-8 gap-y-4 lg:justify-end">
+                    <div>
+                        <p class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase">
+                            {{ t('finance.portfolio.assets_held') }}
+                        </p>
+                        <p class="mt-1.5 text-xl font-semibold text-white">
+                            {{ summary.asset_count }}
+                        </p>
+                    </div>
+
+                    <div class="h-9 w-px bg-white/10"></div>
+
+                    <div>
+                        <p class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase">
+                            {{ t('finance.portfolio.invested') }}
+                        </p>
+                        <p class="mt-1.5 text-xl font-semibold text-white">
+                            <template v-if="summary.has_cost_basis_data">
+                                {{ summary.total_cost_basis_formatted }}
+                                <span class="text-xs font-normal text-[#989898]">{{ currencySymbol }}</span>
+                            </template>
+                            <span v-else class="text-sm font-normal text-[#989898]">—</span>
+                        </p>
+                    </div>
+
+                    <div class="h-9 w-px bg-white/10"></div>
+
+                    <div>
+                        <p class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase">
+                            {{ t('finance.portfolio.profit_loss') }}
+                        </p>
+                        <p
+                            class="mt-1.5 flex items-center gap-1 text-xl font-semibold"
+                            :class="
+                                summary.total_pnl_is_positive === true
+                                    ? 'text-[#02CD86]'
+                                    : summary.total_pnl_is_positive === false
+                                      ? 'text-[#E94E50]'
+                                      : 'text-[#989898]'
+                            "
+                        >
+                            <template v-if="props.pricesAvailable && summary.total_pnl !== null">
+                                <TrendingUp v-if="summary.total_pnl_is_positive" class="size-4" />
+                                <TrendingDown v-else-if="summary.total_pnl_is_positive === false" class="size-4" />
+                                <span>
+                                    {{ summary.total_pnl_is_positive ? '+' : '−' }}{{
+                                        summary.total_pnl_percent !== null
+                                            ? Math.abs(summary.total_pnl_percent) + '%'
+                                            : summary.total_pnl_formatted
+                                    }}
+                                </span>
+                            </template>
+                            <span v-else class="text-sm font-normal text-[#989898]">—</span>
+                        </p>
+                    </div>
+                </div>
             </div>
-            <DonutChart
-                :series="allocationDonut.series"
-                :labels="allocationDonut.labels"
-                :colors="allocationDonut.colors"
-                :center-label="t('finance.portfolio.current_value')"
-                :center-value="
-                    props.pricesAvailable
-                        ? summary.total_current_value_formatted + ' ' + currencySymbol
-                        : t('finance.price_unavailable')
-                "
-            />
         </div>
 
         <!-- ── Holdings detail ───────────────────────────────── -->
@@ -330,6 +406,32 @@
             </div>
         </div>
 
+        <!-- ── Allocation chart ──────────────────────────────────── -->
+        <div
+            v-if="assets.length > 0"
+            class="mx-[18px] my-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)] xl:max-w-[420px]"
+        >
+            <div class="mb-4 flex items-center justify-between">
+                <h2 class="text-[18px] leading-none font-normal text-white">
+                    {{ t('finance.investments.allocation') }}
+                </h2>
+                <span class="text-xs text-[#989898]">{{
+                    t('finance.investments.by_current_value')
+                }}</span>
+            </div>
+            <DonutChart
+                :series="allocationDonut.series"
+                :labels="allocationDonut.labels"
+                :colors="allocationDonut.colors"
+                :center-label="t('finance.portfolio.current_value')"
+                :center-value="
+                    props.pricesAvailable
+                        ? summary.total_current_value_formatted + ' ' + currencySymbol
+                        : t('finance.price_unavailable')
+                "
+            />
+        </div>
+
         <!-- ── Empty state ───────────────────────────────────────── -->
         <div
             v-if="assets.length === 0"
@@ -353,7 +455,7 @@
 
 <script setup lang="ts">
 import { Deferred, Head } from '@inertiajs/vue3';
-import { Download, Wallet } from 'lucide-vue-next';
+import { Download, TrendingDown, TrendingUp, Wallet } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';

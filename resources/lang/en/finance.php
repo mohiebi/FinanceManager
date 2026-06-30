@@ -181,6 +181,10 @@ return [
         'entry_level_detail' => 'Holdings detail',
         'entry_history_description' => 'Merged holdings by asset with quantity, average cost, total cost, current value, and P/L.',
         'empty' => 'Portfolio is empty',
+        'net_worth' => 'Net worth',
+        'net_worth_description' => 'The total value of everything you hold, right now.',
+        'assets_held' => 'Assets held',
+        'today' => 'Today',
     ],
     'reports' => [
         'title' => 'Reports',

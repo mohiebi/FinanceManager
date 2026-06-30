@@ -54,7 +54,10 @@ class SyncBillOccurrence
         $pending = $bill->occurrences()->whereNull('paid_at')->orderBy('due_date')->first();
 
         if (! $pending) {
-            BillOccurrence::query()->create([
+            // firstOrCreate (not create) — another occurrence (e.g. already paid)
+            // may already exist on this exact date and would collide with the
+            // unique(bill_id, due_date) constraint otherwise.
+            BillOccurrence::query()->firstOrCreate([
                 'bill_id' => $bill->id,
                 'due_date' => $dueDate,
             ]);
@@ -63,6 +66,19 @@ class SyncBillOccurrence
         }
 
         if ($pending->due_date->toDateString() === $dueDate) {
+            return;
+        }
+
+        // Recomputing the due date could collide with another occurrence already
+        // sitting on that date (e.g. a previously paid one). Skip the update
+        // rather than crash on the unique constraint — the existing pending
+        // occurrence stays as-is until it no longer conflicts.
+        $conflicts = $bill->occurrences()
+            ->where('due_date', $dueDate)
+            ->whereKeyNot($pending->id)
+            ->exists();
+
+        if ($conflicts) {
             return;
         }
 

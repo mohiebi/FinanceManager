@@ -117,18 +117,28 @@ class BillController extends Controller
             'title' => ['required', 'string', 'max:100'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'currency' => ['required', 'string', 'max:10'],
-            'category_id' => ['nullable', 'integer'],
+            'category_id' => [
+                'nullable',
+                'integer',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    $exists = Category::query()
+                        ->availableFor($request->user())
+                        ->where('type', TransactionType::Cost)
+                        ->whereKey($value)
+                        ->exists();
+
+                    if (! $exists) {
+                        $fail(__('finance.bills.invalid_category'));
+                    }
+                },
+            ],
             'recurrence_type' => ['required', 'string', 'in:one_time,monthly'],
             'due_day_of_month' => ['required_if:recurrence_type,monthly', 'nullable', 'integer', 'min:1', 'max:31'],
             'due_date' => ['required_if:recurrence_type,one_time', 'nullable', 'date'],
             'telegram_reminder_enabled' => ['boolean'],
         ]);
 
-        $category = $request->filled('category_id')
-            ? Category::query()->availableFor($request->user())->find($validated['category_id'])
-            : null;
-
-        $validated['category_id'] = $category?->id;
+        $validated['category_id'] = $request->filled('category_id') ? (int) $validated['category_id'] : null;
         $validated['telegram_reminder_enabled'] = $request->boolean('telegram_reminder_enabled', true);
 
         if ($validated['recurrence_type'] === BillRecurrenceType::Monthly->value) {

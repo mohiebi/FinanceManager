@@ -153,3 +153,35 @@ test('it generates the next occurrence for a recurring bill once the previous on
         Carbon::setTestNow();
     }
 });
+
+test('it does not send a reminder when the computed due date lands on an already-paid occurrence', function () {
+    Carbon::setTestNow(Carbon::create(2026, 8, 1));
+    Notification::fake();
+
+    try {
+        $user = User::factory()->create();
+
+        $bill = $user->bills()->create([
+            'title' => 'Rent',
+            'amount' => 100,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 1,
+        ]);
+
+        // Paid early for today's exact due date — no unpaid occurrence exists,
+        // so ensureUpcomingOccurrence's firstOrCreate() will find this row
+        // instead of creating a fresh one.
+        $bill->occurrences()->create([
+            'due_date' => '2026-08-01',
+            'paid_at' => now(),
+        ]);
+
+        app(BillReminderJob::class)->handle(app(BillDueDateCalculator::class));
+
+        expect($bill->occurrences()->count())->toBe(1);
+        Notification::assertNothingSent();
+    } finally {
+        Carbon::setTestNow();
+    }
+});

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
@@ -32,7 +33,11 @@ class NotificationController extends Controller
 
     public function markRead(Request $request, DatabaseNotification $notification): RedirectResponse
     {
-        abort_unless((string) $notification->notifiable_id === (string) $request->user()->id, 404);
+        abort_unless(
+            $notification->notifiable_type === User::class
+                && (string) $notification->notifiable_id === (string) $request->user()->id,
+            404,
+        );
 
         if ($notification->read_at === null) {
             $notification->markAsRead();

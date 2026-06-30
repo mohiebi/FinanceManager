@@ -36,7 +36,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(new RefreshAssetPricesJob)->hourly();
 
         // Generates upcoming bill occurrences and sends day-before/due-day reminders.
-        $schedule->job(new BillReminderJob)->dailyAt('09:00');
+        // withoutOverlapping guards against a stuck/delayed queue worker letting
+        // two runs stack and double-send reminders.
+        $schedule->job(new BillReminderJob)->dailyAt('09:00')->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

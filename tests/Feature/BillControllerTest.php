@@ -1,7 +1,10 @@
 <?php
 
+use App\Actions\Bills\MarkBillOccurrencePaid;
+use App\Actions\Bills\SyncBillOccurrence;
 use App\Models\Bill;
 use App\Models\Category;
+use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 
@@ -209,4 +212,92 @@ test('it deletes a bill', function () {
         ->assertRedirect();
 
     expect(Bill::query()->find($bill->id))->toBeNull();
+});
+
+test('calling MarkBillOccurrencePaid twice does not create a duplicate transaction', function () {
+    $user = User::factory()->create();
+
+    $bill = $user->bills()->create([
+        'title' => 'Rent',
+        'amount' => 100,
+        'currency' => 'toman',
+        'recurrence_type' => 'monthly',
+        'due_day_of_month' => 1,
+    ]);
+    $occurrence = $bill->occurrences()->create(['due_date' => '2026-07-01']);
+
+    $action = app(MarkBillOccurrencePaid::class);
+    $action($bill, $occurrence);
+    $action($bill, $occurrence->fresh());
+
+    expect(Transaction::query()->count())->toBe(1)
+        ->and($occurrence->fresh()->isPaid())->toBeTrue();
+});
+
+test('store rejects a category_id that does not belong to the user', function () {
+    $owner = User::factory()->create();
+    $intruder = User::factory()->create();
+    $category = Category::factory()->cost()->create(['user_id' => $owner->id, 'is_default' => false]);
+
+    $this->actingAs($intruder)
+        ->post(route('bills.store'), [
+            'title' => 'Rent',
+            'amount' => 100,
+            'currency' => 'toman',
+            'category_id' => $category->id,
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 1,
+        ])
+        ->assertSessionHasErrors('category_id');
+
+    expect(Bill::query()->count())->toBe(0);
+});
+
+test('store rejects an income category for a bill', function () {
+    $user = User::factory()->create();
+    $incomeCategory = Category::factory()->income()->create();
+
+    $this->actingAs($user)
+        ->post(route('bills.store'), [
+            'title' => 'Rent',
+            'amount' => 100,
+            'currency' => 'toman',
+            'category_id' => $incomeCategory->id,
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 1,
+        ])
+        ->assertSessionHasErrors('category_id');
+});
+
+test('syncPending skips the update instead of crashing when the recomputed date collides with another occurrence', function () {
+    Carbon::setTestNow(Carbon::create(2026, 7, 10));
+
+    try {
+        $user = User::factory()->create();
+
+        $bill = $user->bills()->create([
+            'title' => 'Rent',
+            'amount' => 100,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 12,
+        ]);
+
+        // A paid occurrence already sitting on the date that recomputing "due
+        // day 12" from today would land on (2026-07-12).
+        $bill->occurrences()->create([
+            'due_date' => '2026-07-12',
+            'paid_at' => now(),
+        ]);
+
+        $pending = $bill->occurrences()->create(['due_date' => '2026-07-20']);
+
+        app(SyncBillOccurrence::class)->syncPending($bill);
+
+        // Update did not throw, and the pending occurrence was left alone
+        // since updating it to 2026-07-12 would collide with the paid one.
+        expect($pending->fresh()->due_date->toDateString())->toBe('2026-07-20');
+    } finally {
+        Carbon::setTestNow();
+    }
 });

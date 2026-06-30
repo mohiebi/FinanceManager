@@ -20,6 +20,20 @@ test('authenticated users can visit the dashboard', function () {
     $response->assertOk();
 });
 
+test('the shared notifications prop is deferred rather than eagerly loaded on every page', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->missing('notifications')
+            ->loadDeferredProps('default', fn (Assert $page) => $page
+                ->has('notifications.unread_count')
+                ->has('notifications.recent')
+            )
+        );
+});
+
 test('dashboard converts mixed currency totals and transaction amounts to the selected currency', function () {
     Carbon::setTestNow(Carbon::parse('2026-04-22 12:00:00'));
 

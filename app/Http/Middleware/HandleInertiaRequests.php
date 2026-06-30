@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Support\FrontendLocalization;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -59,7 +60,11 @@ class HandleInertiaRequests extends Middleware
             'transactionImportPreview' => fn () => $request->session()->get('transaction_import_preview'),
             'transactionImportResult' => fn () => $request->session()->get('transaction_import_result'),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'notifications' => fn () => $request->user() ? [
+            // Deferred (not eager) — these 2 queries would otherwise run on every
+            // single authenticated page load app-wide. Inertia fetches it via a
+            // background request right after initial render, same pattern as
+            // the Portfolio/Investments pages already use for their stats.
+            'notifications' => $request->user() ? Inertia::defer(fn () => [
                 'unread_count' => $request->user()->unreadNotifications()->count(),
                 'recent' => $request->user()->notifications()->latest()->limit(8)->get()->map(fn ($notification) => [
                     'id' => $notification->id,
@@ -67,7 +72,7 @@ class HandleInertiaRequests extends Middleware
                     'read_at' => $notification->read_at?->toIso8601String(),
                     'created_at' => $notification->created_at->toIso8601String(),
                 ]),
-            ] : null,
+            ]) : null,
         ];
     }
 }

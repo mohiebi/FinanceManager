@@ -22,6 +22,10 @@ test('authenticated users can visit the dashboard', function () {
 test('dashboard converts mixed currency totals and transaction amounts to the selected currency', function () {
     Carbon::setTestNow(Carbon::parse('2026-04-22 12:00:00'));
 
+    // Force the static fallback exchange rates so this test asserts deterministic
+    // conversion arithmetic, independent of live tgju prices or local .env overrides.
+    config(['services.tgju.enabled' => false]);
+
     try {
         $user = User::factory()->create();
 

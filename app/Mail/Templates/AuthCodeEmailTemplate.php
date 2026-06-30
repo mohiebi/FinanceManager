@@ -110,11 +110,17 @@ class AuthCodeEmailTemplate
                                     <p style="font-size:15px; font-weight:300; color:#a1a1aa; line-height:1.7; margin:0 0 40px; max-width:380px;">{$subline}</p>
 
                                     <!-- Label -->
-                                    <p style="font-size:11px; font-weight:500; letter-spacing:1.5px; color:#52525b; text-transform:uppercase; margin:0 0 10px;">Your one-time code</p>
+                                    <p style="font-size:11px; font-weight:500; letter-spacing:1.5px; color:#71717a; text-transform:uppercase; margin:0 0 10px; text-align:center;">Your one-time code</p>
 
                                     <!-- Code cells -->
-                                    <table cellpadding="0" cellspacing="0" role="presentation" style="background-color:#1a1a1a; border:1px solid #242424; border-radius:14px; padding:20px 24px; margin-bottom:32px;">
-                                        <tr>{$codeCells}</tr>
+                                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:32px;">
+                                        <tr>
+                                            <td align="center">
+                                                <table cellpadding="0" cellspacing="0" role="presentation" style="background-color:#1a1a1a; border:1px solid #242424; border-radius:14px; padding:20px 24px;">
+                                                    <tr>{$codeCells}</tr>
+                                                </table>
+                                            </td>
+                                        </tr>
                                     </table>
 
                                     <!-- Expiry warning -->
@@ -133,7 +139,7 @@ class AuthCodeEmailTemplate
                                     <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                                         <tr>
                                             <td style="border-top:1px solid #1f1f1f; padding-top:32px;">
-                                                <p style="font-size:12px; color:#3f3f46; line-height:1.7; margin:0;">
+                                                <p style="font-size:12px; color:#71717a; line-height:1.7; margin:0;">
                                                     If you didn't request this code, you can safely ignore this email.<br/>No changes will be made to your account.
                                                 </p>
                                             </td>
@@ -149,7 +155,7 @@ class AuthCodeEmailTemplate
                                     <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                                         <tr>
                                             <td>
-                                                <p style="font-size:11px; color:#3f3f46; margin:0; line-height:1.7;">
+                                                <p style="font-size:11px; color:#71717a; margin:0; line-height:1.7;">
                                                     &copy; {$year} CashPilot &mdash; Personal Finance Dashboard<br/>
                                                     <a href="https://cashpilot.mohiebi.com" style="color:#52525b; text-decoration:none;">cashpilot.mohiebi.com</a>
                                                 </p>

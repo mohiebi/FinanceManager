@@ -69,14 +69,16 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
-        $this->chat->storage()->forget('inv_wizard');
+        $this->clearActiveWizards();
         $this->chat->storage()->set('wizard', [
             'type' => 'cost',
             'step' => 'amount',
             'user_id' => $user->id,
         ]);
 
-        $this->chat->message("*Add cost*\n\nEnter the amount, for example: 50000")->send();
+        $this->chat->message("*Add cost*\n\nEnter the amount, for example: 50000")
+            ->keyboard($this->cancelToMenuKeyboard())
+            ->send();
     }
 
     public function add_income(): void
@@ -91,14 +93,16 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
-        $this->chat->storage()->forget('inv_wizard');
+        $this->clearActiveWizards();
         $this->chat->storage()->set('wizard', [
             'type' => 'income',
             'step' => 'amount',
             'user_id' => $user->id,
         ]);
 
-        $this->chat->message("*Add income*\n\nEnter the amount, for example: 5000000")->send();
+        $this->chat->message("*Add income*\n\nEnter the amount, for example: 5000000")
+            ->keyboard($this->cancelToMenuKeyboard())
+            ->send();
     }
 
     public function add_investment(): void
@@ -120,11 +124,11 @@ class TelegramHandler extends WebhookHandler
             ->get()
             ->map(fn (InvestmentAsset $asset): Button => Button::make($asset->label())->action('inv_asset')->param('asset', (string) $asset->id));
 
-        $this->chat->storage()->forget('wizard');
+        $this->clearActiveWizards();
         $this->chat->storage()->set('inv_wizard', ['step' => 'asset', 'user_id' => $user->id]);
 
         $this->chat->message("*Add investment*\n\nChoose asset type:")
-            ->keyboard(Keyboard::make()->buttons($buttons)->chunk(2))
+            ->keyboard($this->withCancelToMenu(Keyboard::make()->buttons($buttons)->chunk(2)))
             ->send();
     }
 
@@ -140,11 +144,12 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
-        $this->chat->storage()->forget('wizard');
-        $this->chat->storage()->forget('inv_wizard');
+        $this->clearActiveWizards();
         $this->chat->storage()->set('bill_wizard', ['step' => 'title', 'user_id' => $user->id]);
 
-        $this->chat->message("*Add bill*\n\nEnter a title, for example: Rent")->send();
+        $this->chat->message("*Add bill*\n\nEnter a title, for example: Rent")
+            ->keyboard($this->cancelToMenuKeyboard())
+            ->send();
     }
 
     public function list_bills(): void
@@ -321,7 +326,9 @@ class TelegramHandler extends WebhookHandler
             ->first();
 
         if (! $investmentAsset) {
-            $this->chat->message('Investment asset not found. Choose Add investment to start again.')->send();
+            $this->chat->message('Investment asset not found. Choose Add investment to start again.')
+                ->keyboard($this->mainKeyboard())
+                ->send();
 
             return;
         }
@@ -333,7 +340,9 @@ class TelegramHandler extends WebhookHandler
         $wizard['step'] = 'quantity';
         $this->chat->storage()->set('inv_wizard', $wizard);
 
-        $this->chat->message("Enter quantity for {$investmentAsset->label()}:")->send();
+        $this->chat->message("Enter quantity for {$investmentAsset->label()}:")
+            ->keyboard($this->cancelToMenuKeyboard())
+            ->send();
     }
 
     protected function handleChatMessage(\Stringable $text): void
@@ -376,7 +385,9 @@ class TelegramHandler extends WebhookHandler
         switch ($wizard['step']) {
             case 'amount':
                 if (! is_numeric($text)) {
-                    $this->chat->message('Please enter a valid number.')->send();
+                    $this->chat->message('Please enter a valid number.')
+                        ->keyboard($this->cancelToMenuKeyboard())
+                        ->send();
 
                     return;
                 }
@@ -391,11 +402,15 @@ class TelegramHandler extends WebhookHandler
                 break;
 
             case 'currency':
-                $this->chat->message('Please choose a currency using the buttons above.')->send();
+                $this->chat->message('Please choose a currency using the buttons above.')
+                    ->keyboard($this->currencyKeyboard())
+                    ->send();
                 break;
 
             case 'category':
-                $this->chat->message('Please choose a category using the buttons above.')->send();
+                $this->chat->message('Please choose a category using the buttons above.')
+                    ->keyboard($this->cancelToMenuKeyboard())
+                    ->send();
                 break;
 
             case 'title':
@@ -422,7 +437,9 @@ class TelegramHandler extends WebhookHandler
     {
         if ($wizard['step'] === 'quantity') {
             if (! is_numeric($text) || (float) $text <= 0) {
-                $this->chat->message('Please enter a valid positive number.')->send();
+                $this->chat->message('Please enter a valid positive number.')
+                    ->keyboard($this->cancelToMenuKeyboard())
+                    ->send();
 
                 return;
             }
@@ -431,7 +448,9 @@ class TelegramHandler extends WebhookHandler
             $wizard['step'] = 'cost_basis';
             $this->chat->storage()->set('inv_wizard', $wizard);
 
-            $this->chat->message('Enter cost basis per unit. Send 0 to skip.')->send();
+            $this->chat->message('Enter cost basis per unit. Send 0 to skip.')
+                ->keyboard($this->cancelToMenuKeyboard())
+                ->send();
 
             return;
         }
@@ -463,7 +482,9 @@ class TelegramHandler extends WebhookHandler
                 $title = trim($text);
 
                 if ($title === '') {
-                    $this->chat->message('Please enter a non-empty title.')->send();
+                    $this->chat->message('Please enter a non-empty title.')
+                        ->keyboard($this->cancelToMenuKeyboard())
+                        ->send();
 
                     return;
                 }
@@ -472,12 +493,16 @@ class TelegramHandler extends WebhookHandler
                 $wizard['step'] = 'amount';
                 $this->chat->storage()->set('bill_wizard', $wizard);
 
-                $this->chat->message('Enter the amount, for example: 500000')->send();
+                $this->chat->message('Enter the amount, for example: 500000')
+                    ->keyboard($this->cancelToMenuKeyboard())
+                    ->send();
                 break;
 
             case 'amount':
                 if (! is_numeric($text) || (float) $text <= 0) {
-                    $this->chat->message('Please enter a valid positive number.')->send();
+                    $this->chat->message('Please enter a valid positive number.')
+                        ->keyboard($this->cancelToMenuKeyboard())
+                        ->send();
 
                     return;
                 }
@@ -492,22 +517,30 @@ class TelegramHandler extends WebhookHandler
                 break;
 
             case 'currency':
-                $this->chat->message('Please choose a currency using the buttons above.')->send();
+                $this->chat->message('Please choose a currency using the buttons above.')
+                    ->keyboard($this->billCurrencyKeyboard())
+                    ->send();
                 break;
 
             case 'category':
-                $this->chat->message('Please choose a category using the buttons above.')->send();
+                $this->chat->message('Please choose a category using the buttons above.')
+                    ->keyboard($this->cancelToMenuKeyboard())
+                    ->send();
                 break;
 
             case 'recurrence':
-                $this->chat->message('Please choose monthly or one-time using the buttons above.')->send();
+                $this->chat->message('Please choose monthly or one-time using the buttons above.')
+                    ->keyboard($this->billRecurrenceKeyboard())
+                    ->send();
                 break;
 
             case 'due_day':
                 $trimmed = trim($text);
 
                 if (! ctype_digit($trimmed) || (int) $trimmed < 1 || (int) $trimmed > 31) {
-                    $this->chat->message('Please enter a valid day of month (1-31).')->send();
+                    $this->chat->message('Please enter a valid day of month (1-31).')
+                        ->keyboard($this->cancelToMenuKeyboard())
+                        ->send();
 
                     return;
                 }
@@ -523,7 +556,9 @@ class TelegramHandler extends WebhookHandler
                 $date = $this->parseBillDate($text);
 
                 if ($date === null) {
-                    $this->chat->message('Please enter a valid date as YYYY-MM-DD, for example: 2026-08-01')->send();
+                    $this->chat->message('Please enter a valid date as YYYY-MM-DD, for example: 2026-08-01')
+                        ->keyboard($this->cancelToMenuKeyboard())
+                        ->send();
 
                     return;
                 }
@@ -617,7 +652,7 @@ class TelegramHandler extends WebhookHandler
                 ->width(0.5);
         }
 
-        $this->chat->message('Choose a category:')->keyboard($keyboard)->send();
+        $this->chat->message('Choose a category:')->keyboard($this->withCancelToMenu($keyboard))->send();
     }
 
     public function bill_pick_category(?string $cat_id = null): void
@@ -645,11 +680,7 @@ class TelegramHandler extends WebhookHandler
         $wizard['step'] = 'recurrence';
         $this->chat->storage()->set('bill_wizard', $wizard);
 
-        $keyboard = Keyboard::make()
-            ->button('Monthly')->action('bill_pick_recurrence')->param('type', BillRecurrenceType::Monthly->value)->width(0.5)
-            ->button('One-time')->action('bill_pick_recurrence')->param('type', BillRecurrenceType::OneTime->value)->width(0.5);
-
-        $this->chat->message('Choose recurrence:')->keyboard($keyboard)->send();
+        $this->chat->message('Choose recurrence:')->keyboard($this->billRecurrenceKeyboard())->send();
     }
 
     public function bill_pick_recurrence(?string $type = null): void
@@ -679,14 +710,18 @@ class TelegramHandler extends WebhookHandler
         if ($recurrence === BillRecurrenceType::Monthly) {
             $wizard['step'] = 'due_day';
             $this->chat->storage()->set('bill_wizard', $wizard);
-            $this->chat->message('Enter the day of month it is due (1-31):')->send();
+            $this->chat->message('Enter the day of month it is due (1-31):')
+                ->keyboard($this->cancelToMenuKeyboard())
+                ->send();
 
             return;
         }
 
         $wizard['step'] = 'due_date';
         $this->chat->storage()->set('bill_wizard', $wizard);
-        $this->chat->message('Enter the due date as YYYY-MM-DD, for example: 2026-08-01')->send();
+        $this->chat->message('Enter the due date as YYYY-MM-DD, for example: 2026-08-01')
+            ->keyboard($this->cancelToMenuKeyboard())
+            ->send();
     }
 
     public function confirm_bill(): void
@@ -728,7 +763,7 @@ class TelegramHandler extends WebhookHandler
     {
         $this->deleteKeyboardIfCallback();
 
-        $this->chat->storage()->forget('bill_wizard');
+        $this->clearActiveWizards();
         $this->chat->message('Cancelled.')->keyboard($this->mainKeyboard())->send();
     }
 
@@ -757,7 +792,9 @@ class TelegramHandler extends WebhookHandler
         $wizard['step'] = 'title';
         $this->chat->storage()->set('wizard', $wizard);
 
-        $this->chat->message('Enter a title for this transaction:')->send();
+        $this->chat->message('Enter a title for this transaction:')
+            ->keyboard($this->cancelToMenuKeyboard())
+            ->send();
     }
 
     public function pick_currency(?string $currency = null): void
@@ -804,7 +841,7 @@ class TelegramHandler extends WebhookHandler
         }
 
         $this->chat->message('Choose a category:')
-            ->keyboard($keyboard)
+            ->keyboard($this->withCancelToMenu($keyboard))
             ->send();
     }
 
@@ -844,8 +881,16 @@ class TelegramHandler extends WebhookHandler
     {
         $this->deleteKeyboardIfCallback();
 
-        $this->chat->storage()->forget('wizard');
+        $this->clearActiveWizards();
         $this->chat->message('Cancelled.')->keyboard($this->mainKeyboard())->send();
+    }
+
+    public function cancel_current(): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $this->clearActiveWizards();
+        $this->chat->message('Cancelled. Choose an action:')->keyboard($this->mainKeyboard())->send();
     }
 
     private function linkAccount(string $token): void
@@ -925,24 +970,56 @@ class TelegramHandler extends WebhookHandler
 
     private function currencyKeyboard(): Keyboard
     {
-        return Keyboard::make()->buttons(
+        return $this->withCancelToMenu(Keyboard::make()->buttons(
             collect(Currency::cases())
                 ->map(fn (Currency $currency): Button => Button::make(strtoupper($currency->value))
                     ->action('pick_currency')
                     ->param('currency', $currency->value)
                     ->width(1 / 3))
-        );
+        ));
     }
 
     private function billCurrencyKeyboard(): Keyboard
     {
-        return Keyboard::make()->buttons(
+        return $this->withCancelToMenu(Keyboard::make()->buttons(
             collect(Currency::cases())
                 ->map(fn (Currency $currency): Button => Button::make(strtoupper($currency->value))
                     ->action('bill_pick_currency')
                     ->param('currency', $currency->value)
                     ->width(1 / 3))
+        ));
+    }
+
+    private function billRecurrenceKeyboard(): Keyboard
+    {
+        return $this->withCancelToMenu(
+            Keyboard::make()
+                ->button('Monthly')->action('bill_pick_recurrence')->param('type', BillRecurrenceType::Monthly->value)->width(0.5)
+                ->button('One-time')->action('bill_pick_recurrence')->param('type', BillRecurrenceType::OneTime->value)->width(0.5)
         );
+    }
+
+    private function cancelToMenuKeyboard(): Keyboard
+    {
+        return Keyboard::make()
+            ->button('Cancel and menu')
+            ->action('cancel_current')
+            ->width(1);
+    }
+
+    private function withCancelToMenu(Keyboard $keyboard): Keyboard
+    {
+        return $keyboard
+            ->button('Cancel and menu')
+            ->action('cancel_current')
+            ->width(1);
+    }
+
+    private function clearActiveWizards(): void
+    {
+        $this->chat->storage()->forget('wizard');
+        $this->chat->storage()->forget('inv_wizard');
+        $this->chat->storage()->forget('bill_wizard');
     }
 
     /**

@@ -95,6 +95,25 @@ test('cancelling the wizard does not create a bill', function () {
     expect(Bill::query()->count())->toBe(0);
 });
 
+test('cancel current clears running telegram wizards and returns to menu', function () {
+    $user = User::factory()->create(['telegram_chat_id' => '555334']);
+    $handler = telegramHandlerFor($user);
+
+    $handler->add_bill();
+    sendBillWizardText($handler, 'Rent');
+
+    $handler->cancel_current();
+
+    $chatProperty = new ReflectionProperty($handler, 'chat');
+    $chatProperty->setAccessible(true);
+    $chat = $chatProperty->getValue($handler);
+
+    expect($chat->storage()->get('wizard'))->toBe([])
+        ->and($chat->storage()->get('inv_wizard'))->toBe([])
+        ->and($chat->storage()->get('bill_wizard'))->toBe([])
+        ->and(Bill::query()->count())->toBe(0);
+});
+
 test('rejects a non-numeric amount and stays on the same step', function () {
     $user = User::factory()->create(['telegram_chat_id' => '555444']);
     $handler = telegramHandlerFor($user);

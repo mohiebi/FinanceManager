@@ -131,6 +131,45 @@ test('updating a bill that already matches its due day leaves the occurrence unt
     }
 });
 
+test('updating a bill preserves the telegram reminder preference', function () {
+    $user = User::factory()->create();
+
+    $bill = $user->bills()->create([
+        'title' => 'Rent',
+        'amount' => 100,
+        'currency' => 'toman',
+        'recurrence_type' => 'monthly',
+        'due_day_of_month' => 1,
+        'telegram_reminder_enabled' => false,
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('bills.update', $bill), [
+            'title' => 'Rent',
+            'amount' => 100,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 1,
+            'telegram_reminder_enabled' => 1,
+        ])
+        ->assertRedirect();
+
+    expect($bill->fresh()->telegram_reminder_enabled)->toBeTrue();
+
+    $this->actingAs($user)
+        ->put(route('bills.update', $bill), [
+            'title' => 'Rent',
+            'amount' => 100,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 1,
+            'telegram_reminder_enabled' => 0,
+        ])
+        ->assertRedirect();
+
+    expect($bill->fresh()->telegram_reminder_enabled)->toBeFalse();
+});
+
 test('it creates a one-time bill with the given due date', function () {
     $user = User::factory()->create();
 

@@ -205,7 +205,10 @@
                             </div>
 
                             <label class="flex cursor-pointer items-center gap-2.5">
-                                <Checkbox v-model:checked="form.telegram_reminder_enabled" />
+                                <Checkbox
+                                    :checked="form.telegram_reminder_enabled"
+                                    @update:checked="setTelegramReminder"
+                                />
                                 <span class="text-sm text-white/85">{{ t('finance.bills.telegram_reminder') }}</span>
                             </label>
                         </div>
@@ -319,6 +322,8 @@ const form = useForm({
     telegram_reminder_enabled: true,
 });
 
+type CheckboxState = boolean | 'indeterminate';
+
 const categoryModel = computed({
     get: () => (form.category_id ? String(form.category_id) : undefined),
     set: (value: string | undefined) => {
@@ -346,8 +351,12 @@ function openEditDialog(bill: Bill): void {
     form.recurrence_type = bill.recurrence_type;
     form.due_day_of_month = bill.due_day_of_month ? String(bill.due_day_of_month) : '1';
     form.due_date = bill.due_date ?? '';
-    form.telegram_reminder_enabled = bill.telegram_reminder_enabled;
+    form.telegram_reminder_enabled = Boolean(bill.telegram_reminder_enabled);
     isDialogOpen.value = true;
+}
+
+function setTelegramReminder(value: CheckboxState): void {
+    form.telegram_reminder_enabled = value === true;
 }
 
 function closeDialog(): void {
@@ -367,6 +376,11 @@ function submitBill(): void {
         preserveScroll: true,
         onSuccess: () => closeDialog(),
     };
+
+    form.transform((data) => ({
+        ...data,
+        telegram_reminder_enabled: data.telegram_reminder_enabled ? 1 : 0,
+    }));
 
     if (editingId.value !== null) {
         form.put(updateBill.url(editingId.value), options);

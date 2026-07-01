@@ -3,6 +3,7 @@ import { Link, router, usePage } from '@inertiajs/vue3';
 import { User } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import NotificationBell from '@/components/NotificationBell.vue';
 import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem } from '@/types';
 import logoGreen from '../../img/Logo-green.svg';
@@ -100,6 +101,7 @@ function changeCurrency(value: string) {
                 </div>
 
                 <div class="flex shrink-0 items-center gap-1.5 lg:hidden">
+                    <NotificationBell />
                     <Link
                         :href="editProfile()"
                         class="grid size-9 cursor-pointer place-items-center rounded-md bg-[#2d2d2d] text-white transition-colors duration-150 hover:bg-[#02cd86] hover:text-[#1a1a1a]"
@@ -113,6 +115,7 @@ function changeCurrency(value: string) {
             </div>
 
             <div class="hidden shrink-0 items-center gap-2 lg:flex">
+                <NotificationBell />
                 <Link
                     :href="editProfile()"
                     class="grid size-9 cursor-pointer place-items-center rounded-md bg-[#2d2d2d] text-white transition-colors duration-150 hover:bg-[#02cd86] hover:text-[#1a1a1a]"

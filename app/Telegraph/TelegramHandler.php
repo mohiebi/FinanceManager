@@ -2,6 +2,9 @@
 
 namespace App\Telegraph;
 
+use App\Actions\Bills\MarkBillOccurrencePaid;
+use App\Actions\Bills\SyncBillOccurrence;
+use App\Enums\BillRecurrenceType;
 use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Models\Category;
@@ -125,6 +128,105 @@ class TelegramHandler extends WebhookHandler
             ->send();
     }
 
+    public function add_bill(): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user) {
+            $this->sendNotLinked();
+
+            return;
+        }
+
+        $this->chat->storage()->forget('wizard');
+        $this->chat->storage()->forget('inv_wizard');
+        $this->chat->storage()->set('bill_wizard', ['step' => 'title', 'user_id' => $user->id]);
+
+        $this->chat->message("*Add bill*\n\nEnter a title, for example: Rent")->send();
+    }
+
+    public function list_bills(): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user) {
+            $this->sendNotLinked();
+
+            return;
+        }
+
+        $bills = $user->bills()
+            ->where('is_active', true)
+            ->with(['occurrences' => fn ($query) => $query->whereNull('paid_at')->orderBy('due_date')])
+            ->orderBy('title')
+            ->get();
+
+        if ($bills->isEmpty()) {
+            $this->chat->message('No bills yet. Choose Add bill to set one up.')->keyboard($this->mainKeyboard())->send();
+
+            return;
+        }
+
+        $lines = ["*Your bills:*\n"];
+        $payButtons = [];
+
+        foreach ($bills as $bill) {
+            $next = $bill->occurrences->first();
+            $amount = $this->fmtAmount((float) $bill->amount, Currency::from($bill->currency));
+
+            if ($next) {
+                $lines[] = "• *{$bill->title}* — {$amount} — due {$next->due_date->format('Y-m-d')}";
+                $payButtons[] = Button::make("Mark paid: {$bill->title}")
+                    ->action('pay_bill')
+                    ->param('bill', (string) $bill->id)
+                    ->param('occurrence', (string) $next->id);
+            } else {
+                $lines[] = "• *{$bill->title}* — {$amount} — no upcoming due date";
+            }
+        }
+
+        $keyboard = Keyboard::make()->buttons($payButtons)->chunk(1);
+
+        $this->chat->message(implode("\n", $lines))->keyboard($keyboard)->send();
+    }
+
+    public function pay_bill(?string $bill = null, ?string $occurrence = null): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user) {
+            return;
+        }
+
+        $billModel = $user->bills()->find((int) ($bill ?? $this->data->get('bill')));
+        $occurrenceModel = $billModel?->occurrences()->find((int) ($occurrence ?? $this->data->get('occurrence')));
+
+        if (! $billModel || ! $occurrenceModel) {
+            $this->reply('Bill not found.');
+
+            return;
+        }
+
+        if ($occurrenceModel->isPaid()) {
+            $this->reply("\"{$billModel->title}\" is already marked as paid.");
+
+            return;
+        }
+
+        app(MarkBillOccurrencePaid::class)($billModel, $occurrenceModel);
+
+        $amount = $this->fmtAmount((float) $billModel->amount, Currency::from($billModel->currency));
+        $this->chat->message("✓ *{$billModel->title}* marked as paid ({$amount}). A transaction was added.")
+            ->keyboard($this->mainKeyboard())
+            ->send();
+    }
+
     public function list(): void
     {
         $this->deleteKeyboardIfCallback();
@@ -152,8 +254,8 @@ class TelegramHandler extends WebhookHandler
         $lines = ["*Last 10 transactions:*\n"];
 
         foreach ($transactions as $transaction) {
-            $sign    = $transaction->type === TransactionType::Cost ? '−' : '+';
-            $date    = $transaction->occurred_at->format('M j');
+            $sign = $transaction->type === TransactionType::Cost ? '−' : '+';
+            $date = $transaction->occurred_at->format('M j');
             $lines[] = "{$sign} *{$transaction->title}* — {$this->fmtAmount((float) $transaction->amount, $transaction->currency)} ({$date})";
         }
 
@@ -259,6 +361,13 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        $billWizard = $this->chat->storage()->get('bill_wizard');
+        if ($billWizard) {
+            $this->handleBillWizard($billWizard, $text, $user);
+
+            return;
+        }
+
         $this->chat->message('Choose an action:')->keyboard($this->mainKeyboard())->send();
     }
 
@@ -342,6 +451,285 @@ class TelegramHandler extends WebhookHandler
             $this->chat->storage()->forget('inv_wizard');
             $this->chat->message('Investment saved.')->keyboard($this->mainKeyboard())->send();
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $wizard
+     */
+    private function handleBillWizard(array $wizard, string $text, User $user): void
+    {
+        switch ($wizard['step']) {
+            case 'title':
+                $title = trim($text);
+
+                if ($title === '') {
+                    $this->chat->message('Please enter a non-empty title.')->send();
+
+                    return;
+                }
+
+                $wizard['title'] = $title;
+                $wizard['step'] = 'amount';
+                $this->chat->storage()->set('bill_wizard', $wizard);
+
+                $this->chat->message('Enter the amount, for example: 500000')->send();
+                break;
+
+            case 'amount':
+                if (! is_numeric($text) || (float) $text <= 0) {
+                    $this->chat->message('Please enter a valid positive number.')->send();
+
+                    return;
+                }
+
+                $wizard['amount'] = (float) $text;
+                $wizard['step'] = 'currency';
+                $this->chat->storage()->set('bill_wizard', $wizard);
+
+                $this->chat->message('Choose a currency:')
+                    ->keyboard($this->billCurrencyKeyboard())
+                    ->send();
+                break;
+
+            case 'currency':
+                $this->chat->message('Please choose a currency using the buttons above.')->send();
+                break;
+
+            case 'category':
+                $this->chat->message('Please choose a category using the buttons above.')->send();
+                break;
+
+            case 'recurrence':
+                $this->chat->message('Please choose monthly or one-time using the buttons above.')->send();
+                break;
+
+            case 'due_day':
+                $trimmed = trim($text);
+
+                if (! ctype_digit($trimmed) || (int) $trimmed < 1 || (int) $trimmed > 31) {
+                    $this->chat->message('Please enter a valid day of month (1-31).')->send();
+
+                    return;
+                }
+
+                $wizard['due_day_of_month'] = (int) $trimmed;
+                $wizard['step'] = 'confirm';
+                $this->chat->storage()->set('bill_wizard', $wizard);
+
+                $this->sendBillConfirmation($wizard);
+                break;
+
+            case 'due_date':
+                $date = $this->parseBillDate($text);
+
+                if ($date === null) {
+                    $this->chat->message('Please enter a valid date as YYYY-MM-DD, for example: 2026-08-01')->send();
+
+                    return;
+                }
+
+                $wizard['due_date'] = $date;
+                $wizard['step'] = 'confirm';
+                $this->chat->storage()->set('bill_wizard', $wizard);
+
+                $this->sendBillConfirmation($wizard);
+                break;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $wizard
+     */
+    private function sendBillConfirmation(array $wizard): void
+    {
+        $keyboard = Keyboard::make()
+            ->button('Confirm')->action('confirm_bill')->param('ok', '1')
+            ->button('Cancel')->action('cancel_bill')->param('ok', '0');
+
+        $recurrence = $wizard['recurrence_type'] === BillRecurrenceType::Monthly->value
+            ? 'Monthly — day '.$wizard['due_day_of_month']
+            : 'One-time — '.$wizard['due_date'];
+
+        $summary = "*Confirm bill:*\n".
+            "Title: {$wizard['title']}\n".
+            'Amount: '.$this->fmtAmount((float) $wizard['amount'], Currency::from($wizard['currency']))."\n".
+            "Recurrence: {$recurrence}";
+
+        $this->chat->message($summary)->keyboard($keyboard)->send();
+    }
+
+    private function parseBillDate(string $text): ?string
+    {
+        $text = trim($text);
+
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $text)) {
+            return null;
+        }
+
+        try {
+            return Carbon::createFromFormat('Y-m-d', $text)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    public function bill_pick_currency(?string $currency = null): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user) {
+            return;
+        }
+
+        $currency = $currency ?? $this->data->get('currency');
+        $currency = Currency::tryFrom((string) $currency);
+        $wizard = $this->chat->storage()->get('bill_wizard', []);
+
+        if (! $currency || ! isset($wizard['amount'], $wizard['title'])) {
+            $this->chat->message('The bill draft expired. Choose Add bill to start again.')
+                ->keyboard($this->mainKeyboard())
+                ->send();
+
+            return;
+        }
+
+        $wizard['currency'] = $currency->value;
+        $wizard['step'] = 'category';
+        $this->chat->storage()->set('bill_wizard', $wizard);
+
+        $categories = Category::query()
+            ->availableFor($user)
+            ->where('type', TransactionType::Cost)
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get();
+
+        $keyboard = Keyboard::make()
+            ->button('No category')->action('bill_pick_category')->param('cat_id', '0')->width(1);
+
+        foreach ($categories as $category) {
+            $keyboard = $keyboard
+                ->button($category->name)
+                ->action('bill_pick_category')
+                ->param('cat_id', (string) $category->id)
+                ->width(0.5);
+        }
+
+        $this->chat->message('Choose a category:')->keyboard($keyboard)->send();
+    }
+
+    public function bill_pick_category(?string $cat_id = null): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user) {
+            return;
+        }
+
+        $catId = $cat_id ?? $this->data->get('cat_id');
+        $wizard = $this->chat->storage()->get('bill_wizard', []);
+
+        if (! isset($wizard['amount'], $wizard['currency'], $wizard['title'])) {
+            $this->chat->message('The bill draft expired. Choose Add bill to start again.')
+                ->keyboard($this->mainKeyboard())
+                ->send();
+
+            return;
+        }
+
+        $wizard['category_id'] = ($catId === '0' || $catId === null) ? null : (int) $catId;
+        $wizard['step'] = 'recurrence';
+        $this->chat->storage()->set('bill_wizard', $wizard);
+
+        $keyboard = Keyboard::make()
+            ->button('Monthly')->action('bill_pick_recurrence')->param('type', BillRecurrenceType::Monthly->value)->width(0.5)
+            ->button('One-time')->action('bill_pick_recurrence')->param('type', BillRecurrenceType::OneTime->value)->width(0.5);
+
+        $this->chat->message('Choose recurrence:')->keyboard($keyboard)->send();
+    }
+
+    public function bill_pick_recurrence(?string $type = null): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user) {
+            return;
+        }
+
+        $type = $type ?? $this->data->get('type');
+        $recurrence = BillRecurrenceType::tryFrom((string) $type);
+        $wizard = $this->chat->storage()->get('bill_wizard', []);
+
+        if (! $recurrence || ! isset($wizard['amount'], $wizard['currency'], $wizard['title'])) {
+            $this->chat->message('The bill draft expired. Choose Add bill to start again.')
+                ->keyboard($this->mainKeyboard())
+                ->send();
+
+            return;
+        }
+
+        $wizard['recurrence_type'] = $recurrence->value;
+
+        if ($recurrence === BillRecurrenceType::Monthly) {
+            $wizard['step'] = 'due_day';
+            $this->chat->storage()->set('bill_wizard', $wizard);
+            $this->chat->message('Enter the day of month it is due (1-31):')->send();
+
+            return;
+        }
+
+        $wizard['step'] = 'due_date';
+        $this->chat->storage()->set('bill_wizard', $wizard);
+        $this->chat->message('Enter the due date as YYYY-MM-DD, for example: 2026-08-01')->send();
+    }
+
+    public function confirm_bill(): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user) {
+            return;
+        }
+
+        $wizard = $this->chat->storage()->get('bill_wizard', []);
+
+        if (empty($wizard) || ! isset($wizard['title'], $wizard['amount'], $wizard['currency'], $wizard['recurrence_type'])) {
+            $this->reply('No active bill draft. Choose Add bill to start again.');
+
+            return;
+        }
+
+        $bill = $user->bills()->create([
+            'title' => $wizard['title'],
+            'amount' => $wizard['amount'],
+            'currency' => $wizard['currency'],
+            'category_id' => $wizard['category_id'] ?? null,
+            'recurrence_type' => $wizard['recurrence_type'],
+            'due_day_of_month' => $wizard['due_day_of_month'] ?? null,
+            'due_date' => $wizard['due_date'] ?? null,
+            'telegram_reminder_enabled' => true,
+        ]);
+
+        app(SyncBillOccurrence::class)->ensureInitial($bill);
+
+        $this->chat->storage()->forget('bill_wizard');
+        $this->chat->message("Bill \"{$bill->title}\" saved.")->keyboard($this->mainKeyboard())->send();
+    }
+
+    public function cancel_bill(): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $this->chat->storage()->forget('bill_wizard');
+        $this->chat->message('Cancelled.')->keyboard($this->mainKeyboard())->send();
     }
 
     public function pick_category(?string $cat_id = null): void
@@ -527,6 +915,8 @@ class TelegramHandler extends WebhookHandler
             Button::make('Add income')->action('add_income')->width(0.5),
             Button::make('Last transactions')->action('list')->width(0.5),
             Button::make('Add investment')->action('add_investment')->width(0.5),
+            Button::make('Add bill')->action('add_bill')->width(0.5),
+            Button::make('My bills')->action('list_bills')->width(0.5),
             Button::make('Today report')->action('report_today')->width(1 / 3),
             Button::make('Week report')->action('report_week')->width(1 / 3),
             Button::make('Month report')->action('report_month')->width(1 / 3),
@@ -539,6 +929,17 @@ class TelegramHandler extends WebhookHandler
             collect(Currency::cases())
                 ->map(fn (Currency $currency): Button => Button::make(strtoupper($currency->value))
                     ->action('pick_currency')
+                    ->param('currency', $currency->value)
+                    ->width(1 / 3))
+        );
+    }
+
+    private function billCurrencyKeyboard(): Keyboard
+    {
+        return Keyboard::make()->buttons(
+            collect(Currency::cases())
+                ->map(fn (Currency $currency): Button => Button::make(strtoupper($currency->value))
+                    ->action('bill_pick_currency')
                     ->param('currency', $currency->value)
                     ->width(1 / 3))
         );
@@ -559,8 +960,8 @@ class TelegramHandler extends WebhookHandler
     {
         return match ($currency) {
             Currency::Toman => number_format((int) round($amount), 0, '.', ',').' T',
-            Currency::Usd   => '$'.number_format($amount, 2, '.', ','),
-            Currency::Eur   => '€'.number_format($amount, 2, '.', ','),
+            Currency::Usd => '$'.number_format($amount, 2, '.', ','),
+            Currency::Eur => '€'.number_format($amount, 2, '.', ','),
         };
     }
 

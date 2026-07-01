@@ -165,6 +165,7 @@ return [
     ],
     'navigation' => [
         'profile' => 'Profile',
+        'notifications' => 'Notifications',
         'security' => 'Security',
         'preferences' => 'Preferences',
         'categories' => 'Categories',

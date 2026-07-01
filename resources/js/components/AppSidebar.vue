@@ -5,6 +5,7 @@ import {
     LayoutGrid,
     PanelLeftClose,
     PanelLeftOpen,
+    Receipt,
     ReceiptText,
     Settings,
     TrendingUp,
@@ -21,6 +22,7 @@ import { Sidebar, useSidebar } from '@/components/ui/sidebar';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { dashboard, portfolio, report } from '@/routes';
+import { index as billsIndex } from '@/routes/bills';
 import { index as investmentsIndex } from '@/routes/investments';
 import { index as transactionsIndex } from '@/routes/transactions';
 import type { NavItem } from '@/types';
@@ -33,6 +35,7 @@ const mainNavItems = computed<NavItem[]>(() => [
     { title: t('navigation.report'), href: report(), icon: ChartPie },
     { title: t('navigation.investments'), href: investmentsIndex(), icon: TrendingUp },
     { title: t('navigation.portfolio'), href: portfolio(), icon: Wallet },
+    { title: t('navigation.bills'), href: billsIndex(), icon: Receipt },
 ]);
 
 const page = usePage();

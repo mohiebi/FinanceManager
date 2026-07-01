@@ -177,7 +177,10 @@ test('list_bills sends a message for bills with and without a pending occurrence
     $handler = telegramHandlerFor($user);
     $handler->list_bills();
 
-    Http::assertSent(fn ($request) => str_contains($request->url(), 'api.telegram.org'));
+    Http::assertSent(fn ($request) => str_contains($request->url(), 'api.telegram.org')
+        && str_contains((string) $request->body(), 'Mark paid: Rent')
+        && str_contains((string) $request->body(), 'Back to menu')
+        && str_contains((string) $request->body(), 'action:help'));
 });
 
 test('pay_bill does not let a user pay another users bill', function () {

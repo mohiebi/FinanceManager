@@ -194,7 +194,7 @@ class TelegramHandler extends WebhookHandler
             }
         }
 
-        $keyboard = Keyboard::make()->buttons($payButtons)->chunk(1);
+        $keyboard = $this->withBackToMenu(Keyboard::make()->buttons($payButtons)->chunk(1));
 
         $this->chat->message(implode("\n", $lines))->keyboard($keyboard)->send();
     }
@@ -1012,6 +1012,14 @@ class TelegramHandler extends WebhookHandler
         return $keyboard
             ->button('Cancel and menu')
             ->action('cancel_current')
+            ->width(1);
+    }
+
+    private function withBackToMenu(Keyboard $keyboard): Keyboard
+    {
+        return $keyboard
+            ->button('Back to menu')
+            ->action('help')
             ->width(1);
     }
 

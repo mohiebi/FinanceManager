@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\DateFormatter;
 use App\Support\FrontendLocalization;
 use Carbon\Carbon;
+use Morilog\Jalali\Jalalian;
 
 class TelegramReportService
 {
@@ -31,8 +32,30 @@ class TelegramReportService
     public function monthly(User $user, Carbon $date): string
     {
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
+        [$from, $to] = $this->monthRange($date, $calendar);
 
-        return $this->buildReport($user, $date->copy()->startOfMonth(), $date->copy()->endOfMonth(), 'Monthly Report - '.DateFormatter::format($date, $calendar, 'Y-m'));
+        return $this->buildReport($user, $from, $to, 'Monthly Report - '.DateFormatter::format($date, $calendar, 'Y-m'));
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function monthRange(Carbon $date, string $calendar): array
+    {
+        if ($calendar !== 'jalali') {
+            return [$date->copy()->startOfMonth(), $date->copy()->endOfMonth()];
+        }
+
+        $jalali = Jalalian::fromCarbon($date);
+        $from = Carbon::instance(
+            (new Jalalian($jalali->getYear(), $jalali->getMonth(), 1))->toCarbon()
+        )->startOfDay();
+
+        $to = Carbon::instance(
+            (new Jalalian($jalali->getYear(), $jalali->getMonth(), (int) $jalali->format('t')))->toCarbon()
+        )->endOfDay();
+
+        return [$from, $to];
     }
 
     private function buildReport(User $user, Carbon $from, Carbon $to, string $title): string
@@ -44,7 +67,7 @@ class TelegramReportService
 
         // Convert every transaction to Toman before summing
         $income = 0.0;
-        $cost   = 0.0;
+        $cost = 0.0;
 
         foreach ($transactions as $t) {
             $toman = $this->converter->convert($t->amount, $t->currency, Currency::Toman);
@@ -89,8 +112,8 @@ class TelegramReportService
             $lines[] = '*Investments:*';
             foreach ($investments as $investment) {
                 $label = $investment->asset?->label() ?? ($investment->asset_type ?? 'Asset');
-                $qty   = rtrim(rtrim(number_format((float) $investment->quantity, 8, '.', ''), '0'), '.');
-                $unit  = $investment->asset?->unit ?? '';
+                $qty = rtrim(rtrim(number_format((float) $investment->quantity, 8, '.', ''), '0'), '.');
+                $unit = $investment->asset?->unit ?? '';
                 $lines[] = "- {$label}: {$qty} {$unit}";
             }
         }

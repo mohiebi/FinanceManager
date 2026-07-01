@@ -54,3 +54,45 @@ test('telegram weekly report is readable and ascii only', function () {
 
     expect(preg_match('/[^\x00-\x7F]/', $report))->toBe(0);
 });
+
+test('telegram monthly report follows the preferred jalali calendar', function () {
+    $user = User::factory()->create(['calendar' => 'jalali']);
+    $incomeCategory = Category::factory()->income()->forUser($user)->create(['name' => 'Salary']);
+
+    Transaction::factory()
+        ->income()
+        ->for($user)
+        ->for($incomeCategory)
+        ->create([
+            'amount' => 1000000,
+            'currency' => Currency::Toman,
+            'occurred_at' => '2026-07-22',
+        ]);
+
+    Transaction::factory()
+        ->income()
+        ->for($user)
+        ->for($incomeCategory)
+        ->create([
+            'amount' => 2000000,
+            'currency' => Currency::Toman,
+            'occurred_at' => '2026-07-23',
+        ]);
+
+    Transaction::factory()
+        ->income()
+        ->for($user)
+        ->for($incomeCategory)
+        ->create([
+            'amount' => 3000000,
+            'currency' => Currency::Toman,
+            'occurred_at' => '2026-08-01',
+        ]);
+
+    $report = app(TelegramReportService::class)->monthly($user, Carbon::parse('2026-08-01'));
+
+    expect($report)->toContain('Monthly Report - 1405-05')
+        ->toContain('Income: *5,000,000 T*')
+        ->toContain('Net: *5,000,000 T*')
+        ->not->toContain('Income: *6,000,000 T*');
+});

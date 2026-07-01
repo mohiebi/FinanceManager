@@ -2,23 +2,38 @@
 
 namespace App\Mail\Templates;
 
+use App\Support\FrontendLocalization;
+use Illuminate\Support\Facades\Lang;
+
 class AuthCodeEmailTemplate
 {
-    public static function render(string $code, string $purpose): string
+    public static function subject(string $purpose, ?string $locale = null): string
     {
-        $isRecovery = $purpose === 'recovery';
-        $subject    = $isRecovery ? 'کد بازیابی ورود شما' : 'تأیید آدرس ایمیل';
-        $headline   = $isRecovery ? 'Login Recovery' : 'Verify Your Email';
-        $subline    = $isRecovery
-            ? 'Use the code below to regain access to your CashPilot account.'
-            : 'Use the code below to verify your email and continue sign‑up.';
+        $purposeKey = self::purposeKey($purpose);
+        $locale = self::localeForPurpose($purposeKey, $locale);
 
-        $year  = date('Y');
+        return self::translate("mail.auth_code.subject.{$purposeKey}", $locale);
+    }
+
+    public static function render(string $code, string $purpose, ?string $locale = null): string
+    {
+        $year = date('Y');
         $digits = str_split($code);
+        $purposeKey = self::purposeKey($purpose);
+        $locale = self::localeForPurpose($purposeKey, $locale);
+        $subject = self::subject($purposeKey, $locale);
+        $headline = self::translate("mail.auth_code.headline.{$purposeKey}", $locale);
+        $subline = self::translate("mail.auth_code.subline.{$purposeKey}", $locale);
+        $codeLabel = self::translate('mail.auth_code.code_label', $locale);
+        $expiry = self::translate('mail.auth_code.expiry', $locale);
+        $ignore = self::translate('mail.auth_code.ignore', $locale);
+        $noChanges = self::translate('mail.auth_code.no_changes', $locale);
+        $footer = self::translate('mail.auth_code.footer', $locale);
+        $direction = FrontendLocalization::direction($locale);
 
         $cellStyle = 'width:48px; height:60px; text-align:center; vertical-align:middle; font-size:34px; font-weight:700; color:#02cd86; background-color:#0f2a1e; border-radius:10px; border:1px solid #1a4030;';
-        $gapStyle  = 'width:8px;';
-        $sepStyle  = 'width:20px; text-align:center; vertical-align:middle;';
+        $gapStyle = 'width:8px;';
+        $sepStyle = 'width:20px; text-align:center; vertical-align:middle;';
 
         $codeCells = implode('', [
             "<td style=\"{$cellStyle}\">{$digits[0]}</td>",
@@ -49,7 +64,7 @@ class AuthCodeEmailTemplate
 
         return <<<HTML
         <!DOCTYPE html>
-        <html lang="en">
+        <html lang="{$locale}" dir="{$direction}">
         <head>
             <meta charset="UTF-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -69,7 +84,7 @@ class AuthCodeEmailTemplate
                 }
             </style>
         </head>
-        <body style="background-color:transparent; font-family:'IBM Plex Sans',ui-sans-serif,system-ui,-apple-system,sans-serif; margin:0; padding:0;">
+        <body style="background-color:transparent; font-family:'IBM Plex Sans',ui-sans-serif,system-ui,-apple-system,sans-serif; margin:0; padding:0; direction:{$direction};">
 
             <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:transparent;">
                 <tr>
@@ -110,7 +125,7 @@ class AuthCodeEmailTemplate
                                     <p style="font-size:15px; font-weight:300; color:#a1a1aa; line-height:1.7; margin:0 0 40px; max-width:380px;">{$subline}</p>
 
                                     <!-- Label -->
-                                    <p style="font-size:11px; font-weight:500; letter-spacing:1.5px; color:#71717a; text-transform:uppercase; margin:0 0 10px; text-align:center;">Your one-time code</p>
+                                    <p style="font-size:11px; font-weight:500; letter-spacing:1.5px; color:#71717a; text-transform:uppercase; margin:0 0 10px; text-align:center;">{$codeLabel}</p>
 
                                     <!-- Code cells -->
                                     <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:32px;">
@@ -129,7 +144,7 @@ class AuthCodeEmailTemplate
                                             <td style="width:20px; vertical-align:top; padding-top:2px;">{$clockSvg}</td>
                                             <td style="padding-left:8px;">
                                                 <p style="font-size:13px; color:#d97706; margin:0; line-height:1.55;">
-                                                    This code expires in <strong style="color:#f59e0b;">5 minutes</strong>. Do not share it with anyone.
+                                                    {$expiry}
                                                 </p>
                                             </td>
                                         </tr>
@@ -140,7 +155,7 @@ class AuthCodeEmailTemplate
                                         <tr>
                                             <td style="border-top:1px solid #1f1f1f; padding-top:32px;">
                                                 <p style="font-size:12px; color:#71717a; line-height:1.7; margin:0;">
-                                                    If you didn't request this code, you can safely ignore this email.<br/>No changes will be made to your account.
+                                                    {$ignore}<br/>{$noChanges}
                                                 </p>
                                             </td>
                                         </tr>
@@ -156,7 +171,7 @@ class AuthCodeEmailTemplate
                                         <tr>
                                             <td>
                                                 <p style="font-size:11px; color:#71717a; margin:0; line-height:1.7;">
-                                                    &copy; {$year} CashPilot &mdash; Personal Finance Dashboard<br/>
+                                                    &copy; {$year} CashPilot &mdash; {$footer}<br/>
                                                     <a href="https://cashpilot.mohiebi.com" style="color:#52525b; text-decoration:none;">cashpilot.mohiebi.com</a>
                                                 </p>
                                             </td>
@@ -175,5 +190,24 @@ class AuthCodeEmailTemplate
         </body>
         </html>
         HTML;
+    }
+
+    private static function purposeKey(string $purpose): string
+    {
+        return $purpose === 'recovery' ? 'recovery' : 'signup';
+    }
+
+    private static function localeForPurpose(string $purposeKey, ?string $locale): string
+    {
+        if ($purposeKey === 'signup') {
+            return FrontendLocalization::DEFAULT_LOCALE;
+        }
+
+        return FrontendLocalization::normalizeLocale($locale);
+    }
+
+    private static function translate(string $key, string $locale): string
+    {
+        return Lang::get($key, [], $locale);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Actions\Auth;
 use App\Models\AuthChallenge;
 use App\Models\User;
 use App\Notifications\AuthChallengeCodeNotification;
+use App\Support\FrontendLocalization;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
@@ -33,7 +34,7 @@ class EmailAuthBroker
             ];
         }
 
-        $this->sendChallenge($email, AuthChallenge::PurposeSignup, $ipAddress);
+        $this->sendChallenge($email, AuthChallenge::PurposeSignup, $ipAddress, FrontendLocalization::DEFAULT_LOCALE);
 
         return [
             'email' => $email,
@@ -45,17 +46,18 @@ class EmailAuthBroker
     public function sendRecoveryChallenge(string $email, ?string $ipAddress = null): AuthChallenge
     {
         $email = $this->normalizeEmail($email);
+        $user = User::query()->where('email', $email)->first();
 
-        if (! User::query()->where('email', $email)->exists()) {
+        if (! $user instanceof User) {
             throw ValidationException::withMessages([
                 'email' => __('auth.account_not_found'),
             ]);
         }
 
-        return $this->sendChallenge($email, AuthChallenge::PurposeRecovery, $ipAddress);
+        return $this->sendChallenge($email, AuthChallenge::PurposeRecovery, $ipAddress, $user->locale);
     }
 
-    public function sendChallenge(string $email, string $purpose, ?string $ipAddress = null): AuthChallenge
+    public function sendChallenge(string $email, string $purpose, ?string $ipAddress = null, ?string $locale = null): AuthChallenge
     {
         $email = $this->normalizeEmail($email);
         $code = (string) random_int(100000, 999999);
@@ -76,7 +78,7 @@ class EmailAuthBroker
         ]);
 
         Notification::route('mail', $email)
-            ->notify(new AuthChallengeCodeNotification($code, $purpose));
+            ->notify(new AuthChallengeCodeNotification($code, $purpose, $locale));
 
         return $challenge;
     }

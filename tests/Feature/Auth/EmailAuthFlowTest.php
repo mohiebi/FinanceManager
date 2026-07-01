@@ -28,6 +28,78 @@ test('new email starts signup and sends a verification code', function () {
     Notification::assertSentOnDemand(AuthChallengeCodeNotification::class);
 });
 
+test('signup auth code emails default to english', function () {
+    Notification::fake();
+
+    $this->post(route('auth.email.start'), [
+        'email' => 'english.signup@example.com',
+    ]);
+
+    Notification::assertSentOnDemand(
+        AuthChallengeCodeNotification::class,
+        function (AuthChallengeCodeNotification $notification) {
+            $email = $notification->toResend(new class
+            {
+                public function routeNotificationFor(string $channel): string
+                {
+                    return 'english.signup@example.com';
+                }
+            });
+
+            return $notification->recipientLocale === 'en'
+                && $email['subject'] === __('mail.auth_code.subject.signup', [], 'en')
+                && str_contains($email['html'], '<html lang="en" dir="ltr">')
+                && str_contains($email['html'], __('mail.auth_code.code_label', [], 'en'));
+        },
+    );
+});
+
+test('signup auth code title stays english even when another locale is passed', function () {
+    $notification = new AuthChallengeCodeNotification('123456', AuthChallenge::PurposeSignup, 'fa');
+    $email = $notification->toResend(new class
+    {
+        public function routeNotificationFor(string $channel): string
+        {
+            return 'signup@example.com';
+        }
+    });
+
+    expect($email['subject'])->toBe(__('mail.auth_code.subject.signup', [], 'en'))
+        ->and($email['html'])->toContain('<title>'.__('mail.auth_code.subject.signup', [], 'en').'</title>')
+        ->and($email['html'])->toContain('<h1 style="font-size:26px; font-weight:600; color:#f8fafc; letter-spacing:-0.5px; line-height:1.3; margin:0 0 12px;">'.__('mail.auth_code.subject.signup', [], 'en').'</h1>');
+});
+
+test('recovery auth code emails use the user locale', function () {
+    Notification::fake();
+
+    User::factory()->create([
+        'email' => 'persian.recovery@example.com',
+        'locale' => 'fa',
+    ]);
+
+    $this->post(route('auth.recovery.send'), [
+        'email' => 'persian.recovery@example.com',
+    ]);
+
+    Notification::assertSentOnDemand(
+        AuthChallengeCodeNotification::class,
+        function (AuthChallengeCodeNotification $notification) {
+            $email = $notification->toResend(new class
+            {
+                public function routeNotificationFor(string $channel): string
+                {
+                    return 'persian.recovery@example.com';
+                }
+            });
+
+            return $notification->recipientLocale === 'fa'
+                && $email['subject'] === __('mail.auth_code.subject.recovery', [], 'fa')
+                && str_contains($email['html'], '<html lang="fa" dir="rtl">')
+                && str_contains($email['html'], __('mail.auth_code.code_label', [], 'fa'));
+        },
+    );
+});
+
 test('existing email starts password login', function () {
     $user = User::factory()->create(['email' => 'known@example.com']);
 

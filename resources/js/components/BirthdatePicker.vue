@@ -213,8 +213,11 @@ function syncDate(value: string): void {
     <input type="hidden" :name="name" :value="birthdate" />
 
     <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1.2fr_1fr_1fr]">
-        <Select v-model="selectedMonth" :required="required">
-            <SelectTrigger :class="cn('w-full', triggerClass)">
+        <Select v-model="selectedMonth">
+            <SelectTrigger
+                :aria-required="required ? 'true' : undefined"
+                :class="cn('w-full', triggerClass)"
+            >
                 <SelectValue
                     :placeholder="monthPlaceholder || t('common.month')"
                 />
@@ -230,8 +233,11 @@ function syncDate(value: string): void {
             </SelectContent>
         </Select>
 
-        <Select v-model="selectedDay" :required="required">
-            <SelectTrigger :class="cn('w-full', triggerClass)">
+        <Select v-model="selectedDay">
+            <SelectTrigger
+                :aria-required="required ? 'true' : undefined"
+                :class="cn('w-full', triggerClass)"
+            >
                 <SelectValue :placeholder="dayPlaceholder || t('common.day')" />
             </SelectTrigger>
             <SelectContent class="finance-dialog-select-content">
@@ -241,8 +247,11 @@ function syncDate(value: string): void {
             </SelectContent>
         </Select>
 
-        <Select v-model="selectedYear" :required="required">
-            <SelectTrigger :class="cn('w-full', triggerClass)">
+        <Select v-model="selectedYear">
+            <SelectTrigger
+                :aria-required="required ? 'true' : undefined"
+                :class="cn('w-full', triggerClass)"
+            >
                 <SelectValue
                     :placeholder="yearPlaceholder || t('common.year')"
                 />

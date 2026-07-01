@@ -162,7 +162,9 @@ const linkClass =
             :class="formClass"
         >
             <div class="grid gap-2">
-                <Label for="email" :class="labelClass">{{ $t('fields.email_address') }}</Label>
+                <Label for="email" :class="labelClass">{{
+                    $t('fields.email_address')
+                }}</Label>
                 <Input
                     id="email"
                     v-model="email"
@@ -224,7 +226,9 @@ const linkClass =
             <input type="hidden" name="email" :value="email" />
 
             <div class="grid gap-2">
-                <Label for="password" :class="labelClass">{{ $t('fields.password') }}</Label>
+                <Label for="password" :class="labelClass">{{
+                    $t('fields.password')
+                }}</Label>
                 <PasswordInput
                     id="password"
                     name="password"
@@ -328,7 +332,9 @@ const linkClass =
             <input type="hidden" name="email" :value="email" />
 
             <div class="grid gap-2">
-                <Label for="name" :class="labelClass">{{ $t('fields.name') }}</Label>
+                <Label for="name" :class="labelClass">{{
+                    $t('fields.name')
+                }}</Label>
                 <Input
                     id="name"
                     type="text"
@@ -344,19 +350,17 @@ const linkClass =
             </div>
 
             <div class="grid gap-2">
-                <Label for="birthdate" :class="labelClass">{{ $t('fields.birthdate') }}</Label>
-                <BirthdatePicker
-                    name="birthdate"
-                    :trigger-class="fieldClass"
-                    month-placeholder="April"
-                    day-placeholder="02"
-                    year-placeholder="2006"
-                />
+                <Label for="birthdate" :class="labelClass">{{
+                    $t('fields.birthdate')
+                }}</Label>
+                <BirthdatePicker name="birthdate" :trigger-class="fieldClass" />
                 <InputError :message="errors.birthdate" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="new-password" :class="labelClass">{{ $t('fields.password') }}</Label>
+                <Label for="new-password" :class="labelClass">{{
+                    $t('fields.password')
+                }}</Label>
                 <PasswordInput
                     id="new-password"
                     name="password"

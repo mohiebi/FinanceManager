@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection as SupportCollection;
 use Inertia\Inertia;
 use Inertia\Response;
+use Morilog\Jalali\Jalalian;
 use Throwable;
 
 class ReportController extends Controller
@@ -37,6 +38,7 @@ class ReportController extends Controller
             $selectedRange,
             (string) $request->query('from'),
             (string) $request->query('to'),
+            $calendar,
         );
 
         $categories = Category::query()
@@ -160,9 +162,13 @@ class ReportController extends Controller
     /**
      * @return array{0: Carbon, 1: Carbon}
      */
-    private function resolveDateRange(string $range, string $fromInput, string $toInput): array
+    private function resolveDateRange(string $range, string $fromInput, string $toInput, string $calendar): array
     {
         $today = Carbon::today();
+
+        if ($calendar === 'jalali' && $range !== 'custom') {
+            return $this->resolveJalaliDateRange($range, $today);
+        }
 
         return match ($range) {
             'this_season' => [$today->copy()->startOfQuarter(), $today->copy()],
@@ -170,6 +176,34 @@ class ReportController extends Controller
             'custom' => $this->resolveCustomDateRange($fromInput, $toInput, $today),
             default => [$today->copy()->startOfMonth(), $today->copy()],
         };
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function resolveJalaliDateRange(string $range, Carbon $today): array
+    {
+        $jalaliToday = Jalalian::fromCarbon($today);
+        $year = $jalaliToday->getYear();
+        $month = $jalaliToday->getMonth();
+
+        $fromDate = match ($range) {
+            'this_season' => $this->jalaliDateToCarbon($year, $this->jalaliSeasonStartMonth($month), 1),
+            'yearly' => $this->jalaliDateToCarbon($year, 1, 1),
+            default => $this->jalaliDateToCarbon($year, $month, 1),
+        };
+
+        return [$fromDate, $today->copy()];
+    }
+
+    private function jalaliSeasonStartMonth(int $month): int
+    {
+        return (intdiv($month - 1, 3) * 3) + 1;
+    }
+
+    private function jalaliDateToCarbon(int $year, int $month, int $day): Carbon
+    {
+        return Carbon::instance((new Jalalian($year, $month, $day))->toCarbon())->startOfDay();
     }
 
     /**

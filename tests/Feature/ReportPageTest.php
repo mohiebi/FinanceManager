@@ -55,6 +55,91 @@ test('report defaults to this month transactions', function () {
     Carbon::setTestNow();
 });
 
+test('report preset ranges follow the preferred jalali calendar', function () {
+    Carbon::setTestNow('2026-08-01');
+
+    $user = User::factory()->create(['calendar' => 'jalali']);
+    $incomeCategory = Category::factory()->income()->forUser($user)->create();
+
+    Transaction::factory()
+        ->income()
+        ->for($user)
+        ->for($incomeCategory)
+        ->create([
+            'title' => 'Before Jalali year',
+            'occurred_at' => '2026-03-20',
+        ]);
+
+    Transaction::factory()
+        ->income()
+        ->for($user)
+        ->for($incomeCategory)
+        ->create([
+            'title' => 'Jalali year start',
+            'occurred_at' => '2026-03-21',
+        ]);
+
+    Transaction::factory()
+        ->income()
+        ->for($user)
+        ->for($incomeCategory)
+        ->create([
+            'title' => 'Jalali season start',
+            'occurred_at' => '2026-06-22',
+        ]);
+
+    Transaction::factory()
+        ->income()
+        ->for($user)
+        ->for($incomeCategory)
+        ->create([
+            'title' => 'Jalali month start',
+            'occurred_at' => '2026-07-23',
+        ]);
+
+    $this->actingAs($user)
+        ->get(route('report'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Report')
+            ->where('filters.range', 'this_month')
+            ->where('filters.from', '2026-07-23')
+            ->where('filters.to', '2026-08-01')
+            ->where('period.label', '1405-05')
+            ->has('transactions.incomes', 1)
+            ->where('transactions.incomes.0.title', 'Jalali month start')
+            ->where('summary.count', 1),
+        );
+
+    $this->actingAs($user)
+        ->get(route('report', ['range' => 'this_season']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Report')
+            ->where('filters.range', 'this_season')
+            ->where('filters.from', '2026-06-22')
+            ->where('filters.to', '2026-08-01')
+            ->where('period.label', 'This season (1405-04)')
+            ->has('transactions.incomes', 2)
+            ->where('summary.count', 2),
+        );
+
+    $this->actingAs($user)
+        ->get(route('report', ['range' => 'yearly']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Report')
+            ->where('filters.range', 'yearly')
+            ->where('filters.from', '2026-03-21')
+            ->where('filters.to', '2026-08-01')
+            ->where('period.label', 'Year to date (1405)')
+            ->has('transactions.incomes', 3)
+            ->where('summary.count', 3),
+        );
+
+    Carbon::setTestNow();
+});
+
 test('report supports seasonal yearly and custom date filters', function () {
     Carbon::setTestNow('2026-04-28');
 

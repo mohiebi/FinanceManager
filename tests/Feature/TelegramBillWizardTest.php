@@ -192,6 +192,38 @@ test('list_bills sends a message for bills with and without a pending occurrence
     });
 });
 
+test('last transactions use newest records when dates are tied', function () {
+    $user = User::factory()->create(['telegram_chat_id' => '555999']);
+    $category = Category::factory()->cost()->create();
+
+    foreach (range(1, 11) as $index) {
+        Transaction::factory()->cost()->create([
+            'user_id' => $user->id,
+            'category_id' => $category->id,
+            'title' => match ($index) {
+                1 => 'Oldest same-day transaction',
+                11 => 'Newest same-day transaction',
+                default => "Same-day transaction {$index}",
+            },
+            'occurred_at' => '2026-07-02',
+            'created_at' => now()->startOfDay()->addSeconds($index),
+            'updated_at' => now()->startOfDay()->addSeconds($index),
+        ]);
+    }
+
+    $handler = telegramHandlerFor($user);
+    $handler->list();
+
+    Http::assertSent(function ($request): bool {
+        $body = urldecode((string) $request->body());
+
+        return str_contains($request->url(), 'api.telegram.org')
+            && str_contains($body, 'Newest same-day transaction')
+            && str_contains($body, 'Same-day transaction 2')
+            && ! str_contains($body, 'Oldest same-day transaction');
+    });
+});
+
 test('pay_bill does not let a user pay another users bill', function () {
     $owner = User::factory()->create(['telegram_chat_id' => '555666']);
     $intruder = User::factory()->create(['telegram_chat_id' => '555777']);

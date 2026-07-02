@@ -251,6 +251,7 @@ class TelegramHandler extends WebhookHandler
         $transactions = $user->transactions()
             ->with('category')
             ->latest('occurred_at')
+            ->latest()
             ->take(10)
             ->get();
 

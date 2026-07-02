@@ -14,7 +14,10 @@ test('it sends a day-before reminder exactly once', function () {
     Notification::fake();
 
     try {
-        $user = User::factory()->create(['telegram_chat_id' => '12345']);
+        $user = User::factory()->create([
+            'telegram_chat_id' => '12345',
+            'calendar' => 'jalali',
+        ]);
 
         $bill = $user->bills()->create([
             'title' => 'Rent',
@@ -50,7 +53,10 @@ test('it sends a due-day reminder and dispatches a telegram message when linked'
     Queue::fake();
 
     try {
-        $user = User::factory()->create(['telegram_chat_id' => '12345']);
+        $user = User::factory()->create([
+            'telegram_chat_id' => '12345',
+            'calendar' => 'jalali',
+        ]);
 
         $bill = $user->bills()->create([
             'title' => 'Phone',
@@ -66,7 +72,9 @@ test('it sends a due-day reminder and dispatches a telegram message when linked'
 
         $notification = $user->notifications()->sole();
         expect($notification->data['type'])->toBe('bill_due_today')
-            ->and($notification->data['body'])->toContain('Phone');
+            ->and($notification->data['body'])->toContain('Phone')
+            ->and($notification->data['body'])->toContain('1405-04-24')
+            ->and($notification->data['body'])->not->toContain('2026-07-15');
 
         Queue::assertPushedOn('telegram', SendTelegramMessageJob::class, fn ($job) => $job->chatId === '12345');
     } finally {

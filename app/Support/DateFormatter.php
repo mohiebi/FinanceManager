@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Morilog\Jalali\Jalalian;
 
@@ -13,6 +14,6 @@ class DateFormatter
             return $date->format($format);
         }
 
-        return Jalalian::fromCarbon($date)->format($format);
+        return Jalalian::fromCarbon(Carbon::instance($date))->format($format);
     }
 }

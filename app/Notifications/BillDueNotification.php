@@ -5,6 +5,8 @@ namespace App\Notifications;
 use App\Models\Bill;
 use App\Models\BillOccurrence;
 use App\Notifications\Channels\TelegramChannel;
+use App\Support\DateFormatter;
+use App\Support\FrontendLocalization;
 use Illuminate\Notifications\Notification;
 
 class BillDueNotification extends Notification
@@ -34,11 +36,11 @@ class BillDueNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
-        $locale = $notifiable->locale ?? 'en';
+        $locale = FrontendLocalization::normalizeLocale($notifiable->locale ?? null);
         $key = $this->typeKey();
         $params = [
             'title' => $this->bill->title,
-            'date' => $this->occurrence->due_date->toDateString(),
+            'date' => $this->displayDate($notifiable),
             'amount' => number_format((float) $this->bill->amount),
             'currency' => strtoupper($this->bill->currency),
         ];
@@ -62,11 +64,20 @@ class BillDueNotification extends Notification
             "notifications.{$this->typeKey()}.body",
             [
                 'title' => $this->bill->title,
-                'date' => $this->occurrence->due_date->toDateString(),
+                'date' => $this->displayDate($notifiable),
                 'amount' => number_format((float) $this->bill->amount),
                 'currency' => strtoupper($this->bill->currency),
             ],
-            $notifiable->locale ?? 'en',
+            FrontendLocalization::normalizeLocale($notifiable->locale ?? null),
+        );
+    }
+
+    private function displayDate(object $notifiable): string
+    {
+        return DateFormatter::format(
+            $this->occurrence->due_date,
+            FrontendLocalization::normalizeCalendar($notifiable->calendar ?? null),
+            'Y-m-d',
         );
     }
 

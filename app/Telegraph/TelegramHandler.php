@@ -13,6 +13,8 @@ use App\Models\InvestmentAsset;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\TelegramReportService;
+use App\Support\DateFormatter;
+use App\Support\FrontendLocalization;
 use Carbon\Carbon;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
@@ -178,13 +180,15 @@ class TelegramHandler extends WebhookHandler
 
         $lines = ["*Your bills:*\n"];
         $payButtons = [];
+        $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
 
         foreach ($bills as $bill) {
             $next = $bill->occurrences->first();
             $amount = $this->fmtAmount((float) $bill->amount, Currency::from($bill->currency));
 
             if ($next) {
-                $lines[] = "• *{$bill->title}* — {$amount} — due {$next->due_date->format('Y-m-d')}";
+                $dueDate = DateFormatter::format($next->due_date, $calendar, 'Y-m-d');
+                $lines[] = "• *{$bill->title}* — {$amount} — due {$dueDate}";
                 $payButtons[] = Button::make("Mark paid: {$bill->title}")
                     ->action('pay_bill')
                     ->param('bill', (string) $bill->id)
@@ -257,10 +261,11 @@ class TelegramHandler extends WebhookHandler
         }
 
         $lines = ["*Last 10 transactions:*\n"];
+        $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
 
         foreach ($transactions as $transaction) {
             $sign = $transaction->type === TransactionType::Cost ? '−' : '+';
-            $date = $transaction->occurred_at->format('M j');
+            $date = DateFormatter::format($transaction->occurred_at, $calendar, 'M j');
             $lines[] = "{$sign} *{$transaction->title}* — {$this->fmtAmount((float) $transaction->amount, $transaction->currency)} ({$date})";
         }
 

@@ -25,8 +25,9 @@ class TelegramReportService
     public function weekly(User $user, Carbon $date): string
     {
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
+        [$from, $to] = $this->weekRange($date, $calendar);
 
-        return $this->buildReport($user, $date->copy()->startOfWeek(), $date->copy()->endOfWeek(), 'Weekly Report - '.DateFormatter::format($date, $calendar, 'M j').' week');
+        return $this->buildReport($user, $from, $to, 'Weekly Report - '.DateFormatter::format($date, $calendar, 'M j').' week');
     }
 
     public function monthly(User $user, Carbon $date): string
@@ -56,6 +57,23 @@ class TelegramReportService
         )->endOfDay();
 
         return [$from, $to];
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function weekRange(Carbon $date, string $calendar): array
+    {
+        if ($calendar !== 'jalali') {
+            return [$date->copy()->startOfWeek(), $date->copy()->endOfWeek()];
+        }
+
+        $jalali = Jalalian::fromCarbon($date);
+
+        return [
+            Carbon::instance($jalali->getFirstDayOfWeek()->toCarbon())->startOfDay(),
+            Carbon::instance($jalali->getEndDayOfWeek()->toCarbon())->endOfDay(),
+        ];
     }
 
     private function buildReport(User $user, Carbon $from, Carbon $to, string $title): string

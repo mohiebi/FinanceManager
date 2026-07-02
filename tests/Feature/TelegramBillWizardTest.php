@@ -155,7 +155,10 @@ test('pay_bill marks the occurrence paid and creates a matching cost transaction
 });
 
 test('list_bills sends a message for bills with and without a pending occurrence', function () {
-    $user = User::factory()->create(['telegram_chat_id' => '555888']);
+    $user = User::factory()->create([
+        'telegram_chat_id' => '555888',
+        'calendar' => 'jalali',
+    ]);
 
     $withOccurrence = $user->bills()->create([
         'title' => 'Rent',
@@ -177,10 +180,16 @@ test('list_bills sends a message for bills with and without a pending occurrence
     $handler = telegramHandlerFor($user);
     $handler->list_bills();
 
-    Http::assertSent(fn ($request) => str_contains($request->url(), 'api.telegram.org')
-        && str_contains((string) $request->body(), 'Mark paid: Rent')
-        && str_contains((string) $request->body(), 'Back to menu')
-        && str_contains((string) $request->body(), 'action:help'));
+    Http::assertSent(function ($request): bool {
+        $body = (string) $request->body();
+
+        return str_contains($request->url(), 'api.telegram.org')
+            && str_contains($body, 'Mark paid: Rent')
+            && str_contains($body, 'due 1405-05-10')
+            && ! str_contains($body, 'due 2026-08-01')
+            && str_contains($body, 'Back to menu')
+            && str_contains($body, 'action:help');
+    });
 });
 
 test('pay_bill does not let a user pay another users bill', function () {

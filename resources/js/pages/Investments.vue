@@ -4,24 +4,35 @@
     <div
         class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-hidden bg-[#111111]"
     >
-    <!-- ── Page actions ──────────────────────────────────────── -->
-    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-[18px] pt-[18px]">
-        <button
-            type="button"
-            :disabled="syncing"
-            class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-white/8 px-3 py-1 text-xs text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-            @click="syncPrices"
+        <!-- ── Page actions ──────────────────────────────────────── -->
+        <div
+            class="flex flex-wrap items-center gap-x-3 gap-y-2 px-[18px] pt-[18px]"
         >
-            <RefreshCw class="size-3" :class="{ 'animate-spin': syncing }" />
-            {{ t('finance.actions.sync_prices') }}
-        </button>
-        <span v-if="syncError" class="min-w-0 max-w-full text-xs break-words text-[#E94E50]">
-            {{ syncError }}
-        </span>
-        <span v-else-if="lastSyncedLabel" class="min-w-0 max-w-full text-xs break-words text-[#989898]">
-            {{ t('finance.last_synced', { time: lastSyncedLabel }) }}
-        </span>
-    </div>
+            <button
+                type="button"
+                :disabled="syncing"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-xs whitespace-nowrap text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                @click="syncPrices"
+            >
+                <RefreshCw
+                    class="size-3"
+                    :class="{ 'animate-spin': syncing }"
+                />
+                {{ t('finance.actions.sync_prices') }}
+            </button>
+            <span
+                v-if="syncError"
+                class="max-w-full min-w-0 text-xs break-words text-[#E94E50]"
+            >
+                {{ syncError }}
+            </span>
+            <span
+                v-else-if="lastSyncedLabel"
+                class="max-w-full min-w-0 text-xs break-words text-[#989898]"
+            >
+                {{ t('finance.last_synced', { time: lastSyncedLabel }) }}
+            </span>
+        </div>
 
         <!-- ── Summary stat cards ────────────────────────────────── -->
         <div class="grid gap-[18px] px-[18px] pt-3 md:grid-cols-3">
@@ -307,14 +318,16 @@
             v-if="props.entries.length > 0"
             class="mx-[18px] mt-[18px] mb-[38px] overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
-            <div class="flex flex-wrap items-center justify-between gap-4 px-5 py-[29px]">
+            <div
+                class="flex flex-wrap items-center justify-between gap-4 px-5 py-[29px]"
+            >
                 <h2 class="text-[22px] leading-none font-normal text-white">
                     {{ t('finance.investments.investment_entries') }}
                 </h2>
                 <div class="flex flex-wrap items-center gap-2">
                     <a
                         :href="`/investments/export?currency=${props.selectedCurrency}`"
-                        class="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-white/10 px-4 py-2 text-sm text-white ring-1 ring-white/20 transition-colors hover:bg-white/15"
+                        class="inline-flex shrink-0 items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm whitespace-nowrap text-white ring-1 ring-white/20 transition-colors hover:bg-white/15"
                     >
                         <Download class="size-4" />
                         Export
@@ -444,246 +457,14 @@
         </div>
 
         <!-- ── Add / Edit dialog ─────────────────────────────────── -->
-        <Dialog :open="isDialogOpen" @update:open="handleDialogOpenChange">
-            <DialogContent
-                class="max-h-[calc(100dvh-1rem)] overflow-hidden rounded-[20px] border-0 bg-[#1a1a1a] p-0 text-white shadow-2xl ring-1 ring-white/10 sm:max-h-[calc(100vh-2rem)] sm:min-h-[560px] sm:max-w-[560px] sm:rounded-[25px]"
-                :show-close-button="false"
-            >
-                <form
-                    class="flex max-h-[calc(100dvh-1rem)] flex-col sm:max-h-[calc(100vh-2rem)]"
-                    @submit.prevent="submitEntry"
-                >
-                    <div
-                        class="flex-1 overflow-y-auto px-4 pt-10 pb-5 sm:px-[80px] sm:pt-[68px] sm:pb-6"
-                    >
-                        <DialogHeader class="mb-6 space-y-2 text-left">
-                            <DialogTitle
-                                class="text-[20px] leading-normal font-medium text-white"
-                            >
-                                {{
-                                    editingId !== null
-                                        ? t('finance.form.edit_investment')
-                                        : t('finance.form.add_investment')
-                                }}
-                            </DialogTitle>
-                            <DialogDescription
-                                class="text-[15px] leading-[18px] font-light text-[#989898]"
-                            >
-                                {{ t('finance.form.investment_description') }}
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <div class="space-y-5">
-                            <!-- Asset type + Quantity -->
-                            <div class="grid gap-4 sm:grid-cols-[1fr_140px]">
-                                <div class="grid gap-2">
-                                    <Label class="finance-dialog-label">
-                                        {{ t('finance.fields.asset') }}
-                                    </Label>
-                                    <!-- Custom asset dropdown (supports SVG icons) -->
-                                    <div class="relative">
-                                        <button
-                                            type="button"
-                                            :class="[fieldClass, 'flex h-9 w-full cursor-pointer items-center gap-2 px-3 text-left']"
-                                            @click="assetDropdownOpen = !assetDropdownOpen"
-                                        >
-                                            <AssetIcon
-                                                v-if="selectedAsset"
-                                                :icon="selectedAsset.icon"
-                                                :icon-svg="selectedAsset.icon_svg"
-                                                :label="selectedAsset.label"
-                                                :color="selectedAsset.color"
-                                                size="sm"
-                                            />
-                                            <span class="flex-1 truncate" :class="selectedAsset ? 'text-white' : 'text-[#686868]'">
-                                                {{ selectedAsset ? `${selectedAsset.label} (${selectedAsset.unit})` : t('finance.filters.select_asset') }}
-                                            </span>
-                                            <ChevronDown class="size-4 shrink-0 text-[#686868] transition-transform" :class="assetDropdownOpen ? 'rotate-180' : ''" />
-                                        </button>
-
-                                        <div
-                                            v-if="assetDropdownOpen"
-                                            class="absolute top-full left-0 z-50 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-[#252525] py-1 shadow-2xl"
-                                        >
-                                            <button
-                                                v-for="assetType in props.assetTypes"
-                                                :key="assetType.id"
-                                                type="button"
-                                                class="flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-white/5"
-                                                :class="String(assetType.id) === String(form.investment_asset_id) ? 'bg-[#02CD86]/8 text-[#02CD86]' : 'text-white'"
-                                                @click="form.investment_asset_id = String(assetType.id); assetDropdownOpen = false"
-                                            >
-                                                <AssetIcon
-                                                    :icon="assetType.icon"
-                                                    :icon-svg="assetType.icon_svg"
-                                                    :label="assetType.label"
-                                                    :color="assetType.color"
-                                                    size="sm"
-                                                />
-                                                <span class="text-sm">{{ assetType.label }} ({{ assetType.unit }})</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <InputError
-                                        :message="
-                                            form.errors.investment_asset_id ||
-                                            form.errors.asset_type
-                                        "
-                                    />
-                                </div>
-
-                                <div class="grid gap-2">
-                                    <Label
-                                        class="finance-dialog-label"
-                                        for="quantity"
-                                    >
-                                        {{ t('finance.fields.quantity') }}
-                                    </Label>
-                                    <Input
-                                        id="quantity"
-                                        v-model="form.quantity"
-                                        :class="fieldClass"
-                                        required
-                                        type="number"
-                                        min="0.00000001"
-                                        step="any"
-                                        placeholder="0.00"
-                                    />
-                                    <InputError
-                                        :message="form.errors.quantity"
-                                    />
-                                </div>
-                            </div>
-
-                            <InvestmentAssetCreator
-                                :field-class="fieldClass"
-                                @created="form.investment_asset_id = $event"
-                            />
-
-                            <!-- Total cost + Currency -->
-                            <div class="grid gap-4 sm:grid-cols-[1fr_140px]">
-                                <div class="grid gap-2">
-                                    <Label
-                                        class="finance-dialog-label"
-                                        for="total_cost"
-                                    >
-                                        {{ t('finance.fields.total_cost') }}
-                                        <span class="font-light text-[#989898]"
-                                            >({{
-                                                t('finance.fields.optional')
-                                            }})</span
-                                        >
-                                    </Label>
-                                    <Input
-                                        id="total_cost"
-                                        v-model="form.total_cost"
-                                        :class="fieldClass"
-                                        type="number"
-                                        min="0"
-                                        step="any"
-                                        placeholder="0.00"
-                                    />
-                                    <InputError
-                                        :message="form.errors.total_cost"
-                                    />
-                                </div>
-
-                                <div class="grid gap-2">
-                                    <Label
-                                        class="finance-dialog-label"
-                                        for="cost_basis_currency"
-                                    >
-                                        {{ t('finance.fields.currency') }}
-                                    </Label>
-                                    <select
-                                        id="cost_basis_currency"
-                                        v-model="form.cost_basis_currency"
-                                        class="finance-dialog-field"
-                                        :class="fieldClass"
-                                    >
-                                        <option
-                                            v-for="currency in props.currencies"
-                                            :key="currency.value"
-                                            :value="currency.value"
-                                        >
-                                            {{ currency.label }}
-                                        </option>
-                                    </select>
-                                    <InputError
-                                        :message="
-                                            form.errors.cost_basis_currency
-                                        "
-                                    />
-                                </div>
-                            </div>
-
-                            <!-- Date -->
-                            <div class="grid gap-2">
-                                <Label class="finance-dialog-label">{{
-                                    t('finance.fields.date')
-                                }}</Label>
-                                <BirthdatePicker
-                                    v-model="form.occurred_at"
-                                    name="occurred_at"
-                                    :trigger-class="fieldClass"
-                                    :years-back="16"
-                                    :years-forward="1"
-                                />
-                                <InputError
-                                    :message="form.errors.occurred_at"
-                                />
-                            </div>
-
-                            <!-- Note -->
-                            <div class="grid gap-2">
-                                <Label class="finance-dialog-label" for="note">
-                                    {{ t('finance.fields.note') }}
-                                    <span class="font-light text-[#989898]"
-                                        >({{
-                                            t('finance.fields.optional')
-                                        }})</span
-                                    >
-                                </Label>
-                                <textarea
-                                    id="note"
-                                    v-model="form.note"
-                                    rows="2"
-                                    class="finance-dialog-field min-h-9 resize-none"
-                                    :class="fieldClass"
-                                    :placeholder="
-                                        t(
-                                            'finance.form.investment_note_placeholder',
-                                        )
-                                    "
-                                />
-                                <InputError :message="form.errors.note" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        class="flex shrink-0 justify-end gap-2 border-t border-white/10 bg-[#1a1a1a]/95 px-4 py-4 backdrop-blur sm:border-t-0 sm:bg-transparent sm:px-[80px] sm:pt-1 sm:pb-10"
-                    >
-                        <Button
-                            type="button"
-                            class="h-11 flex-1 rounded-[8px] bg-white/5 px-[10px] text-base font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white sm:h-9 sm:w-[90px] sm:flex-none sm:text-[16px]"
-                            @click="closeDialog"
-                        >
-                            {{ t('common.cancel') }}
-                        </Button>
-                        <Button
-                            type="submit"
-                            class="h-11 flex-1 rounded-[8px] bg-[#02CD86] px-[10px] text-base font-semibold text-[#101010] shadow-none hover:bg-[#08dd93] sm:h-9 sm:w-[120px] sm:flex-none sm:text-[16px]"
-                            :disabled="form.processing"
-                        >
-                            <Spinner v-if="form.processing" />
-                            {{ t('common.confirm') }}
-                        </Button>
-                    </div>
-                </form>
-            </DialogContent>
-        </Dialog>
-
+        <InvestmentEntryDialog
+            v-model:open="isDialogOpen"
+            :entry="editingEntry"
+            :default-asset-key="dialogDefaultAssetKey"
+            :asset-types="props.assetTypes"
+            :currencies="props.currencies"
+            :selected-currency="props.selectedCurrency"
+        />
         <ConfirmDeleteModal
             :open="deleteTargetId !== null"
             :title="t('finance.delete.investment_title')"
@@ -695,28 +476,17 @@
 </template>
 
 <script setup lang="ts">
-import { Deferred, Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { ChevronDown, Download, Plus, RefreshCw, Trash2, TrendingUp } from 'lucide-vue-next';
+import { Deferred, Head, router, usePage } from '@inertiajs/vue3';
+import { Download, Plus, RefreshCw, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
-import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import type { ChartSeries } from '@/components/charts/LineChart.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
-import InputError from '@/components/InputError.vue';
-import InvestmentAssetCreator from '@/components/InvestmentAssetCreator.vue';
+import InvestmentEntryDialog from '@/components/investments/InvestmentEntryDialog.vue';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useRelativeTime } from '@/composables/useRelativeTime';
 import { formatAppDate } from '@/lib/date';
@@ -806,7 +576,9 @@ const props = defineProps<{
 const syncing = ref(false);
 const syncError = ref<string | null>(null);
 const { formatRelativeTime } = useRelativeTime();
-const lastSyncedLabel = computed(() => formatRelativeTime(props.pricesSyncedAt));
+const lastSyncedLabel = computed(() =>
+    formatRelativeTime(props.pricesSyncedAt),
+);
 
 const syncPrices = () => {
     syncing.value = true;
@@ -976,112 +748,19 @@ watch(
 );
 
 const isDialogOpen = ref(false);
-const editingId = ref<number | null>(null);
-const assetDropdownOpen = ref(false);
-
-const selectedAsset = computed(() =>
-    props.assetTypes.find((a) => String(a.id) === String(form.investment_asset_id)) ?? null,
-);
-
-const today = () => new Date().toISOString().slice(0, 10);
-
-const form = useForm({
-    investment_asset_id: '',
-    asset_type: '',
-    quantity: '',
-    note: '',
-    occurred_at: today(),
-    total_cost: '',
-    cost_basis_currency: '',
-});
-
-const fieldClass =
-    'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25';
-
-function resetForm(defaultType?: AssetKey): void {
-    form.clearErrors();
-    form.reset();
-    const defaultAsset =
-        props.assetTypes.find((assetType) => assetType.key === defaultType) ??
-        props.assetTypes[0];
-    form.investment_asset_id = defaultAsset ? String(defaultAsset.id) : '';
-    form.asset_type = defaultAsset?.key ?? '';
-    form.quantity = '';
-    form.note = '';
-    form.occurred_at = today();
-    form.total_cost = '';
-    form.cost_basis_currency =
-        props.selectedCurrency || props.currencies[0]?.value || '';
-}
+const editingEntry = ref<Entry | null>(null);
+const dialogDefaultAssetKey = ref<AssetKey | undefined>();
 
 function openCreateDialog(defaultType?: AssetKey) {
-    editingId.value = null;
-    resetForm(defaultType);
+    editingEntry.value = null;
+    dialogDefaultAssetKey.value = defaultType;
     isDialogOpen.value = true;
 }
 
 function openEditDialog(entry: Entry) {
-    editingId.value = entry.id;
-    form.clearErrors();
-    form.investment_asset_id =
-        entry.investment_asset_id !== null
-            ? String(entry.investment_asset_id)
-            : '';
-    form.asset_type = entry.asset_type;
-    form.quantity = String(entry.quantity);
-    form.note = entry.note ?? '';
-    form.occurred_at = entry.occurred_at;
-    form.total_cost =
-        entry.cost_basis !== null
-            ? formatFormNumber(entry.cost_basis * entry.quantity)
-            : '';
-    form.cost_basis_currency =
-        entry.cost_basis_currency ??
-        (props.selectedCurrency || props.currencies[0]?.value || '');
+    editingEntry.value = entry;
+    dialogDefaultAssetKey.value = entry.asset_type;
     isDialogOpen.value = true;
-}
-
-function closeDialog(): void {
-    isDialogOpen.value = false;
-    editingId.value = null;
-    resetForm();
-}
-
-function handleDialogOpenChange(open: boolean): void {
-    if (open) {
-        isDialogOpen.value = true;
-
-        return;
-    }
-
-    closeDialog();
-}
-
-function submitEntry() {
-    form.transform((data) => ({
-        ...data,
-        asset_type:
-            props.assetTypes.find(
-                (assetType) =>
-                    String(assetType.id) === data.investment_asset_id,
-            )?.key ?? data.asset_type,
-        total_cost: data.total_cost === '' ? null : data.total_cost,
-    }));
-
-    const opts = {
-        preserveScroll: true,
-        onSuccess: closeDialog,
-    };
-
-    if (editingId.value !== null) {
-        form.patch(`/investments/${editingId.value}`, opts);
-    } else {
-        form.post('/investments', opts);
-    }
-}
-
-function formatFormNumber(value: number): string {
-    return String(Number(value.toFixed(8)));
 }
 
 const deleteTargetId = ref<number | null>(null);

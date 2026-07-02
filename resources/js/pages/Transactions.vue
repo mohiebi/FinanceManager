@@ -124,7 +124,7 @@
                     </Button>
                     <a
                         :href="`/transactions/export?currency=${selectedCurrency}`"
-                        class="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-white/10 px-5 py-2 text-sm text-white ring-1 ring-white/20 transition-colors hover:bg-white/15"
+                        class="inline-flex shrink-0 items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm whitespace-nowrap text-white ring-1 ring-white/20 transition-colors hover:bg-white/15"
                     >
                         <Download class="size-4" />
                         Export
@@ -449,211 +449,13 @@
             </section>
         </div>
 
-        <Dialog :open="isDialogOpen" @update:open="handleDialogOpenChange">
-            <DialogContent
-                class="max-h-[calc(100dvh-1rem)] overflow-hidden rounded-[20px] border-0 bg-[#1a1a1a] p-0 shadow-2xl ring-1 ring-white/10 sm:max-h-[calc(100vh-2rem)] sm:min-h-[654px] sm:max-w-[618px] sm:rounded-[25px]"
-                :show-close-button="false"
-            >
-                <form
-                    class="flex max-h-[calc(100dvh-1rem)] flex-col sm:max-h-[calc(100vh-2rem)]"
-                    @submit.prevent="submitTransaction"
-                >
-                    <div
-                        class="flex-1 overflow-y-auto px-4 pt-10 pb-5 sm:px-[100px] sm:pt-[83px] sm:pb-6"
-                    >
-                        <DialogHeader class="mb-7 space-y-2 text-left">
-                            <DialogTitle
-                                class="text-[20px] leading-normal font-medium text-white"
-                            >
-                                {{ dialogTitle }}
-                            </DialogTitle>
-                            <DialogDescription
-                                class="max-w-[418px] text-[16px] leading-[18px] font-light text-[#989898]"
-                            >
-                                {{ t('finance.form.transaction_description') }}
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <input type="hidden" name="type" :value="form.type" />
-
-                        <div class="space-y-5">
-                            <div class="grid gap-4 sm:grid-cols-[276px_134px]">
-                                <div class="grid gap-2">
-                                    <Label
-                                        class="finance-dialog-label"
-                                        for="title"
-                                    >
-                                        {{ t('finance.fields.subject') }}
-                                    </Label>
-                                    <Input
-                                        id="title"
-                                        v-model="form.title"
-                                        :class="fieldControlClass"
-                                        required
-                                        :placeholder="
-                                            t(
-                                                'finance.form.subject_placeholder',
-                                            )
-                                        "
-                                    />
-                                    <InputError :message="form.errors.title" />
-                                </div>
-                                <div class="grid gap-2">
-                                    <Label
-                                        class="finance-dialog-label"
-                                        for="category"
-                                    >
-                                        {{ t('finance.fields.category') }}
-                                    </Label>
-                                    <select
-                                        id="category"
-                                        v-model="form.category_id"
-                                        required
-                                        class="finance-dialog-field"
-                                        :class="fieldControlClass"
-                                    >
-                                        <option value="" disabled>
-                                            {{ t('common.select') }}
-                                        </option>
-                                        <option
-                                            v-for="category in selectedCategories"
-                                            :key="category.id"
-                                            :value="category.id.toString()"
-                                        >
-                                            {{ category.name }}
-                                        </option>
-                                    </select>
-                                    <InputError
-                                        :message="form.errors.category_id"
-                                    />
-                                </div>
-                            </div>
-                            <CategoryCreator
-                                :type="form.type"
-                                :field-class="fieldControlClass"
-                                @created="form.category_id = $event"
-                            />
-
-                            <div class="grid gap-2">
-                                <Label
-                                    class="finance-dialog-label"
-                                    for="occurred_at"
-                                >
-                                    {{ t('finance.fields.date') }}
-                                </Label>
-                                <input
-                                    id="occurred_at"
-                                    type="hidden"
-                                    :value="form.occurred_at"
-                                />
-                                <BirthdatePicker
-                                    v-model="form.occurred_at"
-                                    name="occurred_at"
-                                    :trigger-class="fieldControlClass"
-                                    :years-back="16"
-                                    :years-forward="1"
-                                />
-                                <InputError
-                                    :message="form.errors.occurred_at"
-                                />
-                            </div>
-
-                            <div class="grid gap-4 sm:grid-cols-[276px_134px]">
-                                <div class="grid gap-2">
-                                    <Label
-                                        class="finance-dialog-label"
-                                        for="amount"
-                                    >
-                                        {{ t('finance.fields.amount') }}
-                                    </Label>
-                                    <Input
-                                        id="amount"
-                                        v-model="form.amount"
-                                        :class="fieldControlClass"
-                                        required
-                                        type="number"
-                                        min="0.01"
-                                        step="0.01"
-                                        placeholder="0.00"
-                                    />
-                                    <InputError :message="form.errors.amount" />
-                                </div>
-                                <div class="grid gap-2">
-                                    <Label
-                                        class="finance-dialog-label"
-                                        for="currency"
-                                    >
-                                        {{ t('finance.fields.currency') }}
-                                    </Label>
-                                    <select
-                                        id="currency"
-                                        v-model="form.currency"
-                                        class="finance-dialog-field"
-                                        :class="fieldControlClass"
-                                    >
-                                        <option
-                                            v-for="currency in props.currencies"
-                                            :key="currency.value"
-                                            :value="currency.value"
-                                        >
-                                            {{ currency.label }}
-                                        </option>
-                                    </select>
-                                    <InputError
-                                        :message="form.errors.currency"
-                                    />
-                                </div>
-                            </div>
-
-                            <div class="grid gap-2">
-                                <Label
-                                    class="finance-dialog-label"
-                                    for="description"
-                                >
-                                    {{ t('finance.fields.description') }}
-                                </Label>
-                                <textarea
-                                    id="description"
-                                    v-model="form.description"
-                                    rows="1"
-                                    class="finance-dialog-field min-h-9 resize-none"
-                                    :class="fieldControlClass"
-                                    :placeholder="
-                                        t('finance.form.note_placeholder')
-                                    "
-                                />
-                                <InputError
-                                    :message="form.errors.description"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        class="flex shrink-0 justify-end gap-2 border-t border-white/10 bg-[#1a1a1a]/95 px-4 py-4 backdrop-blur sm:border-t-0 sm:bg-transparent sm:px-[100px] sm:pt-1 sm:pb-12"
-                    >
-                        <Button
-                            type="button"
-                            class="h-11 flex-1 cursor-pointer rounded-[8px] bg-white/5 px-[10px] py-[3px] text-base font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white sm:h-9 sm:w-[99px] sm:flex-none sm:text-[20px]"
-                            @click="closeDialog"
-                        >
-                            {{ t('common.cancel') }}
-                        </Button>
-                        <Button
-                            type="submit"
-                            :class="confirmButtonClass"
-                            :disabled="
-                                form.processing ||
-                                selectedCategories.length === 0
-                            "
-                        >
-                            <Spinner v-if="form.processing" />
-                            {{ t('common.confirm') }}
-                        </Button>
-                    </div>
-                </form>
-            </DialogContent>
-        </Dialog>
+        <TransactionDialog
+            v-model:open="isDialogOpen"
+            :type="dialogTransactionType"
+            :transaction="editingTransaction"
+            :categories="props.categories"
+            :currencies="props.currencies"
+        />
 
         <Dialog
             :open="isImportDialogOpen"
@@ -989,9 +791,9 @@ import {
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
-import CategoryCreator from '@/components/CategoryCreator.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
+import TransactionDialog from '@/components/transactions/TransactionDialog.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -1122,7 +924,8 @@ defineOptions({
 
 const isDialogOpen = ref(false);
 const isImportDialogOpen = ref(false);
-const editingTransactionId = ref<number | null>(null);
+const dialogTransactionType = ref<TransactionType>('cost');
+const editingTransaction = ref<Transaction | null>(null);
 const deleteTarget = ref<Transaction | null>(null);
 const page = usePage();
 const { t } = useI18n();
@@ -1158,18 +961,6 @@ const filterTo = ref(props.filters.to);
 const filterFieldClass =
     'h-9 w-full rounded-md !border-white/10 !bg-[#252525] px-3 text-sm font-normal !text-white shadow-none [color-scheme:dark] placeholder:!text-[#686868] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 [&_svg]:!text-[#989898]';
 
-const today = () => new Date().toISOString().slice(0, 10);
-
-const form = useForm({
-    type: 'cost' as TransactionType,
-    category_id: '',
-    amount: '',
-    currency: 'toman' as Currency,
-    title: '',
-    description: '',
-    occurred_at: today(),
-});
-
 const importForm = useForm<{
     file: File | null;
 }>({
@@ -1196,7 +987,6 @@ Rules:
 - description can include the original bank description.
 - Ignore balance-only rows, headers, footers, failed transactions, and duplicate summary lines.`;
 
-const selectedCategories = computed(() => props.categories[form.type] ?? []);
 const previewRows = computed(() => importPreview.value?.rows ?? []);
 const filterCategories = computed(() => {
     if (filterType.value === 'cost' || filterType.value === 'income') {
@@ -1205,31 +995,6 @@ const filterCategories = computed(() => {
 
     return [...props.categories.cost, ...props.categories.income];
 });
-const isEditing = computed(() => editingTransactionId.value !== null);
-const dialogTitle = computed(() =>
-    isEditing.value
-        ? t(
-              form.type === 'cost'
-                  ? 'finance.form.edit_cost'
-                  : 'finance.form.edit_income',
-          )
-        : t(
-              form.type === 'cost'
-                  ? 'finance.form.add_cost'
-                  : 'finance.form.add_income',
-          ),
-);
-const fieldControlClass = computed(() =>
-    form.type === 'cost'
-        ? 'finance-dialog-field finance-dialog-field-cost focus-visible:ring-[#947BFF]/30'
-        : 'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25',
-);
-const confirmButtonClass = computed(() =>
-    form.type === 'cost'
-        ? 'h-11 flex-1 rounded-[8px] bg-[#6C4EE9] px-[10px] py-[3px] text-base font-semibold text-white shadow-none hover:bg-[#7D61F0] disabled:opacity-50 sm:h-9 sm:w-[135px] sm:flex-none sm:text-[20px]'
-        : 'h-11 flex-1 rounded-[8px] bg-[#02CD86] px-[10px] py-[3px] text-base font-semibold text-[#101010] shadow-none hover:bg-[#08dd93] disabled:opacity-50 sm:h-9 sm:w-[135px] sm:flex-none sm:text-[20px]',
-);
-
 function categoryName(transaction: Transaction): string {
     if (transaction.category?.name) {
         return transaction.category.name;
@@ -1242,55 +1007,16 @@ function categoryName(transaction: Transaction): string {
     );
 }
 
-const resetForm = (type: TransactionType) => {
-    const categories = props.categories[type] ?? [];
-
-    form.clearErrors();
-    form.reset();
-    form.type = type;
-    form.category_id = categories[0]?.id.toString() ?? '';
-    form.amount = '';
-    form.currency = 'toman';
-    form.title = '';
-    form.description = '';
-    form.occurred_at = today();
-};
-
 const openCreateForm = (type: TransactionType) => {
-    editingTransactionId.value = null;
-    resetForm(type);
+    dialogTransactionType.value = type;
+    editingTransaction.value = null;
     isDialogOpen.value = true;
 };
 
 const openEditForm = (transaction: Transaction) => {
-    editingTransactionId.value = transaction.id;
-    form.clearErrors();
-    form.type = transaction.type;
-    form.category_id = transaction.category_id.toString();
-    form.amount = transaction.amount;
-    form.currency = transaction.currency;
-    form.title = transaction.title;
-    form.description = transaction.description ?? '';
-    form.occurred_at = transaction.occurred_at;
+    dialogTransactionType.value = transaction.type;
+    editingTransaction.value = transaction;
     isDialogOpen.value = true;
-};
-
-const closeDialog = () => {
-    const type = form.type;
-
-    isDialogOpen.value = false;
-    editingTransactionId.value = null;
-    resetForm(type);
-};
-
-const handleDialogOpenChange = (open: boolean) => {
-    if (open) {
-        isDialogOpen.value = true;
-
-        return;
-    }
-
-    closeDialog();
 };
 
 const resetImportDialog = () => {
@@ -1383,21 +1109,6 @@ function importStatusClass(status: ImportStatus): string {
 
     return 'bg-[#2f1717] text-[#ffb4b4]';
 }
-
-const submitTransaction = () => {
-    const options = {
-        preserveScroll: true,
-        onSuccess: closeDialog,
-    };
-
-    if (editingTransactionId.value) {
-        form.patch(`/transactions/${editingTransactionId.value}`, options);
-
-        return;
-    }
-
-    form.post('/transactions', options);
-};
 
 watch(
     () => props.selectedCurrency,

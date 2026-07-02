@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ApexCharts from 'apexcharts';
+import type ApexCharts from 'apexcharts';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -81,7 +81,13 @@ const buildOptions = () => ({
     },
 });
 
-onMounted(() => {
+onMounted(async () => {
+    if (!chartRef.value) {
+        return;
+    }
+
+    const { default: ApexCharts } = await import('apexcharts');
+
     if (!chartRef.value) {
         return;
     }

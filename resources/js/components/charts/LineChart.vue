@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ApexCharts from 'apexcharts';
+import type ApexCharts from 'apexcharts';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { formatChartDateLabel } from '@/lib/date';
 
@@ -22,16 +22,16 @@ let chart: ApexCharts | null = null;
 
 const abbreviate = (amount: number): string => {
     if (amount >= 1_000_000_000) {
-return (amount / 1_000_000_000).toFixed(1) + 'B';
-}
+        return (amount / 1_000_000_000).toFixed(1) + 'B';
+    }
 
     if (amount >= 1_000_000) {
-return (amount / 1_000_000).toFixed(1) + 'M';
-}
+        return (amount / 1_000_000).toFixed(1) + 'M';
+    }
 
     if (amount >= 1_000) {
-return (amount / 1_000).toFixed(0) + 'K';
-}
+        return (amount / 1_000).toFixed(0) + 'K';
+    }
 
     return amount.toFixed(0);
 };
@@ -116,10 +116,16 @@ const buildOptions = () => ({
     },
 });
 
-onMounted(() => {
+onMounted(async () => {
     if (!chartRef.value) {
-return;
-}
+        return;
+    }
+
+    const { default: ApexCharts } = await import('apexcharts');
+
+    if (!chartRef.value) {
+        return;
+    }
 
     chart = new ApexCharts(chartRef.value, buildOptions());
     chart.render();

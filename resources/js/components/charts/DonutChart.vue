@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ApexCharts from 'apexcharts';
+import type ApexCharts from 'apexcharts';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -34,8 +34,8 @@ const buildOptions = () => ({
                 const sliceIndex = config?.dataPointIndex;
 
                 if (sliceIndex === undefined || sliceIndex < 0) {
-return;
-}
+                    return;
+                }
 
                 if (activeSlice === sliceIndex) {
                     activeSlice = null;
@@ -71,8 +71,12 @@ return;
                 (acc: number, v: number) => acc + v,
                 0,
             );
-            const currentValue = seriesIndex >= 0 ? (seriesValues[seriesIndex] ?? 0) : 0;
-            const percentage = totalValue > 0 ? ((currentValue / totalValue) * 100).toFixed(1) : '0';
+            const currentValue =
+                seriesIndex >= 0 ? (seriesValues[seriesIndex] ?? 0) : 0;
+            const percentage =
+                totalValue > 0
+                    ? ((currentValue / totalValue) * 100).toFixed(1)
+                    : '0';
 
             return `${label} — ${percentage}%`;
         },
@@ -98,8 +102,12 @@ return;
                         color: '#ffffff',
                         offsetY: 4,
                         formatter: (v: string) => {
-                            const total = props.series.reduce((acc, val) => acc + val, 0);
-                            const percentage = total > 0 ? (Number(v) / total) * 100 : 0;
+                            const total = props.series.reduce(
+                                (acc, val) => acc + val,
+                                0,
+                            );
+                            const percentage =
+                                total > 0 ? (Number(v) / total) * 100 : 0;
 
                             return percentage.toFixed(1) + '%';
                         },
@@ -131,10 +139,16 @@ return;
     },
 });
 
-onMounted(() => {
+onMounted(async () => {
     if (!chartRef.value) {
-return;
-}
+        return;
+    }
+
+    const { default: ApexCharts } = await import('apexcharts');
+
+    if (!chartRef.value) {
+        return;
+    }
 
     chart = new ApexCharts(chartRef.value, buildOptions());
     chart.render();

@@ -2,7 +2,7 @@
     <Head :title="t('finance.transactions.title')" />
 
     <div
-        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
+        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-hidden bg-[#111111]"
     >
         <section
             class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
@@ -114,9 +114,9 @@
                     />
                 </div>
 
-                <div class="flex items-end gap-2">
+                <div class="flex flex-wrap items-end gap-2 xl:justify-end">
                     <Button
-                        class="rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15"
+                        class="shrink-0 rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15"
                         @click="openImportDialog"
                     >
                         <Upload class="size-4" />
@@ -124,13 +124,13 @@
                     </Button>
                     <a
                         :href="`/transactions/export?currency=${selectedCurrency}`"
-                        class="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm text-white ring-1 ring-white/20 transition-colors hover:bg-white/15"
+                        class="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-white/10 px-5 py-2 text-sm text-white ring-1 ring-white/20 transition-colors hover:bg-white/15"
                     >
                         <Download class="size-4" />
                         Export
                     </a>
                     <Button
-                        class="rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15"
+                        class="shrink-0 rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15"
                         @click="applyFilters()"
                     >
                         <Search class="size-4" />
@@ -138,7 +138,7 @@
                     </Button>
                     <Button
                         variant="outline"
-                        class="size-10 rounded-full bg-white/10 p-0 text-[#989898] ring-1 ring-white/15 hover:bg-white/15"
+                        class="size-10 shrink-0 rounded-full bg-white/10 p-0 text-[#989898] ring-1 ring-white/15 hover:bg-white/15"
                         @click="clearFilters"
                     >
                         <RotateCcw class="size-4" />

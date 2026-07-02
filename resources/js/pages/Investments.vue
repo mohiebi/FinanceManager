@@ -2,26 +2,26 @@
     <Head :title="t('finance.investments.title')" />
 
     <div
-        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
+        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-hidden bg-[#111111]"
     >
-        <!-- ── Page actions ──────────────────────────────────────── -->
-        <div class="flex items-center gap-3 px-[18px] pt-[18px]">
-            <button
-                type="button"
-                :disabled="syncing"
-                class="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-xs text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                @click="syncPrices"
-            >
-                <RefreshCw class="size-3" :class="{ 'animate-spin': syncing }" />
-                {{ t('finance.actions.sync_prices') }}
-            </button>
-            <span v-if="syncError" class="text-xs text-[#E94E50]">
-                {{ syncError }}
-            </span>
-            <span v-else-if="lastSyncedLabel" class="text-xs text-[#989898]">
-                {{ t('finance.last_synced', { time: lastSyncedLabel }) }}
-            </span>
-        </div>
+    <!-- ── Page actions ──────────────────────────────────────── -->
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-[18px] pt-[18px]">
+        <button
+            type="button"
+            :disabled="syncing"
+            class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-white/8 px-3 py-1 text-xs text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            @click="syncPrices"
+        >
+            <RefreshCw class="size-3" :class="{ 'animate-spin': syncing }" />
+            {{ t('finance.actions.sync_prices') }}
+        </button>
+        <span v-if="syncError" class="min-w-0 max-w-full text-xs break-words text-[#E94E50]">
+            {{ syncError }}
+        </span>
+        <span v-else-if="lastSyncedLabel" class="min-w-0 max-w-full text-xs break-words text-[#989898]">
+            {{ t('finance.last_synced', { time: lastSyncedLabel }) }}
+        </span>
+    </div>
 
         <!-- ── Summary stat cards ────────────────────────────────── -->
         <div class="grid gap-[18px] px-[18px] pt-3 md:grid-cols-3">
@@ -307,14 +307,14 @@
             v-if="props.entries.length > 0"
             class="mx-[18px] mt-[18px] mb-[38px] overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
-            <div class="flex items-center justify-between gap-4 px-5 py-[29px]">
+            <div class="flex flex-wrap items-center justify-between gap-4 px-5 py-[29px]">
                 <h2 class="text-[22px] leading-none font-normal text-white">
                     {{ t('finance.investments.investment_entries') }}
                 </h2>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     <a
                         :href="`/investments/export?currency=${props.selectedCurrency}`"
-                        class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-white ring-1 ring-white/20 transition-colors hover:bg-white/15"
+                        class="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-white/10 px-4 py-2 text-sm text-white ring-1 ring-white/20 transition-colors hover:bg-white/15"
                     >
                         <Download class="size-4" />
                         Export

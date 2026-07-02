@@ -2,45 +2,45 @@
     <Head :title="t('finance.portfolio.title')" />
 
     <div
-        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
+        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-hidden bg-[#111111]"
     >
         <!-- ── Hero / Summary ────────────────────────────────────── -->
         <section class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <p
+                    class="w-full text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase sm:w-auto"
+                >
+                    {{ t('finance.portfolio.overview') }}
+                </p>
+                <a
+                    :href="`/portfolio/export?currency=${selectedCurrency}`"
+                    class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-white/8 px-3 py-1 text-xs text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white"
+                >
+                    <Download class="size-3" />
+                    Export P&amp;L
+                </a>
+                <button
+                    type="button"
+                    :disabled="syncing"
+                    class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-white/8 px-3 py-1 text-xs text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    @click="syncPrices"
+                >
+                    <RefreshCw class="size-3" :class="{ 'animate-spin': syncing }" />
+                    {{ t('finance.actions.sync_prices') }}
+                </button>
+                <span v-if="syncError" class="min-w-0 max-w-full text-xs break-words text-[#E94E50]">
+                    {{ syncError }}
+                </span>
+                <span v-else-if="lastSyncedLabel" class="min-w-0 max-w-full text-xs break-words text-[#989898]">
+                    {{ t('finance.last_synced', { time: lastSyncedLabel }) }}
+                </span>
+            </div>
             <div
                 class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between"
             >
-                <div class="space-y-2">
-                    <div class="flex items-center gap-3">
-                        <p
-                            class="text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase"
-                        >
-                            {{ t('finance.portfolio.overview') }}
-                        </p>
-                        <a
-                            :href="`/portfolio/export?currency=${selectedCurrency}`"
-                            class="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-xs text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white"
-                        >
-                            <Download class="size-3" />
-                            Export P&amp;L
-                        </a>
-                        <button
-                            type="button"
-                            :disabled="syncing"
-                            class="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-xs text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                            @click="syncPrices"
-                        >
-                            <RefreshCw class="size-3" :class="{ 'animate-spin': syncing }" />
-                            {{ t('finance.actions.sync_prices') }}
-                        </button>
-                        <span v-if="syncError" class="text-xs text-[#E94E50]">
-                            {{ syncError }}
-                        </span>
-                        <span v-else-if="lastSyncedLabel" class="text-xs text-[#989898]">
-                            {{ t('finance.last_synced', { time: lastSyncedLabel }) }}
-                        </span>
-                    </div>
+            <div class="min-w-0 flex-1 space-y-2">
                     <h1
-                        class="text-3xl font-semibold tracking-tight text-white sm:text-4xl"
+                        class="max-w-3xl text-3xl leading-tight font-semibold tracking-tight text-white sm:text-4xl"
                     >
                         Your holdings, cost basis &amp; P/L at a glance.
                     </h1>
@@ -52,7 +52,7 @@
 
                 <Deferred :data="['assets', 'summary', 'pricesAvailable']">
                     <template #fallback>
-                        <div class="grid gap-3 sm:grid-cols-3 xl:min-w-2xl">
+                        <div class="grid w-full min-w-0 gap-3 sm:grid-cols-3 xl:w-[42rem] xl:max-w-[48vw]">
                             <div
                                 v-for="i in 3"
                                 :key="i"
@@ -64,7 +64,7 @@
                         </div>
                     </template>
 
-                <div class="grid gap-3 sm:grid-cols-3 xl:min-w-2xl">
+                <div class="grid w-full min-w-0 gap-3 sm:grid-cols-3 xl:w-[42rem] xl:max-w-[48vw]">
                     <!-- Current value -->
                     <div
                         class="rounded-[14px] border border-white/10 bg-[#252525] p-4"

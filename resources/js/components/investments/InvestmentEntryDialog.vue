@@ -161,7 +161,7 @@
                                 </Label>
                                 <div
                                     v-if="isTomanCurrency"
-                                    class="flex h-9 items-center overflow-hidden rounded-[8px] border border-white/10 bg-[#252525] shadow-none transition-colors focus-within:border-[#02CD86] focus-within:ring-2 focus-within:ring-[#02CD86]/25"
+                                    :class="moneyFieldClass"
                                 >
                                     <Input
                                         id="total_cost"
@@ -172,7 +172,7 @@
                                     />
                                     <button
                                         type="button"
-                                        class="m-1 inline-flex h-7 shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-white/10 px-2 text-xs leading-none font-semibold text-white/75 ring-1 ring-white/10 transition-colors hover:bg-white/15 hover:text-white"
+                                        class="finance-dialog-money-button"
                                         title="x 1,000"
                                         @click="multiplyTomanTotalCost"
                                     >
@@ -354,6 +354,8 @@ const assetDropdownOpen = ref(false);
 const today = () => new Date().toISOString().slice(0, 10);
 const fieldClass =
     'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25';
+const moneyFieldClass =
+    'finance-dialog-money-field finance-dialog-field-income focus-within:border-[#02CD86] focus-within:ring-2 focus-within:ring-[#02CD86]/25';
 
 const form = useForm({
     investment_asset_id: '',

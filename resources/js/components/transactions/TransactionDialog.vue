@@ -115,7 +115,7 @@
                                 </Label>
                                 <div
                                     v-if="isTomanCurrency"
-                                    class="flex h-9 items-center overflow-hidden rounded-[8px] border border-white/10 bg-[#252525] shadow-none transition-colors focus-within:border-[#02CD86] focus-within:ring-2 focus-within:ring-[#02CD86]/25"
+                                    :class="moneyFieldClass"
                                 >
                                     <Input
                                         id="transaction-amount"
@@ -127,7 +127,7 @@
                                     />
                                     <button
                                         type="button"
-                                        class="m-1 inline-flex h-7 shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-white/10 px-2 text-xs leading-none font-semibold text-white/75 ring-1 ring-white/10 transition-colors hover:bg-white/15 hover:text-white"
+                                        class="finance-dialog-money-button"
                                         title="x 1,000"
                                         @click="multiplyTomanAmount"
                                     >
@@ -309,6 +309,11 @@ const fieldControlClass = computed(() =>
     form.type === 'cost'
         ? 'finance-dialog-field finance-dialog-field-cost focus-visible:ring-[#947BFF]/30'
         : 'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25',
+);
+const moneyFieldClass = computed(() =>
+    form.type === 'cost'
+        ? 'finance-dialog-money-field finance-dialog-field-cost focus-within:border-[#947BFF] focus-within:ring-2 focus-within:ring-[#947BFF]/30'
+        : 'finance-dialog-money-field finance-dialog-field-income focus-within:border-[#02CD86] focus-within:ring-2 focus-within:ring-[#02CD86]/25',
 );
 const confirmButtonClass = computed(() =>
     form.type === 'cost'

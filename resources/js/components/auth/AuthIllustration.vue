@@ -29,7 +29,7 @@
         <rect x="134" y="128" width="60" height="8" rx="4" fill="#989898" opacity="0.6" />
 
         <rect x="378" y="104" width="52" height="24" rx="12" fill="#02CD86" opacity="0.15" />
-        <text x="404" y="120" text-anchor="middle" font-size="11" font-weight="600" fill="#02CD86" font-family="Instrument Sans, sans-serif">+12%</text>
+        <text x="404" y="120" text-anchor="middle" font-size="11" font-weight="600" fill="#02CD86" font-family="PeydaWeb, sans-serif">+12%</text>
 
         <!-- KPI mini cards -->
         <g>
@@ -78,9 +78,9 @@
 
         <!-- floating coin badges -->
         <circle cx="448" cy="78" r="28" fill="#6C4EE9" />
-        <text x="448" y="84" text-anchor="middle" font-size="20" font-weight="700" fill="#ffffff" font-family="Instrument Sans, sans-serif">$</text>
+        <text x="448" y="84" text-anchor="middle" font-size="20" font-weight="700" fill="#ffffff" font-family="PeydaWeb, sans-serif">$</text>
 
         <circle cx="64" cy="392" r="22" fill="#02CD86" />
-        <text x="64" y="398" text-anchor="middle" font-size="16" font-weight="700" fill="#101010" font-family="Instrument Sans, sans-serif">$</text>
+        <text x="64" y="398" text-anchor="middle" font-size="16" font-weight="700" fill="#101010" font-family="PeydaWeb, sans-serif">$</text>
     </svg>
 </template>

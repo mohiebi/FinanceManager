@@ -2,6 +2,150 @@
 
 @import 'tw-animate-css';
 
+@font-face {
+    font-family: PeydaWeb;
+    font-style: normal;
+    font-weight: 100;
+    font-display: swap;
+    src: url('/fonts/peyda/PeydaWeb-Thin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWeb;
+    font-style: normal;
+    font-weight: 200;
+    font-display: swap;
+    src: url('/fonts/peyda/PeydaWeb-ExtraLight.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWeb;
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+    src: url('/fonts/peyda/PeydaWeb-Light.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWeb;
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/peyda/PeydaWeb-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWeb;
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/fonts/peyda/PeydaWeb-Medium.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWeb;
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/fonts/peyda/PeydaWeb-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWeb;
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/peyda/PeydaWeb-Bold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWeb;
+    font-style: normal;
+    font-weight: 800;
+    font-display: swap;
+    src: url('/fonts/peyda/PeydaWeb-ExtraBold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWeb;
+    font-style: normal;
+    font-weight: 900;
+    font-display: swap;
+    src: url('/fonts/peyda/PeydaWeb-Black.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWebFaNum;
+    font-style: normal;
+    font-weight: 100;
+    font-display: swap;
+    src: url('/fonts/peyda-fanum/PeydaWebFaNum-Thin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWebFaNum;
+    font-style: normal;
+    font-weight: 200;
+    font-display: swap;
+    src: url('/fonts/peyda-fanum/PeydaWebFaNum-ExtraLight.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWebFaNum;
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+    src: url('/fonts/peyda-fanum/PeydaWebFaNum-Light.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWebFaNum;
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/peyda-fanum/PeydaWebFaNum-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWebFaNum;
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/fonts/peyda-fanum/PeydaWebFaNum-Medium.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWebFaNum;
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/fonts/peyda-fanum/PeydaWebFaNum-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWebFaNum;
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/peyda-fanum/PeydaWebFaNum-Bold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWebFaNum;
+    font-style: normal;
+    font-weight: 800;
+    font-display: swap;
+    src: url('/fonts/peyda-fanum/PeydaWebFaNum-ExtraBold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: PeydaWebFaNum;
+    font-style: normal;
+    font-weight: 900;
+    font-display: swap;
+    src: url('/fonts/peyda-fanum/PeydaWebFaNum-Black.woff2') format('woff2');
+}
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
@@ -9,9 +153,8 @@
 
 @theme inline {
     --font-sans:
-        Instrument Sans, ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
+        PeydaWeb, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -104,7 +247,7 @@
     body,
     html {
         --font-sans:
-            'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+            PeydaWeb, ui-sans-serif, system-ui, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
             'Noto Color Emoji';
     }
@@ -112,9 +255,9 @@
     html[lang='fa'],
     html[dir='rtl'] {
         --font-sans:
-            'Vazirmatn', 'Instrument Sans', ui-sans-serif, system-ui,
-            sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-            'Segoe UI Symbol', 'Noto Color Emoji';
+            PeydaWebFaNum, PeydaWeb, ui-sans-serif, system-ui, sans-serif,
+            'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+            'Noto Color Emoji';
     }
 }
 

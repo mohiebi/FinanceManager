@@ -112,9 +112,10 @@ test('investment page shows live common and custom asset prices except the selec
         ->assertInertia(fn (Assert $page) => $page
             ->component('Investments')
             ->loadDeferredProps('default', fn (Assert $page) => $page
-                ->where('marketPriceRows', function (array $rows): bool {
-                    $commonAssetKeys = collect($rows[0]['assets'])->pluck('key');
-                    $customAssets = collect($rows[1]['assets']);
+                ->where('marketPriceRows', function (mixed $rows): bool {
+                    $priceRows = collect($rows);
+                    $commonAssetKeys = collect($priceRows->get(0)['assets'] ?? [])->pluck('key');
+                    $customAssets = collect($priceRows->get(1)['assets'] ?? []);
 
                     expect($commonAssetKeys)
                         ->not->toContain('usd')

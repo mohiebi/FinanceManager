@@ -10,7 +10,11 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useRelativeTime } from '@/composables/useRelativeTime';
-import { edit as editNotifications, read as readNotification, readAll as readAllNotifications } from '@/routes/notifications';
+import {
+    edit as editNotifications,
+    read as readNotification,
+    readAll as readAllNotifications,
+} from '@/routes/notifications';
 
 const { t } = useI18n();
 const page = usePage();
@@ -23,7 +27,11 @@ const recent = computed(() => notifications.value?.recent ?? []);
 const markingAll = ref(false);
 
 const markRead = (id: string) => {
-    router.patch(readNotification.url(id), {}, { preserveScroll: true, preserveState: true });
+    router.patch(
+        readNotification.url(id),
+        {},
+        { preserveScroll: true, preserveState: true },
+    );
 };
 
 const markAllRead = () => {
@@ -62,9 +70,16 @@ const markAllRead = () => {
             </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" class="w-80 bg-[#1a1a1a] p-0 text-white ring-1 ring-white/10">
-            <div class="flex items-center justify-between border-b border-white/10 px-4 py-3">
-                <span class="text-sm font-medium text-white">{{ t('navigation.notifications') }}</span>
+        <DropdownMenuContent
+            align="end"
+            class="w-80 bg-[#1a1a1a] p-0 text-white ring-1 ring-white/10"
+        >
+            <div
+                class="flex items-center justify-between border-b border-white/10 px-4 py-3"
+            >
+                <span class="text-sm font-medium text-white">{{
+                    t('navigation.notifications')
+                }}</span>
                 <button
                     v-if="unreadCount > 0"
                     type="button"
@@ -81,8 +96,12 @@ const markAllRead = () => {
                     v-if="recent.length === 0"
                     class="flex flex-col items-center gap-1 px-4 py-8 text-center"
                 >
-                    <p class="text-sm font-medium text-white/70">{{ t('notifications.empty') }}</p>
-                    <p class="text-xs text-[#989898]">{{ t('notifications.empty_description') }}</p>
+                    <p class="text-sm font-medium text-white/70">
+                        {{ t('notifications.empty') }}
+                    </p>
+                    <p class="text-xs text-[#989898]">
+                        {{ t('notifications.empty_description') }}
+                    </p>
                 </div>
 
                 <button
@@ -102,8 +121,12 @@ const markAllRead = () => {
                             {{ notification.data.title }}
                         </span>
                     </div>
-                    <p class="text-xs text-[#989898]">{{ notification.data.body }}</p>
-                    <p class="text-[10px] text-[#6b6b6b]">{{ formatRelativeTime(notification.created_at) }}</p>
+                    <p class="text-xs text-[#989898]">
+                        {{ notification.data.body }}
+                    </p>
+                    <p class="text-[10px] text-[#6b6b6b]">
+                        {{ formatRelativeTime(notification.created_at) }}
+                    </p>
                 </button>
             </div>
 

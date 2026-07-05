@@ -15,7 +15,9 @@ const DIVISIONS: { amount: number; unit: Intl.RelativeTimeFormatUnit }[] = [
     { amount: Infinity, unit: 'year' },
 ];
 
-export function useRelativeTime(tickIntervalMs = 30_000): UseRelativeTimeReturn {
+export function useRelativeTime(
+    tickIntervalMs = 30_000,
+): UseRelativeTimeReturn {
     const { locale } = useI18n();
     const now = ref(Date.now());
 
@@ -33,7 +35,9 @@ export function useRelativeTime(tickIntervalMs = 30_000): UseRelativeTimeReturn 
         const then = new Date(iso).getTime();
         let duration = (then - now.value) / 1000;
 
-        const rtf = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' });
+        const rtf = new Intl.RelativeTimeFormat(locale.value, {
+            numeric: 'auto',
+        });
 
         for (const division of DIVISIONS) {
             if (Math.abs(duration) < division.amount) {

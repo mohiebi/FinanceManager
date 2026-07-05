@@ -13,7 +13,9 @@ const props = defineProps<Props>();
 const { t } = useI18n();
 
 const uniqueErrors = computed(() => Array.from(new Set(props.errors)));
-const displayTitle = computed(() => props.title ?? t('buttons.something_went_wrong'));
+const displayTitle = computed(
+    () => props.title ?? t('buttons.something_went_wrong'),
+);
 </script>
 
 <template>

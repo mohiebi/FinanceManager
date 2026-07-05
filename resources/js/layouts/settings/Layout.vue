@@ -16,9 +16,15 @@ const { t } = useI18n();
 
 const sidebarNavItems = computed<NavItem[]>(() => [
     { title: t('settings.navigation.profile'), href: editProfile() },
-    { title: t('settings.navigation.notifications'), href: editNotifications() },
+    {
+        title: t('settings.navigation.notifications'),
+        href: editNotifications(),
+    },
     { title: t('settings.navigation.security'), href: editSecurity() },
-    { title: t('settings.navigation.preferences'), href: '/settings/preferences' },
+    {
+        title: t('settings.navigation.preferences'),
+        href: '/settings/preferences',
+    },
     { title: t('settings.navigation.categories'), href: editCategories() },
     { title: t('settings.navigation.assets'), href: editInvestmentAssets() },
     { title: t('settings.navigation.telegram'), href: editTelegram() },
@@ -44,7 +50,7 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
             <!-- Settings nav -->
             <aside class="w-full shrink-0 lg:w-44">
                 <nav
-                    class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-2 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+                    class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-2 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                     :aria-label="t('settings.title')"
                 >
                     <Link
@@ -66,7 +72,7 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
             <!-- Page content -->
             <div class="min-w-0 flex-1">
                 <div
-                    class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)] md:max-w-2xl"
+                    class="rounded-[22px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10 md:max-w-2xl"
                 >
                     <slot />
                 </div>

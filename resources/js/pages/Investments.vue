@@ -143,10 +143,7 @@
                 </div>
 
                 <div class="space-y-5">
-                    <div
-                        v-for="row in visibleMarketPriceRows"
-                        :key="row.key"
-                    >
+                    <div v-for="row in visibleMarketPriceRows" :key="row.key">
                         <div class="mb-3 flex items-center gap-3">
                             <h3 class="text-sm font-semibold text-white">
                                 {{ row.title }}

@@ -31,9 +31,17 @@ const { t } = useI18n();
 
 const mainNavItems = computed<NavItem[]>(() => [
     { title: t('navigation.dashboard'), href: dashboard(), icon: LayoutGrid },
-    { title: t('navigation.transactions'), href: transactionsIndex(), icon: ReceiptText },
+    {
+        title: t('navigation.transactions'),
+        href: transactionsIndex(),
+        icon: ReceiptText,
+    },
     { title: t('navigation.report'), href: report(), icon: ChartPie },
-    { title: t('navigation.investments'), href: investmentsIndex(), icon: TrendingUp },
+    {
+        title: t('navigation.investments'),
+        href: investmentsIndex(),
+        icon: TrendingUp,
+    },
     { title: t('navigation.portfolio'), href: portfolio(), icon: Wallet },
     { title: t('navigation.bills'), href: billsIndex(), icon: Receipt },
 ]);
@@ -51,7 +59,12 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
 </script>
 
 <template>
-    <Sidebar :side="isRtl ? 'right' : 'left'" collapsible="icon" variant="sidebar" class="border-0 p-0">
+    <Sidebar
+        :side="isRtl ? 'right' : 'left'"
+        collapsible="icon"
+        variant="sidebar"
+        class="border-0 p-0"
+    >
         <div
             class="flex h-full w-full flex-col justify-between bg-[#353535] px-5 pb-11 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0"
         >
@@ -61,9 +74,13 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                 <!-- ── Menu toggle — full row is one button ───────── -->
                 <button
                     type="button"
-                    class="flex w-full cursor-pointer items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#02cd86]"
+                    class="flex w-full cursor-pointer items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none"
                     data-sidebar="trigger"
-                    :title="state === 'collapsed' ? t('navigation.expand_sidebar') : t('navigation.collapse_sidebar')"
+                    :title="
+                        state === 'collapsed'
+                            ? t('navigation.expand_sidebar')
+                            : t('navigation.collapse_sidebar')
+                    "
                     @click="toggleSidebar"
                 >
                     <!-- Icon box -->
@@ -81,7 +98,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                     </span>
                     <!-- Text label — also triggers the toggle -->
                     <span
-                        class="cursor-pointer truncate text-sm font-medium text-white/60 transition-colors hover:text-white group-data-[collapsible=icon]:sr-only"
+                        class="cursor-pointer truncate text-sm font-medium text-white/60 transition-colors group-data-[collapsible=icon]:sr-only hover:text-white"
                     >
                         {{ t('navigation.menu_toggle') }}
                     </span>

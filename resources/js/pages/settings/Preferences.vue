@@ -33,9 +33,7 @@ const form = useForm({
 
 defineOptions({
     layout: {
-        breadcrumbs: [
-            { title: 'Preferences', href: '/settings/preferences' },
-        ],
+        breadcrumbs: [{ title: 'Preferences', href: '/settings/preferences' }],
     },
 });
 
@@ -64,10 +62,7 @@ function submit(): void {
         <form class="space-y-5" @submit.prevent="submit">
             <div class="space-y-2">
                 <div class="flex flex-wrap items-center gap-3">
-                    <Label
-                        class="min-w-24 text-white"
-                        for="locale"
-                    >
+                    <Label class="min-w-24 text-white" for="locale">
                         {{ t('settings.preferences.language') }}:
                     </Label>
                     <Select id="locale" v-model="form.locale">
@@ -92,10 +87,7 @@ function submit(): void {
 
             <div class="space-y-2">
                 <div class="flex flex-wrap items-center gap-3">
-                    <Label
-                        class="min-w-24 text-white"
-                        for="calendar"
-                    >
+                    <Label class="min-w-24 text-white" for="calendar">
                         {{ t('settings.preferences.calendar') }}:
                     </Label>
                     <Select id="calendar" v-model="form.calendar">

@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
-import { BotMessageSquare, CheckCircle2, ExternalLink, Unlink } from 'lucide-vue-next';
+import {
+    BotMessageSquare,
+    CheckCircle2,
+    ExternalLink,
+    Unlink,
+} from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { connect, disconnect, edit } from '@/routes/telegram';
@@ -17,8 +22,8 @@ const props = defineProps<Props>();
 
 const deepLink = computed(() => {
     if (!props.connectToken || !props.botUsername) {
-return null;
-}
+        return null;
+    }
 
     const username = props.botUsername.replace(/^@/, '');
 
@@ -27,8 +32,8 @@ return null;
 
 const botUrl = computed(() => {
     if (!props.botUsername) {
-return null;
-}
+        return null;
+    }
 
     return `https://t.me/${props.botUsername.replace(/^@/, '')}`;
 });
@@ -42,11 +47,20 @@ defineOptions({
 const commands = computed(() => [
     { cmd: '/add_cost', desc: t('settings.telegram.commands.add_cost') },
     { cmd: '/add_income', desc: t('settings.telegram.commands.add_income') },
-    { cmd: '/add_investment', desc: t('settings.telegram.commands.add_investment') },
+    {
+        cmd: '/add_investment',
+        desc: t('settings.telegram.commands.add_investment'),
+    },
     { cmd: '/list', desc: t('settings.telegram.commands.list') },
-    { cmd: '/report_today', desc: t('settings.telegram.commands.report_today') },
+    {
+        cmd: '/report_today',
+        desc: t('settings.telegram.commands.report_today'),
+    },
     { cmd: '/report_week', desc: t('settings.telegram.commands.report_week') },
-    { cmd: '/report_month', desc: t('settings.telegram.commands.report_month') },
+    {
+        cmd: '/report_month',
+        desc: t('settings.telegram.commands.report_month'),
+    },
 ]);
 </script>
 
@@ -60,7 +74,7 @@ const commands = computed(() => [
         <!-- Header -->
         <div>
             <p
-                class="text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
+                class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
             >
                 {{ t('settings.telegram.bot') }}
             </p>
@@ -74,7 +88,9 @@ const commands = computed(() => [
             class="flex items-center gap-3 rounded-xl bg-[#02CD86]/10 px-4 py-3"
         >
             <CheckCircle2 class="size-4 shrink-0 text-[#02CD86]" />
-            <span class="text-sm font-medium text-[#02CD86]">{{ t('settings.telegram.connected') }}</span>
+            <span class="text-sm font-medium text-[#02CD86]">{{
+                t('settings.telegram.connected')
+            }}</span>
             <span class="ml-auto font-mono text-xs text-[#989898]">{{
                 telegramChatId
             }}</span>
@@ -98,7 +114,7 @@ const commands = computed(() => [
         <!-- Commands -->
         <div>
             <p
-                class="mb-4 text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
+                class="mb-4 text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
             >
                 {{ t('settings.telegram.available_commands') }}
             </p>
@@ -122,7 +138,7 @@ const commands = computed(() => [
         <!-- Disconnect -->
         <div>
             <p
-                class="mb-1 text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
+                class="mb-1 text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
             >
                 {{ t('settings.telegram.disconnect') }}
             </p>
@@ -151,7 +167,7 @@ const commands = computed(() => [
         <!-- Header -->
         <div>
             <p
-                class="text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
+                class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
             >
                 {{ t('settings.telegram.bot') }}
             </p>
@@ -165,11 +181,18 @@ const commands = computed(() => [
         </p>
 
         <!-- Link ready -->
-        <div v-if="deepLink" class="rounded-[22px] bg-[#252525] p-5 ring-1 ring-white/10">
-            <p class="font-medium text-white">{{ t('settings.telegram.link_ready') }}</p>
+        <div
+            v-if="deepLink"
+            class="rounded-[22px] bg-[#252525] p-5 ring-1 ring-white/10"
+        >
+            <p class="font-medium text-white">
+                {{ t('settings.telegram.link_ready') }}
+            </p>
             <p class="mt-1 text-sm text-[#989898]">
                 {{ t('settings.telegram.link_ready_before') }}
-                <span class="font-medium text-white">{{ t('settings.telegram.link_ready_start') }}</span>
+                <span class="font-medium text-white">{{
+                    t('settings.telegram.link_ready_start')
+                }}</span>
                 {{ t('settings.telegram.link_ready_after') }}
             </p>
             <a
@@ -205,7 +228,11 @@ const commands = computed(() => [
                 class="inline-flex items-center gap-2 rounded-xl bg-[#02CD86] px-5 py-2.5 text-sm font-medium text-[#101010] transition hover:brightness-110 disabled:opacity-50"
             >
                 <BotMessageSquare class="size-4" />
-                {{ deepLink ? t('settings.telegram.generate_new_link') : t('settings.telegram.connect_telegram') }}
+                {{
+                    deepLink
+                        ? t('settings.telegram.generate_new_link')
+                        : t('settings.telegram.connect_telegram')
+                }}
             </button>
         </Form>
     </div>

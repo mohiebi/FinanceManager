@@ -5,10 +5,16 @@
         class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
     >
         <!-- ── Header ─────────────────────────────────────────────── -->
-        <section class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <section
+            class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+        >
+            <div
+                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            >
                 <div>
-                    <h1 class="text-2xl font-semibold tracking-tight text-white">
+                    <h1
+                        class="text-2xl font-semibold tracking-tight text-white"
+                    >
                         {{ t('finance.bills.title') }}
                     </h1>
                     <p class="mt-1 max-w-lg text-sm text-[#989898]">
@@ -30,7 +36,9 @@
             v-if="bills.length === 0"
             class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
-            <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#24212f]">
+            <span
+                class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#24212f]"
+            >
                 <Receipt class="size-8 text-[#6C4EE9]" />
             </span>
             <h2 class="mt-4 text-xl font-semibold text-white">
@@ -49,16 +57,23 @@
             <div
                 v-for="bill in bills"
                 :key="bill.id"
-                class="flex flex-col gap-4 overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+                class="flex flex-col gap-4 overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
-                        <p class="truncate text-base font-semibold text-white">{{ bill.title }}</p>
-                        <p v-if="bill.category_name" class="mt-0.5 truncate text-xs text-[#989898]">
+                        <p class="truncate text-base font-semibold text-white">
+                            {{ bill.title }}
+                        </p>
+                        <p
+                            v-if="bill.category_name"
+                            class="mt-0.5 truncate text-xs text-[#989898]"
+                        >
                             {{ bill.category_name }}
                         </p>
                     </div>
-                    <div class="flex shrink-0 items-center gap-1.5 opacity-0 transition group-hover:opacity-100 sm:opacity-100">
+                    <div
+                        class="flex shrink-0 items-center gap-1.5 opacity-0 transition group-hover:opacity-100 sm:opacity-100"
+                    >
                         <button
                             type="button"
                             class="rounded-md bg-white/5 px-2 py-1 text-xs text-[#6C4EE9] ring-1 ring-white/10 hover:bg-white/10"
@@ -78,24 +93,41 @@
 
                 <p class="text-2xl font-bold text-white">
                     {{ formatAmount(bill.amount) }}
-                    <span class="text-sm font-normal text-[#989898]">{{ bill.currency.toUpperCase() }}</span>
+                    <span class="text-sm font-normal text-[#989898]">{{
+                        bill.currency.toUpperCase()
+                    }}</span>
                 </p>
 
                 <div class="flex items-center gap-2 text-xs text-[#989898]">
                     <CalendarClock class="size-3.5 shrink-0" />
                     <span v-if="bill.recurrence_type === 'monthly'">
-                        {{ t('finance.bills.recurrence_monthly') }} — {{ t('finance.bills.due_day_label', { day: bill.due_day_of_month }) }}
+                        {{ t('finance.bills.recurrence_monthly') }} —
+                        {{
+                            t('finance.bills.due_day_label', {
+                                day: bill.due_day_of_month,
+                            })
+                        }}
                     </span>
-                    <span v-else>{{ t('finance.bills.recurrence_one_time') }}</span>
+                    <span v-else>{{
+                        t('finance.bills.recurrence_one_time')
+                    }}</span>
                 </div>
 
-                <div class="mt-auto flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+                <div
+                    class="mt-auto flex items-center justify-between gap-3 border-t border-white/10 pt-4"
+                >
                     <div>
-                        <p class="text-[10px] font-medium tracking-wide text-[#6b6b6b] uppercase">
+                        <p
+                            class="text-[10px] font-medium tracking-wide text-[#6b6b6b] uppercase"
+                        >
                             {{ t('finance.bills.next_due') }}
                         </p>
                         <p class="mt-0.5 text-sm font-medium text-white">
-                            {{ bill.next_occurrence ? displayDate(bill.next_occurrence.due_date) : t('finance.bills.no_upcoming') }}
+                            {{
+                                bill.next_occurrence
+                                    ? displayDate(bill.next_occurrence.due_date)
+                                    : t('finance.bills.no_upcoming')
+                            }}
                         </p>
                     </div>
                     <button
@@ -121,73 +153,167 @@
                     class="flex max-h-[calc(100dvh-1rem)] flex-col sm:max-h-[calc(100vh-2rem)]"
                     @submit.prevent="submitBill"
                 >
-                    <div class="flex-1 overflow-y-auto px-6 pt-10 pb-5 sm:px-10 sm:pt-12 sm:pb-6">
+                    <div
+                        class="flex-1 overflow-y-auto px-6 pt-10 pb-5 sm:px-10 sm:pt-12 sm:pb-6"
+                    >
                         <DialogHeader class="mb-6 space-y-2 text-left">
-                            <DialogTitle class="text-[20px] leading-normal font-medium text-white">
-                                {{ editingId !== null ? t('finance.bills.edit_bill') : t('finance.bills.add_bill') }}
+                            <DialogTitle
+                                class="text-[20px] leading-normal font-medium text-white"
+                            >
+                                {{
+                                    editingId !== null
+                                        ? t('finance.bills.edit_bill')
+                                        : t('finance.bills.add_bill')
+                                }}
                             </DialogTitle>
                         </DialogHeader>
 
                         <div class="space-y-5">
                             <div class="grid gap-2">
-                                <Label class="finance-dialog-label" for="bill-title">{{ t('finance.fields.subject') }}</Label>
-                                <Input id="bill-title" v-model="form.title" :class="fieldClass" autocomplete="off" />
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="bill-title"
+                                    >{{ t('finance.fields.subject') }}</Label
+                                >
+                                <Input
+                                    id="bill-title"
+                                    v-model="form.title"
+                                    :class="fieldClass"
+                                    autocomplete="off"
+                                />
                                 <InputError :message="form.errors.title" />
                             </div>
 
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="grid gap-2">
-                                    <Label class="finance-dialog-label" for="bill-amount">{{ t('finance.fields.amount') }}</Label>
-                                    <Input id="bill-amount" v-model="form.amount" type="number" min="0" step="0.01" :class="fieldClass" />
+                                    <Label
+                                        class="finance-dialog-label"
+                                        for="bill-amount"
+                                        >{{ t('finance.fields.amount') }}</Label
+                                    >
+                                    <Input
+                                        id="bill-amount"
+                                        v-model="form.amount"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        :class="fieldClass"
+                                    />
                                     <InputError :message="form.errors.amount" />
                                 </div>
                                 <div class="grid gap-2">
-                                    <Label class="finance-dialog-label" for="bill-currency">{{ t('finance.fields.currency') }}</Label>
+                                    <Label
+                                        class="finance-dialog-label"
+                                        for="bill-currency"
+                                        >{{
+                                            t('finance.fields.currency')
+                                        }}</Label
+                                    >
                                     <Select v-model="form.currency">
-                                        <SelectTrigger id="bill-currency" :class="fieldClass">
+                                        <SelectTrigger
+                                            id="bill-currency"
+                                            :class="fieldClass"
+                                        >
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent class="finance-dialog-select-content">
-                                            <SelectItem v-for="c in props.currencies" :key="c.value" :value="c.value">
+                                        <SelectContent
+                                            class="finance-dialog-select-content"
+                                        >
+                                            <SelectItem
+                                                v-for="c in props.currencies"
+                                                :key="c.value"
+                                                :value="c.value"
+                                            >
                                                 {{ c.label }}
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    <InputError :message="form.errors.currency" />
+                                    <InputError
+                                        :message="form.errors.currency"
+                                    />
                                 </div>
                             </div>
 
                             <div class="grid gap-2">
-                                <Label class="finance-dialog-label" for="bill-category">{{ t('finance.fields.category') }}</Label>
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="bill-category"
+                                    >{{ t('finance.fields.category') }}</Label
+                                >
                                 <Select v-model="categoryModel">
-                                    <SelectTrigger id="bill-category" :class="fieldClass">
-                                        <SelectValue :placeholder="t('finance.categories.uncategorized')" />
+                                    <SelectTrigger
+                                        id="bill-category"
+                                        :class="fieldClass"
+                                    >
+                                        <SelectValue
+                                            :placeholder="
+                                                t(
+                                                    'finance.categories.uncategorized',
+                                                )
+                                            "
+                                        />
                                     </SelectTrigger>
-                                    <SelectContent class="finance-dialog-select-content">
-                                        <SelectItem v-for="c in props.categories" :key="c.id" :value="String(c.id)">
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
+                                        <SelectItem
+                                            v-for="c in props.categories"
+                                            :key="c.id"
+                                            :value="String(c.id)"
+                                        >
                                             {{ c.name }}
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <InputError :message="form.errors.category_id" />
+                                <InputError
+                                    :message="form.errors.category_id"
+                                />
                             </div>
 
                             <div class="grid gap-2">
-                                <Label class="finance-dialog-label" for="bill-recurrence">{{ t('finance.bills.recurrence') }}</Label>
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="bill-recurrence"
+                                    >{{ t('finance.bills.recurrence') }}</Label
+                                >
                                 <Select v-model="form.recurrence_type">
-                                    <SelectTrigger id="bill-recurrence" :class="fieldClass">
+                                    <SelectTrigger
+                                        id="bill-recurrence"
+                                        :class="fieldClass"
+                                    >
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent class="finance-dialog-select-content">
-                                        <SelectItem value="monthly">{{ t('finance.bills.recurrence_monthly') }}</SelectItem>
-                                        <SelectItem value="one_time">{{ t('finance.bills.recurrence_one_time') }}</SelectItem>
+                                    <SelectContent
+                                        class="finance-dialog-select-content"
+                                    >
+                                        <SelectItem value="monthly">{{
+                                            t(
+                                                'finance.bills.recurrence_monthly',
+                                            )
+                                        }}</SelectItem>
+                                        <SelectItem value="one_time">{{
+                                            t(
+                                                'finance.bills.recurrence_one_time',
+                                            )
+                                        }}</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <InputError :message="form.errors.recurrence_type" />
+                                <InputError
+                                    :message="form.errors.recurrence_type"
+                                />
                             </div>
 
-                            <div v-if="form.recurrence_type === 'monthly'" class="grid gap-2">
-                                <Label class="finance-dialog-label" for="bill-due-day">{{ t('finance.bills.due_day_of_month') }}</Label>
+                            <div
+                                v-if="form.recurrence_type === 'monthly'"
+                                class="grid gap-2"
+                            >
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="bill-due-day"
+                                    >{{
+                                        t('finance.bills.due_day_of_month')
+                                    }}</Label
+                                >
                                 <Input
                                     id="bill-due-day"
                                     v-model="form.due_day_of_month"
@@ -196,25 +322,42 @@
                                     max="31"
                                     :class="fieldClass"
                                 />
-                                <InputError :message="form.errors.due_day_of_month" />
+                                <InputError
+                                    :message="form.errors.due_day_of_month"
+                                />
                             </div>
                             <div v-else class="grid gap-2">
-                                <Label class="finance-dialog-label" for="bill-due-date">{{ t('finance.bills.due_date') }}</Label>
-                                <Input id="bill-due-date" v-model="form.due_date" type="date" :class="fieldClass" />
+                                <Label
+                                    class="finance-dialog-label"
+                                    for="bill-due-date"
+                                    >{{ t('finance.bills.due_date') }}</Label
+                                >
+                                <Input
+                                    id="bill-due-date"
+                                    v-model="form.due_date"
+                                    type="date"
+                                    :class="fieldClass"
+                                />
                                 <InputError :message="form.errors.due_date" />
                             </div>
 
-                            <label class="flex cursor-pointer items-center gap-2.5">
+                            <label
+                                class="flex cursor-pointer items-center gap-2.5"
+                            >
                                 <Checkbox
                                     :checked="form.telegram_reminder_enabled"
                                     @update:checked="setTelegramReminder"
                                 />
-                                <span class="text-sm text-white/85">{{ t('finance.bills.telegram_reminder') }}</span>
+                                <span class="text-sm text-white/85">{{
+                                    t('finance.bills.telegram_reminder')
+                                }}</span>
                             </label>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-3 border-t border-white/10 px-6 py-4 sm:px-10">
+                    <div
+                        class="flex items-center gap-3 border-t border-white/10 px-6 py-4 sm:px-10"
+                    >
                         <Button
                             type="button"
                             class="h-11 flex-1 rounded-xl bg-white/5 text-white/70 shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
@@ -238,7 +381,13 @@
         <!-- ── Delete confirm ─────────────────────────────────────── -->
         <ConfirmDeleteModal
             :open="deleteTarget !== null"
-            :title="deleteTarget ? t('finance.delete.bill_title', { title: deleteTarget.title }) : undefined"
+            :title="
+                deleteTarget
+                    ? t('finance.delete.bill_title', {
+                          title: deleteTarget.title,
+                      })
+                    : undefined
+            "
             :description="t('finance.delete.bill_description')"
             :processing="deleteForm.processing"
             @update:open="(value) => !value && (deleteTarget = null)"
@@ -274,7 +423,12 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { formatAppDate } from '@/lib/date';
 import { dashboard } from '@/routes';
-import { index as billsIndex, destroy as destroyBill, store as storeBill, update as updateBill } from '@/routes/bills';
+import {
+    index as billsIndex,
+    destroy as destroyBill,
+    store as storeBill,
+    update as updateBill,
+} from '@/routes/bills';
 import { pay as payBill } from '@/routes/bills/occurrences';
 
 type BillOccurrence = { id: number; due_date: string };
@@ -303,10 +457,13 @@ const props = defineProps<{
 const { t } = useI18n();
 const bills = computed(() => props.bills);
 
-const displayDate = (value: string): string => formatAppDate(value, props.userCalendar);
-const formatAmount = (value: number): string => new Intl.NumberFormat().format(value);
+const displayDate = (value: string): string =>
+    formatAppDate(value, props.userCalendar);
+const formatAmount = (value: number): string =>
+    new Intl.NumberFormat().format(value);
 
-const fieldClass = 'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25';
+const fieldClass =
+    'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25';
 
 const isDialogOpen = ref(false);
 const editingId = ref<number | null>(null);
@@ -349,7 +506,9 @@ function openEditDialog(bill: Bill): void {
     form.currency = bill.currency;
     form.category_id = bill.category_id ? String(bill.category_id) : '';
     form.recurrence_type = bill.recurrence_type;
-    form.due_day_of_month = bill.due_day_of_month ? String(bill.due_day_of_month) : '1';
+    form.due_day_of_month = bill.due_day_of_month
+        ? String(bill.due_day_of_month)
+        : '1';
     form.due_date = bill.due_date ?? '';
     form.telegram_reminder_enabled = Boolean(bill.telegram_reminder_enabled);
     isDialogOpen.value = true;
@@ -419,12 +578,15 @@ function markPaid(bill: Bill): void {
     payingId.value = bill.next_occurrence.id;
 
     const payForm = useForm({});
-    payForm.post(payBill.url({ bill: bill.id, occurrence: bill.next_occurrence.id }), {
-        preserveScroll: true,
-        onFinish: () => {
-            payingId.value = null;
+    payForm.post(
+        payBill.url({ bill: bill.id, occurrence: bill.next_occurrence.id }),
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                payingId.value = null;
+            },
         },
-    });
+    );
 }
 
 watch(

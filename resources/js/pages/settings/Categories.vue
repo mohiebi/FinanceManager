@@ -52,7 +52,9 @@ const editForm = useForm({
 });
 
 const deleteError = computed(() => {
-    const errors = page.props.errors as Record<string, string | undefined> | undefined;
+    const errors = page.props.errors as
+        | Record<string, string | undefined>
+        | undefined;
 
     return errors?.category;
 });
@@ -111,7 +113,9 @@ function confirmDelete(): void {
 
 defineOptions({
     layout: {
-        breadcrumbs: [{ title: 'Category settings', href: '/settings/categories' }],
+        breadcrumbs: [
+            { title: 'Category settings', href: '/settings/categories' },
+        ],
     },
 });
 </script>
@@ -121,7 +125,9 @@ defineOptions({
 
     <div class="space-y-7">
         <div>
-            <p class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase">
+            <p
+                class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
+            >
                 {{ t('settings.categories.eyebrow') }}
             </p>
             <p class="mt-1 text-sm text-[#989898]">
@@ -171,15 +177,25 @@ defineOptions({
                     {{ t('settings.categories.add') }}
                 </Button>
             </div>
-            <InputError :message="createForm.errors.type || createForm.errors.name" />
+            <InputError
+                :message="createForm.errors.type || createForm.errors.name"
+            />
         </form>
 
         <InputError :message="deleteError" />
 
         <div class="space-y-6">
-            <section v-for="group in groups" :key="group.type" class="space-y-3">
-                <div class="flex items-center justify-between border-t border-white/10 pt-5">
-                    <h2 class="text-sm font-medium text-white">{{ group.title }}</h2>
+            <section
+                v-for="group in groups"
+                :key="group.type"
+                class="space-y-3"
+            >
+                <div
+                    class="flex items-center justify-between border-t border-white/10 pt-5"
+                >
+                    <h2 class="text-sm font-medium text-white">
+                        {{ group.title }}
+                    </h2>
                     <span class="text-xs text-[#989898]">
                         {{ group.categories.length }}
                     </span>
@@ -223,7 +239,9 @@ defineOptions({
 
                         <div v-else class="flex items-center gap-3">
                             <div class="min-w-0 flex-1">
-                                <p class="truncate text-sm font-medium text-white">
+                                <p
+                                    class="truncate text-sm font-medium text-white"
+                                >
                                     {{ category.name }}
                                 </p>
                                 <p class="text-xs text-[#989898]">
@@ -254,7 +272,10 @@ defineOptions({
                     </div>
                 </div>
 
-                <p v-else class="rounded-xl bg-[#252525] px-4 py-4 text-sm text-[#989898]">
+                <p
+                    v-else
+                    class="rounded-xl bg-[#252525] px-4 py-4 text-sm text-[#989898]"
+                >
                     {{ t('settings.categories.empty') }}
                 </p>
             </section>
@@ -262,7 +283,11 @@ defineOptions({
 
         <ConfirmDeleteModal
             :open="deleteTarget !== null"
-            :title="t('settings.categories.delete_title', { name: deleteTarget?.name ?? '' })"
+            :title="
+                t('settings.categories.delete_title', {
+                    name: deleteTarget?.name ?? '',
+                })
+            "
             :description="t('settings.categories.delete_description')"
             @update:open="deleteTarget = null"
             @confirm="confirmDelete"

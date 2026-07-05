@@ -4,7 +4,11 @@ import { Bell } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRelativeTime } from '@/composables/useRelativeTime';
-import { edit, read as readNotification, readAll as readAllNotifications } from '@/routes/notifications';
+import {
+    edit,
+    read as readNotification,
+    readAll as readAllNotifications,
+} from '@/routes/notifications';
 
 type NotificationItem = {
     id: string;
@@ -20,11 +24,17 @@ const props = defineProps<{
 const { t } = useI18n();
 const { formatRelativeTime } = useRelativeTime();
 
-const unreadCount = computed(() => props.notifications.filter((n) => !n.read_at).length);
+const unreadCount = computed(
+    () => props.notifications.filter((n) => !n.read_at).length,
+);
 const markingAll = ref(false);
 
 const markRead = (id: string) => {
-    router.patch(readNotification.url(id), {}, { preserveScroll: true, preserveState: true });
+    router.patch(
+        readNotification.url(id),
+        {},
+        { preserveScroll: true, preserveState: true },
+    );
 };
 
 const markAllRead = () => {
@@ -55,8 +65,12 @@ defineOptions({
     <div class="space-y-6">
         <div class="flex items-start justify-between gap-3">
             <div>
-                <h1 class="text-lg font-medium text-white">{{ t('notifications.page_title') }}</h1>
-                <p class="mt-1 text-sm text-[#989898]">{{ t('notifications.page_description') }}</p>
+                <h1 class="text-lg font-medium text-white">
+                    {{ t('notifications.page_title') }}
+                </h1>
+                <p class="mt-1 text-sm text-[#989898]">
+                    {{ t('notifications.page_description') }}
+                </p>
             </div>
             <button
                 v-if="unreadCount > 0"
@@ -74,8 +88,12 @@ defineOptions({
             class="flex flex-col items-center gap-2 rounded-2xl border border-white/10 px-6 py-16 text-center"
         >
             <Bell class="size-8 text-[#6C4EE9]" />
-            <p class="text-sm font-medium text-white/70">{{ t('notifications.empty') }}</p>
-            <p class="text-xs text-[#989898]">{{ t('notifications.empty_description') }}</p>
+            <p class="text-sm font-medium text-white/70">
+                {{ t('notifications.empty') }}
+            </p>
+            <p class="text-xs text-[#989898]">
+                {{ t('notifications.empty_description') }}
+            </p>
         </div>
 
         <div v-else class="overflow-hidden rounded-2xl border border-white/10">
@@ -95,11 +113,17 @@ defineOptions({
                     />
                     <span v-else class="mt-1.5 size-1.5 shrink-0" />
                     <div>
-                        <p class="text-sm font-medium text-white">{{ notification.data.title }}</p>
-                        <p class="mt-0.5 text-xs text-[#989898]">{{ notification.data.body }}</p>
+                        <p class="text-sm font-medium text-white">
+                            {{ notification.data.title }}
+                        </p>
+                        <p class="mt-0.5 text-xs text-[#989898]">
+                            {{ notification.data.body }}
+                        </p>
                     </div>
                 </div>
-                <span class="shrink-0 text-[11px] whitespace-nowrap text-[#6b6b6b]">
+                <span
+                    class="shrink-0 text-[11px] whitespace-nowrap text-[#6b6b6b]"
+                >
                     {{ formatRelativeTime(notification.created_at) }}
                 </span>
             </button>

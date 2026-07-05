@@ -27,8 +27,9 @@ const sizeClasses = {
         class="asset-icon inline-flex shrink-0 items-center justify-center rounded-lg font-semibold"
         :class="sizeClasses[size]"
         :style="{
-            backgroundColor: (iconSvg || icon) ? 'transparent' : (color ?? '#02CD86') + '22',
-            color: (iconSvg || icon) ? undefined : (color ?? '#02CD86'),
+            backgroundColor:
+                iconSvg || icon ? 'transparent' : (color ?? '#02CD86') + '22',
+            color: iconSvg || icon ? undefined : (color ?? '#02CD86'),
         }"
         :aria-label="label"
     >

@@ -49,7 +49,9 @@ const modalConfig = computed<TwoFactorConfigContent>(() => {
     if (props.twoFactorEnabled) {
         return {
             title: t('settings.security.two_factor_enabled_title'),
-            description: t('settings.security.two_factor_enabled_setup_description'),
+            description: t(
+                'settings.security.two_factor_enabled_setup_description',
+            ),
             buttonText: t('buttons.close'),
         };
     }
@@ -197,7 +199,11 @@ watch(
                                 class="absolute inset-0 top-1/2 h-px w-full bg-border"
                             />
                             <span class="relative bg-card px-2 py-1">
-                                {{ t('settings.security.manual_setup_separator') }}
+                                {{
+                                    t(
+                                        'settings.security.manual_setup_separator',
+                                    )
+                                }}
                             </span>
                         </div>
 

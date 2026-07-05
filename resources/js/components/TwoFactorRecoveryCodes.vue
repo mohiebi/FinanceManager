@@ -19,10 +19,14 @@ const { recoveryCodesList, fetchRecoveryCodes, errors } = useTwoFactorAuth();
 const { t } = useI18n();
 const isRecoveryCodesVisible = ref<boolean>(false);
 const recoveryCodeSectionRef = useTemplateRef('recoveryCodeSectionRef');
-const regenerateCodesLabel = computed(() => t('settings.security.regenerate_recovery_codes'));
-const recoveryCodesNotice = computed(() => t('settings.security.recovery_codes_notice', {
-    action: regenerateCodesLabel.value,
-}));
+const regenerateCodesLabel = computed(() =>
+    t('settings.security.regenerate_recovery_codes'),
+);
+const recoveryCodesNotice = computed(() =>
+    t('settings.security.recovery_codes_notice', {
+        action: regenerateCodesLabel.value,
+    }),
+);
 
 const toggleRecoveryCodesVisibility = async () => {
     if (!isRecoveryCodesVisible.value && !recoveryCodesList.value.length) {
@@ -48,7 +52,9 @@ onMounted(async () => {
     <Card class="w-full">
         <CardHeader>
             <CardTitle class="flex gap-3">
-                <LockKeyhole class="size-4" />{{ t('settings.security.recovery_codes_title') }}
+                <LockKeyhole class="size-4" />{{
+                    t('settings.security.recovery_codes_title')
+                }}
             </CardTitle>
             <CardDescription>
                 {{ t('settings.security.recovery_codes_description') }}
@@ -63,7 +69,11 @@ onMounted(async () => {
                         :is="isRecoveryCodesVisible ? EyeOff : Eye"
                         class="size-4"
                     />
-                    {{ isRecoveryCodesVisible ? t('settings.security.hide_recovery_codes') : t('settings.security.view_recovery_codes') }}
+                    {{
+                        isRecoveryCodesVisible
+                            ? t('settings.security.hide_recovery_codes')
+                            : t('settings.security.view_recovery_codes')
+                    }}
                 </Button>
 
                 <Form

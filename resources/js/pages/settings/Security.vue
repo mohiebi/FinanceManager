@@ -59,7 +59,7 @@ onUnmounted(() => clearTwoFactorAuthData());
         <div class="space-y-5">
             <div>
                 <p
-                    class="text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
+                    class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                 >
                     {{ t('settings.security.password_login') }}
                 </p>
@@ -67,7 +67,9 @@ onUnmounted(() => clearTwoFactorAuthData());
                     {{
                         hasPassword
                             ? t('settings.security.password_login_description')
-                            : t('settings.security.password_login_description_oauth')
+                            : t(
+                                  'settings.security.password_login_description_oauth',
+                              )
                     }}
                 </p>
             </div>
@@ -76,14 +78,18 @@ onUnmounted(() => clearTwoFactorAuthData());
                 v-bind="SecurityController.update.form()"
                 :options="{ preserveScroll: true }"
                 reset-on-success
-                :reset-on-error="['password', 'password_confirmation', 'current_password']"
+                :reset-on-error="[
+                    'password',
+                    'password_confirmation',
+                    'current_password',
+                ]"
                 class="space-y-5"
                 v-slot="{ errors, processing, recentlySuccessful }"
             >
                 <div v-if="hasPassword" class="grid gap-1.5">
                     <label
                         for="current_password"
-                        class="text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
+                        class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                         >{{ t('settings.security.current_password') }}</label
                     >
                     <PasswordInput
@@ -91,7 +97,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                         name="current_password"
                         autocomplete="current-password"
                         :placeholder="t('settings.security.current_password')"
-                        class="border-white/10 bg-[#252525] dark:bg-[#252525] text-white placeholder:text-[#686868] focus-visible:ring-1 focus-visible:ring-[#02cd86] focus-visible:border-[#02cd86]"
+                        class="border-white/10 bg-[#252525] text-white placeholder:text-[#686868] focus-visible:border-[#02cd86] focus-visible:ring-1 focus-visible:ring-[#02cd86] dark:bg-[#252525]"
                     />
                     <InputError :message="errors.current_password" />
                 </div>
@@ -99,15 +105,19 @@ onUnmounted(() => clearTwoFactorAuthData());
                 <div class="grid gap-1.5">
                     <label
                         for="password"
-                        class="text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
-                        >{{ hasPassword ? t('settings.security.new_password') : t('fields.password') }}</label
+                        class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
+                        >{{
+                            hasPassword
+                                ? t('settings.security.new_password')
+                                : t('fields.password')
+                        }}</label
                     >
                     <PasswordInput
                         id="password"
                         name="password"
                         autocomplete="new-password"
                         :placeholder="t('settings.security.new_password')"
-                        class="border-white/10 bg-[#252525] dark:bg-[#252525] text-white placeholder:text-[#686868] focus-visible:ring-1 focus-visible:ring-[#02cd86] focus-visible:border-[#02cd86]"
+                        class="border-white/10 bg-[#252525] text-white placeholder:text-[#686868] focus-visible:border-[#02cd86] focus-visible:ring-1 focus-visible:ring-[#02cd86] dark:bg-[#252525]"
                     />
                     <InputError :message="errors.password" />
                 </div>
@@ -115,9 +125,11 @@ onUnmounted(() => clearTwoFactorAuthData());
                 <div class="grid gap-1.5">
                     <label
                         for="password_confirmation"
-                        class="text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
+                        class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                         >{{
-                            hasPassword ? t('settings.security.confirm_password') : t('settings.security.confirm_your_password')
+                            hasPassword
+                                ? t('settings.security.confirm_password')
+                                : t('settings.security.confirm_your_password')
                         }}</label
                     >
                     <PasswordInput
@@ -125,7 +137,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                         name="password_confirmation"
                         autocomplete="new-password"
                         :placeholder="t('settings.security.confirm_password')"
-                        class="border-white/10 bg-[#252525] dark:bg-[#252525] text-white placeholder:text-[#686868] focus-visible:ring-1 focus-visible:ring-[#02cd86] focus-visible:border-[#02cd86]"
+                        class="border-white/10 bg-[#252525] text-white placeholder:text-[#686868] focus-visible:border-[#02cd86] focus-visible:ring-1 focus-visible:ring-[#02cd86] dark:bg-[#252525]"
                     />
                     <InputError :message="errors.password_confirmation" />
                 </div>
@@ -137,7 +149,11 @@ onUnmounted(() => clearTwoFactorAuthData());
                         data-test="update-password-button"
                         class="rounded-xl bg-[#02CD86] px-5 py-2.5 text-sm font-medium text-[#101010] transition hover:brightness-110 disabled:opacity-50"
                     >
-                        {{ hasPassword ? t('settings.security.save_password') : t('settings.security.add_password') }}
+                        {{
+                            hasPassword
+                                ? t('settings.security.save_password')
+                                : t('settings.security.add_password')
+                        }}
                     </button>
 
                     <Transition
@@ -158,10 +174,13 @@ onUnmounted(() => clearTwoFactorAuthData());
         </div>
 
         <!-- 2FA section -->
-        <div v-if="canManageTwoFactor" class="space-y-5 border-t border-white/5 pt-8">
+        <div
+            v-if="canManageTwoFactor"
+            class="space-y-5 border-t border-white/5 pt-8"
+        >
             <div>
                 <p
-                    class="text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
+                    class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                 >
                     {{ t('settings.security.two_factor') }}
                 </p>
@@ -246,16 +265,20 @@ onUnmounted(() => clearTwoFactorAuthData());
                 v-slot="{ errors, processing }"
             >
                 <DialogHeader class="space-y-3">
-                    <DialogTitle>{{ t('settings.security.confirm_password_title') }}</DialogTitle>
+                    <DialogTitle>{{
+                        t('settings.security.confirm_password_title')
+                    }}</DialogTitle>
                     <DialogDescription>
-                        {{ t('settings.security.confirm_password_description') }}
+                        {{
+                            t('settings.security.confirm_password_description')
+                        }}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div class="mt-4 grid gap-1.5">
                     <label
                         for="confirm_password_modal"
-                        class="text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
+                        class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                         >{{ t('fields.password') }}</label
                     >
                     <PasswordInput
@@ -264,7 +287,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                         autocomplete="current-password"
                         autofocus
                         :placeholder="t('fields.password')"
-                        class="border-white/10 bg-[#252525] dark:bg-[#252525] text-white placeholder:text-[#686868] focus-visible:ring-1 focus-visible:ring-[#02cd86] focus-visible:border-[#02cd86]"
+                        class="border-white/10 bg-[#252525] text-white placeholder:text-[#686868] focus-visible:border-[#02cd86] focus-visible:ring-1 focus-visible:ring-[#02cd86] dark:bg-[#252525]"
                     />
                     <InputError :message="errors.password" />
                 </div>

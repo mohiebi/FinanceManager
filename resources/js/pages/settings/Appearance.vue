@@ -21,7 +21,7 @@ defineOptions({
     <div class="space-y-5">
         <div>
             <p
-                class="text-xs font-medium tracking-[0.2em] uppercase text-[#989898]"
+                class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
             >
                 {{ t('settings.appearance.title') }}
             </p>

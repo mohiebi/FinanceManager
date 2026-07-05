@@ -27,7 +27,13 @@ declare module '@inertiajs/core' {
                 unread_count: number;
                 recent: {
                     id: string;
-                    data: { type: string; title: string; body: string; bill_id?: number; due_date?: string };
+                    data: {
+                        type: string;
+                        title: string;
+                        body: string;
+                        bill_id?: number;
+                        due_date?: string;
+                    };
                     read_at: string | null;
                     created_at: string;
                 }[];

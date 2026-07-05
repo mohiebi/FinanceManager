@@ -22,11 +22,14 @@ import { Label } from '@/components/ui/label';
 const { t } = useI18n();
 const passwordInput = useTemplateRef('passwordInput');
 
-withDefaults(defineProps<{
-    hasPassword?: boolean;
-}>(), {
-    hasPassword: true,
-});
+withDefaults(
+    defineProps<{
+        hasPassword?: boolean;
+    }>(),
+    {
+        hasPassword: true,
+    },
+);
 </script>
 
 <template>
@@ -40,14 +43,18 @@ withDefaults(defineProps<{
             class="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10"
         >
             <div class="relative space-y-0.5 text-red-600 dark:text-red-100">
-                <p class="font-medium">{{ t('settings.profile.delete_warning_title') }}</p>
+                <p class="font-medium">
+                    {{ t('settings.profile.delete_warning_title') }}
+                </p>
                 <p class="text-sm">
                     {{ t('settings.profile.delete_warning_description') }}
                 </p>
             </div>
             <Dialog>
                 <DialogTrigger as-child>
-                    <Button variant="destructive" data-test="delete-user-button"
+                    <Button
+                        variant="destructive"
+                        data-test="delete-user-button"
                         >{{ t('settings.profile.delete_button') }}</Button
                     >
                 </DialogTrigger>
@@ -63,21 +70,31 @@ withDefaults(defineProps<{
                         v-slot="{ errors, processing, reset, clearErrors }"
                     >
                         <DialogHeader class="space-y-3">
-                            <DialogTitle>{{ t('settings.profile.delete_confirm_title') }}</DialogTitle>
+                            <DialogTitle>{{
+                                t('settings.profile.delete_confirm_title')
+                            }}</DialogTitle>
                             <DialogDescription>
-                                {{ t('settings.profile.delete_confirm_description') }}
+                                {{
+                                    t(
+                                        'settings.profile.delete_confirm_description',
+                                    )
+                                }}
                                 {{
                                     hasPassword
-                                        ? t('settings.profile.delete_confirm_description_password')
-                                        : t('settings.profile.delete_confirm_description_no_password')
+                                        ? t(
+                                              'settings.profile.delete_confirm_description_password',
+                                          )
+                                        : t(
+                                              'settings.profile.delete_confirm_description_no_password',
+                                          )
                                 }}
                             </DialogDescription>
                         </DialogHeader>
 
                         <div v-if="hasPassword" class="grid gap-2">
-                            <Label for="password" class="sr-only"
-                                >{{ t('fields.password') }}</Label
-                            >
+                            <Label for="password" class="sr-only">{{
+                                t('fields.password')
+                            }}</Label>
                             <PasswordInput
                                 id="password"
                                 name="password"
@@ -108,7 +125,9 @@ withDefaults(defineProps<{
                                 :disabled="processing"
                                 data-test="confirm-delete-user-button"
                             >
-                                {{ t('settings.profile.delete_confirm_button') }}
+                                {{
+                                    t('settings.profile.delete_confirm_button')
+                                }}
                             </Button>
                         </DialogFooter>
                     </Form>

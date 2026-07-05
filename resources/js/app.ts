@@ -115,10 +115,14 @@ router.on('success', (event) => {
     }
 
     if (props.fallbackTranslations) {
-        i18n.global.setLocaleMessage(fallbackLocale, props.fallbackTranslations);
+        i18n.global.setLocaleMessage(
+            fallbackLocale,
+            props.fallbackTranslations,
+        );
     }
 
-    (i18n.global.fallbackLocale as unknown as { value: string }).value = fallbackLocale;
+    (i18n.global.fallbackLocale as unknown as { value: string }).value =
+        fallbackLocale;
     (i18n.global.locale as unknown as { value: string }).value = locale;
     applyLocale(locale, props.dir ?? 'ltr');
 });

@@ -5,7 +5,9 @@
         class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-hidden bg-[#111111]"
     >
         <!-- Hero / period summary -->
-        <section class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
+        <section
+            class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+        >
             <div
                 class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between"
             >
@@ -59,7 +61,7 @@
 
         <!-- Filters -->
         <section
-            class="mx-[18px] mt-[18px] rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+            class="mx-[18px] mt-[18px] rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
             <div class="flex flex-col gap-5">
                 <div
@@ -233,7 +235,9 @@
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="to_date">{{ t('finance.fields.to') }}</Label>
+                        <Label for="to_date">{{
+                            t('finance.fields.to')
+                        }}</Label>
                         <BirthdatePicker
                             v-model="toDate"
                             name="to_date"
@@ -259,7 +263,7 @@
         <!-- Summary cards -->
         <div class="grid gap-[18px] px-[18px] pt-[18px] md:grid-cols-3">
             <article
-                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
@@ -277,7 +281,7 @@
             </article>
 
             <article
-                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#6C4EE9] uppercase"
@@ -292,7 +296,7 @@
             </article>
 
             <article
-                class="kpi-card-neutral overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+                class="kpi-card-neutral overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
@@ -312,7 +316,7 @@
         >
             <!-- Bar chart — income vs costs by category -->
             <section
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="mb-4 flex items-center justify-between">
                     <h2 class="text-[18px] leading-none font-normal text-white">
@@ -332,7 +336,7 @@
 
             <!-- Donut chart — cost breakdown by category -->
             <section
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]"
+                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="mb-4 flex items-center justify-between">
                     <h2 class="text-[18px] leading-none font-normal text-white">
@@ -359,7 +363,9 @@
             class="grid items-start gap-[18px] px-[18px] py-[18px] pb-[38px] lg:grid-cols-2"
         >
             <!-- Costs table -->
-            <section class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
+            <section
+                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            >
                 <div
                     class="flex items-center justify-between gap-4 px-5 py-[29px]"
                 >
@@ -430,7 +436,9 @@
                                     >
                                         {{
                                             transaction.category?.name ??
-                                            t('finance.categories.uncategorized')
+                                            t(
+                                                'finance.categories.uncategorized',
+                                            )
                                         }}
                                     </span>
                                 </td>
@@ -464,14 +472,14 @@
             </section>
 
             <!-- Incomes table -->
-            <section class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(0,0,0,0.2)]">
+            <section
+                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            >
                 <div
                     class="flex items-center justify-between gap-4 px-5 py-[29px]"
                 >
                     <div>
-                        <p
-                            class="text-xs font-medium text-[#02CD86] uppercase"
-                        >
+                        <p class="text-xs font-medium text-[#02CD86] uppercase">
                             {{ t('finance.filters.incomes') }}
                         </p>
                         <h2
@@ -538,7 +546,9 @@
                                     >
                                         {{
                                             transaction.category?.name ??
-                                            t('finance.categories.uncategorized')
+                                            t(
+                                                'finance.categories.uncategorized',
+                                            )
                                         }}
                                     </span>
                                 </td>
@@ -713,7 +723,10 @@ const chartPalette = [
 const categoryChartData = computed(() => {
     const totals = new Map<string, { income: number; cost: number }>();
 
-    const accumulate = (transactions: Transaction[], key: 'income' | 'cost') => {
+    const accumulate = (
+        transactions: Transaction[],
+        key: 'income' | 'cost',
+    ) => {
         for (const transaction of transactions) {
             const name =
                 transaction.category?.name ??
@@ -743,9 +756,11 @@ const costBreakdown = computed(() => {
 
     for (const transaction of props.transactions.costs) {
         const name =
-            transaction.category?.name ??
-            t('finance.categories.uncategorized');
-        totals.set(name, (totals.get(name) ?? 0) + Number(transaction.display_amount));
+            transaction.category?.name ?? t('finance.categories.uncategorized');
+        totals.set(
+            name,
+            (totals.get(name) ?? 0) + Number(transaction.display_amount),
+        );
     }
 
     const entries = [...totals.entries()].sort((a, b) => b[1] - a[1]);
@@ -753,7 +768,9 @@ const costBreakdown = computed(() => {
     return {
         labels: entries.map(([name]) => name),
         series: entries.map(([, total]) => total),
-        colors: entries.map((_, index) => chartPalette[index % chartPalette.length]),
+        colors: entries.map(
+            (_, index) => chartPalette[index % chartPalette.length],
+        ),
     };
 });
 

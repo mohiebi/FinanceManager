@@ -37,7 +37,9 @@ const primaryButtonClass = 'auth-primary-button w-full text-base font-medium';
     >
         <div class="space-y-3">
             <div class="grid gap-2">
-                <Label for="password" :class="labelClass">{{ $t('fields.password') }}</Label>
+                <Label for="password" :class="labelClass">{{
+                    $t('fields.password')
+                }}</Label>
                 <PasswordInput
                     id="password"
                     name="password"

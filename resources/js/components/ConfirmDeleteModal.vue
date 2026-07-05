@@ -42,7 +42,10 @@ const emit = defineEmits<{
                                 {{ title ?? 'Delete?' }}
                             </p>
                             <p class="mt-1 text-sm text-[#989898]">
-                                {{ description ?? 'This action cannot be undone.' }}
+                                {{
+                                    description ??
+                                    'This action cannot be undone.'
+                                }}
                             </p>
                         </div>
                     </div>

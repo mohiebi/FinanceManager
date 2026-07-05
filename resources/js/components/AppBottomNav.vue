@@ -30,12 +30,20 @@ const page = usePage();
 const user = computed(() => page.props.auth.user);
 
 const navItems = computed(() => [
-    { title: t('navigation.dashboard'),     href: dashboard(),          icon: LayoutGrid   },
-    { title: t('navigation.transactions'),  href: transactionsIndex(),  icon: ReceiptText  },
-    { title: t('navigation.report'),        href: report(),             icon: ChartPie     },
-    { title: t('navigation.investments'),   href: investmentsIndex(),   icon: TrendingUp   },
-    { title: t('navigation.portfolio'),     href: portfolio(),          icon: Wallet       },
-    { title: t('navigation.bills'),         href: billsIndex(),         icon: Receipt      },
+    { title: t('navigation.dashboard'), href: dashboard(), icon: LayoutGrid },
+    {
+        title: t('navigation.transactions'),
+        href: transactionsIndex(),
+        icon: ReceiptText,
+    },
+    { title: t('navigation.report'), href: report(), icon: ChartPie },
+    {
+        title: t('navigation.investments'),
+        href: investmentsIndex(),
+        icon: TrendingUp,
+    },
+    { title: t('navigation.portfolio'), href: portfolio(), icon: Wallet },
+    { title: t('navigation.bills'), href: billsIndex(), icon: Receipt },
 ]);
 </script>
 
@@ -65,7 +73,9 @@ const navItems = computed(() => [
                 class="absolute inset-x-3 top-0 h-[2px] rounded-b-full bg-[#02cd86]"
             />
             <component :is="item.icon" class="size-[22px] shrink-0" />
-            <span class="max-w-full truncate text-[9px] font-medium leading-tight tracking-wide">
+            <span
+                class="max-w-full truncate text-[9px] leading-tight font-medium tracking-wide"
+            >
                 {{ item.title }}
             </span>
         </Link>
@@ -79,7 +89,9 @@ const navItems = computed(() => [
                     class="flex flex-1 flex-col items-center justify-center gap-1 text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:outline-none"
                 >
                     <Settings class="size-[22px] shrink-0" />
-                    <span class="max-w-full truncate text-[9px] font-medium leading-tight tracking-wide">
+                    <span
+                        class="max-w-full truncate text-[9px] leading-tight font-medium tracking-wide"
+                    >
                         {{ t('settings.title') }}
                     </span>
                 </button>

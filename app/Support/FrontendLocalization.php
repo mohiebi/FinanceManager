@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Illuminate\Http\Request;
+
 class FrontendLocalization
 {
     public const DEFAULT_LOCALE = 'en';
@@ -11,7 +13,7 @@ class FrontendLocalization
     /** @return array<int, string> */
     public static function locales(): array
     {
-        return ['en', 'fa'];
+        return ['en', 'fa', 'de'];
     }
 
     /** @return array<int, string> */
@@ -23,6 +25,17 @@ class FrontendLocalization
     public static function normalizeLocale(?string $locale): string
     {
         return in_array($locale, self::locales(), true) ? $locale : self::DEFAULT_LOCALE;
+    }
+
+    /**
+     * Authenticated users carry their locale on the profile; guests (e.g. the
+     * public landing page) keep their choice in the session.
+     */
+    public static function resolve(Request $request): string
+    {
+        return self::normalizeLocale(
+            $request->user()?->locale ?? $request->session()->get('locale'),
+        );
     }
 
     public static function normalizeCalendar(?string $calendar): string

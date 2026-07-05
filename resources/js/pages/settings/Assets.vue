@@ -65,6 +65,13 @@ const emojiGroups = [
     { label: 'Other',          emojis: ['🏠','🚗','🛢','⚙️','🌾','☕','🍶','💊','🎯','🚀','⭐','🔑'] },
 ];
 
+const emojiGroupLabelKeys: Record<string, string> = {
+    'Metals & Coins': 'metals',
+    Finance: 'finance',
+    Crypto: 'crypto',
+    Other: 'other',
+};
+
 const formulaVariables = [
     'goldprice',
     'gold_750',
@@ -77,6 +84,10 @@ const formulaVariables = [
     'bitcoin_usd',
     'usdt',
 ];
+
+function emojiGroupLabel(label: string): string {
+    return t(`settings.assets.emoji_groups.${emojiGroupLabelKeys[label] ?? 'other'}`);
+}
 
 
 
@@ -229,16 +240,16 @@ defineOptions({
                     <div class="relative">
                         <button type="button" class="finance-dialog-field finance-dialog-field-income flex h-9 w-full items-center gap-2 px-3 text-left" @click="showCreateEmoji = !showCreateEmoji">
                             <span v-if="createForm.icon" class="text-xl leading-none">{{ createForm.icon }}</span>
-                            <span v-else class="text-sm text-white/50">Pick emoji…</span>
+                            <span v-else class="text-sm text-white/50">{{ t('settings.assets.pick_emoji') }}</span>
                         </button>
                         <div v-if="showCreateEmoji" class="absolute top-full left-0 z-50 mt-1 w-[260px] rounded-xl border border-white/10 bg-[#1f1f1f] p-3 shadow-2xl">
                             <div v-for="group in emojiGroups" :key="group.label" class="mb-3 last:mb-0">
-                                <p class="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-[#686868]">{{ group.label }}</p>
+                                <p class="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-[#686868]">{{ emojiGroupLabel(group.label) }}</p>
                                 <div class="grid grid-cols-6 gap-1">
                                     <button v-for="emoji in group.emojis" :key="emoji" type="button" :class="['flex h-8 w-full cursor-pointer items-center justify-center rounded-lg text-lg transition-colors hover:bg-white/10', createForm.icon === emoji ? 'bg-[#02CD86]/20 ring-1 ring-[#02CD86]/40' : '']" @click="createForm.icon = emoji; showCreateEmoji = false">{{ emoji }}</button>
                                 </div>
                             </div>
-                            <button v-if="createForm.icon" type="button" class="mt-1 w-full cursor-pointer rounded-lg py-1.5 text-xs text-[#989898] transition-colors hover:bg-white/5 hover:text-white" @click="createForm.icon = ''; showCreateEmoji = false">Clear</button>
+                            <button v-if="createForm.icon" type="button" class="mt-1 w-full cursor-pointer rounded-lg py-1.5 text-xs text-[#989898] transition-colors hover:bg-white/5 hover:text-white" @click="createForm.icon = ''; showCreateEmoji = false">{{ t('common.clear') }}</button>
                         </div>
                     </div>
                 </div>
@@ -266,7 +277,7 @@ defineOptions({
             <!-- Advanced toggle -->
             <button type="button" class="inline-flex items-center gap-1 text-[11px] text-white/40 transition-colors hover:text-white/70" @click="showCreateAdvanced = !showCreateAdvanced">
                 <ChevronDown :class="['size-3 transition-transform', showCreateAdvanced ? 'rotate-180' : '']" />
-                Advanced (formula / URL / SVG)
+                {{ t('settings.assets.advanced_options') }}
             </button>
 
             <div v-if="showCreateAdvanced" class="space-y-3 rounded-[8px] border border-white/8 bg-black/20 p-3">
@@ -344,16 +355,16 @@ defineOptions({
                                 <div class="relative">
                                     <button type="button" class="finance-dialog-field finance-dialog-field-income flex h-9 w-full items-center gap-2 px-3 text-left" @click="showEditEmoji = !showEditEmoji">
                                         <span v-if="editForm.icon" class="text-xl leading-none">{{ editForm.icon }}</span>
-                                        <span v-else class="text-sm text-white/50">Pick emoji…</span>
+                                        <span v-else class="text-sm text-white/50">{{ t('settings.assets.pick_emoji') }}</span>
                                     </button>
                                     <div v-if="showEditEmoji" class="absolute top-full left-0 z-50 mt-1 w-[260px] rounded-xl border border-white/10 bg-[#1f1f1f] p-3 shadow-2xl">
                                         <div v-for="group in emojiGroups" :key="group.label" class="mb-3 last:mb-0">
-                                            <p class="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-[#686868]">{{ group.label }}</p>
+                                            <p class="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-[#686868]">{{ emojiGroupLabel(group.label) }}</p>
                                             <div class="grid grid-cols-6 gap-1">
                                                 <button v-for="emoji in group.emojis" :key="emoji" type="button" :class="['flex h-8 w-full cursor-pointer items-center justify-center rounded-lg text-lg transition-colors hover:bg-white/10', editForm.icon === emoji ? 'bg-[#02CD86]/20 ring-1 ring-[#02CD86]/40' : '']" @click="editForm.icon = emoji; showEditEmoji = false">{{ emoji }}</button>
                                             </div>
                                         </div>
-                                        <button v-if="editForm.icon" type="button" class="mt-1 w-full cursor-pointer rounded-lg py-1.5 text-xs text-[#989898] transition-colors hover:bg-white/5 hover:text-white" @click="editForm.icon = ''; showEditEmoji = false">Clear</button>
+                                        <button v-if="editForm.icon" type="button" class="mt-1 w-full cursor-pointer rounded-lg py-1.5 text-xs text-[#989898] transition-colors hover:bg-white/5 hover:text-white" @click="editForm.icon = ''; showEditEmoji = false">{{ t('common.clear') }}</button>
                                     </div>
                                 </div>
                             </div>
@@ -375,7 +386,7 @@ defineOptions({
                         </div>
                         <!-- Advanced -->
                         <button type="button" class="inline-flex items-center gap-1 text-[11px] text-white/40 transition-colors hover:text-white/70" @click="showEditAdvanced = !showEditAdvanced">
-                            <ChevronDown :class="['size-3 transition-transform', showEditAdvanced ? 'rotate-180' : '']" /> Advanced (formula / URL / SVG)
+                            <ChevronDown :class="['size-3 transition-transform', showEditAdvanced ? 'rotate-180' : '']" /> {{ t('settings.assets.advanced_options') }}
                         </button>
                         <div v-if="showEditAdvanced" class="space-y-3 rounded-[8px] border border-white/8 bg-black/20 p-3">
                             <div class="grid gap-1.5">

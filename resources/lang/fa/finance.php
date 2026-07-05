@@ -68,6 +68,10 @@ return [
             'investment' => 'سرمایه‌گذاری',
             'other' => 'سایر',
         ],
+        'add_custom' => 'دسته‌بندی جدید',
+        'already_exists' => 'این دسته‌بندی برای این نوع از قبل وجود دارد.',
+        'name_placeholder' => 'نام دسته‌بندی',
+        'new_name' => 'نام دسته‌بندی جدید',
         'uncategorized' => 'دسته‌بندی نشده',
     ],
     'dashboard' => [

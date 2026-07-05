@@ -44,11 +44,22 @@ const emojiGroups = [
     { label: 'Other', emojis: ['🏠','🚗','🛢','⚙️','🌾','☕','🍶','💊','🎯','🚀','⭐','🔑'] },
 ];
 
+const emojiGroupLabelKeys: Record<string, string> = {
+    'Metals & Coins': 'metals',
+    Finance: 'finance',
+    Crypto: 'crypto',
+    Other: 'other',
+};
+
 const formulaVariables = [
     'goldprice', 'gold_750', 'gold_900',
     'usd', 'eur', 'silver', 'coin',
     'bitcoin', 'bitcoin_usd', 'usdt',
 ];
+
+function emojiGroupLabel(label: string): string {
+    return t(`settings.assets.emoji_groups.${emojiGroupLabelKeys[label] ?? 'other'}`);
+}
 
 
 const form = useForm({
@@ -166,7 +177,7 @@ function submit(): void {
                                 @click="showEmojiPicker = !showEmojiPicker"
                             >
                                 <span v-if="form.icon" class="text-xl leading-none">{{ form.icon }}</span>
-                                <span v-else class="text-sm text-white/50">Pick emoji…</span>
+                                <span v-else class="text-sm text-white/50">{{ t('settings.assets.pick_emoji') }}</span>
                             </button>
 
                             <!-- Emoji picker popover -->
@@ -180,7 +191,7 @@ function submit(): void {
                                     class="mb-3 last:mb-0"
                                 >
                                     <p class="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-[#686868]">
-                                        {{ group.label }}
+                                        {{ emojiGroupLabel(group.label) }}
                                     </p>
                                     <div class="grid grid-cols-6 gap-1">
                                         <button
@@ -204,7 +215,7 @@ function submit(): void {
                                     class="mt-1 w-full cursor-pointer rounded-lg py-1.5 text-xs text-[#989898] transition-colors hover:bg-white/5 hover:text-white"
                                     @click="form.icon = ''; showEmojiPicker = false"
                                 >
-                                    Clear
+                                    {{ t('common.clear') }}
                                 </button>
                             </div>
                         </div>
@@ -212,7 +223,7 @@ function submit(): void {
 
                     <!-- Color -->
                     <div class="grid gap-1.5">
-                        <Label class="finance-dialog-label">Color</Label>
+                        <Label class="finance-dialog-label">{{ t('settings.assets.color') }}</Label>
                         <div class="flex items-center gap-2 pt-1">
                             <button
                                 v-for="c in presetColors"
@@ -230,7 +241,7 @@ function submit(): void {
                             <label
                                 class="relative size-6 cursor-pointer overflow-hidden rounded-full ring-1 ring-white/20"
                                 :style="{ backgroundColor: presetColors.includes(form.color) ? '#333' : form.color }"
-                                title="Custom color"
+                                :title="t('settings.assets.custom_color')"
                             >
                                 <span class="absolute inset-0 flex items-center justify-center text-[9px] leading-none text-white/70">+</span>
                                 <input
@@ -268,7 +279,7 @@ function submit(): void {
                     @click="showAdvanced = !showAdvanced"
                 >
                     <ChevronDown :class="['size-3 transition-transform', showAdvanced ? 'rotate-180' : '']" />
-                    Advanced (formula / URL / SVG)
+                    {{ t('settings.assets.advanced_options') }}
                 </button>
 
                 <!-- Advanced section -->

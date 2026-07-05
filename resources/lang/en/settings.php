@@ -44,6 +44,19 @@ return [
         'confirm_password_title' => 'Confirm your password',
         'confirm_password_description' => 'For your security, please confirm your password to continue.',
         'confirm_password_button' => 'Confirm',
+        'two_factor_enabled_title' => 'Two-factor authentication enabled',
+        'two_factor_enabled_setup_description' => 'Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.',
+        'two_factor_verify_title' => 'Verify authentication code',
+        'two_factor_verify_description' => 'Enter the 6-digit code from your authenticator app',
+        'two_factor_setup_title' => 'Enable two-factor authentication',
+        'two_factor_setup_description' => 'To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app',
+        'manual_setup_separator' => 'or, enter the code manually',
+        'recovery_codes_title' => '2FA recovery codes',
+        'recovery_codes_description' => 'Recovery codes let you regain access if you lose your 2FA device. Store them in a secure password manager.',
+        'view_recovery_codes' => 'View recovery codes',
+        'hide_recovery_codes' => 'Hide recovery codes',
+        'regenerate_recovery_codes' => 'Regenerate codes',
+        'recovery_codes_notice' => 'Each recovery code can be used once to access your account and will be removed after use. If you need more, click {action} above.',
     ],
     'telegram' => [
         'title' => 'Telegram settings',
@@ -100,6 +113,15 @@ return [
         'icon' => 'Emoji icon',
         'icon_placeholder' => 'emoji',
         'icon_help' => 'Optional emoji fallback when no SVG is used.',
+        'pick_emoji' => 'Pick emoji...',
+        'custom_color' => 'Custom color',
+        'advanced_options' => 'Advanced (formula / URL / SVG)',
+        'emoji_groups' => [
+            'metals' => 'Metals & Coins',
+            'finance' => 'Finance',
+            'crypto' => 'Crypto',
+            'other' => 'Other',
+        ],
         'svg_icon' => 'SVG icon',
         'svg_icon_placeholder' => '<svg viewBox="0 0 24 24">...</svg>',
         'svg_icon_help' => 'Paste a small SVG icon. Scripts, event handlers, external links, and unsafe markup are removed.',
@@ -147,6 +169,7 @@ return [
     'appearance' => [
         'title' => 'Appearance settings',
         'heading' => 'Appearance',
+        'description' => "Update your account's appearance settings",
     ],
     'preferences' => [
         'title' => 'Preferences',
@@ -157,6 +180,7 @@ return [
         'locales' => [
             'en' => 'English',
             'fa' => 'Persian',
+            'de' => 'German',
         ],
         'calendars' => [
             'gregorian' => 'Gregorian',

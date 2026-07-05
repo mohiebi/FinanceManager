@@ -9,6 +9,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InvestmentAssetController;
 use App\Http\Controllers\InvestmentController;
 use App\Http\Controllers\InvestmentExportController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\PortfolioExportController;
 use App\Http\Controllers\ReportController;
@@ -19,6 +20,11 @@ use App\Http\Middleware\EnsureProfileIsComplete;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Landing')->name('home');
+
+// Works for guests (session) and authenticated users (profile) alike.
+Route::post('locale', LocaleController::class)
+    ->middleware('throttle:20,1')
+    ->name('locale.update');
 
 Route::middleware('guest')->group(function () {
     Route::get('forgot-password', EmailAuthPageController::class)->name('password.request');

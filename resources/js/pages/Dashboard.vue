@@ -594,7 +594,6 @@ import BarChart from '@/components/charts/BarChart.vue';
 import GaugeChart from '@/components/charts/GaugeChart.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import TransactionDialog from '@/components/transactions/TransactionDialog.vue';
-import { Button } from '@/components/ui/button';
 import { monthBucketKeyFromIso, recentMonthBuckets } from '@/lib/date';
 import { dashboard } from '@/routes';
 import { index as transactionsIndex } from '@/routes/transactions';

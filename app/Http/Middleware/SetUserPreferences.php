@@ -14,7 +14,7 @@ class SetUserPreferences
      */
     public function handle(Request $request, Closure $next): Response
     {
-        app()->setLocale(FrontendLocalization::normalizeLocale($request->user()?->locale));
+        app()->setLocale(FrontendLocalization::resolve($request));
 
         return $next($request);
     }

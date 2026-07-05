@@ -46,6 +46,19 @@ return [
         'confirm_password_title' => 'تأیید رمز عبور',
         'confirm_password_description' => 'برای امنیت بیشتر، لطفاً رمز عبور خود را تأیید کنید.',
         'confirm_password_button' => 'تأیید',
+        'two_factor_enabled_title' => 'تأیید دومرحله‌ای فعال شد',
+        'two_factor_enabled_setup_description' => 'تأیید دومرحله‌ای اکنون فعال است. کد QR را اسکن کنید یا کلید راه‌اندازی را در برنامه تأییدکننده وارد کنید.',
+        'two_factor_verify_title' => 'تأیید کد احراز هویت',
+        'two_factor_verify_description' => 'کد ۶ رقمی برنامه تأییدکننده خود را وارد کنید',
+        'two_factor_setup_title' => 'فعال‌سازی تأیید دومرحله‌ای',
+        'two_factor_setup_description' => 'برای تکمیل فعال‌سازی تأیید دومرحله‌ای، کد QR را اسکن کنید یا کلید راه‌اندازی را در برنامه تأییدکننده وارد کنید',
+        'manual_setup_separator' => 'یا کد را به‌صورت دستی وارد کنید',
+        'recovery_codes_title' => 'کدهای بازیابی 2FA',
+        'recovery_codes_description' => 'اگر دستگاه تأیید دومرحله‌ای خود را از دست بدهید، کدهای بازیابی امکان دسترسی دوباره را فراهم می‌کنند. آن‌ها را در یک مدیر رمز عبور امن نگه دارید.',
+        'view_recovery_codes' => 'نمایش کدهای بازیابی',
+        'hide_recovery_codes' => 'پنهان کردن کدهای بازیابی',
+        'regenerate_recovery_codes' => 'تولید دوباره کدها',
+        'recovery_codes_notice' => 'هر کد بازیابی فقط یک بار برای دسترسی به حساب قابل استفاده است و پس از استفاده حذف می‌شود. اگر کدهای بیشتری لازم دارید، روی {action} بالا کلیک کنید.',
     ],
     'telegram' => [
         'title' => 'تنظیمات تلگرام',
@@ -103,6 +116,15 @@ return [
         'icon_placeholder' => 'ایموجی',
         'icon_help' => 'در صورت نداشتن SVG، این ایموجی نمایش داده می‌شود.',
         'svg_icon' => 'آیکن SVG',
+        'pick_emoji' => 'انتخاب ایموجی...',
+        'custom_color' => 'رنگ دلخواه',
+        'advanced_options' => 'پیشرفته (فرمول / آدرس / SVG)',
+        'emoji_groups' => [
+            'metals' => 'فلزات و سکه‌ها',
+            'finance' => 'مالی',
+            'crypto' => 'رمزارز',
+            'other' => 'سایر',
+        ],
         'svg_icon_placeholder' => '<svg viewBox="0 0 24 24">...</svg>',
         'svg_icon_help' => 'یک آیکن SVG کوچک وارد کنید. اسکریپت، رویدادها، لینک خارجی و کدهای ناامن حذف می‌شوند.',
         'invalid_svg' => 'یک آیکن SVG معتبر وارد کنید.',
@@ -149,6 +171,7 @@ return [
     'appearance' => [
         'title' => 'تنظیمات ظاهر',
         'heading' => 'ظاهر',
+        'description' => 'تنظیمات ظاهر حساب خود را به‌روزرسانی کنید',
     ],
     'preferences' => [
         'title' => 'ترجیحات',
@@ -159,6 +182,7 @@ return [
         'locales' => [
             'en' => 'انگلیسی',
             'fa' => 'فارسی',
+            'de' => 'آلمانی',
         ],
         'calendars' => [
             'gregorian' => 'میلادی',

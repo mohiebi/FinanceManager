@@ -3,7 +3,7 @@ export type User = {
     name: string;
     email: string;
     birthdate: string | null;
-    locale: 'en' | 'fa';
+    locale: 'en' | 'fa' | 'de';
     calendar: 'gregorian' | 'jalali';
     avatar?: string;
     email_verified_at: string | null;

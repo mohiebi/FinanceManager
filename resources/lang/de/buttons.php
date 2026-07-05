@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'continue' => 'Weiter',
+    'log_in' => 'Anmelden',
+    'sign_up' => 'Registrieren',
+    'submit' => 'Absenden',
+    'cancel' => 'Abbrechen',
+    'save' => 'Speichern',
+    'delete' => 'Löschen',
+    'edit' => 'Bearbeiten',
+    'back' => 'Zurück',
+    'next' => 'Weiter',
+    'close' => 'Schließen',
+    'use_another_email' => 'Andere E-Mail verwenden',
+    'send_code_instead' => 'Sende mir stattdessen einen Code',
+    'something_went_wrong' => 'Etwas ist schiefgelaufen.',
+    'sign_in' => 'Anmelden',
+    'sign_in_with_google' => 'Mit Google anmelden',
+    'verify_email' => 'E-Mail bestätigen',
+    'create_account' => 'Konto erstellen',
+    'confirm_password' => 'Passwort bestätigen',
+    'forgot_password' => 'Passwort vergessen?',
+    'login_using_recovery_code' => 'mit einem Wiederherstellungscode anmelden',
+    'login_using_auth_code' => 'mit einem Authentifizierungscode anmelden',
+    'sign_in_link' => 'anmelden',
+];

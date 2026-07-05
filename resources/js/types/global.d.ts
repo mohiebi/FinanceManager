@@ -18,7 +18,7 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
-            locale: 'en' | 'fa';
+            locale: 'en' | 'fa' | 'de';
             dir: 'ltr' | 'rtl';
             calendar: 'gregorian' | 'jalali';
             translations: Record<string, unknown>;

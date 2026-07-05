@@ -37,7 +37,7 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $locale = FrontendLocalization::normalizeLocale($request->user()?->locale);
+        $locale = FrontendLocalization::resolve($request);
         $calendar = FrontendLocalization::normalizeCalendar($request->user()?->calendar);
 
         return [
@@ -47,6 +47,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'locale' => $locale,
+            'locales' => FrontendLocalization::locales(),
             'dir' => FrontendLocalization::direction($locale),
             'calendar' => $calendar,
             'translations' => FrontendLocalization::messages($locale),

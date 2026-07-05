@@ -8,13 +8,13 @@ test('users can update language and calendar preferences', function () {
 
     $this->actingAs($user)
         ->patch('/settings/preferences', [
-            'locale' => 'fa',
-            'calendar' => 'jalali',
+            'locale' => 'de',
+            'calendar' => 'gregorian',
         ])
         ->assertRedirect();
 
-    expect($user->refresh()->locale)->toBe('fa')
-        ->and($user->calendar)->toBe('jalali');
+    expect($user->refresh()->locale)->toBe('de')
+        ->and($user->calendar)->toBe('gregorian');
 });
 
 test('preference props are shared with inertia pages', function () {
@@ -34,12 +34,29 @@ test('preference props are shared with inertia pages', function () {
         );
 });
 
+test('german preference props are shared with inertia pages', function () {
+    $user = User::factory()->create([
+        'locale' => 'de',
+        'calendar' => 'gregorian',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('locale', 'de')
+            ->where('dir', 'ltr')
+            ->where('calendar', 'gregorian')
+            ->where('translations.settings.title', 'Einstellungen'),
+        );
+});
+
 test('invalid preferences are rejected', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
         ->patch('/settings/preferences', [
-            'locale' => 'de',
+            'locale' => 'es',
             'calendar' => 'lunar',
         ])
         ->assertSessionHasErrors(['locale', 'calendar']);

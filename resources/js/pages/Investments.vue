@@ -101,6 +101,7 @@
                 'chartData',
                 'summary',
                 'prices',
+                'marketPriceRows',
                 'pricesAvailable',
             ]"
         >
@@ -114,6 +115,100 @@
                     </p>
                 </div>
             </template>
+
+            <section
+                v-if="visibleMarketPriceRows.length > 0"
+                class="mx-[18px] mt-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            >
+                <div
+                    class="mb-5 flex flex-wrap items-end justify-between gap-3"
+                >
+                    <div>
+                        <p
+                            class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
+                        >
+                            {{ t('finance.investments.market_prices_kicker') }}
+                        </p>
+                        <h2 class="mt-2 text-[22px] leading-none text-white">
+                            {{ t('finance.investments.market_prices_title') }}
+                        </h2>
+                    </div>
+                    <span class="text-xs text-[#989898]">
+                        {{
+                            t('finance.investments.market_prices_unit', {
+                                currency: selectedCurrency.toUpperCase(),
+                            })
+                        }}
+                    </span>
+                </div>
+
+                <div class="space-y-5">
+                    <div
+                        v-for="row in visibleMarketPriceRows"
+                        :key="row.key"
+                    >
+                        <div class="mb-3 flex items-center gap-3">
+                            <h3 class="text-sm font-semibold text-white">
+                                {{ row.title }}
+                            </h3>
+                            <span class="h-px flex-1 bg-white/10" />
+                        </div>
+                        <div
+                            class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+                        >
+                            <article
+                                v-for="asset in row.assets"
+                                :key="asset.key"
+                                class="min-w-0 rounded-2xl bg-[#111111] p-4 ring-1 ring-white/10"
+                                :style="{
+                                    borderTop: `2.5px solid ${asset.color}`,
+                                }"
+                            >
+                                <div class="flex items-center gap-3">
+                                    <AssetIcon
+                                        :icon="asset.icon"
+                                        :icon-svg="asset.icon_svg"
+                                        :label="asset.label"
+                                        :color="asset.color"
+                                        size="sm"
+                                    />
+                                    <div class="min-w-0">
+                                        <p
+                                            class="truncate text-sm font-semibold text-white"
+                                        >
+                                            {{ asset.label }}
+                                        </p>
+                                        <p class="text-xs text-[#989898]">
+                                            {{
+                                                t(
+                                                    'finance.investments.per_unit',
+                                                    { unit: asset.unit },
+                                                )
+                                            }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <p class="mt-4 text-lg font-bold text-white">
+                                    <template v-if="asset.price_available">
+                                        {{ asset.price_formatted }}
+                                        <span
+                                            class="text-xs font-normal text-[#989898]"
+                                            >{{ currencySymbol }}</span
+                                        >
+                                    </template>
+                                    <span
+                                        v-else
+                                        class="text-xs font-medium text-[#989898]"
+                                        >{{
+                                            t('finance.price_unavailable')
+                                        }}</span
+                                    >
+                                </p>
+                            </article>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <!-- ── Charts row ────────────────────────────────────────── -->
             <div
@@ -552,6 +647,25 @@ type CurrencyOption = {
     value: string;
 };
 
+type MarketPriceAsset = {
+    id: number;
+    key: AssetKey;
+    label: string;
+    icon: string | null;
+    icon_svg: string | null;
+    color: string;
+    unit: string;
+    price: number;
+    price_available: boolean;
+    price_formatted: string;
+};
+
+type MarketPriceRow = {
+    key: string;
+    title: string;
+    assets: MarketPriceAsset[];
+};
+
 const props = defineProps<{
     assets?: AssetSummary[];
     summary?: {
@@ -567,6 +681,7 @@ const props = defineProps<{
     entryCount: number;
     assetTypeCount: number;
     prices?: Record<AssetKey, number>;
+    marketPriceRows?: MarketPriceRow[];
     currencies: CurrencyOption[];
     selectedCurrency: string;
     pricesAvailable?: boolean;
@@ -648,6 +763,9 @@ const filteredChartSeries = computed<ChartSeries[]>(() =>
 );
 
 const pricesResolved = computed(() => props.pricesAvailable !== undefined);
+const visibleMarketPriceRows = computed<MarketPriceRow[]>(() =>
+    (props.marketPriceRows ?? []).filter((row) => row.assets.length > 0),
+);
 
 const donutSeries = computed(() =>
     (props.assets ?? []).map((asset) => asset.allocation),

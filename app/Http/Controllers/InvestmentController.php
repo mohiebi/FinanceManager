@@ -117,6 +117,28 @@ class InvestmentController extends Controller
             'prices' => Inertia::defer(fn () => $assetOptions
                 ->mapWithKeys(fn (InvestmentAsset $asset) => [$asset->slug => $priceService->priceFor($asset)])
                 ->all()),
+            'marketPriceRows' => Inertia::defer(fn () => [
+                [
+                    'key' => 'default',
+                    'title' => __('finance.investments.market_prices_common'),
+                    'assets' => $this->buildMarketPriceAssets(
+                        $assetOptions->where('is_default', true),
+                        $priceService,
+                        $currencyConverter,
+                        $selectedCurrency,
+                    ),
+                ],
+                [
+                    'key' => 'custom',
+                    'title' => __('finance.investments.market_prices_custom'),
+                    'assets' => $this->buildMarketPriceAssets(
+                        $assetOptions->where('is_default', false),
+                        $priceService,
+                        $currencyConverter,
+                        $selectedCurrency,
+                    ),
+                ],
+            ]),
             'pricesAvailable' => Inertia::defer(fn () => $priceService->pricesAvailable()),
             'pricesSyncedAt' => $priceService->lastSyncedAt(),
         ]);
@@ -372,6 +394,53 @@ class InvestmentController extends Controller
     private function formatMoney(float $amount): string
     {
         return number_format($amount, 0, '.', ',');
+    }
+
+    /**
+     * @param  Collection<int, InvestmentAsset>  $assets
+     * @return list<array<string, mixed>>
+     */
+    private function buildMarketPriceAssets(
+        Collection $assets,
+        AssetPriceService $priceService,
+        CurrencyConverter $currencyConverter,
+        Currency $selectedCurrency,
+    ): array {
+        return $assets
+            ->reject(fn (InvestmentAsset $asset): bool => $this->isSelectedCurrencyAsset($asset, $selectedCurrency))
+            ->map(function (InvestmentAsset $asset) use ($priceService, $currencyConverter, $selectedCurrency): array {
+                $price = $priceService->priceFor($asset);
+                $convertedPrice = $currencyConverter->convert($price, Currency::Toman, $selectedCurrency);
+
+                return [
+                    'id' => $asset->id,
+                    'key' => $asset->slug,
+                    'label' => $asset->label(),
+                    'icon' => $asset->icon,
+                    'icon_svg' => $asset->icon_svg,
+                    'color' => $asset->color,
+                    'unit' => $asset->unit,
+                    'price' => $convertedPrice,
+                    'price_available' => $price > 0,
+                    'price_formatted' => $this->formatConvertedMoney($convertedPrice, $selectedCurrency),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function isSelectedCurrencyAsset(InvestmentAsset $asset, Currency $selectedCurrency): bool
+    {
+        return match ($selectedCurrency) {
+            Currency::Usd => $asset->slug === 'usd',
+            Currency::Eur => $asset->slug === 'eur',
+            Currency::Toman => in_array($asset->slug, ['toman', 'irr', 'rial'], true),
+        };
+    }
+
+    private function formatConvertedMoney(float $amount, Currency $currency): string
+    {
+        return number_format($amount, $currency === Currency::Toman ? 0 : 2, '.', ',');
     }
 
     private function formatQuantity(float $quantity, InvestmentAsset $asset): string

@@ -58,7 +58,7 @@
                         >
                             {{ formatAmount(props.summary.income) }}
                             <span class="text-xs font-normal text-[#989898]">{{
-                                props.selectedCurrency.toUpperCase()
+                                selectedCurrencyLabel
                             }}</span>
                         </p>
                         <p class="mt-1.5 text-xs text-[#989898]">
@@ -89,7 +89,7 @@
                         >
                             {{ formatAmount(props.summary.cost) }}
                             <span class="text-xs font-normal text-[#989898]">{{
-                                props.selectedCurrency.toUpperCase()
+                                selectedCurrencyLabel
                             }}</span>
                         </p>
                         <p class="mt-1.5 text-xs text-[#989898]">
@@ -139,7 +139,7 @@
                             {{ balance >= 0 ? '+' : '−'
                             }}{{ formatAmount(Math.abs(balance)) }}
                             <span class="text-xs font-normal text-[#989898]">{{
-                                props.selectedCurrency.toUpperCase()
+                                selectedCurrencyLabel
                             }}</span>
                         </p>
                         <p class="mt-1.5 text-xs text-[#989898]">
@@ -656,6 +656,12 @@ const displayCalendar = computed(
     () => (page.props.calendar as string | undefined) ?? 'gregorian',
 );
 const period = computed(() => props.period);
+const selectedCurrencyLabel = computed(
+    () =>
+        props.currencies.find(
+            (currency) => currency.value === props.selectedCurrency,
+        )?.label ?? t(`finance.currencies.${props.selectedCurrency}`),
+);
 
 function parseNum(value: string | number): number {
     return parseFloat(String(value).replace(/,/g, '')) || 0;

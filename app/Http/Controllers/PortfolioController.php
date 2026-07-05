@@ -37,7 +37,7 @@ class PortfolioController extends Controller
 
         return Inertia::render('Portfolio', [
             'currencies' => collect(Currency::cases())->map(fn (Currency $c) => [
-                'label' => strtoupper($c->value),
+                'label' => $c->label(),
                 'value' => $c->value,
             ]),
             'selectedCurrency' => $selectedCurrency->value,

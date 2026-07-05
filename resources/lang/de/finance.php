@@ -51,6 +51,11 @@ return [
         'day_of_month' => 'Tag {day} von {days}',
         'elapsed' => '{progress}% des Monats vergangen',
     ],
+    'currencies' => [
+        'toman' => 'TOMAN',
+        'usd' => 'USD',
+        'eur' => 'EURO',
+    ],
     'categories' => [
         'cost' => [
             'food' => 'Lebensmittel',
@@ -202,8 +207,12 @@ return [
     'portfolio' => [
         'title' => 'Portfolio',
         'overview' => 'Portfolioübersicht',
+        'hero_title' => 'Deine Bestände, Kostenbasis und G/V auf einen Blick.',
+        'hero_description' => 'Füge beim Erfassen von Investitionseinträgen eine Kostenbasis hinzu, um hier die Gewinn-/Verlustverfolgung freizuschalten.',
+        'export_profit_loss' => 'G/V exportieren',
         'current_value' => 'Aktueller Wert',
         'cost_basis' => 'Kostenbasis',
+        'total_cost_basis' => 'Gesamte Kostenbasis',
         'profit_loss' => 'Gewinn / Verlust',
         'invested' => 'Investiert',
         'no_cost_basis' => 'Noch keine Kostenbasis',
@@ -212,6 +221,7 @@ return [
         'entry_level_detail' => 'Bestandsdetails',
         'entry_history_description' => 'Zusammengeführte Bestände nach Asset mit Menge, Durchschnittskosten, Gesamtkosten, aktuellem Wert und G/V.',
         'empty' => 'Portfolio ist leer',
+        'empty_description' => 'Gehe zur Investitionsseite und füge deinen ersten Eintrag hinzu. Komm danach hierher zurück, um Gewinn und Verlust zu verfolgen, sobald du Kostenbasisdaten ergänzt hast.',
         'net_worth' => 'Nettovermögen',
         'net_worth_description' => 'Der Gesamtwert von allem, was du aktuell hältst.',
         'assets_held' => 'Gehaltene Assets',

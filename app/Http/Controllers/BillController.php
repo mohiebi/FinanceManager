@@ -58,7 +58,7 @@ class BillController extends Controller
             'bills' => $bills,
             'categories' => $categories,
             'currencies' => collect(Currency::cases())->map(fn (Currency $c) => [
-                'label' => strtoupper($c->value),
+                'label' => $c->label(),
                 'value' => $c->value,
             ]),
             'userCalendar' => $user->calendar ?? 'gregorian',

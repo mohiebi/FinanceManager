@@ -136,7 +136,7 @@
                     <span class="text-xs text-[#989898]">
                         {{
                             t('finance.investments.market_prices_unit', {
-                                currency: selectedCurrency.toUpperCase(),
+                                currency: selectedCurrencyLabel,
                             })
                         }}
                     </span>
@@ -733,6 +733,12 @@ const page = usePage();
 const { t } = useI18n();
 const displayCalendar = computed(
     () => (page.props.calendar as string | undefined) ?? 'gregorian',
+);
+const selectedCurrencyLabel = computed(
+    () =>
+        props.currencies.find(
+            (currency) => currency.value === selectedCurrency.value,
+        )?.label ?? t(`finance.currencies.${selectedCurrency.value}`),
 );
 
 const currencySymbol = computed(() => {

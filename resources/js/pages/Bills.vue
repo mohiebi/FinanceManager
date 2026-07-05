@@ -94,7 +94,7 @@
                 <p class="text-2xl font-bold text-white">
                     {{ formatAmount(bill.amount) }}
                     <span class="text-sm font-normal text-[#989898]">{{
-                        bill.currency.toUpperCase()
+                        currencyLabel(bill.currency)
                     }}</span>
                 </p>
 
@@ -461,6 +461,9 @@ const displayDate = (value: string): string =>
     formatAppDate(value, props.userCalendar);
 const formatAmount = (value: number): string =>
     new Intl.NumberFormat().format(value);
+const currencyLabel = (value: string): string =>
+    props.currencies.find((currency) => currency.value === value)?.label ??
+    t(`finance.currencies.${value}`);
 
 const fieldClass =
     'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25';

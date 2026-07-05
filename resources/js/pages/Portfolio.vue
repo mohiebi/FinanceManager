@@ -19,7 +19,7 @@
                     class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-xs whitespace-nowrap text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white"
                 >
                     <Download class="size-3" />
-                    Export P&amp;L
+                    {{ t('finance.portfolio.export_profit_loss') }}
                 </a>
                 <button
                     type="button"
@@ -53,11 +53,10 @@
                     <h1
                         class="max-w-3xl text-3xl leading-tight font-semibold tracking-tight text-white sm:text-4xl"
                     >
-                        Your holdings, cost basis &amp; P/L at a glance.
+                        {{ t('finance.portfolio.hero_title') }}
                     </h1>
                     <p class="text-sm text-[#989898]">
-                        Add a cost basis when logging investment entries to
-                        unlock profit/loss tracking here.
+                        {{ t('finance.portfolio.hero_description') }}
                     </p>
                 </div>
 
@@ -423,7 +422,9 @@
                                 <th
                                     class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] lg:table-cell lg:px-5"
                                 >
-                                    Total cost basis
+                                    {{
+                                        t('finance.portfolio.total_cost_basis')
+                                    }}
                                 </th>
                                 <th
                                     class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
@@ -586,9 +587,7 @@
                     {{ t('finance.portfolio.empty') }}
                 </h2>
                 <p class="mt-2 max-w-sm text-center text-sm text-[#989898]">
-                    Head over to the Investments page and add your first entry.
-                    Come back here to track your profit &amp; loss once you add
-                    cost basis info.
+                    {{ t('finance.portfolio.empty_description') }}
                 </p>
             </div>
         </Deferred>

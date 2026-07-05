@@ -51,6 +51,11 @@ return [
         'day_of_month' => 'Day {day} of {days}',
         'elapsed' => '{progress}% of month elapsed',
     ],
+    'currencies' => [
+        'toman' => 'TOMAN',
+        'usd' => 'USD',
+        'eur' => 'EURO',
+    ],
     'categories' => [
         'cost' => [
             'food' => 'Food',
@@ -202,8 +207,12 @@ return [
     'portfolio' => [
         'title' => 'Portfolio',
         'overview' => 'Portfolio overview',
+        'hero_title' => 'Your holdings, cost basis & P/L at a glance.',
+        'hero_description' => 'Add a cost basis when logging investment entries to unlock profit/loss tracking here.',
+        'export_profit_loss' => 'Export P&L',
         'current_value' => 'Current value',
         'cost_basis' => 'Cost basis',
+        'total_cost_basis' => 'Total cost basis',
         'profit_loss' => 'Profit / Loss',
         'invested' => 'Invested',
         'no_cost_basis' => 'No cost basis yet',
@@ -212,6 +221,7 @@ return [
         'entry_level_detail' => 'Holdings detail',
         'entry_history_description' => 'Merged holdings by asset with quantity, average cost, total cost, current value, and P/L.',
         'empty' => 'Portfolio is empty',
+        'empty_description' => 'Head over to the Investments page and add your first entry. Come back here to track your profit & loss once you add cost basis info.',
         'net_worth' => 'Net worth',
         'net_worth_description' => 'The total value of everything you hold, right now.',
         'assets_held' => 'Assets held',

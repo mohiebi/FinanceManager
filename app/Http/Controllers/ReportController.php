@@ -117,7 +117,7 @@ class ReportController extends Controller
             ],
             'currencies' => collect(Currency::cases())
                 ->map(fn (Currency $currency) => [
-                    'label' => strtoupper($currency->value),
+                    'label' => $currency->label(),
                     'value' => $currency->value,
                 ]),
             'selectedCurrency' => $selectedCurrency->value,

@@ -883,7 +883,14 @@ function formatMoney(amount: string | number, currency: Currency): string {
     return `${new Intl.NumberFormat('en-US', {
         maximumFractionDigits: 2,
         minimumFractionDigits: value % 1 === 0 ? 0 : 2,
-    }).format(value)} ${currency.toUpperCase()}`;
+    }).format(value)} ${currencyLabel(currency)}`;
+}
+
+function currencyLabel(value: Currency): string {
+    return (
+        props.currencies.find((currency) => currency.value === value)?.label ??
+        t(`finance.currencies.${value}`)
+    );
 }
 
 function displayDate(value: string): string {

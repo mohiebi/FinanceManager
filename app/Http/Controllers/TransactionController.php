@@ -153,7 +153,7 @@ class TransactionController extends Controller
             ],
             'currencies' => collect(Currency::cases())
                 ->map(fn (Currency $currency) => [
-                    'label' => strtoupper($currency->value),
+                    'label' => $currency->label(),
                     'value' => $currency->value,
                 ]),
             'selectedCurrency' => $selectedCurrency->value,
@@ -220,7 +220,7 @@ class TransactionController extends Controller
             )->endOfDay();
         } else {
             $from = $now->copy()->startOfMonth()->startOfDay();
-            $to   = $now->copy()->endOfMonth()->endOfDay();
+            $to = $now->copy()->endOfMonth()->endOfDay();
         }
 
         return [$from, $to];

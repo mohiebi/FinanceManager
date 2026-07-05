@@ -83,7 +83,7 @@ class InvestmentController extends Controller
             'sourceTypes' => $this->sourceTypes(),
             'selectedRange' => $range,
             'currencies' => collect(Currency::cases())->map(fn (Currency $c) => [
-                'label' => strtoupper($c->value),
+                'label' => $c->label(),
                 'value' => $c->value,
             ]),
             'selectedCurrency' => $selectedCurrency->value,

@@ -91,6 +91,98 @@ export function monthBucketKeyFromIso(
 
 export type MonthBucket = { key: string; label: string };
 
+/**
+ * Month buckets (calendar-aware) covering an arbitrary inclusive ISO date range.
+ */
+export function monthBucketsBetween(
+    fromIso: string,
+    toIso: string,
+    calendar: string | undefined,
+    monthLabelLocale: string,
+): MonthBucket[] {
+    const from = new Date(`${fromIso.slice(0, 10)}T00:00:00`);
+    const to = new Date(`${toIso.slice(0, 10)}T00:00:00`);
+
+    if (isNaN(from.getTime()) || isNaN(to.getTime()) || from > to) {
+        return [];
+    }
+
+    const buckets: MonthBucket[] = [];
+
+    if (calendar === 'jalali') {
+        const start = toJalaali(
+            from.getFullYear(),
+            from.getMonth() + 1,
+            from.getDate(),
+        );
+        const end = toJalaali(to.getFullYear(), to.getMonth() + 1, to.getDate());
+
+        let jy = start.jy;
+        let jm = start.jm;
+
+        while (jy < end.jy || (jy === end.jy && jm <= end.jm)) {
+            buckets.push({
+                key: `${jy}-${pad(jm)}`,
+                label: jalaliMonthAbbreviations[jm - 1],
+            });
+
+            jm += 1;
+
+            if (jm > 12) {
+                jm = 1;
+                jy += 1;
+            }
+        }
+
+        return buckets;
+    }
+
+    const cursor = new Date(from.getFullYear(), from.getMonth(), 1);
+    const endMonth = new Date(to.getFullYear(), to.getMonth(), 1);
+
+    while (cursor <= endMonth) {
+        buckets.push({
+            key: `${cursor.getFullYear()}-${pad(cursor.getMonth() + 1)}`,
+            label: cursor.toLocaleDateString(monthLabelLocale, {
+                month: 'short',
+            }),
+        });
+
+        cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    return buckets;
+}
+
+/**
+ * Inclusive list of ISO dates between two ISO dates (capped for safety).
+ */
+export function dayBucketsBetween(
+    fromIso: string,
+    toIso: string,
+    maxDays = 92,
+): string[] {
+    const from = new Date(`${fromIso.slice(0, 10)}T00:00:00`);
+    const to = new Date(`${toIso.slice(0, 10)}T00:00:00`);
+
+    if (isNaN(from.getTime()) || isNaN(to.getTime()) || from > to) {
+        return [];
+    }
+
+    const days: string[] = [];
+    const cursor = new Date(from);
+
+    while (cursor <= to && days.length < maxDays) {
+        days.push(
+            `${cursor.getFullYear()}-${pad(cursor.getMonth() + 1)}-${pad(cursor.getDate())}`,
+        );
+
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return days;
+}
+
 export function recentMonthBuckets(
     count: number,
     calendar: string | undefined,

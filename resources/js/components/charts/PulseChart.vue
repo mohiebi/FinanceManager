@@ -9,25 +9,30 @@ const props = defineProps<{
     height?: number;
     color?: string;
     highlightColor?: string;
+    // 'peak' tints the largest bar; 'sign' tints negative bars.
+    colorMode?: 'peak' | 'sign';
 }>();
 
 const chartRef = ref<HTMLElement | null>(null);
 let chart: ApexCharts | null = null;
 
 const formatAxisAmount = (amount: number): string => {
-    if (amount >= 1_000_000_000) {
-        return (amount / 1_000_000_000).toFixed(1) + 'B';
+    const sign = amount < 0 ? '−' : '';
+    const magnitude = Math.abs(amount);
+
+    if (magnitude >= 1_000_000_000) {
+        return sign + (magnitude / 1_000_000_000).toFixed(1) + 'B';
     }
 
-    if (amount >= 1_000_000) {
-        return (amount / 1_000_000).toFixed(1) + 'M';
+    if (magnitude >= 1_000_000) {
+        return sign + (magnitude / 1_000_000).toFixed(1) + 'M';
     }
 
-    if (amount >= 1_000) {
-        return (amount / 1_000).toFixed(0) + 'K';
+    if (magnitude >= 1_000) {
+        return sign + (magnitude / 1_000).toFixed(0) + 'K';
     }
 
-    return amount.toFixed(0);
+    return sign + magnitude.toFixed(0);
 };
 
 const buildOptions = () => {
@@ -49,10 +54,18 @@ const buildOptions = () => {
             fontFamily: 'inherit',
         },
         series: [{ name: props.seriesName, data: props.data }],
-        // The heaviest spending day is tinted differently so spikes pop.
+        // 'peak': the heaviest bar is tinted so spikes pop.
+        // 'sign': negative bars are tinted (e.g. months you overspent).
         colors: [
-            ({ value }: { value: number }) =>
-                maxValue > 0 && value === maxValue ? peakColor : baseColor,
+            ({ value }: { value: number }) => {
+                if (props.colorMode === 'sign') {
+                    return value < 0 ? peakColor : baseColor;
+                }
+
+                return maxValue > 0 && value === maxValue
+                    ? peakColor
+                    : baseColor;
+            },
         ],
         plotOptions: {
             bar: {

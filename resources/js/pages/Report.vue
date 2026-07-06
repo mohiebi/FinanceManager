@@ -312,48 +312,77 @@
         <!-- Charts row -->
         <div
             v-if="props.summary.count > 0"
-            class="grid items-start gap-[18px] px-[18px] pt-[18px] xl:grid-cols-[1fr_380px]"
+            class="grid items-stretch gap-[18px] px-[18px] pt-[18px] md:grid-cols-3"
         >
-            <!-- Bar chart — income vs costs by category -->
+            <!-- Cash flow over time — income vs costs -->
             <section
                 class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="mb-4 flex items-center justify-between">
                     <h2 class="text-[18px] leading-none font-normal text-white">
-                        {{ t('finance.reports.income_vs_costs') }}
+                        {{ t('finance.reports.cash_flow') }}
                     </h2>
                     <span class="text-xs text-[#989898]">{{
-                        t('finance.reports.top_categories')
+                        bucketMode === 'day'
+                            ? t('finance.reports.by_day')
+                            : t('finance.reports.by_month')
                     }}</span>
                 </div>
-                <BarChart
-                    :income-data="categoryChartData.incomeData"
-                    :cost-data="categoryChartData.costData"
-                    :categories="categoryChartData.categories"
+                <LineChart
+                    :series="cashFlowSeries"
+                    :categories="bucketLabels"
+                    raw-labels
                     :height="280"
                 />
             </section>
 
-            <!-- Donut chart — cost breakdown by category -->
+            <!-- Top spending categories — ranked -->
             <section
                 class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="mb-4 flex items-center justify-between">
                     <h2 class="text-[18px] leading-none font-normal text-white">
-                        {{ t('finance.reports.cost_breakdown') }}
+                        {{ t('finance.reports.top_spending') }}
                     </h2>
                     <span class="text-xs text-[#989898]">{{
                         t('finance.reports.by_category')
                     }}</span>
                 </div>
-                <DonutChart
-                    :series="costBreakdown.series"
-                    :labels="costBreakdown.labels"
-                    :colors="costBreakdown.colors"
-                    :center-label="t('finance.metrics.costs')"
-                    :center-value="
-                        formatMoney(props.summary.cost, props.selectedCurrency)
-                    "
+                <RankedBarChart
+                    v-if="topSpending.values.length > 0"
+                    :labels="topSpending.labels"
+                    :values="topSpending.values"
+                    :colors="topSpending.colors"
+                    :series-name="t('finance.metrics.costs')"
+                    :height="280"
+                />
+                <p v-else class="mt-8 text-center text-sm text-[#989898]">
+                    {{ t('finance.dashboard.no_costs') }}
+                </p>
+            </section>
+
+            <!-- Net savings per bucket -->
+            <section
+                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            >
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-[18px] leading-none font-normal text-white">
+                        {{ t('finance.reports.net_savings') }}
+                    </h2>
+                    <span class="text-xs text-[#989898]">{{
+                        bucketMode === 'day'
+                            ? t('finance.reports.by_day')
+                            : t('finance.reports.by_month')
+                    }}</span>
+                </div>
+                <PulseChart
+                    :data="netSavings"
+                    :categories="bucketLabels"
+                    :series-name="t('finance.metrics.balance')"
+                    color="#02CD86"
+                    highlight-color="#E94E50"
+                    color-mode="sign"
+                    :height="280"
                 />
             </section>
         </div>
@@ -590,8 +619,9 @@ import { RotateCcw, Search } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
-import BarChart from '@/components/charts/BarChart.vue';
-import DonutChart from '@/components/charts/DonutChart.vue';
+import LineChart from '@/components/charts/LineChart.vue';
+import PulseChart from '@/components/charts/PulseChart.vue';
+import RankedBarChart from '@/components/charts/RankedBarChart.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -602,7 +632,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatAppDate } from '@/lib/date';
+import {
+    dayBucketsBetween,
+    formatAppDate,
+    formatChartDateLabel,
+    monthBucketKeyFromIso,
+    monthBucketsBetween,
+} from '@/lib/date';
 import { dashboard, report } from '@/routes';
 
 type ReportRange = 'this_month' | 'this_season' | 'yearly' | 'custom';
@@ -720,38 +756,109 @@ const chartPalette = [
     '#7ee8c4',
 ];
 
-const categoryChartData = computed(() => {
-    const totals = new Map<string, { income: number; cost: number }>();
+// ── Time bucketing: days for short ranges, months for season/year ──
 
-    const accumulate = (
-        transactions: Transaction[],
-        key: 'income' | 'cost',
-    ) => {
-        for (const transaction of transactions) {
-            const name =
-                transaction.category?.name ??
-                t('finance.categories.uncategorized');
-            const entry = totals.get(name) ?? { income: 0, cost: 0 };
-            entry[key] += Number(transaction.display_amount);
-            totals.set(name, entry);
-        }
-    };
+const rangeSpanDays = computed(() => {
+    const from = new Date(`${props.filters.from}T00:00:00`).getTime();
+    const to = new Date(`${props.filters.to}T00:00:00`).getTime();
 
-    accumulate(props.transactions.incomes, 'income');
-    accumulate(props.transactions.costs, 'cost');
+    if (isNaN(from) || isNaN(to)) {
+        return 0;
+    }
 
-    const entries = [...totals.entries()]
-        .sort((a, b) => b[1].income + b[1].cost - (a[1].income + a[1].cost))
-        .slice(0, 8);
-
-    return {
-        categories: entries.map(([name]) => name),
-        incomeData: entries.map(([, totalsForName]) => totalsForName.income),
-        costData: entries.map(([, totalsForName]) => totalsForName.cost),
-    };
+    return Math.round((to - from) / 86_400_000) + 1;
 });
 
-const costBreakdown = computed(() => {
+const bucketMode = computed<'day' | 'month'>(() =>
+    rangeSpanDays.value > 0 && rangeSpanDays.value <= 45 ? 'day' : 'month',
+);
+
+const buckets = computed(() => {
+    if (bucketMode.value === 'day') {
+        return dayBucketsBetween(props.filters.from, props.filters.to).map(
+            (iso) => ({
+                key: iso,
+                label: formatChartDateLabel(iso, displayCalendar.value),
+            }),
+        );
+    }
+
+    return monthBucketsBetween(
+        props.filters.from,
+        props.filters.to,
+        displayCalendar.value,
+        'en-US',
+    );
+});
+
+const bucketLabels = computed(() => buckets.value.map((b) => b.label));
+
+function bucketKeyFor(isoDate: string): string {
+    const iso = isoDate.slice(0, 10);
+
+    return bucketMode.value === 'day'
+        ? iso
+        : monthBucketKeyFromIso(iso, displayCalendar.value);
+}
+
+const flowByBucket = computed(() => {
+    const totals = new Map<string, { income: number; cost: number }>();
+
+    for (const bucket of buckets.value) {
+        totals.set(bucket.key, { income: 0, cost: 0 });
+    }
+
+    for (const transaction of props.transactions.incomes) {
+        const entry = totals.get(bucketKeyFor(transaction.occurred_at));
+
+        if (entry) {
+            entry.income += Number(transaction.display_amount);
+        }
+    }
+
+    for (const transaction of props.transactions.costs) {
+        const entry = totals.get(bucketKeyFor(transaction.occurred_at));
+
+        if (entry) {
+            entry.cost += Number(transaction.display_amount);
+        }
+    }
+
+    return totals;
+});
+
+const cashFlowSeries = computed(() => [
+    {
+        name: t('finance.metrics.income'),
+        key: 'income',
+        color: '#02CD86',
+        data: buckets.value.map(
+            (bucket) => flowByBucket.value.get(bucket.key)?.income ?? 0,
+        ),
+    },
+    {
+        name: t('finance.metrics.costs'),
+        key: 'cost',
+        color: '#6C4EE9',
+        data: buckets.value.map(
+            (bucket) => flowByBucket.value.get(bucket.key)?.cost ?? 0,
+        ),
+    },
+]);
+
+const netSavings = computed(() =>
+    buckets.value.map((bucket) => {
+        const entry = flowByBucket.value.get(bucket.key);
+
+        return (
+            Math.round(((entry?.income ?? 0) - (entry?.cost ?? 0)) * 100) / 100
+        );
+    }),
+);
+
+// ── Top spending categories, ranked ──
+
+const topSpending = computed(() => {
     const totals = new Map<string, number>();
 
     for (const transaction of props.transactions.costs) {
@@ -763,11 +870,13 @@ const costBreakdown = computed(() => {
         );
     }
 
-    const entries = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+    const entries = [...totals.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6);
 
     return {
         labels: entries.map(([name]) => name),
-        series: entries.map(([, total]) => total),
+        values: entries.map(([, total]) => Math.round(total * 100) / 100),
         colors: entries.map(
             (_, index) => chartPalette[index % chartPalette.length],
         ),

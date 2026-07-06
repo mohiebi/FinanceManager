@@ -214,6 +214,7 @@ return [
         'cost_basis' => 'Kostenbasis',
         'total_cost_basis' => 'Gesamte Kostenbasis',
         'profit_loss' => 'Gewinn / Verlust',
+        'pnl_by_asset' => 'Gewinn / Verlust je Asset',
         'invested' => 'Investiert',
         'no_cost_basis' => 'Noch keine Kostenbasis',
         'per_asset_breakdown' => 'Aufschlüsselung je Asset',

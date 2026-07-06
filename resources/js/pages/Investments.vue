@@ -210,11 +210,11 @@
             <!-- ── Charts row ────────────────────────────────────────── -->
             <div
                 v-if="(props.assets ?? []).length > 0"
-                class="grid items-start gap-[18px] px-[18px] py-[18px] xl:grid-cols-[380px_1fr]"
+                class="grid items-stretch gap-[18px] px-[18px] py-[18px] xl:grid-cols-[320px_1fr]"
             >
                 <!-- Donut / allocation chart -->
                 <section
-                    class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                    class="flex flex-col overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 >
                     <div class="mb-4 flex items-center justify-between">
                         <h2
@@ -226,23 +226,25 @@
                             t('finance.investments.by_current_value')
                         }}</span>
                     </div>
-                    <DonutChart
-                        :series="donutSeries"
-                        :labels="donutLabels"
-                        :colors="donutColors"
-                        :center-label="t('finance.investments.portfolio')"
-                        :center-value="
-                            props.pricesAvailable
-                                ? props.summary?.total_value_formatted + ' T'
-                                : t('finance.price_unavailable')
-                        "
-                        @slice-click="onSliceClick"
-                    />
+                    <div class="flex flex-1 items-center">
+                        <DonutChart
+                            :series="donutSeries"
+                            :labels="donutLabels"
+                            :colors="donutColors"
+                            :center-label="t('finance.investments.portfolio')"
+                            :center-value="
+                                props.pricesAvailable
+                                    ? props.summary?.total_value_formatted + ' T'
+                                    : t('finance.price_unavailable')
+                            "
+                            @slice-click="onSliceClick"
+                        />
+                    </div>
                 </section>
 
                 <!-- Line chart — value over time -->
                 <section
-                    class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                    class="flex flex-col overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 >
                     <div
                         class="mb-4 flex flex-wrap items-center justify-between gap-3"
@@ -321,7 +323,7 @@
                         :series="filteredChartSeries"
                         :categories="props.chartData?.categories ?? []"
                         :calendar="displayCalendar"
-                        :height="280"
+                        :height="340"
                     />
                 </section>
             </div>

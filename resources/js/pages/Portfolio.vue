@@ -545,32 +545,32 @@
                 </div>
             </div>
 
-            <!-- ── Allocation chart ──────────────────────────────────── -->
+            <!-- ── Profit / loss by asset ────────────────────────────── -->
             <div
                 v-if="assets.length > 0"
-                class="mx-[18px] my-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10 xl:max-w-[420px]"
+                class="mx-[18px] my-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="mb-4 flex items-center justify-between">
                     <h2 class="text-[18px] leading-none font-normal text-white">
-                        {{ t('finance.investments.allocation') }}
+                        {{ t('finance.portfolio.pnl_by_asset') }}
                     </h2>
                     <span class="text-xs text-[#989898]">{{
-                        t('finance.investments.by_current_value')
+                        currencySymbol
                     }}</span>
                 </div>
-                <DonutChart
-                    :series="allocationDonut.series"
-                    :labels="allocationDonut.labels"
-                    :colors="allocationDonut.colors"
-                    :center-label="t('finance.portfolio.current_value')"
-                    :center-value="
-                        props.pricesAvailable
-                            ? summary.total_current_value_formatted +
-                              ' ' +
-                              currencySymbol
-                            : t('finance.price_unavailable')
-                    "
+                <PulseChart
+                    v-if="props.pricesAvailable && pnlByAsset.hasData"
+                    :data="pnlByAsset.data"
+                    :categories="pnlByAsset.categories"
+                    :series-name="t('finance.portfolio.profit_loss')"
+                    color="#02CD86"
+                    highlight-color="#E94E50"
+                    color-mode="sign"
+                    :height="280"
                 />
+                <p v-else class="py-12 text-center text-sm text-[#989898]">
+                    {{ t('finance.portfolio.hero_description') }}
+                </p>
             </div>
 
             <!-- ── Empty state ───────────────────────────────────────── -->
@@ -606,7 +606,7 @@ import {
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
-import DonutChart from '@/components/charts/DonutChart.vue';
+import PulseChart from '@/components/charts/PulseChart.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { useRelativeTime } from '@/composables/useRelativeTime';
 import { dashboard, portfolio } from '@/routes';
@@ -720,11 +720,16 @@ const currencySymbol = computed(() => {
     }
 });
 
-const allocationDonut = computed(() => ({
-    series: assets.value.map((asset) => asset.current_value),
-    labels: assets.value.map((asset) => asset.label),
-    colors: assets.value.map((asset) => asset.color),
-}));
+// Profit / loss per asset — only assets with a recorded cost basis have a P&L.
+const pnlByAsset = computed(() => {
+    const withPnl = assets.value.filter((asset) => asset.pnl !== null);
+
+    return {
+        hasData: withPnl.length > 0,
+        data: withPnl.map((asset) => Math.round(asset.pnl ?? 0)),
+        categories: withPnl.map((asset) => asset.label),
+    };
+});
 
 watch(
     () => props.selectedCurrency,

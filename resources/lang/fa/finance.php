@@ -223,6 +223,7 @@ return [
         'cost_basis' => 'بهای تمام‌شده',
         'total_cost_basis' => 'کل بهای تمام‌شده',
         'profit_loss' => 'سود / زیان',
+        'pnl_by_asset' => 'سود / زیان به تفکیک دارایی',
         'invested' => 'سرمایه‌گذاری‌شده',
         'no_cost_basis' => 'هنوز بهای تمام‌شده ثبت نشده',
         'per_asset_breakdown' => 'جزئیات دارایی‌ها',

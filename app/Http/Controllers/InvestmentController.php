@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\Currency;
 use App\Http\Resources\InvestmentAssetResource;
+use App\Models\AssetPriceSnapshot;
 use App\Models\Investment;
 use App\Models\InvestmentAsset;
 use App\Services\AssetPriceService;
@@ -347,20 +348,45 @@ class InvestmentController extends Controller
 
         $groupedEntries = $entries->groupBy('investment_asset_id');
 
+        // Historical prices recorded by the hourly RefreshAssetPricesJob.
+        // Dates before the first snapshot fall back to the current price;
+        // "today" always uses the live price.
+        $snapshotsByAsset = AssetPriceSnapshot::query()
+            ->whereIn('investment_asset_id', $groupedEntries->keys())
+            ->where('snapped_on', '<=', $now)
+            ->orderBy('snapped_on')
+            ->get()
+            ->groupBy('investment_asset_id');
+
         $seriesList = [];
         $totalByDate = array_fill_keys($dates, 0.0);
 
-        foreach ($groupedEntries as $typeEntries) {
+        foreach ($groupedEntries as $assetId => $typeEntries) {
             $asset = $typeEntries->first()?->asset;
 
             if (! $asset) {
                 continue;
             }
 
-            $price = $priceService->priceFor($asset);
+            $currentPrice = $priceService->priceFor($asset);
+            $snapshots = $snapshotsByAsset->get($assetId, collect())->values();
+            $snapshotPointer = 0;
+            $lastKnownPrice = null;
             $seriesData = [];
 
             foreach ($dates as $date) {
+                while (
+                    $snapshotPointer < $snapshots->count()
+                    && $snapshots[$snapshotPointer]->snapped_on->toDateString() <= $date
+                ) {
+                    $lastKnownPrice = (float) $snapshots[$snapshotPointer]->price;
+                    $snapshotPointer++;
+                }
+
+                $price = $date === $now->toDateString()
+                    ? $currentPrice
+                    : ($lastKnownPrice ?? $currentPrice);
+
                 $dateParsed = Carbon::parse($date);
                 $cumulativeQuantity = $typeEntries
                     ->filter(fn ($entry) => $entry->occurred_at->lte($dateParsed))

@@ -223,6 +223,7 @@ return [
         'cost_basis' => 'Cost basis',
         'total_cost_basis' => 'Total cost basis',
         'profit_loss' => 'Profit / Loss',
+        'pnl_by_asset' => 'Profit / Loss by asset',
         'invested' => 'Invested',
         'no_cost_basis' => 'No cost basis yet',
         'per_asset_breakdown' => 'Per-asset breakdown',

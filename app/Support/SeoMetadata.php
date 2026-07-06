@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Lang;
 
 class SeoMetadata
@@ -92,9 +93,10 @@ class SeoMetadata
         $alternates = self::landingAlternates();
         $xDefault = self::localizedLandingUrl(FrontendLocalization::DEFAULT_LOCALE);
         $urls = array_map(fn (array $alternate): string => $alternate['url'], $alternates);
+        $lastmod = Carbon::now()->toDateString();
 
         $entries = array_map(
-            fn (string $url): string => self::sitemapUrlEntry($url, $alternates, $xDefault),
+            fn (string $url): string => self::sitemapUrlEntry($url, $alternates, $xDefault, $lastmod),
             $urls,
         );
 
@@ -110,7 +112,7 @@ class SeoMetadata
     /**
      * @param  array<int, array{locale: string, url: string}>  $alternates
      */
-    private static function sitemapUrlEntry(string $url, array $alternates, string $xDefault): string
+    private static function sitemapUrlEntry(string $url, array $alternates, string $xDefault, string $lastmod): string
     {
         $alternateLinks = array_map(
             fn (array $alternate): string => sprintf(
@@ -129,6 +131,9 @@ class SeoMetadata
         return implode("\n", [
             '    <url>',
             sprintf('        <loc>%s</loc>', self::xml($url)),
+            sprintf('        <lastmod>%s</lastmod>', self::xml($lastmod)),
+            '        <changefreq>monthly</changefreq>',
+            '        <priority>1.0</priority>',
             ...$alternateLinks,
             '    </url>',
         ]);

@@ -8,6 +8,7 @@ const props = defineProps<{
     colors: string[];
     centerLabel?: string;
     centerValue?: string;
+    tooltipFormatter?: (v: number) => string;
 }>();
 
 const emit = defineEmits<{
@@ -129,7 +130,10 @@ const buildOptions = () => ({
     tooltip: {
         theme: 'dark' as const,
         y: {
-            formatter: (v: number) => v.toFixed(1) + '%',
+            formatter: (v: number) =>
+                props.tooltipFormatter
+                    ? props.tooltipFormatter(v)
+                    : v.toFixed(1) + '%',
         },
         style: { fontSize: '12px' },
     },
@@ -155,7 +159,7 @@ onMounted(async () => {
 });
 
 watch(
-    () => [props.series, props.labels, props.centerValue],
+    () => [props.series, props.labels, props.centerValue, props.tooltipFormatter],
     () => chart?.updateOptions(buildOptions(), false, true),
     { deep: true },
 );

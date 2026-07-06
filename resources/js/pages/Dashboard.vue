@@ -167,7 +167,15 @@
                             :colors="categoryBreakdown.colors"
                             :center-label="t('finance.dashboard.total_spent')"
                             :center-value="
-                                formatAmount(categoryBreakdown.total)
+                                formatAmount(categoryBreakdown.total) +
+                                ' ' +
+                                currencySymbol
+                            "
+                            :tooltip-formatter="
+                                (v: number) =>
+                                    formatAmount(v) +
+                                    ' ' +
+                                    selectedCurrencyLabel
                             "
                         />
                         <p
@@ -1055,6 +1063,17 @@ const selectedCurrencyLabel = computed(
             (currency) => currency.value === props.selectedCurrency,
         )?.label ?? t(`finance.currencies.${props.selectedCurrency}`),
 );
+
+const currencySymbol = computed(() => {
+    switch (props.selectedCurrency) {
+        case 'usd':
+            return '$';
+        case 'eur':
+            return '€';
+        default:
+            return 'T';
+    }
+});
 
 function currencyLabel(currencyValue: Currency): string {
     return (

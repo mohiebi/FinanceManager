@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     ArrowRight,
     BarChart3,
@@ -25,13 +25,26 @@ import {
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { dashboard, home, login } from '@/routes';
-import { update as updateLocale } from '@/routes/locale';
 import logoGreen from '../../img/Logo-green.svg';
 
 const page = usePage();
 const { t, locale } = useI18n();
 
 const isLoggedIn = !!page.props.auth?.user;
+
+type SeoMetadata = {
+    siteName: string;
+    title: string;
+    description: string;
+    canonical: string;
+    image: string;
+    alternates: {
+        locale: string;
+        url: string;
+    }[];
+    xDefault: string;
+    structuredData: string;
+};
 
 const mobileMenuOpen = ref(false);
 const langMenuOpen = ref(false);
@@ -47,15 +60,15 @@ const availableLocales = computed<string[]>(
     () => (page.props.locales as string[] | undefined) ?? ['en', 'fa'],
 );
 
-function switchLocale(code: string): void {
+const seo = computed(() => page.props.seo as SeoMetadata | null);
+
+function localizedLandingPath(code: string): string {
+    return code === 'en' ? home.url() : `/${code}`;
+}
+
+function closeMenus(): void {
     langMenuOpen.value = false;
     mobileMenuOpen.value = false;
-
-    if (code === locale.value) {
-        return;
-    }
-
-    router.post(updateLocale.url(), { locale: code }, { preserveScroll: true });
 }
 
 // The hero preview uses illustrative amounts; digits follow the visitor's locale.
@@ -121,27 +134,93 @@ function toggleFaq(key: string): void {
 
 <template>
     <Head :title="t('landing.meta.title')">
-        <meta name="description" :content="t('landing.meta.description')" />
-        <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="CashPilot" />
         <meta
+            head-key="description"
+            name="description"
+            :content="seo?.description ?? t('landing.meta.description')"
+        />
+        <link
+            v-if="seo?.canonical"
+            head-key="canonical"
+            rel="canonical"
+            :href="seo.canonical"
+        />
+        <link
+            v-for="alternate in seo?.alternates ?? []"
+            :key="alternate.locale"
+            :head-key="`alternate-${alternate.locale}`"
+            rel="alternate"
+            :hreflang="alternate.locale"
+            :href="alternate.url"
+        />
+        <link
+            v-if="seo?.xDefault"
+            head-key="alternate-x-default"
+            rel="alternate"
+            hreflang="x-default"
+            :href="seo.xDefault"
+        />
+        <meta head-key="og:type" property="og:type" content="website" />
+        <meta
+            head-key="og:site_name"
+            property="og:site_name"
+            :content="seo?.siteName ?? 'CashPilot'"
+        />
+        <meta
+            head-key="og:title"
             property="og:title"
-            :content="`CashPilot — ${t('landing.meta.title')}`"
+            :content="seo?.title ?? `CashPilot - ${t('landing.meta.title')}`"
         />
         <meta
+            head-key="og:description"
             property="og:description"
-            :content="t('landing.meta.description')"
+            :content="seo?.description ?? t('landing.meta.description')"
         />
-        <meta property="og:image" content="/apple-touch-icon.png" />
-        <meta name="twitter:card" content="summary" />
         <meta
+            v-if="seo?.canonical"
+            head-key="og:url"
+            property="og:url"
+            :content="seo.canonical"
+        />
+        <meta
+            v-if="seo?.image"
+            head-key="og:image"
+            property="og:image"
+            :content="seo.image"
+        />
+        <meta
+            head-key="og:image:width"
+            property="og:image:width"
+            content="512"
+        />
+        <meta
+            head-key="og:image:height"
+            property="og:image:height"
+            content="512"
+        />
+        <meta head-key="twitter:card" name="twitter:card" content="summary" />
+        <meta
+            head-key="twitter:title"
             name="twitter:title"
-            :content="`CashPilot — ${t('landing.meta.title')}`"
+            :content="seo?.title ?? `CashPilot - ${t('landing.meta.title')}`"
         />
         <meta
+            head-key="twitter:description"
             name="twitter:description"
-            :content="t('landing.meta.description')"
+            :content="seo?.description ?? t('landing.meta.description')"
         />
+        <meta
+            v-if="seo?.image"
+            head-key="twitter:image"
+            name="twitter:image"
+            :content="seo.image"
+        />
+        <script
+            v-if="seo?.structuredData"
+            head-key="structured-data"
+            type="application/ld+json"
+            v-html="seo.structuredData"
+        ></script>
     </Head>
 
     <div class="min-h-screen overflow-x-hidden bg-[#0a0a0a] text-white">
@@ -205,21 +284,21 @@ function toggleFaq(key: string): void {
                             class="absolute end-0 top-full z-50 mt-2 min-w-36 rounded-xl border border-white/10 bg-[#161616] p-1 shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
                             role="listbox"
                         >
-                            <button
+                            <a
                                 v-for="code in availableLocales"
                                 :key="code"
-                                type="button"
+                                :href="localizedLandingPath(code)"
                                 role="option"
                                 :aria-selected="code === locale"
                                 class="flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-start text-sm text-white/70 transition-colors hover:bg-white/5 hover:text-white"
-                                @click="switchLocale(code)"
+                                @click="closeMenus"
                             >
                                 {{ localeLabels[code] ?? code }}
                                 <Check
                                     v-if="code === locale"
                                     class="size-4 text-[#02CD86]"
                                 />
-                            </button>
+                            </a>
                         </div>
                     </div>
 
@@ -287,20 +366,20 @@ function toggleFaq(key: string): void {
                         class="flex items-center gap-2 border-t border-white/10 pt-3"
                     >
                         <Globe class="size-4 text-white/40" />
-                        <button
+                        <a
                             v-for="code in availableLocales"
                             :key="code"
-                            type="button"
+                            :href="localizedLandingPath(code)"
                             class="cursor-pointer rounded-lg px-3 py-1.5 text-sm transition-colors"
                             :class="
                                 code === locale
                                     ? 'bg-[#02CD86]/15 text-[#02CD86]'
                                     : 'text-white/60 hover:text-white'
                             "
-                            @click="switchLocale(code)"
+                            @click="closeMenus"
                         >
                             {{ localeLabels[code] ?? code }}
-                        </button>
+                        </a>
                     </div>
 
                     <div

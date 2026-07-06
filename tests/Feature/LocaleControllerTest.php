@@ -20,6 +20,17 @@ test('the landing page renders in the guest session locale', function () {
             ->where('dir', 'rtl'));
 });
 
+test('the localized landing route sets the guest session locale', function () {
+    $this->get(route('home.localized', ['locale' => 'de']))
+        ->assertOk()
+        ->assertInertia(fn ($assert) => $assert
+            ->component('Landing')
+            ->where('locale', 'de')
+            ->where('dir', 'ltr'));
+
+    expect(session('locale'))->toBe('de');
+});
+
 test('an authenticated user switching locale persists it on the profile', function () {
     $user = User::factory()->create(['locale' => 'en']);
 

@@ -1,8 +1,17 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() === 'fa' ? 'rtl' : 'ltr' }}"  @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+    @php
+        $component = $page['component'] ?? null;
+        $locale = $page['props']['locale'] ?? app()->getLocale();
+        $seo = \App\Support\SeoMetadata::forComponent($component, $locale);
+        $shouldNoindex = \App\Support\SeoMetadata::shouldNoindexComponent($component);
+    @endphp
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        @if (config('services.google.site_verification'))
+            <meta name="google-site-verification" content="{{ config('services.google.site_verification') }}">
+        @endif
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
@@ -41,7 +50,33 @@
 
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
         <x-inertia::head>
-            <title>{{ config('app.name', 'Laravel') }}</title>
+            @if ($seo)
+                <title>{{ $seo['title'] }}</title>
+                <meta name="description" content="{{ $seo['description'] }}">
+                <link rel="canonical" href="{{ $seo['canonical'] }}">
+                @foreach ($seo['alternates'] as $alternate)
+                    <link rel="alternate" hreflang="{{ $alternate['locale'] }}" href="{{ $alternate['url'] }}">
+                @endforeach
+                <link rel="alternate" hreflang="x-default" href="{{ $seo['xDefault'] }}">
+                <meta property="og:type" content="website">
+                <meta property="og:site_name" content="{{ $seo['siteName'] }}">
+                <meta property="og:title" content="{{ $seo['title'] }}">
+                <meta property="og:description" content="{{ $seo['description'] }}">
+                <meta property="og:url" content="{{ $seo['canonical'] }}">
+                <meta property="og:image" content="{{ $seo['image'] }}">
+                <meta property="og:image:width" content="512">
+                <meta property="og:image:height" content="512">
+                <meta name="twitter:card" content="summary">
+                <meta name="twitter:title" content="{{ $seo['title'] }}">
+                <meta name="twitter:description" content="{{ $seo['description'] }}">
+                <meta name="twitter:image" content="{{ $seo['image'] }}">
+                <script type="application/ld+json">{!! $seo['structuredData'] !!}</script>
+            @else
+                @if ($shouldNoindex)
+                    <meta name="robots" content="noindex,follow">
+                @endif
+                <title>{{ config('app.name', 'Laravel') }}</title>
+            @endif
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">

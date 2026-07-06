@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import AuthIllustration from '@/components/auth/AuthIllustration.vue';
 import { home } from '@/routes';
 import authLogo from '../../../img/Logo-green.svg';
@@ -20,6 +20,10 @@ withDefaults(
     <div
         class="auth-theme min-h-svh bg-[var(--auth-page-bg)] px-3 py-4 sm:px-4 lg:px-6 lg:py-0"
     >
+        <Head>
+            <meta head-key="robots" name="robots" content="noindex,follow" />
+        </Head>
+
         <div
             class="mx-auto flex min-h-[calc(100svh-2rem)] max-w-[1318px] items-center lg:min-h-svh"
         >

@@ -1,2 +1,4 @@
 User-agent: *
 Disallow:
+
+Sitemap: https://cashpilot.mohiebi.com/sitemap.xml

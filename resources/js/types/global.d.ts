@@ -22,6 +22,19 @@ declare module '@inertiajs/core' {
             dir: 'ltr' | 'rtl';
             calendar: 'gregorian' | 'jalali';
             translations: Record<string, unknown>;
+            seo: {
+                siteName: string;
+                title: string;
+                description: string;
+                canonical: string;
+                image: string;
+                alternates: {
+                    locale: string;
+                    url: string;
+                }[];
+                xDefault: string;
+                structuredData: string;
+            } | null;
             sidebarOpen: boolean;
             notifications: {
                 unread_count: number;

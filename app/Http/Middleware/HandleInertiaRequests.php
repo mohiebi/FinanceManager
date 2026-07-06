@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Support\FrontendLocalization;
+use App\Support\SeoMetadata;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Middleware;
@@ -55,6 +56,7 @@ class HandleInertiaRequests extends Middleware
             'fallbackTranslations' => $locale === FrontendLocalization::DEFAULT_LOCALE
                 ? null
                 : FrontendLocalization::messages(FrontendLocalization::DEFAULT_LOCALE),
+            'seo' => fn () => SeoMetadata::forRequest($request, $locale),
             'authFlow' => fn () => $request->session()->get('auth_flow'),
             'createdCategory' => fn () => $request->session()->get('createdCategory'),
             'createdInvestmentAsset' => fn () => $request->session()->get('createdInvestmentAsset'),

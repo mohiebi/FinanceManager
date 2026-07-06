@@ -34,7 +34,7 @@ class FrontendLocalization
     public static function resolve(Request $request): string
     {
         return self::normalizeLocale(
-            $request->user()?->locale ?? $request->session()->get('locale'),
+            $request->route('locale') ?? $request->user()?->locale ?? $request->session()->get('locale'),
         );
     }
 

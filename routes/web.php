@@ -17,9 +17,27 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionExportController;
 use App\Http\Controllers\TransactionImportController;
 use App\Http\Middleware\EnsureProfileIsComplete;
+use App\Support\FrontendLocalization;
+use App\Support\SeoMetadata;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::inertia('/', 'Landing')->name('home');
+
+Route::get('sitemap.xml', fn () => response(SeoMetadata::sitemapXml(), 200, [
+    'Content-Type' => 'application/xml; charset=UTF-8',
+]))->name('sitemap');
+
+Route::get('{locale}', function (Request $request, string $locale) {
+    $locale = FrontendLocalization::normalizeLocale($locale);
+
+    $request->session()->put('locale', $locale);
+    app()->setLocale($locale);
+
+    return Inertia::render('Landing');
+})->where('locale', implode('|', FrontendLocalization::locales()))
+    ->name('home.localized');
 
 // Works for guests (session) and authenticated users (profile) alike.
 Route::post('locale', LocaleController::class)

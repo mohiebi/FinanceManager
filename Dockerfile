@@ -43,7 +43,8 @@ RUN composer run-script post-autoload-dump --no-interaction 2>/dev/null || true
 
 # NPM deps + Vite build (wayfinder calls php artisan here — PHP is available)
 RUN npm ci
-RUN npm run build
+RUN npm run build:ssr
+RUN npm prune --omit=dev
 
 # ── Stage 2: production runtime ───────────────────────────────────────────────
 FROM php:8.4-fpm-bookworm AS app
@@ -71,6 +72,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-enable opcache \
     && rm -rf /var/lib/apt/lists/*
 
+# Node runtime for the Inertia SSR server
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
@@ -79,7 +85,7 @@ WORKDIR /var/www/html
 COPY --chown=www-data:www-data --from=builder /app .
 
 # Remove artefacts that don't belong in the runtime image
-RUN rm -rf node_modules .git tests \
+RUN rm -rf .git tests \
     && rm -f public/hot public/hostingstart.html
 
 # Storage & cache directories with correct ownership

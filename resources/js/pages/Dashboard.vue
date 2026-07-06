@@ -151,64 +151,314 @@
                         </p>
                     </article>
                 </div>
-                <div
-                    class="grid items-stretch gap-[18px] md:grid-cols-[1fr_2fr]"
-                >
+                <div class="grid items-stretch gap-[18px] xl:grid-cols-3">
+                    <!-- ── Spending by category (donut) ── -->
                     <div
-                        class="flex min-h-[244px] flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                        class="min-h-[244px] overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                     >
+                        <h2 class="text-[17px] font-normal text-white">
+                            {{ t('finance.dashboard.spending_by_category') }}
+                        </h2>
+                        <DonutChart
+                            v-if="categoryBreakdown.series.length > 0"
+                            class="mt-2"
+                            :series="categoryBreakdown.series"
+                            :labels="categoryBreakdown.labels"
+                            :colors="categoryBreakdown.colors"
+                            :center-label="t('finance.dashboard.total_spent')"
+                            :center-value="
+                                formatAmount(categoryBreakdown.total)
+                            "
+                        />
                         <p
-                            class="mb-1 text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
+                            v-else
+                            class="mt-8 text-center text-sm text-[#989898]"
                         >
-                            {{ t('finance.dashboard.finance_rate') }}
-                        </p>
-                        <GaugeChart :value="financeRate" />
-                        <p class="mt-1 text-center text-xs text-[#989898]">
-                            {{ t('finance.dashboard.finance_rate_subtitle') }}
+                            {{ t('finance.dashboard.no_costs') }}
                         </p>
                     </div>
+
+                    <!-- ── 3-month income vs costs trend ── -->
+                    <div
+                        class="min-h-[244px] overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                    >
+                        <h2 class="text-[17px] font-normal text-white">
+                            {{ t('finance.dashboard.monthly_overview') }}
+                        </h2>
+                        <LineChart
+                            class="mt-2"
+                            :series="trendSeries"
+                            :categories="trendLabels"
+                            raw-labels
+                            :height="220"
+                        />
+                    </div>
+
+                    <!-- ── Daily spending pulse ── -->
+                    <div
+                        class="min-h-[244px] overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                    >
+                        <h2 class="text-[17px] font-normal text-white">
+                            {{ t('finance.dashboard.daily_spending') }}
+                        </h2>
+                        <PulseChart
+                            class="mt-2"
+                            :data="dailySpending.data"
+                            :categories="dailySpending.categories"
+                            :series-name="t('finance.metrics.costs')"
+                            :height="220"
+                        />
+                    </div>
+                </div>
+                <div class="grid items-stretch gap-[18px] md:grid-cols-2">
+                    <!-- ── Net worth / portfolio snapshot ── -->
+                    <div
+                        class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                    >
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5">
+                                <span
+                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0d2e22]"
+                                >
+                                    <ChartPie
+                                        class="size-[18px] text-[#02CD86]"
+                                    />
+                                </span>
+                                <p
+                                    class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
+                                >
+                                    {{ t('finance.portfolio.net_worth') }}
+                                </p>
+                            </div>
+                            <Link
+                                :href="
+                                    portfolioRoute.url({
+                                        query: {
+                                            currency: props.selectedCurrency,
+                                        },
+                                    })
+                                "
+                                class="text-xs text-[#02CD86] hover:underline"
+                            >
+                                {{ t('finance.portfolio.title') }}
+                            </Link>
+                        </div>
+
+                        <Deferred data="portfolio">
+                            <template #fallback>
+                                <div class="mt-4 animate-pulse">
+                                    <div
+                                        class="h-7 w-40 rounded-lg bg-white/10"
+                                    />
+                                    <div
+                                        class="mt-3 h-2 w-full rounded-full bg-white/10"
+                                    />
+                                    <div
+                                        class="mt-3 h-4 w-24 rounded-lg bg-white/10"
+                                    />
+                                </div>
+                            </template>
+
+                            <template v-if="props.portfolio">
+                                <div class="mt-3 flex items-center gap-3">
+                                    <p
+                                        class="text-[24px] leading-none font-bold text-white"
+                                    >
+                                        {{
+                                            formatAmount(
+                                                props.portfolio
+                                                    .net_worth_formatted,
+                                            )
+                                        }}
+                                        <span
+                                            class="text-xs font-normal text-[#989898]"
+                                            >{{ selectedCurrencyLabel }}</span
+                                        >
+                                    </p>
+                                    <span
+                                        v-if="
+                                            props.portfolio
+                                                .has_cost_basis_data &&
+                                            props.portfolio.pnl_percent !==
+                                                null
+                                        "
+                                        class="rounded-md px-2 py-1 text-xs font-bold"
+                                        :class="
+                                            props.portfolio.pnl_is_positive
+                                                ? 'bg-[#0d2e22] text-[#02CD86]'
+                                                : 'bg-[#2e0d0d] text-[#E94E50]'
+                                        "
+                                    >
+                                        {{
+                                            props.portfolio.pnl_is_positive
+                                                ? '+'
+                                                : '−'
+                                        }}{{
+                                            Math.abs(
+                                                props.portfolio.pnl_percent,
+                                            )
+                                        }}%
+                                    </span>
+                                </div>
+
+                                <div
+                                    class="mt-4 flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-white/10"
+                                >
+                                    <div
+                                        v-for="asset in props.portfolio
+                                            .top_assets"
+                                        :key="asset.key"
+                                        class="h-full rounded-full transition-all duration-700"
+                                        :style="{
+                                            width: asset.share + '%',
+                                            backgroundColor:
+                                                asset.color ?? '#02CD86',
+                                        }"
+                                    />
+                                </div>
+
+                                <ul class="mt-4 flex flex-col gap-2.5">
+                                    <li
+                                        v-for="asset in props.portfolio
+                                            .top_assets"
+                                        :key="asset.key"
+                                        class="flex items-center gap-2.5"
+                                    >
+                                        <AssetIcon
+                                            :icon="asset.icon"
+                                            :icon-svg="asset.icon_svg"
+                                            :label="asset.label"
+                                            :color="asset.color"
+                                            size="sm"
+                                        />
+                                        <span
+                                            class="min-w-0 flex-1 truncate text-sm text-white"
+                                            >{{ asset.label }}</span
+                                        >
+                                        <span
+                                            class="text-sm font-semibold text-white"
+                                            >{{
+                                                formatAmount(
+                                                    asset.value_formatted,
+                                                )
+                                            }}</span
+                                        >
+                                        <span
+                                            class="w-10 text-end text-xs text-[#989898]"
+                                            >{{ asset.share }}%</span
+                                        >
+                                    </li>
+                                </ul>
+                            </template>
+
+                            <div v-else class="mt-4">
+                                <p class="text-sm text-[#989898]">
+                                    {{
+                                        t(
+                                            'finance.dashboard.portfolio_empty',
+                                        )
+                                    }}
+                                </p>
+                                <Link
+                                    :href="investmentsIndex()"
+                                    class="mt-2 inline-block text-sm text-[#02CD86] hover:underline"
+                                >
+                                    {{
+                                        t(
+                                            'finance.dashboard.portfolio_empty_cta',
+                                        )
+                                    }}
+                                </Link>
+                            </div>
+                        </Deferred>
+                    </div>
+
+                    <!-- ── Live asset prices ── -->
                     <div
                         class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                     >
-                        <div class="mb-3 flex items-center justify-between">
-                            <h2 class="text-[17px] font-normal text-white">
-                                {{ t('finance.dashboard.monthly_overview') }}
-                            </h2>
-                            <div
-                                class="flex items-center gap-4 text-xs text-[#989898]"
-                            >
-                                <span class="flex items-center gap-1.5">
-                                    <span
-                                        class="h-2 w-2 rounded-full bg-[#02CD86]"
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5">
+                                <span
+                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#24212f]"
+                                >
+                                    <TrendingUp
+                                        class="size-[18px] text-[#6C4EE9]"
                                     />
-                                    {{ t('finance.metrics.income') }}
                                 </span>
-                                <span class="flex items-center gap-1.5">
-                                    <span
-                                        class="h-2 w-2 rounded-full bg-[#6C4EE9]"
-                                    />
-                                    {{ t('finance.metrics.costs') }}
-                                </span>
+                                <p
+                                    class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
+                                >
+                                    {{ t('finance.dashboard.live_prices') }}
+                                </p>
                             </div>
+                            <span
+                                v-if="syncedAgo"
+                                class="text-xs text-[#989898]"
+                            >
+                                {{
+                                    t('finance.last_synced', {
+                                        time: syncedAgo,
+                                    })
+                                }}
+                            </span>
                         </div>
-                        <BarChart
-                            :income-data="
-                                monthlyData.map(
-                                    (monthBucket) => monthBucket.income,
-                                )
-                            "
-                            :cost-data="
-                                monthlyData.map(
-                                    (monthBucket) => monthBucket.cost,
-                                )
-                            "
-                            :categories="
-                                monthlyData.map(
-                                    (monthBucket) => monthBucket.label,
-                                )
-                            "
-                            :height="220"
-                        />
+
+                        <Deferred data="assetPrices">
+                            <template #fallback>
+                                <div
+                                    class="mt-4 flex animate-pulse flex-col gap-3"
+                                >
+                                    <div
+                                        v-for="i in 4"
+                                        :key="i"
+                                        class="h-6 w-full rounded-lg bg-white/10"
+                                    />
+                                </div>
+                            </template>
+
+                            <ul
+                                v-if="availablePrices.length > 0"
+                                class="mt-4 flex flex-col gap-2.5"
+                            >
+                                <li
+                                    v-for="price in availablePrices"
+                                    :key="price.key"
+                                    class="flex items-center gap-2.5"
+                                >
+                                    <AssetIcon
+                                        :icon="price.icon"
+                                        :icon-svg="price.icon_svg"
+                                        :label="price.label"
+                                        :color="price.color"
+                                        size="sm"
+                                    />
+                                    <span
+                                        class="min-w-0 flex-1 truncate text-sm text-white"
+                                    >
+                                        {{ price.label }}
+                                        <span
+                                            v-if="price.unit"
+                                            class="text-xs text-[#989898]"
+                                            >/ {{ price.unit }}</span
+                                        >
+                                    </span>
+                                    <span
+                                        class="text-sm font-semibold text-white"
+                                        >{{
+                                            formatAmount(price.price_formatted)
+                                        }}</span
+                                    >
+                                    <span class="text-[10px] text-[#989898]">{{
+                                        selectedCurrencyLabel
+                                    }}</span>
+                                </li>
+                            </ul>
+
+                            <p v-else class="mt-4 text-sm text-[#989898]">
+                                {{ t('finance.price_unavailable') }}
+                            </p>
+                        </Deferred>
                     </div>
                 </div>
             </div>
@@ -249,6 +499,90 @@
                                 progress: period.progress,
                             })
                         }}
+                    </p>
+                </div>
+                <div
+                    class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                >
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <span
+                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#24212f]"
+                            >
+                                <CalendarClock
+                                    class="size-[18px] text-[#6C4EE9]"
+                                />
+                            </span>
+                            <p
+                                class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
+                            >
+                                {{ t('finance.bills.upcoming') }}
+                            </p>
+                        </div>
+                        <Link
+                            :href="
+                                billsIndex.url({
+                                    query: { currency: props.selectedCurrency },
+                                })
+                            "
+                            class="text-xs text-[#6C4EE9] hover:underline"
+                        >
+                            {{ t('finance.bills.title') }}
+                        </Link>
+                    </div>
+
+                    <ul
+                        v-if="props.upcomingBills.length > 0"
+                        class="mt-4 flex flex-col gap-1"
+                    >
+                        <li
+                            v-for="bill in props.upcomingBills"
+                            :key="bill.occurrence_id"
+                            class="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-white/5"
+                        >
+                            <div class="min-w-0 flex-1">
+                                <p
+                                    class="truncate text-sm font-semibold text-white"
+                                >
+                                    {{ bill.title }}
+                                </p>
+                                <p
+                                    class="mt-0.5 truncate text-xs"
+                                    :class="dueToneClass(bill)"
+                                >
+                                    {{ dueLabel(bill) }}
+                                </p>
+                            </div>
+                            <div class="shrink-0 text-end">
+                                <p class="text-sm font-bold text-white">
+                                    {{ formatAmount(bill.display_amount) }}
+                                </p>
+                                <p class="text-[10px] text-[#989898]">
+                                    {{ currencyLabel(bill.display_currency) }}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0d2e22] text-[#02CD86] transition hover:cursor-pointer hover:bg-[#02CD86] hover:text-[#0a0a0a] disabled:opacity-50"
+                                :title="t('finance.bills.mark_paid')"
+                                :aria-label="t('finance.bills.mark_paid')"
+                                :disabled="payingOccurrenceId !== null"
+                                @click="markBillPaid(bill)"
+                            >
+                                <LoaderCircle
+                                    v-if="
+                                        payingOccurrenceId ===
+                                        bill.occurrence_id
+                                    "
+                                    class="size-4 animate-spin"
+                                />
+                                <Check v-else class="size-4" />
+                            </button>
+                        </li>
+                    </ul>
+
+                    <p v-else class="mt-4 text-sm text-[#989898]">
+                        {{ t('finance.bills.no_upcoming') }}
                     </p>
                 </div>
                 <div
@@ -579,8 +913,13 @@
 </template>
 
 <script setup lang="ts">
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Deferred, Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { toJalaali } from 'jalaali-js';
 import {
+    CalendarClock,
+    ChartPie,
+    Check,
+    LoaderCircle,
     Pencil,
     Plus,
     Trash2,
@@ -590,12 +929,18 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import BarChart from '@/components/charts/BarChart.vue';
-import GaugeChart from '@/components/charts/GaugeChart.vue';
+import AssetIcon from '@/components/AssetIcon.vue';
+import DonutChart from '@/components/charts/DonutChart.vue';
+import LineChart from '@/components/charts/LineChart.vue';
+import PulseChart from '@/components/charts/PulseChart.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import TransactionDialog from '@/components/transactions/TransactionDialog.vue';
-import { monthBucketKeyFromIso, recentMonthBuckets } from '@/lib/date';
-import { dashboard } from '@/routes';
+import { useRelativeTime } from '@/composables/useRelativeTime';
+import { formatAppDate } from '@/lib/date';
+import { dashboard, portfolio as portfolioRoute } from '@/routes';
+import { index as billsIndex } from '@/routes/bills';
+import { pay as payBill } from '@/routes/bills/occurrences';
+import { index as investmentsIndex } from '@/routes/investments';
 import { index as transactionsIndex } from '@/routes/transactions';
 
 type TransactionType = 'cost' | 'income';
@@ -631,6 +976,48 @@ type Period = {
     daysInMonth: number;
     progress: number;
 };
+type UpcomingBill = {
+    occurrence_id: number;
+    bill_id: number;
+    title: string;
+    display_amount: string;
+    display_currency: Currency;
+    category_name: string | null;
+    due_date: string;
+    is_overdue: boolean;
+    is_due_today: boolean;
+};
+
+type PortfolioTopAsset = {
+    key: string;
+    label: string;
+    color: string | null;
+    icon: string | null;
+    icon_svg: string | null;
+    value_formatted: string;
+    share: number;
+};
+
+type PortfolioSnapshot = {
+    net_worth_formatted: string;
+    pnl_percent: number | null;
+    pnl_is_positive: boolean | null;
+    pnl_formatted: string | null;
+    has_cost_basis_data: boolean;
+    asset_count: number;
+    top_assets: PortfolioTopAsset[];
+};
+
+type HeadlinePrice = {
+    key: string;
+    label: string;
+    icon: string | null;
+    icon_svg: string | null;
+    color: string | null;
+    unit: string | null;
+    price_formatted: string;
+    available: boolean;
+};
 
 const props = defineProps<{
     transactions: { costs: Transaction[]; incomes: Transaction[] };
@@ -639,6 +1026,12 @@ const props = defineProps<{
     selectedCurrency: Currency;
     summary: { cost: string; income: string };
     period: Period;
+    upcomingBills: UpcomingBill[];
+    monthlyTrend: { label: string; income: number; cost: number }[];
+    // Deferred props — undefined until the follow-up request lands.
+    portfolio?: PortfolioSnapshot | null;
+    assetPrices?: HeadlinePrice[];
+    pricesSyncedAt: string | null;
 }>();
 
 defineOptions({
@@ -648,7 +1041,7 @@ defineOptions({
 });
 
 const page = usePage();
-const { locale, t } = useI18n();
+const { t } = useI18n();
 const user = computed(
     () => (page.props.auth as { user?: { name: string } } | undefined)?.user,
 );
@@ -663,6 +1056,45 @@ const selectedCurrencyLabel = computed(
         )?.label ?? t(`finance.currencies.${props.selectedCurrency}`),
 );
 
+function currencyLabel(currencyValue: Currency): string {
+    return (
+        props.currencies.find((currency) => currency.value === currencyValue)
+            ?.label ?? t(`finance.currencies.${currencyValue}`)
+    );
+}
+
+function displayDate(value: string): string {
+    return formatAppDate(value, displayCalendar.value);
+}
+
+function dueLabel(bill: UpcomingBill): string {
+    if (bill.is_overdue) {
+        return `${t('finance.bills.overdue')} · ${displayDate(bill.due_date)}`;
+    }
+
+    if (bill.is_due_today) {
+        return t('finance.bills.due_today');
+    }
+
+    return displayDate(bill.due_date);
+}
+
+function dueToneClass(bill: UpcomingBill): string {
+    if (bill.is_overdue) {
+        return 'text-[#E94E50]';
+    }
+
+    if (bill.is_due_today) {
+        return 'text-[#F59E0B]';
+    }
+
+    return 'text-[#989898]';
+}
+
+const availablePrices = computed(() =>
+    (props.assetPrices ?? []).filter((price) => price.available),
+);
+
 function parseNum(value: string | number): number {
     return parseFloat(String(value).replace(/,/g, '')) || 0;
 }
@@ -670,16 +1102,6 @@ function parseNum(value: string | number): number {
 const incomeNum = computed(() => parseNum(props.summary.income));
 const costNum = computed(() => parseNum(props.summary.cost));
 const balance = computed(() => incomeNum.value - costNum.value);
-
-const financeRate = computed(() => {
-    const total = incomeNum.value + costNum.value;
-
-    if (total <= 0) {
-        return 0;
-    }
-
-    return Math.round((incomeNum.value / total) * 100);
-});
 
 const costOptimize = computed(() => {
     if (incomeNum.value <= 0) {
@@ -691,44 +1113,96 @@ const costOptimize = computed(() => {
     );
 });
 
-const monthlyData = computed(() => {
-    const monthBuckets = recentMonthBuckets(
-        6,
-        displayCalendar.value,
-        locale.value === 'fa' ? 'fa-IR' : 'en-US',
-    ).map((bucket) => ({ ...bucket, income: 0, cost: 0 }));
+const chartPalette = [
+    '#02CD86',
+    '#6C4EE9',
+    '#F59E0B',
+    '#3B82F6',
+    '#E94E50',
+    '#52525b',
+];
+
+// This month's costs grouped by category — top 5 plus an "other" bucket.
+const categoryBreakdown = computed(() => {
+    const totals = new Map<string, number>();
 
     for (const transaction of props.transactions.costs) {
-        const monthBucket = monthBuckets.find(
-            (bucket) =>
-                bucket.key ===
-                monthBucketKeyFromIso(
-                    transaction.occurred_at,
-                    displayCalendar.value,
-                ),
+        const name = categoryName(transaction);
+        totals.set(
+            name,
+            (totals.get(name) ?? 0) + parseNum(transaction.display_amount),
         );
+    }
 
-        if (monthBucket) {
-            monthBucket.cost += parseNum(transaction.display_amount);
+    const sorted = [...totals.entries()].sort(
+        (left, right) => right[1] - left[1],
+    );
+    const top = sorted.slice(0, 5);
+    const restTotal = sorted
+        .slice(5)
+        .reduce((acc, [, value]) => acc + value, 0);
+
+    if (restTotal > 0) {
+        top.push([t('finance.categories.cost.other'), restTotal]);
+    }
+
+    return {
+        labels: top.map(([label]) => label),
+        series: top.map(([, value]) => Math.round(value * 100) / 100),
+        colors: top.map((_, index) => chartPalette[index % chartPalette.length]),
+        total: top.reduce((acc, [, value]) => acc + value, 0),
+    };
+});
+
+const trendSeries = computed(() => [
+    {
+        name: t('finance.metrics.income'),
+        key: 'income',
+        color: '#02CD86',
+        data: props.monthlyTrend.map((month) => month.income),
+    },
+    {
+        name: t('finance.metrics.costs'),
+        key: 'cost',
+        color: '#6C4EE9',
+        data: props.monthlyTrend.map((month) => month.cost),
+    },
+]);
+
+const trendLabels = computed(() =>
+    props.monthlyTrend.map((month) => month.label),
+);
+
+function dayOfMonth(isoDate: string): number {
+    const date = new Date(`${isoDate.slice(0, 10)}T00:00:00`);
+
+    if (displayCalendar.value === 'jalali') {
+        return toJalaali(
+            date.getFullYear(),
+            date.getMonth() + 1,
+            date.getDate(),
+        ).jd;
+    }
+
+    return date.getDate();
+}
+
+// Cost totals per day of the current (calendar-aware) month.
+const dailySpending = computed(() => {
+    const perDay = Array.from({ length: props.period.daysInMonth }, () => 0);
+
+    for (const transaction of props.transactions.costs) {
+        const day = dayOfMonth(transaction.occurred_at);
+
+        if (day >= 1 && day <= perDay.length) {
+            perDay[day - 1] += parseNum(transaction.display_amount);
         }
     }
 
-    for (const transaction of props.transactions.incomes) {
-        const monthBucket = monthBuckets.find(
-            (bucket) =>
-                bucket.key ===
-                monthBucketKeyFromIso(
-                    transaction.occurred_at,
-                    displayCalendar.value,
-                ),
-        );
-
-        if (monthBucket) {
-            monthBucket.income += parseNum(transaction.display_amount);
-        }
-    }
-
-    return monthBuckets;
+    return {
+        data: perDay.map((value) => Math.round(value * 100) / 100),
+        categories: perDay.map((_, index) => String(index + 1)),
+    };
 });
 
 const recentCosts = computed(() => props.transactions.costs.slice(0, 5));
@@ -770,6 +1244,33 @@ const openEditForm = (transaction: Transaction) => {
     editingTransaction.value = transaction;
     isDialogOpen.value = true;
 };
+
+const { formatRelativeTime } = useRelativeTime();
+
+const syncedAgo = computed(() =>
+    props.pricesSyncedAt ? formatRelativeTime(props.pricesSyncedAt) : null,
+);
+
+const payingOccurrenceId = ref<number | null>(null);
+
+function markBillPaid(bill: UpcomingBill): void {
+    if (payingOccurrenceId.value !== null) {
+        return;
+    }
+
+    payingOccurrenceId.value = bill.occurrence_id;
+
+    const payForm = useForm({});
+    payForm.post(
+        payBill.url({ bill: bill.bill_id, occurrence: bill.occurrence_id }),
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                payingOccurrenceId.value = null;
+            },
+        },
+    );
+}
 
 const deleteTarget = ref<Transaction | null>(null);
 

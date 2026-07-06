@@ -13,6 +13,10 @@ class CurrencyConverter
 
     public function convert(int|float|string $amount, Currency $from, Currency $to): float
     {
+        if ($from === $to) {
+            return round((float) $amount, 2);
+        }
+
         $amountInUsd = $this->convertToUsd((float) $amount, $from);
 
         return round($this->convertFromUsd($amountInUsd, $to), 2);

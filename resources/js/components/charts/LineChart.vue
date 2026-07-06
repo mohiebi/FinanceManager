@@ -15,6 +15,9 @@ const props = defineProps<{
     categories: string[];
     height?: number;
     calendar?: string;
+    // When the categories are already display-ready (e.g. month names),
+    // skip the ISO-date reformatting of the x-axis labels.
+    rawLabels?: boolean;
 }>();
 
 const chartRef = ref<HTMLElement | null>(null);
@@ -57,7 +60,8 @@ const buildOptions = () => ({
             style: { colors: '#686868', fontSize: '11px' },
             hideOverlappingLabels: true,
             rotate: 0,
-            formatter: (v: string) => formatChartDateLabel(v, props.calendar),
+            formatter: (v: string) =>
+                props.rawLabels ? v : formatChartDateLabel(v, props.calendar),
         },
         crosshairs: { stroke: { color: '#333333', dashArray: 4 } },
         tooltip: { enabled: false },

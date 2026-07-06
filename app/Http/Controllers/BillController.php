@@ -11,16 +11,21 @@ use App\Enums\TransactionType;
 use App\Models\Bill;
 use App\Models\BillOccurrence;
 use App\Models\Category;
+use App\Models\User;
+use App\Support\FrontendLocalization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
+use Morilog\Jalali\Jalalian;
 
 class BillController extends Controller
 {
     public function index(Request $request, CurrencyConverter $currencyConverter): Response
     {
         $user = $request->user();
+        $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
         $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
 
         $bills = $user->bills()
@@ -77,7 +82,8 @@ class BillController extends Controller
                 'value' => $c->value,
             ]),
             'selectedCurrency' => $selectedCurrency->value,
-            'userCalendar' => $user->calendar ?? 'gregorian',
+            'monthlyBillSummary' => $this->monthlyBillSummary($user, $calendar, $currencyConverter, $selectedCurrency),
+            'userCalendar' => $calendar,
         ]);
     }
 
@@ -164,5 +170,71 @@ class BillController extends Controller
         }
 
         return $validated;
+    }
+
+    /**
+     * @return array{amount: string, currency: string, count: int, from: string, to: string}
+     */
+    private function monthlyBillSummary(
+        User $user,
+        string $calendar,
+        CurrencyConverter $currencyConverter,
+        Currency $selectedCurrency,
+    ): array {
+        [$fromDate, $toDate] = $this->currentMonthRange($calendar);
+
+        $bills = $user->bills()
+            ->with(['occurrences' => fn ($query) => $query
+                ->whereDate('due_date', '>=', $fromDate->toDateString())
+                ->whereDate('due_date', '<=', $toDate->toDateString())])
+            ->get();
+
+        $total = 0.0;
+        $count = 0;
+
+        foreach ($bills as $bill) {
+            $occurrenceCount = $bill->occurrences->count();
+
+            if ($occurrenceCount === 0) {
+                continue;
+            }
+
+            $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
+            $total += $currencyConverter->convert($bill->amount, $billCurrency, $selectedCurrency) * $occurrenceCount;
+            $count += $occurrenceCount;
+        }
+
+        return [
+            'amount' => number_format(round($total, 2), 2, '.', ''),
+            'currency' => $selectedCurrency->value,
+            'count' => $count,
+            'from' => $fromDate->toDateString(),
+            'to' => $toDate->toDateString(),
+        ];
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function currentMonthRange(string $calendar): array
+    {
+        $today = Carbon::today();
+
+        if ($calendar === 'jalali') {
+            $jalaliToday = Jalalian::fromCarbon($today);
+            $year = $jalaliToday->getYear();
+            $month = $jalaliToday->getMonth();
+            $daysInMonth = (int) $jalaliToday->format('t');
+
+            return [
+                Carbon::instance((new Jalalian($year, $month, 1))->toCarbon())->startOfDay(),
+                Carbon::instance((new Jalalian($year, $month, $daysInMonth))->toCarbon())->endOfDay(),
+            ];
+        }
+
+        return [
+            $today->copy()->startOfMonth(),
+            $today->copy()->endOfMonth(),
+        ];
     }
 }

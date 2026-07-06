@@ -21,13 +21,37 @@
                         {{ t('finance.bills.description') }}
                     </p>
                 </div>
-                <Button
-                    class="h-11 w-max shrink-0 rounded-full bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-5 text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
-                    @click="openCreateDialog()"
+                <div
+                    class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end"
                 >
-                    <Plus class="size-4" />
-                    {{ t('finance.bills.add_bill') }}
-                </Button>
+                    <div class="text-left sm:text-right">
+                        <p
+                            class="text-[10px] font-medium tracking-wide text-[#6b6b6b] uppercase"
+                        >
+                            {{ t('finance.reports.this_month') }}
+                        </p>
+                        <p class="mt-1 text-xl font-semibold text-white">
+                            {{ formatAmount(props.monthlyBillSummary.amount) }}
+                            <span class="text-xs font-normal text-[#989898]">
+                                {{
+                                    currencyLabel(
+                                        props.monthlyBillSummary.currency,
+                                    )
+                                }}
+                            </span>
+                        </p>
+                        <p class="mt-0.5 text-xs text-[#989898]">
+                            {{ t('finance.fields.total_cost') }}
+                        </p>
+                    </div>
+                    <Button
+                        class="h-11 w-max shrink-0 rounded-full bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-5 text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
+                        @click="openCreateDialog()"
+                    >
+                        <Plus class="size-4" />
+                        {{ t('finance.bills.add_bill') }}
+                    </Button>
+                </div>
             </div>
         </section>
 
@@ -448,12 +472,20 @@ type Bill = {
     category_name: string | null;
     next_occurrence: BillOccurrence | null;
 };
+type MonthlyBillSummary = {
+    amount: string;
+    currency: string;
+    count: number;
+    from: string;
+    to: string;
+};
 
 const props = defineProps<{
     bills: Bill[];
     categories: { id: number; name: string }[];
     currencies: { label: string; value: string }[];
     selectedCurrency: string;
+    monthlyBillSummary: MonthlyBillSummary;
     userCalendar: string;
 }>();
 

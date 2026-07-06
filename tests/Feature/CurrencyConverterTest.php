@@ -14,6 +14,16 @@ test('it returns zero when live prices are unavailable', function () {
         ->and($converter->convert(1500000, Currency::Toman, Currency::Usd))->toBe(0.0);
 });
 
+test('it returns the original amount when source and target currencies match', function () {
+    Cache::flush();
+    config(['services.tgju.enabled' => false]);
+
+    $converter = app(CurrencyConverter::class);
+
+    expect($converter->convert(1500000, Currency::Toman, Currency::Toman))->toBe(1500000.0)
+        ->and($converter->format(42, Currency::Eur, Currency::Eur))->toBe('42.00');
+});
+
 test('it converts using the same live rate the Investments/Portfolio pages use', function () {
     Cache::flush();
 

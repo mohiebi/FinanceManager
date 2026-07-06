@@ -28,6 +28,7 @@ test('it renders the bills index page', function () {
 });
 
 test('it converts bill amounts to the selected currency and sorts by next due date', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-06 12:00:00'));
     Cache::flush();
     config(['services.tgju.enabled' => true]);
     Cache::put('asset-prices.tgju', [
@@ -35,48 +36,65 @@ test('it converts bill amounts to the selected currency and sorts by next due da
         'eur' => 175500.0,
     ], now()->addMinutes(5));
 
-    $user = User::factory()->create();
+    try {
+        $user = User::factory()->create();
 
-    $farBill = $user->bills()->create([
-        'title' => 'Far bill',
-        'amount' => 300000,
-        'currency' => Currency::Toman->value,
-        'recurrence_type' => 'monthly',
-        'due_day_of_month' => 20,
-    ]);
-    $farBill->occurrences()->create(['due_date' => '2026-08-20']);
+        $farBill = $user->bills()->create([
+            'title' => 'Far bill',
+            'amount' => 300000,
+            'currency' => Currency::Toman->value,
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 20,
+        ]);
+        $farBill->occurrences()->create(['due_date' => '2026-08-20']);
 
-    $closeBill = $user->bills()->create([
-        'title' => 'Close bill',
-        'amount' => 2,
-        'currency' => Currency::Usd->value,
-        'recurrence_type' => 'monthly',
-        'due_day_of_month' => 10,
-    ]);
-    $closeBill->occurrences()->create(['due_date' => '2026-07-10']);
+        $currentMonthTomanBill = $user->bills()->create([
+            'title' => 'Current month toman bill',
+            'amount' => 300000,
+            'currency' => Currency::Toman->value,
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 20,
+        ]);
+        $currentMonthTomanBill->occurrences()->create(['due_date' => '2026-07-20']);
 
-    $user->bills()->create([
-        'title' => 'No upcoming bill',
-        'amount' => 1,
-        'currency' => Currency::Usd->value,
-        'recurrence_type' => 'monthly',
-        'due_day_of_month' => 1,
-    ]);
+        $closeBill = $user->bills()->create([
+            'title' => 'Close bill',
+            'amount' => 2,
+            'currency' => Currency::Usd->value,
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 10,
+        ]);
+        $closeBill->occurrences()->create(['due_date' => '2026-07-10']);
 
-    $this->actingAs($user)
-        ->get(route('bills.index', ['currency' => Currency::Usd->value]))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('Bills')
-            ->where('selectedCurrency', Currency::Usd->value)
-            ->where('bills.0.title', 'Close bill')
-            ->where('bills.0.display_amount', '2.00')
-            ->where('bills.0.display_currency', Currency::Usd->value)
-            ->where('bills.1.title', 'Far bill')
-            ->where('bills.1.display_amount', '2.00')
-            ->where('bills.1.display_currency', Currency::Usd->value)
-            ->where('bills.2.title', 'No upcoming bill')
-        );
+        $user->bills()->create([
+            'title' => 'No upcoming bill',
+            'amount' => 1,
+            'currency' => Currency::Usd->value,
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 1,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('bills.index', ['currency' => Currency::Usd->value]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Bills')
+                ->where('selectedCurrency', Currency::Usd->value)
+                ->where('monthlyBillSummary.amount', '4.00')
+                ->where('monthlyBillSummary.currency', Currency::Usd->value)
+                ->where('monthlyBillSummary.count', 2)
+                ->where('bills.0.title', 'Close bill')
+                ->where('bills.0.display_amount', '2.00')
+                ->where('bills.0.display_currency', Currency::Usd->value)
+                ->where('bills.1.title', 'Current month toman bill')
+                ->where('bills.1.display_amount', '2.00')
+                ->where('bills.1.display_currency', Currency::Usd->value)
+                ->where('bills.2.title', 'Far bill')
+                ->where('bills.3.title', 'No upcoming bill')
+            );
+    } finally {
+        Carbon::setTestNow();
+    }
 });
 
 test('it creates a recurring bill and generates the first occurrence', function () {

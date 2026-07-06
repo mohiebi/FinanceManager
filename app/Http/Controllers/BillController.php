@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Bills\MarkBillOccurrencePaid;
 use App\Actions\Bills\SyncBillOccurrence;
+use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\BillRecurrenceType;
 use App\Enums\Currency;
 use App\Enums\TransactionType;
@@ -17,22 +18,29 @@ use Inertia\Response;
 
 class BillController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, CurrencyConverter $currencyConverter): Response
     {
         $user = $request->user();
+        $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
 
         $bills = $user->bills()
             ->with(['category', 'occurrences' => fn ($query) => $query->whereNull('paid_at')->orderBy('due_date')])
-            ->orderBy('title')
             ->get()
-            ->map(function (Bill $bill) {
+            ->map(function (Bill $bill) use ($currencyConverter, $selectedCurrency) {
                 $next = $bill->occurrences->first();
+                $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
 
                 return [
                     'id' => $bill->id,
                     'title' => $bill->title,
                     'amount' => (float) $bill->amount,
                     'currency' => $bill->currency,
+                    'display_amount' => $currencyConverter->format(
+                        $bill->amount,
+                        $billCurrency,
+                        $selectedCurrency,
+                    ),
+                    'display_currency' => $selectedCurrency->value,
                     'recurrence_type' => $bill->recurrence_type->value,
                     'due_day_of_month' => $bill->due_day_of_month,
                     'due_date' => $bill->due_date?->toDateString(),
@@ -45,7 +53,14 @@ class BillController extends Controller
                         'due_date' => $next->due_date->toDateString(),
                     ] : null,
                 ];
-            });
+            })
+            ->sortBy(fn (array $bill): string => sprintf(
+                '%d|%s|%s',
+                $bill['next_occurrence'] === null ? 1 : 0,
+                $bill['next_occurrence']['due_date'] ?? '9999-12-31',
+                mb_strtolower((string) $bill['title']),
+            ))
+            ->values();
 
         $categories = Category::query()
             ->availableFor($user)
@@ -61,6 +76,7 @@ class BillController extends Controller
                 'label' => $c->label(),
                 'value' => $c->value,
             ]),
+            'selectedCurrency' => $selectedCurrency->value,
             'userCalendar' => $user->calendar ?? 'gregorian',
         ]);
     }

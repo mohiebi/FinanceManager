@@ -92,9 +92,9 @@
                 </div>
 
                 <p class="text-2xl font-bold text-white">
-                    {{ formatAmount(bill.amount) }}
+                    {{ formatAmount(bill.display_amount) }}
                     <span class="text-sm font-normal text-[#989898]">{{
-                        currencyLabel(bill.currency)
+                        currencyLabel(bill.display_currency)
                     }}</span>
                 </p>
 
@@ -437,6 +437,8 @@ type Bill = {
     title: string;
     amount: number;
     currency: string;
+    display_amount: string;
+    display_currency: string;
     recurrence_type: 'one_time' | 'monthly';
     due_day_of_month: number | null;
     due_date: string | null;
@@ -451,6 +453,7 @@ const props = defineProps<{
     bills: Bill[];
     categories: { id: number; name: string }[];
     currencies: { label: string; value: string }[];
+    selectedCurrency: string;
     userCalendar: string;
 }>();
 
@@ -459,8 +462,14 @@ const bills = computed(() => props.bills);
 
 const displayDate = (value: string): string =>
     formatAppDate(value, props.userCalendar);
-const formatAmount = (value: number): string =>
-    new Intl.NumberFormat().format(value);
+const formatAmount = (value: number | string): string => {
+    const amount = Number(value);
+
+    return new Intl.NumberFormat('en-US', {
+        maximumFractionDigits: 2,
+        minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    }).format(amount);
+};
 const currencyLabel = (value: string): string =>
     props.currencies.find((currency) => currency.value === value)?.label ??
     t(`finance.currencies.${value}`);

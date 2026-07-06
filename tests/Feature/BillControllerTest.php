@@ -2,11 +2,14 @@
 
 use App\Actions\Bills\MarkBillOccurrencePaid;
 use App\Actions\Bills\SyncBillOccurrence;
+use App\Enums\Currency;
 use App\Models\Bill;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Inertia\Testing\AssertableInertia as Assert;
 
 test('it renders the bills index page', function () {
     $user = User::factory()->create();
@@ -22,6 +25,58 @@ test('it renders the bills index page', function () {
     $this->actingAs($user)
         ->get(route('bills.index'))
         ->assertOk();
+});
+
+test('it converts bill amounts to the selected currency and sorts by next due date', function () {
+    Cache::flush();
+    config(['services.tgju.enabled' => true]);
+    Cache::put('asset-prices.tgju', [
+        'usd' => 150000.0,
+        'eur' => 175500.0,
+    ], now()->addMinutes(5));
+
+    $user = User::factory()->create();
+
+    $farBill = $user->bills()->create([
+        'title' => 'Far bill',
+        'amount' => 300000,
+        'currency' => Currency::Toman->value,
+        'recurrence_type' => 'monthly',
+        'due_day_of_month' => 20,
+    ]);
+    $farBill->occurrences()->create(['due_date' => '2026-08-20']);
+
+    $closeBill = $user->bills()->create([
+        'title' => 'Close bill',
+        'amount' => 2,
+        'currency' => Currency::Usd->value,
+        'recurrence_type' => 'monthly',
+        'due_day_of_month' => 10,
+    ]);
+    $closeBill->occurrences()->create(['due_date' => '2026-07-10']);
+
+    $user->bills()->create([
+        'title' => 'No upcoming bill',
+        'amount' => 1,
+        'currency' => Currency::Usd->value,
+        'recurrence_type' => 'monthly',
+        'due_day_of_month' => 1,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('bills.index', ['currency' => Currency::Usd->value]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Bills')
+            ->where('selectedCurrency', Currency::Usd->value)
+            ->where('bills.0.title', 'Close bill')
+            ->where('bills.0.display_amount', '2.00')
+            ->where('bills.0.display_currency', Currency::Usd->value)
+            ->where('bills.1.title', 'Far bill')
+            ->where('bills.1.display_amount', '2.00')
+            ->where('bills.1.display_currency', Currency::Usd->value)
+            ->where('bills.2.title', 'No upcoming bill')
+        );
 });
 
 test('it creates a recurring bill and generates the first occurrence', function () {

@@ -90,6 +90,8 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     Route::get('transactions/export', TransactionExportController::class)->name('transactions.export');
     Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::post('investment-assets', [InvestmentAssetController::class, 'store'])->name('investment-assets.store');
+    Route::delete('transactions/bulk', [TransactionController::class, 'destroyBulk'])->name('transactions.destroy-bulk');
+    Route::patch('transactions/bulk/category', [TransactionController::class, 'updateBulkCategory'])->name('transactions.update-bulk-category');
     Route::resource('transactions', TransactionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('investments/export', InvestmentExportController::class)->name('investments.export');
     Route::resource('investments', InvestmentController::class)->only(['index', 'store', 'update', 'destroy']);

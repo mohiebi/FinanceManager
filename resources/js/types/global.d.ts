@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { NotificationData } from '@/types/notifications';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -40,13 +41,7 @@ declare module '@inertiajs/core' {
                 unread_count: number;
                 recent: {
                     id: string;
-                    data: {
-                        type: string;
-                        title: string;
-                        body: string;
-                        bill_id?: number;
-                        due_date?: string;
-                    };
+                    data: NotificationData;
                     read_at: string | null;
                     created_at: string;
                 }[];

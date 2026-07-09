@@ -351,6 +351,41 @@ class TelegramHandler extends WebhookHandler
             ->send();
     }
 
+    public function inv_pick_currency(?string $currency = null): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user) {
+            return;
+        }
+
+        $currency = Currency::tryFrom($currency ?? (string) $this->data->get('currency'));
+        $wizard = $this->chat->storage()->get('inv_wizard', []);
+
+        if (! $currency || ($wizard['step'] ?? '') !== 'cost_basis_currency') {
+            $this->chat->message('The investment draft expired. Choose Add investment to start again.')
+                ->keyboard($this->mainKeyboard())
+                ->send();
+
+            return;
+        }
+
+        Investment::create([
+            'user_id' => $wizard['user_id'],
+            'investment_asset_id' => $wizard['asset_id'],
+            'asset_type' => $wizard['asset_slug'],
+            'quantity' => $wizard['quantity'],
+            'cost_basis' => $wizard['cost_basis'],
+            'cost_basis_currency' => $currency->value,
+            'occurred_at' => now()->toDateString(),
+        ]);
+
+        $this->chat->storage()->forget('inv_wizard');
+        $this->chat->message('Investment saved.')->keyboard($this->mainKeyboard())->send();
+    }
+
     protected function handleChatMessage(\Stringable $text): void
     {
         $text = (string) $text;
@@ -462,14 +497,26 @@ class TelegramHandler extends WebhookHandler
         }
 
         if ($wizard['step'] === 'cost_basis') {
-            $costBasis = is_numeric($text) ? (float) $text : null;
+            $costBasis = is_numeric($text) && (float) $text > 0 ? (float) $text : null;
+
+            if ($costBasis !== null) {
+                $wizard['cost_basis'] = $costBasis;
+                $wizard['step'] = 'cost_basis_currency';
+                $this->chat->storage()->set('inv_wizard', $wizard);
+
+                $this->chat->message('Select the currency for the cost basis:')
+                    ->keyboard($this->invCurrencyKeyboard())
+                    ->send();
+
+                return;
+            }
 
             Investment::create([
                 'user_id' => $user->id,
                 'investment_asset_id' => $wizard['asset_id'],
                 'asset_type' => $wizard['asset_slug'],
                 'quantity' => $wizard['quantity'],
-                'cost_basis' => $costBasis > 0 ? $costBasis : null,
+                'cost_basis' => null,
                 'occurred_at' => now()->toDateString(),
             ]);
 
@@ -991,6 +1038,17 @@ class TelegramHandler extends WebhookHandler
             collect(Currency::cases())
                 ->map(fn (Currency $currency): Button => Button::make(strtoupper($currency->value))
                     ->action('bill_pick_currency')
+                    ->param('currency', $currency->value)
+                    ->width(1 / 3))
+        ));
+    }
+
+    private function invCurrencyKeyboard(): Keyboard
+    {
+        return $this->withCancelToMenu(Keyboard::make()->buttons(
+            collect(Currency::cases())
+                ->map(fn (Currency $currency): Button => Button::make(strtoupper($currency->value))
+                    ->action('inv_pick_currency')
                     ->param('currency', $currency->value)
                     ->width(1 / 3))
         ));

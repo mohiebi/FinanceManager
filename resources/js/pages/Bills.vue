@@ -492,7 +492,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import { formatAppDate } from '@/lib/date';
+import { toJalaali } from 'jalaali-js';
+import { formatAppDate, jalaliMonthAbbreviations, monthBucketKeyFromIso } from '@/lib/date';
 import { dashboard } from '@/routes';
 import {
     index as billsIndex,
@@ -557,13 +558,19 @@ const groupedUpcoming = computed(() => {
         { month: string; label: string; occurrences: UpcomingOccurrence[] }
     >();
     for (const occ of props.upcomingOccurrences) {
-        const [y, m] = occ.due_date.split('-').map(Number);
-        const key = `${y}-${String(m).padStart(2, '0')}`;
+        const key = monthBucketKeyFromIso(occ.due_date, props.userCalendar);
         if (!groups.has(key)) {
-            const label = new Date(y, m - 1, 1).toLocaleString('default', {
-                month: 'long',
-                year: 'numeric',
-            });
+            const [gy, gm, gd] = occ.due_date.split('-').map(Number);
+            let label: string;
+            if (props.userCalendar === 'jalali') {
+                const j = toJalaali(gy, gm, gd);
+                label = `${jalaliMonthAbbreviations[j.jm - 1]} ${j.jy}`;
+            } else {
+                label = new Date(gy, gm - 1, 1).toLocaleString('default', {
+                    month: 'long',
+                    year: 'numeric',
+                });
+            }
             groups.set(key, { month: key, label, occurrences: [] });
         }
         groups.get(key)!.occurrences.push(occ);

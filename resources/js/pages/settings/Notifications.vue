@@ -9,13 +9,7 @@ import {
     read as readNotification,
     readAll as readAllNotifications,
 } from '@/routes/notifications';
-
-type NotificationItem = {
-    id: string;
-    data: { type: string; title: string; body: string };
-    read_at: string | null;
-    created_at: string;
-};
+import type { NotificationItem } from '@/types/notifications';
 
 const props = defineProps<{
     notifications: NotificationItem[];

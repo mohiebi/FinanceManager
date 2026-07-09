@@ -204,7 +204,7 @@
                         </Button>
                         <Button
                             variant="outline"
-                            class="size-10 shrink-0 rounded-full bg-white/10 p-0 text-[#989898] ring-1 ring-white/15 hover:bg-white/15"
+                            class="size-9 shrink-0 rounded-full bg-white/10 p-0 text-[#989898] ring-1 ring-white/15 hover:bg-white/15"
                             @click="clearTransactionFilters"
                         >
                             <RotateCcw class="size-4" />

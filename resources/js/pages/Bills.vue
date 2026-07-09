@@ -24,24 +24,19 @@
                 <div
                     class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end"
                 >
-                    <div class="text-left sm:text-right">
+                    <div
+                        class="flex flex-col items-start gap-0.5 rounded-2xl bg-white/5 px-4 py-2.5 ring-1 ring-white/10 sm:items-end"
+                    >
                         <p
-                            class="text-[10px] font-medium tracking-wide text-[#6b6b6b] uppercase"
+                            class="text-[10px] font-medium tracking-widest text-[#6b6b6b] uppercase"
                         >
-                            {{ t('finance.reports.this_month') }}
+                            {{ t('finance.fields.total_cost') }} · {{ t('finance.reports.this_month') }}
                         </p>
-                        <p class="mt-1 text-xl font-semibold text-white">
+                        <p class="text-2xl font-bold leading-none text-white">
                             {{ formatAmount(props.monthlyBillSummary.amount) }}
-                            <span class="text-xs font-normal text-[#989898]">
-                                {{
-                                    currencyLabel(
-                                        props.monthlyBillSummary.currency,
-                                    )
-                                }}
-                            </span>
-                        </p>
-                        <p class="mt-0.5 text-xs text-[#989898]">
-                            {{ t('finance.fields.total_cost') }}
+                            <span class="ml-1 text-xs font-normal text-[#989898]">{{
+                                currencyLabel(props.monthlyBillSummary.currency)
+                            }}</span>
                         </p>
                     </div>
                     <Button
@@ -166,6 +161,58 @@
                 </div>
             </div>
         </div>
+
+        <!-- ── Upcoming occurrences timeline ────────────────────── -->
+        <section
+            v-if="upcomingOccurrences.length > 0"
+            class="mx-[18px] mb-[18px] rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+        >
+            <h2
+                class="mb-4 text-[10px] font-medium tracking-wide text-[#6b6b6b] uppercase"
+            >
+                {{ t('finance.bills.upcoming') }}
+            </h2>
+            <div
+                v-for="group in groupedUpcoming"
+                :key="group.month"
+                class="mb-5 last:mb-0"
+            >
+                <p class="mb-2 text-xs font-medium text-[#6b6b6b]">
+                    {{ group.label }}
+                </p>
+                <div class="space-y-2">
+                    <div
+                        v-for="occ in group.occurrences"
+                        :key="occ.occurrence_id"
+                        class="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3 ring-1 ring-white/5"
+                    >
+                        <p class="min-w-0 flex-1 truncate text-sm font-medium text-white">
+                            {{ occ.title }}
+                        </p>
+                        <div class="flex shrink-0 items-center gap-2">
+                            <span
+                                v-if="occ.is_overdue"
+                                class="rounded-md bg-[#2f1717] px-2 py-0.5 text-[10px] font-medium text-[#E94E50]"
+                            >{{ t('finance.bills.overdue') }}</span>
+                            <span
+                                v-else-if="occ.is_due_today"
+                                class="rounded-md bg-[#0d2620] px-2 py-0.5 text-[10px] font-medium text-[#02CD86]"
+                            >{{ t('finance.bills.due_today') }}</span>
+                            <span
+                                v-else
+                                class="text-xs text-[#989898]"
+                            >{{ displayDate(occ.due_date) }}</span>
+                            <span class="text-sm font-semibold text-white">
+                                {{ formatAmount(occ.display_amount) }}
+                                <span class="text-xs font-normal text-[#989898]">{{
+                                    currencyLabel(occ.display_currency)
+                                }}</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <!-- ── Add / Edit dialog ──────────────────────────────────── -->
         <Dialog :open="isDialogOpen" @update:open="handleDialogOpenChange">
@@ -480,17 +527,49 @@ type MonthlyBillSummary = {
     to: string;
 };
 
+type UpcomingOccurrence = {
+    occurrence_id: number;
+    bill_id: number;
+    title: string;
+    display_amount: string;
+    display_currency: string;
+    due_date: string;
+    is_overdue: boolean;
+    is_due_today: boolean;
+};
+
 const props = defineProps<{
     bills: Bill[];
     categories: { id: number; name: string }[];
     currencies: { label: string; value: string }[];
     selectedCurrency: string;
     monthlyBillSummary: MonthlyBillSummary;
+    upcomingOccurrences: UpcomingOccurrence[];
     userCalendar: string;
 }>();
 
 const { t } = useI18n();
 const bills = computed(() => props.bills);
+
+const groupedUpcoming = computed(() => {
+    const groups = new Map<
+        string,
+        { month: string; label: string; occurrences: UpcomingOccurrence[] }
+    >();
+    for (const occ of props.upcomingOccurrences) {
+        const [y, m] = occ.due_date.split('-').map(Number);
+        const key = `${y}-${String(m).padStart(2, '0')}`;
+        if (!groups.has(key)) {
+            const label = new Date(y, m - 1, 1).toLocaleString('default', {
+                month: 'long',
+                year: 'numeric',
+            });
+            groups.set(key, { month: key, label, occurrences: [] });
+        }
+        groups.get(key)!.occurrences.push(occ);
+    }
+    return [...groups.values()].slice(0, 2);
+});
 
 const displayDate = (value: string): string =>
     formatAppDate(value, props.userCalendar);

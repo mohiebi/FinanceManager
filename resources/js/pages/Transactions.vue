@@ -196,7 +196,15 @@
                         <thead>
                             <tr class="text-left text-base">
                                 <th
-                                    class="rounded-l-2xl bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                    class="rounded-l-2xl bg-[#24212f] px-2 py-4 text-center sm:px-3"
+                                >
+                                    <Checkbox
+                                        :checked="allCostsSelected"
+                                        @update:checked="toggleAllCosts"
+                                    />
+                                </th>
+                                <th
+                                    class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
                                 >
                                     {{ t('finance.fields.subject') }}
                                 </th>
@@ -226,6 +234,22 @@
                                 :key="transaction.id"
                                 class="group"
                             >
+                                <td
+                                    class="px-2 py-[17px] text-center sm:px-3"
+                                >
+                                    <Checkbox
+                                        :checked="
+                                            selectedCostIds.has(transaction.id)
+                                        "
+                                        @update:checked="
+                                            (v: boolean | 'indeterminate') =>
+                                                toggleCost(
+                                                    transaction.id,
+                                                    v === true,
+                                                )
+                                        "
+                                    />
+                                </td>
                                 <td
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
@@ -289,7 +313,7 @@
                             </tr>
                             <tr v-if="props.transactions.costs.length === 0">
                                 <td
-                                    colspan="5"
+                                    colspan="6"
                                     class="px-5 py-12 text-center text-[#989898]"
                                 >
                                     {{ t('finance.dashboard.no_costs') }}
@@ -343,7 +367,15 @@
                         <thead>
                             <tr class="text-left text-base">
                                 <th
-                                    class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="rounded-l-2xl bg-[#0d2620] px-2 py-4 text-center sm:px-3"
+                                >
+                                    <Checkbox
+                                        :checked="allIncomesSelected"
+                                        @update:checked="toggleAllIncomes"
+                                    />
+                                </th>
+                                <th
+                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     {{ t('finance.fields.subject') }}
                                 </th>
@@ -374,6 +406,24 @@
                                 :key="transaction.id"
                                 class="group"
                             >
+                                <td
+                                    class="px-2 py-[17px] text-center sm:px-3"
+                                >
+                                    <Checkbox
+                                        :checked="
+                                            selectedIncomeIds.has(
+                                                transaction.id,
+                                            )
+                                        "
+                                        @update:checked="
+                                            (v: boolean | 'indeterminate') =>
+                                                toggleIncome(
+                                                    transaction.id,
+                                                    v === true,
+                                                )
+                                        "
+                                    />
+                                </td>
                                 <td
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
@@ -437,7 +487,7 @@
                             </tr>
                             <tr v-if="props.transactions.incomes.length === 0">
                                 <td
-                                    colspan="5"
+                                    colspan="6"
                                     class="px-5 py-12 text-center text-[#989898]"
                                 >
                                     {{ t('finance.dashboard.no_incomes') }}
@@ -448,6 +498,105 @@
                 </div>
             </section>
         </div>
+
+        <!-- ── Pagination ─────────────────────────────────────────── -->
+        <div
+            v-if="
+                props.transactions.meta &&
+                props.transactions.meta.last_page > 1
+            "
+            class="flex items-center justify-center gap-4 pb-10 text-sm"
+        >
+            <button
+                :disabled="props.transactions.meta.current_page <= 1"
+                class="rounded-full bg-white/10 px-4 py-2 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                @click="changePage(props.transactions.meta.current_page - 1)"
+            >
+                ← Previous
+            </button>
+            <span class="text-[#989898]">
+                Page {{ props.transactions.meta.current_page }} of
+                {{ props.transactions.meta.last_page }}
+                <span class="ml-1 text-[#6b6b6b]"
+                    >({{ props.transactions.meta.total }} total)</span
+                >
+            </span>
+            <button
+                :disabled="
+                    props.transactions.meta.current_page >=
+                    props.transactions.meta.last_page
+                "
+                class="rounded-full bg-white/10 px-4 py-2 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                @click="changePage(props.transactions.meta.current_page + 1)"
+            >
+                Next →
+            </button>
+        </div>
+
+        <!-- ── Bulk action toolbar ─────────────────────────────────── -->
+        <Transition
+            enter-active-class="transition-all duration-200 ease-out"
+            enter-from-class="opacity-0 translate-y-4"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition-all duration-150 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 translate-y-4"
+        >
+            <div
+                v-if="totalSelected > 0"
+                class="fixed bottom-6 inset-x-0 z-50 flex justify-center"
+            >
+                <div
+                    class="flex flex-wrap items-center gap-3 rounded-2xl bg-[#1a1a1a] px-5 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.5)] ring-1 ring-white/15"
+                >
+                    <span class="text-sm font-medium text-[#989898]">
+                        {{ totalSelected }}
+                        {{ totalSelected === 1 ? 'item' : 'items' }} selected
+                    </span>
+
+                    <div
+                        v-if="selectionType !== null"
+                        class="flex items-center gap-2"
+                    >
+                        <select
+                            v-model="bulkCategoryId"
+                            class="h-8 rounded-lg border border-white/10 bg-[#252525] px-2 text-xs text-white [color-scheme:dark] focus:outline-none"
+                        >
+                            <option value="">
+                                {{ t('finance.actions.bulk_assign') }}…
+                            </option>
+                            <option
+                                v-for="cat in bulkCategories"
+                                :key="cat.id"
+                                :value="String(cat.id)"
+                            >
+                                {{ cat.name }}
+                            </option>
+                        </select>
+                        <button
+                            :disabled="!bulkCategoryId"
+                            class="h-8 rounded-lg bg-[#947BFF]/20 px-3 text-xs font-medium text-[#947BFF] ring-1 ring-[#947BFF]/30 transition hover:bg-[#947BFF]/30 disabled:cursor-not-allowed disabled:opacity-40"
+                            @click="bulkAssignCategory"
+                        >
+                            Apply
+                        </button>
+                    </div>
+
+                    <button
+                        class="h-8 rounded-lg bg-[#E94E50]/15 px-3 text-xs font-medium text-[#E94E50] ring-1 ring-[#E94E50]/25 transition hover:bg-[#E94E50]/25"
+                        @click="bulkDelete"
+                    >
+                        {{ t('finance.actions.bulk_delete') }}
+                    </button>
+                    <button
+                        class="h-8 rounded-lg bg-white/5 px-3 text-xs font-medium text-[#6b6b6b] ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white"
+                        @click="clearSelection"
+                    >
+                        {{ t('common.clear') }}
+                    </button>
+                </div>
+            </div>
+        </Transition>
 
         <TransactionDialog
             v-model:open="isDialogOpen"
@@ -795,6 +944,7 @@ import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import TransactionDialog from '@/components/transactions/TransactionDialog.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -896,6 +1046,12 @@ const props = defineProps<{
     transactions: {
         costs: Transaction[];
         incomes: Transaction[];
+        meta?: {
+            current_page: number;
+            last_page: number;
+            total: number;
+            per_page: number;
+        } | null;
     };
     categories: Record<TransactionType, Category[]>;
     currencies: CurrencyOption[];
@@ -960,6 +1116,95 @@ const filterFrom = ref(props.filters.from);
 const filterTo = ref(props.filters.to);
 const filterFieldClass =
     'h-9 w-full rounded-md !border-white/10 !bg-[#252525] px-3 text-sm font-normal !text-white shadow-none [color-scheme:dark] placeholder:!text-[#686868] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 [&_svg]:!text-[#989898]';
+
+// ── Bulk selection ────────────────────────────────────────────
+const selectedCostIds = ref<Set<number>>(new Set());
+const selectedIncomeIds = ref<Set<number>>(new Set());
+const bulkCategoryId = ref<string>('');
+
+const totalSelected = computed(
+    () => selectedCostIds.value.size + selectedIncomeIds.value.size,
+);
+const selectionType = computed<TransactionType | null>(() => {
+    if (selectedCostIds.value.size > 0 && selectedIncomeIds.value.size === 0) {
+        return 'cost';
+    }
+    if (selectedIncomeIds.value.size > 0 && selectedCostIds.value.size === 0) {
+        return 'income';
+    }
+    return null;
+});
+const bulkCategories = computed(() => {
+    if (selectionType.value === 'cost') return props.categories.cost ?? [];
+    if (selectionType.value === 'income') return props.categories.income ?? [];
+    return [];
+});
+const allCostsSelected = computed(
+    () =>
+        props.transactions.costs.length > 0 &&
+        props.transactions.costs.every((t) => selectedCostIds.value.has(t.id)),
+);
+const allIncomesSelected = computed(
+    () =>
+        props.transactions.incomes.length > 0 &&
+        props.transactions.incomes.every((t) =>
+            selectedIncomeIds.value.has(t.id),
+        ),
+);
+
+function toggleCost(id: number, selected: boolean): void {
+    const next = new Set(selectedCostIds.value);
+    if (selected) next.add(id);
+    else next.delete(id);
+    selectedCostIds.value = next;
+}
+function toggleIncome(id: number, selected: boolean): void {
+    const next = new Set(selectedIncomeIds.value);
+    if (selected) next.add(id);
+    else next.delete(id);
+    selectedIncomeIds.value = next;
+}
+function toggleAllCosts(checked: boolean | 'indeterminate'): void {
+    selectedCostIds.value =
+        checked === true
+            ? new Set(props.transactions.costs.map((t) => t.id))
+            : new Set();
+}
+function toggleAllIncomes(checked: boolean | 'indeterminate'): void {
+    selectedIncomeIds.value =
+        checked === true
+            ? new Set(props.transactions.incomes.map((t) => t.id))
+            : new Set();
+}
+function clearSelection(): void {
+    selectedCostIds.value = new Set();
+    selectedIncomeIds.value = new Set();
+    bulkCategoryId.value = '';
+}
+function bulkDelete(): void {
+    const ids = [
+        ...selectedCostIds.value,
+        ...selectedIncomeIds.value,
+    ];
+    router.delete('/transactions/bulk', {
+        data: { ids },
+        preserveScroll: true,
+        onSuccess: () => clearSelection(),
+    });
+}
+function bulkAssignCategory(): void {
+    const type = selectionType.value;
+    if (!type || !bulkCategoryId.value) return;
+    const ids =
+        type === 'cost'
+            ? [...selectedCostIds.value]
+            : [...selectedIncomeIds.value];
+    router.patch(
+        '/transactions/bulk/category',
+        { ids, type, category_id: Number(bulkCategoryId.value) },
+        { preserveScroll: true, onSuccess: () => clearSelection() },
+    );
+}
 
 const importForm = useForm<{
     file: File | null;
@@ -1172,7 +1417,11 @@ watch(filterType, () => {
     }
 });
 
-function applyFilters(currency: Currency = selectedCurrency.value): void {
+function applyFilters(
+    currency: Currency = selectedCurrency.value,
+    page: number | null = null,
+): void {
+    clearSelection();
     router.get(
         transactionsIndex.url(),
         {
@@ -1183,6 +1432,7 @@ function applyFilters(currency: Currency = selectedCurrency.value): void {
             from: filterFrom.value || null,
             to: filterTo.value || null,
             currency,
+            page: page && page > 1 ? page : null,
         },
         {
             preserveScroll: true,
@@ -1190,6 +1440,10 @@ function applyFilters(currency: Currency = selectedCurrency.value): void {
             replace: true,
         },
     );
+}
+
+function changePage(page: number): void {
+    applyFilters(selectedCurrency.value, page);
 }
 
 function applyTypeFilter(): void {

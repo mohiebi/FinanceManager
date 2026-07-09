@@ -168,28 +168,54 @@
             class="mx-[18px] mb-[18px] rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
             <h2
-                class="mb-4 text-[10px] font-medium tracking-wide text-[#6b6b6b] uppercase"
+                class="mb-5 text-[10px] font-medium tracking-widest text-[#6b6b6b] uppercase"
             >
                 {{ t('finance.bills.upcoming') }}
             </h2>
+
             <div
-                v-for="group in groupedUpcoming"
+                v-for="(group, gi) in groupedUpcoming"
                 :key="group.month"
-                class="mb-5 last:mb-0"
+                :class="{ 'mt-6': gi > 0 }"
             >
-                <p class="mb-2 text-xs font-medium text-[#6b6b6b]">
-                    {{ group.label }}
-                </p>
-                <div class="space-y-2">
+                <!-- Month separator -->
+                <div class="mb-1 flex items-center gap-3">
+                    <span class="shrink-0 text-xs font-semibold text-white">
+                        {{ group.label }}
+                    </span>
+                    <div class="h-px flex-1 bg-white/[0.08]" />
+                </div>
+
+                <!-- Bill rows -->
+                <div class="divide-y divide-white/[0.05]">
                     <div
                         v-for="occ in group.occurrences"
                         :key="occ.occurrence_id"
-                        class="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3 ring-1 ring-white/5"
+                        class="flex items-center gap-3 py-2.5 first:pt-2 last:pb-0"
                     >
-                        <p class="min-w-0 flex-1 truncate text-sm font-medium text-white">
+                        <!-- Day badge — colour encodes urgency -->
+                        <div
+                            :class="[
+                                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold tabular-nums',
+                                occ.is_overdue
+                                    ? 'bg-[#2f1717] text-[#E94E50]'
+                                    : occ.is_due_today
+                                      ? 'bg-[#0d2620] text-[#02CD86]'
+                                      : 'bg-white/[0.06] text-[#6b6b6b]',
+                            ]"
+                        >
+                            {{ displayDate(occ.due_date).split('-')[2] }}
+                        </div>
+
+                        <!-- Bill title -->
+                        <p
+                            class="min-w-0 flex-1 truncate text-sm font-medium text-white"
+                        >
                             {{ occ.title }}
                         </p>
-                        <div class="flex shrink-0 items-center gap-2">
+
+                        <!-- Status chip + amount -->
+                        <div class="flex shrink-0 items-center gap-3">
                             <span
                                 v-if="occ.is_overdue"
                                 class="rounded-md bg-[#2f1717] px-2 py-0.5 text-[10px] font-medium text-[#E94E50]"
@@ -200,11 +226,14 @@
                             >{{ t('finance.bills.due_today') }}</span>
                             <span
                                 v-else
-                                class="text-xs text-[#989898]"
+                                class="hidden text-xs tabular-nums text-[#6b6b6b] sm:inline"
                             >{{ displayDate(occ.due_date) }}</span>
-                            <span class="text-sm font-semibold text-white">
+
+                            <span
+                                class="min-w-[110px] text-right text-sm font-bold tabular-nums text-white"
+                            >
                                 {{ formatAmount(occ.display_amount) }}
-                                <span class="text-xs font-normal text-[#989898]">{{
+                                <span class="text-[10px] font-normal text-[#6b6b6b]">{{
                                     currencyLabel(occ.display_currency)
                                 }}</span>
                             </span>

@@ -12,6 +12,8 @@ return [
         'reset_filters' => 'بازنشانی فیلترها',
         'see_all' => 'مشاهده همه ←',
         'sync_prices' => 'به‌روزرسانی قیمت‌ها',
+        'bulk_delete' => 'حذف موارد انتخابی',
+        'bulk_assign' => 'تخصیص دسته‌بندی',
     ],
     'assets' => [
         'gold' => 'طلا',

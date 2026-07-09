@@ -12,6 +12,8 @@ return [
         'reset_filters' => 'Filter zurücksetzen',
         'see_all' => 'Alle ansehen ->',
         'sync_prices' => 'Preise synchronisieren',
+        'bulk_delete' => 'Ausgewählte löschen',
+        'bulk_assign' => 'Kategorie zuweisen',
     ],
     'assets' => [
         'gold' => 'Gold',

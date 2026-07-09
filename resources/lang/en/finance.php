@@ -12,6 +12,8 @@ return [
         'reset_filters' => 'Reset filters',
         'see_all' => 'See all ->',
         'sync_prices' => 'Sync prices',
+        'bulk_delete' => 'Delete selected',
+        'bulk_assign' => 'Assign category',
     ],
     'assets' => [
         'gold' => 'Gold',

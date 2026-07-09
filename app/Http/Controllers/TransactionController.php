@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Morilog\Jalali\Jalalian;
@@ -92,7 +93,7 @@ class TransactionController extends Controller
             [$fromDate, $toDate] = [$toDate, $fromDate];
         }
 
-        $transactions = $user->transactions()
+        $query = $user->transactions()
             ->with('category:id,name,type')
             ->when(
                 $selectedType instanceof TransactionType,
@@ -118,8 +119,10 @@ class TransactionController extends Controller
                 fn (Builder $query) => $query->whereDate('occurred_at', '<=', $toDate->toDateString()),
             )
             ->latest('occurred_at')
-            ->latest()
-            ->get();
+            ->latest();
+
+        // Full collection is always needed for accurate multi-currency summary totals
+        $allTransactions = $query->get();
 
         $categories = Category::query()
             ->availableFor($user)
@@ -127,13 +130,31 @@ class TransactionController extends Controller
             ->orderBy('name')
             ->get();
 
-        $costs = $transactions
+        $costs = $allTransactions
             ->where('type', TransactionType::Cost)
             ->values();
 
-        $incomes = $transactions
+        $incomes = $allTransactions
             ->where('type', TransactionType::Income)
             ->values();
+
+        // Paginate the display slice only when on the Transactions page
+        $displayCosts = $costs;
+        $displayIncomes = $incomes;
+        $paginationMeta = null;
+
+        if ($withFilters) {
+            $paginator = $query->paginate(50);
+            $pageItems = collect($paginator->items());
+            $displayCosts = $pageItems->where('type', TransactionType::Cost)->values();
+            $displayIncomes = $pageItems->where('type', TransactionType::Income)->values();
+            $paginationMeta = [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'total' => $paginator->total(),
+                'per_page' => $paginator->perPage(),
+            ];
+        }
 
         return Inertia::render($component, [
             'filters' => [
@@ -144,7 +165,7 @@ class TransactionController extends Controller
                 'to' => $toDate?->toDateString() ?? '',
             ],
             'transactions' => [
-                'costs' => $costs
+                'costs' => $displayCosts
                     ->map(fn (Transaction $transaction) => [
                         ...(new TransactionResource($transaction))->resolve($request),
                         'display_amount' => $currencyConverter->format(
@@ -154,7 +175,7 @@ class TransactionController extends Controller
                         ),
                         'display_currency' => $selectedCurrency->value,
                     ]),
-                'incomes' => $incomes
+                'incomes' => $displayIncomes
                     ->map(fn (Transaction $transaction) => [
                         ...(new TransactionResource($transaction))->resolve($request),
                         'display_amount' => $currencyConverter->format(
@@ -164,6 +185,7 @@ class TransactionController extends Controller
                         ),
                         'display_currency' => $selectedCurrency->value,
                     ]),
+                'meta' => $paginationMeta,
             ],
             'categories' => [
                 'cost' => $categories
@@ -184,7 +206,7 @@ class TransactionController extends Controller
             'summary' => [
                 'cost' => $currencyConverter->sumFormatted($costs, $selectedCurrency),
                 'income' => $currencyConverter->sumFormatted($incomes, $selectedCurrency),
-                'count' => $transactions->count(),
+                'count' => $allTransactions->count(),
             ],
             'period' => $this->currentPeriod($calendar),
             ...$extraProps,
@@ -467,5 +489,59 @@ class TransactionController extends Controller
         $transaction->delete();
 
         return redirect()->to($request->headers->get('referer') ?: route('dashboard'));
+    }
+
+    /**
+     * Bulk-delete transactions belonging to the authenticated user.
+     */
+    public function destroyBulk(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:200'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $request->user()->transactions()
+            ->whereIn('id', $validated['ids'])
+            ->delete();
+
+        return back();
+    }
+
+    /**
+     * Bulk-reassign a category on transactions of a single type.
+     */
+    public function updateBulkCategory(Request $request): RedirectResponse
+    {
+        $typeValues = array_map(fn (TransactionType $t) => $t->value, TransactionType::cases());
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:200'],
+            'ids.*' => ['integer'],
+            'type' => ['required', 'string', Rule::in($typeValues)],
+            'category_id' => ['nullable', 'integer'],
+        ]);
+
+        $categoryId = $validated['category_id'] ?? null;
+
+        if ($categoryId !== null) {
+            $type = TransactionType::tryFrom($validated['type']);
+            $exists = Category::query()
+                ->availableFor($request->user())
+                ->when($type !== null, fn (Builder $q) => $q->where('type', $type))
+                ->whereKey($categoryId)
+                ->exists();
+
+            if (! $exists) {
+                abort(422, 'Invalid category');
+            }
+        }
+
+        $request->user()->transactions()
+            ->whereIn('id', $validated['ids'])
+            ->where('type', $validated['type'])
+            ->update(['category_id' => $categoryId]);
+
+        return back();
     }
 }

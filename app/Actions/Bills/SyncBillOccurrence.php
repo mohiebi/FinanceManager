@@ -6,6 +6,7 @@ use App\Enums\BillRecurrenceType;
 use App\Models\Bill;
 use App\Models\BillOccurrence;
 use App\Support\BillDueDateCalculator;
+use Illuminate\Support\Carbon;
 
 /**
  * Keeps a bill's pending (unpaid) occurrence in sync with its current
@@ -87,6 +88,45 @@ class SyncBillOccurrence
             'reminder_day_before_sent_at' => null,
             'reminder_due_day_sent_at' => null,
         ])->save();
+    }
+
+    /**
+     * Generates occurrences for the next $months monthly cycles from today.
+     * Starts after the bill's latest existing occurrence to avoid duplicating
+     * months that are already represented. Safe to call repeatedly — uses
+     * firstOrCreate to avoid unique(bill_id, due_date) constraint violations.
+     *
+     * @param  string|null  $calendar  Pre-resolved calendar ('gregorian'|'jalali'). If omitted, resolved from $bill->user.
+     */
+    public function lookahead(Bill $bill, int $months = 3, ?string $calendar = null): void
+    {
+        if ($bill->recurrence_type !== BillRecurrenceType::Monthly || $bill->due_day_of_month === null) {
+            return;
+        }
+
+        $calendar = $calendar ?? ($bill->user->calendar ?? 'gregorian');
+        $horizon = Carbon::today()->addDays(90);
+
+        // Start generating after the latest occurrence already on record
+        $latest = $bill->occurrences()->orderByDesc('due_date')->first();
+        $after = $latest
+            ? Carbon::parse($latest->due_date->toDateString())->addDay()
+            : Carbon::today();
+
+        for ($i = 0; $i < $months; $i++) {
+            $dueDate = $this->calculator->nextOccurrence($bill->due_day_of_month, $calendar, $after);
+
+            if ($dueDate->gt($horizon)) {
+                break;
+            }
+
+            BillOccurrence::query()->firstOrCreate([
+                'bill_id' => $bill->id,
+                'due_date' => $dueDate->toDateString(),
+            ]);
+
+            $after = $dueDate->copy()->addDay();
+        }
     }
 
     private function resolveCurrentDueDate(Bill $bill): ?string

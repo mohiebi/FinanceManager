@@ -89,8 +89,8 @@ test('it converts bill amounts to the selected currency and sorts by next due da
                 ->where('bills.1.title', 'Current month toman bill')
                 ->where('bills.1.display_amount', '2.00')
                 ->where('bills.1.display_currency', Currency::Usd->value)
-                ->where('bills.2.title', 'Far bill')
-                ->where('bills.3.title', 'No upcoming bill')
+                ->where('bills.2.title', 'No upcoming bill')
+                ->where('bills.3.title', 'Far bill')
             );
     } finally {
         Carbon::setTestNow();

@@ -13,6 +13,7 @@ use App\Models\BillOccurrence;
 use App\Models\Category;
 use App\Models\User;
 use App\Support\FrontendLocalization;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -22,11 +23,18 @@ use Morilog\Jalali\Jalalian;
 
 class BillController extends Controller
 {
-    public function index(Request $request, CurrencyConverter $currencyConverter): Response
+    public function index(Request $request, CurrencyConverter $currencyConverter, SyncBillOccurrence $syncBillOccurrence): Response
     {
         $user = $request->user();
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
         $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
+
+        // Proactively generate 3-month lookahead occurrences for all active monthly bills
+        $user->bills()
+            ->where('recurrence_type', BillRecurrenceType::Monthly->value)
+            ->where('is_active', true)
+            ->get()
+            ->each(fn (Bill $bill) => $syncBillOccurrence->lookahead($bill, 3, $calendar));
 
         $bills = $user->bills()
             ->with(['category', 'occurrences' => fn ($query) => $query->whereNull('paid_at')->orderBy('due_date')])
@@ -83,6 +91,7 @@ class BillController extends Controller
             ]),
             'selectedCurrency' => $selectedCurrency->value,
             'monthlyBillSummary' => $this->monthlyBillSummary($user, $calendar, $currencyConverter, $selectedCurrency),
+            'upcomingOccurrences' => $this->upcomingOccurrences($user, $currencyConverter, $selectedCurrency),
             'userCalendar' => $calendar,
         ]);
     }
@@ -128,6 +137,48 @@ class BillController extends Controller
         $markBillOccurrencePaid($bill, $occurrence);
 
         return back();
+    }
+
+    /**
+     * All unpaid occurrences within the next 90 days, ordered by due date.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function upcomingOccurrences(
+        User $user,
+        CurrencyConverter $currencyConverter,
+        Currency $selectedCurrency,
+    ): array {
+        $today = Carbon::today();
+        $horizon = $today->copy()->addMonths(1)->endOfMonth();
+
+        return BillOccurrence::query()
+            ->whereNull('paid_at')
+            ->whereHas('bill', fn (Builder $q) => $q
+                ->where('user_id', $user->id)
+                ->where('is_active', true))
+            ->with(['bill'])
+            ->whereBetween('due_date', [$today->toDateString(), $horizon->toDateString()])
+            ->orderBy('due_date')
+            ->get()
+            ->filter(fn (BillOccurrence $occurrence) => $occurrence->bill !== null)
+            ->map(function (BillOccurrence $occurrence) use ($currencyConverter, $selectedCurrency, $today): array {
+                $bill = $occurrence->bill;
+                $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
+
+                return [
+                    'occurrence_id' => $occurrence->id,
+                    'bill_id' => $bill->id,
+                    'title' => $bill->title,
+                    'display_amount' => $currencyConverter->format($bill->amount, $billCurrency, $selectedCurrency),
+                    'display_currency' => $selectedCurrency->value,
+                    'due_date' => $occurrence->due_date->toDateString(),
+                    'is_overdue' => $occurrence->due_date->lt($today),
+                    'is_due_today' => $occurrence->due_date->isSameDay($today),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**

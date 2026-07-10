@@ -188,7 +188,7 @@ return [
             'gregorian' => 'میلادی',
             'jalali' => 'جلالی',
         ],
-        'default_currency' => 'ارز پیش‌فرض',
+        'default_currency' => 'ارز',
         'no_default_currency' => 'تنظیم نشده',
     ],
     'navigation' => [

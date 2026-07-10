@@ -186,7 +186,7 @@ return [
             'gregorian' => 'Gregorian',
             'jalali' => 'Jalali',
         ],
-        'default_currency' => 'Default Currency',
+        'default_currency' => 'Currency',
         'no_default_currency' => 'Not set',
     ],
     'navigation' => [

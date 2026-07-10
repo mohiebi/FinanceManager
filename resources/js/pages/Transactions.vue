@@ -322,6 +322,32 @@
                         </tbody>
                     </table>
                 </div>
+                <!-- Cost table pagination -->
+                <div
+                    v-if="props.transactions.meta?.costs && props.transactions.meta.costs.last_page > 1"
+                    class="flex items-center justify-center gap-3 border-t border-white/[0.07] px-5 py-3 text-xs"
+                >
+                    <button
+                        :disabled="props.transactions.meta.costs.current_page <= 1"
+                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="changeCostPage(props.transactions.meta.costs.current_page - 1)"
+                    >
+                        ←
+                    </button>
+                    <span class="text-[#989898]">
+                        {{ props.transactions.meta.costs.current_page }}
+                        /
+                        {{ props.transactions.meta.costs.last_page }}
+                        <span class="ml-1 text-[#6b6b6b]">({{ props.transactions.meta.costs.total }})</span>
+                    </span>
+                    <button
+                        :disabled="props.transactions.meta.costs.current_page >= props.transactions.meta.costs.last_page"
+                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="changeCostPage(props.transactions.meta.costs.current_page + 1)"
+                    >
+                        →
+                    </button>
+                </div>
             </section>
 
             <section
@@ -496,41 +522,33 @@
                         </tbody>
                     </table>
                 </div>
-            </section>
-        </div>
-
-        <!-- ── Pagination ─────────────────────────────────────────── -->
-        <div
-            v-if="
-                props.transactions.meta &&
-                props.transactions.meta.last_page > 1
-            "
-            class="flex items-center justify-center gap-4 pb-10 text-sm"
-        >
-            <button
-                :disabled="props.transactions.meta.current_page <= 1"
-                class="rounded-full bg-white/10 px-4 py-2 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
-                @click="changePage(props.transactions.meta.current_page - 1)"
-            >
-                ← Previous
-            </button>
-            <span class="text-[#989898]">
-                Page {{ props.transactions.meta.current_page }} of
-                {{ props.transactions.meta.last_page }}
-                <span class="ml-1 text-[#6b6b6b]"
-                    >({{ props.transactions.meta.total }} total)</span
+                <!-- Income table pagination -->
+                <div
+                    v-if="props.transactions.meta?.incomes && props.transactions.meta.incomes.last_page > 1"
+                    class="flex items-center justify-center gap-3 border-t border-white/[0.07] px-5 py-3 text-xs"
                 >
-            </span>
-            <button
-                :disabled="
-                    props.transactions.meta.current_page >=
-                    props.transactions.meta.last_page
-                "
-                class="rounded-full bg-white/10 px-4 py-2 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
-                @click="changePage(props.transactions.meta.current_page + 1)"
-            >
-                Next →
-            </button>
+                    <button
+                        :disabled="props.transactions.meta.incomes.current_page <= 1"
+                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="changeIncomePage(props.transactions.meta.incomes.current_page - 1)"
+                    >
+                        ←
+                    </button>
+                    <span class="text-[#989898]">
+                        {{ props.transactions.meta.incomes.current_page }}
+                        /
+                        {{ props.transactions.meta.incomes.last_page }}
+                        <span class="ml-1 text-[#6b6b6b]">({{ props.transactions.meta.incomes.total }})</span>
+                    </span>
+                    <button
+                        :disabled="props.transactions.meta.incomes.current_page >= props.transactions.meta.incomes.last_page"
+                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="changeIncomePage(props.transactions.meta.incomes.current_page + 1)"
+                    >
+                        →
+                    </button>
+                </div>
+            </section>
         </div>
 
         <!-- ── Bulk action toolbar ─────────────────────────────────── -->
@@ -1047,10 +1065,8 @@ const props = defineProps<{
         costs: Transaction[];
         incomes: Transaction[];
         meta?: {
-            current_page: number;
-            last_page: number;
-            total: number;
-            per_page: number;
+            costs: { current_page: number; last_page: number; total: number } | null;
+            incomes: { current_page: number; last_page: number; total: number } | null;
         } | null;
     };
     categories: Record<TransactionType, Category[]>;
@@ -1419,7 +1435,8 @@ watch(filterType, () => {
 
 function applyFilters(
     currency: Currency = selectedCurrency.value,
-    page: number | null = null,
+    costPage: number | null = null,
+    incomePage: number | null = null,
 ): void {
     clearSelection();
     router.get(
@@ -1432,7 +1449,8 @@ function applyFilters(
             from: filterFrom.value || null,
             to: filterTo.value || null,
             currency,
-            page: page && page > 1 ? page : null,
+            cost_page: costPage && costPage > 1 ? costPage : null,
+            income_page: incomePage && incomePage > 1 ? incomePage : null,
         },
         {
             preserveScroll: true,
@@ -1442,8 +1460,14 @@ function applyFilters(
     );
 }
 
-function changePage(page: number): void {
-    applyFilters(selectedCurrency.value, page);
+function changeCostPage(page: number): void {
+    const ip = props.transactions.meta?.incomes?.current_page;
+    applyFilters(selectedCurrency.value, page, ip && ip > 1 ? ip : null);
+}
+
+function changeIncomePage(page: number): void {
+    const cp = props.transactions.meta?.costs?.current_page;
+    applyFilters(selectedCurrency.value, cp && cp > 1 ? cp : null, page);
 }
 
 function applyTypeFilter(): void {

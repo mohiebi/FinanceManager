@@ -138,21 +138,32 @@ class TransactionController extends Controller
             ->where('type', TransactionType::Income)
             ->values();
 
-        // Paginate the display slice only when on the Transactions page
+        // Paginate each table independently when on the Transactions page
         $displayCosts = $costs;
         $displayIncomes = $incomes;
         $paginationMeta = null;
 
         if ($withFilters) {
-            $paginator = $query->paginate(50);
-            $pageItems = collect($paginator->items());
-            $displayCosts = $pageItems->where('type', TransactionType::Cost)->values();
-            $displayIncomes = $pageItems->where('type', TransactionType::Income)->values();
+            $costPage = max(1, (int) $request->query('cost_page', 1));
+            $incomePage = max(1, (int) $request->query('income_page', 1));
+
+            $costPaginator = (clone $query)->where('type', TransactionType::Cost)->paginate(15, ['*'], 'cost_page', $costPage);
+            $incomePaginator = (clone $query)->where('type', TransactionType::Income)->paginate(15, ['*'], 'income_page', $incomePage);
+
+            $displayCosts = collect($costPaginator->items());
+            $displayIncomes = collect($incomePaginator->items());
+
             $paginationMeta = [
-                'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'total' => $paginator->total(),
-                'per_page' => $paginator->perPage(),
+                'costs' => [
+                    'current_page' => $costPaginator->currentPage(),
+                    'last_page' => $costPaginator->lastPage(),
+                    'total' => $costPaginator->total(),
+                ],
+                'incomes' => [
+                    'current_page' => $incomePaginator->currentPage(),
+                    'last_page' => $incomePaginator->lastPage(),
+                    'total' => $incomePaginator->total(),
+                ],
             ];
         }
 

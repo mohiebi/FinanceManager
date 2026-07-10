@@ -4,6 +4,7 @@ namespace App\Telegraph;
 
 use App\Actions\Bills\MarkBillOccurrencePaid;
 use App\Actions\Bills\SyncBillOccurrence;
+use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Enums\BillRecurrenceType;
 use App\Enums\Currency;
 use App\Enums\TransactionType;
@@ -290,6 +291,109 @@ class TelegramHandler extends WebhookHandler
     public function report_month(): void
     {
         $this->sendReport(fn (User $user): string => app(TelegramReportService::class)->monthly($user, Carbon::today()));
+    }
+
+    public function report_daily(): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user) {
+            $this->sendNotLinked();
+
+            return;
+        }
+
+        $today = Carbon::today();
+        $buttons = collect();
+
+        for ($i = 0; $i < 7; $i++) {
+            $date = $today->copy()->subDays($i);
+            $label = match ($i) {
+                0 => 'Today ('.$date->format('D').')',
+                1 => 'Yesterday ('.$date->format('D').')',
+                default => $date->format('D, M j'),
+            };
+            $buttons->push(
+                Button::make($label)->action('report_day_pick')->param('date', $date->toDateString())->width(0.5)
+            );
+        }
+
+        $this->chat->message('Choose a day:')
+            ->keyboard($this->withCancelToMenu(Keyboard::make()->buttons($buttons->all())))
+            ->send();
+    }
+
+    public function report_day_pick(?string $date = null): void
+    {
+        $dateStr = $date ?? (string) $this->data->get('date');
+        $carbonDate = Carbon::parse($dateStr);
+
+        $this->sendReport(fn (User $user): string => app(TelegramReportService::class)->daily($user, $carbonDate));
+    }
+
+    public function portfolio(): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user) {
+            $this->sendNotLinked();
+
+            return;
+        }
+
+        /** @var BuildPortfolioBreakdown $breakdown */
+        $breakdown = app(BuildPortfolioBreakdown::class);
+        $entries = $breakdown->entriesFor($user);
+
+        if ($entries->isEmpty()) {
+            $this->chat->message('No investments recorded yet. Use Add investment from the menu to get started.')
+                ->keyboard($this->mainKeyboard())
+                ->send();
+
+            return;
+        }
+
+        $result = $breakdown->handle($entries, Currency::Toman);
+        $summary = $result['summary'];
+
+        $lines = [];
+        $lines[] = '📊 Portfolio';
+        $lines[] = '';
+        $lines[] = '💰 Net worth: '.$summary['total_current_value_formatted'].' T';
+
+        if ($summary['has_cost_basis_data'] && $summary['total_pnl_formatted'] !== null) {
+            $arrow = $summary['total_pnl_is_positive'] ? '▲' : '▼';
+            $lines[] = "P/L: {$arrow} ".$summary['total_pnl_formatted'].' T ('.$summary['total_pnl_percent'].'%)';
+        }
+
+        $lines[] = '';
+        $lines[] = '───────────';
+
+        foreach ($result['assets'] as $asset) {
+            $qty = $asset['quantity'];
+            $qtyDisplay = ($qty == floor($qty)) ? (int) $qty : round($qty, 4);
+            $lines[] = '';
+            $lines[] = $asset['label'].'  '.$qtyDisplay.' '.$asset['unit'];
+
+            if ($asset['price_available']) {
+                $valueLine = '→ '.$asset['current_value_formatted'].' T';
+
+                if ($asset['pnl'] !== null && $asset['pnl_formatted'] !== null) {
+                    $sign = $asset['pnl_is_positive'] ? '+' : '-';
+                    $valueLine .= '  ('.$sign.$asset['pnl_formatted'].' T)';
+                }
+
+                $lines[] = $valueLine;
+            } else {
+                $lines[] = '→ Price unavailable';
+            }
+        }
+
+        $this->chat->message(implode("\n", $lines))->keyboard($this->mainKeyboard())->send();
     }
 
     public function delete_tx(): void
@@ -1011,13 +1115,14 @@ class TelegramHandler extends WebhookHandler
         return Keyboard::make()->buttons([
             Button::make('Add cost')->action('add_cost')->width(0.5),
             Button::make('Add income')->action('add_income')->width(0.5),
-            Button::make('Last transactions')->action('list')->width(0.5),
+            Button::make('Last 10 transactions')->action('list')->width(0.5),
             Button::make('Add investment')->action('add_investment')->width(0.5),
             Button::make('Add bill')->action('add_bill')->width(0.5),
             Button::make('My bills')->action('list_bills')->width(0.5),
-            Button::make('Today report')->action('report_today')->width(1 / 3),
-            Button::make('Week report')->action('report_week')->width(1 / 3),
-            Button::make('Month report')->action('report_month')->width(1 / 3),
+            Button::make('Portfolio')->action('portfolio')->width(0.5),
+            Button::make('Daily report')->action('report_daily')->width(0.5),
+            Button::make('Weekly report')->action('report_week')->width(0.5),
+            Button::make('Monthly report')->action('report_month')->width(0.5),
         ]);
     }
 

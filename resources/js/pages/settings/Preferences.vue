@@ -21,6 +21,8 @@ type Option = {
 const props = defineProps<{
     locales: Option[];
     calendars: Option[];
+    currencies: Option[];
+    defaultCurrency: string | null;
 }>();
 
 const page = usePage();
@@ -29,6 +31,7 @@ const { t } = useI18n();
 const form = useForm({
     locale: (page.props.locale as string | undefined) ?? 'en',
     calendar: (page.props.calendar as string | undefined) ?? 'gregorian',
+    default_currency: props.defaultCurrency ?? null,
 });
 
 defineOptions({
@@ -108,6 +111,31 @@ function submit(): void {
                     </Select>
                 </div>
                 <InputError :message="form.errors.calendar" />
+            </div>
+
+            <div class="space-y-2">
+                <div class="flex flex-wrap items-center gap-3">
+                    <Label class="min-w-24 text-white" for="default_currency">
+                        {{ t('settings.preferences.default_currency') }}:
+                    </Label>
+                    <Select id="default_currency" v-model="form.default_currency">
+                        <SelectTrigger
+                            class="finance-dialog-field finance-dialog-field-income w-[148px]"
+                        >
+                            <SelectValue :placeholder="t('settings.preferences.no_default_currency')" />
+                        </SelectTrigger>
+                        <SelectContent class="finance-dialog-select-content">
+                            <SelectItem
+                                v-for="currency in props.currencies"
+                                :key="currency.value"
+                                :value="currency.value"
+                            >
+                                {{ currency.label }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <InputError :message="form.errors.default_currency" />
             </div>
 
             <Button

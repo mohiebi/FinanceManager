@@ -186,6 +186,8 @@ return [
             'gregorian' => 'Gregorianisch',
             'jalali' => 'Jalali',
         ],
+        'default_currency' => 'Standardwährung',
+        'no_default_currency' => 'Nicht festgelegt',
     ],
     'navigation' => [
         'profile' => 'Profil',

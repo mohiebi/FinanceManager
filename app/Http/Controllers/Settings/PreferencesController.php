@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Enums\Currency;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PreferencesUpdateRequest;
 use App\Support\FrontendLocalization;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,6 +24,11 @@ class PreferencesController extends Controller
                 'label' => __("settings.preferences.calendars.{$calendar}"),
                 'value' => $calendar,
             ]),
+            'currencies' => collect(Currency::cases())->map(fn (Currency $currency) => [
+                'label' => __("finance.currencies.{$currency->value}"),
+                'value' => $currency->value,
+            ]),
+            'defaultCurrency' => Auth::user()?->default_currency,
         ]);
     }
 

@@ -20,6 +20,7 @@ use Carbon\Carbon;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use Morilog\Jalali\Jalalian;
 
 class TelegramHandler extends WebhookHandler
 {
@@ -170,8 +171,12 @@ class TelegramHandler extends WebhookHandler
         $bills = $user->bills()
             ->where('is_active', true)
             ->with(['occurrences' => fn ($query) => $query->whereNull('paid_at')->orderBy('due_date')])
-            ->orderBy('title')
-            ->get();
+            ->get()
+            ->sortBy(function ($bill) {
+                $next = $bill->occurrences->first();
+
+                return $next ? $next->due_date->toDateString() : '9999-12-31';
+            });
 
         if ($bills->isEmpty()) {
             $this->chat->message('No bills yet. Choose Add bill to set one up.')->keyboard($this->mainKeyboard())->send();
@@ -306,15 +311,28 @@ class TelegramHandler extends WebhookHandler
         }
 
         $today = Carbon::today();
+        $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
         $buttons = collect();
 
         for ($i = 0; $i < 7; $i++) {
             $date = $today->copy()->subDays($i);
-            $label = match ($i) {
-                0 => 'Today ('.$date->format('D').')',
-                1 => 'Yesterday ('.$date->format('D').')',
-                default => $date->format('D, M j'),
-            };
+
+            if ($calendar === 'jalali') {
+                $j = Jalalian::fromCarbon($date);
+                $jLabel = $j->format('j M');
+                $label = match ($i) {
+                    0 => 'Today ('.$jLabel.')',
+                    1 => 'Yesterday ('.$jLabel.')',
+                    default => $jLabel,
+                };
+            } else {
+                $label = match ($i) {
+                    0 => 'Today ('.$date->format('D').')',
+                    1 => 'Yesterday ('.$date->format('D').')',
+                    default => $date->format('D, M j'),
+                };
+            }
+
             $buttons->push(
                 Button::make($label)->action('report_day_pick')->param('date', $date->toDateString())->width(0.5)
             );
@@ -357,17 +375,21 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
-        $result = $breakdown->handle($entries, Currency::Toman);
+        $currency = $user->default_currency
+            ? Currency::from($user->default_currency)
+            : Currency::Toman;
+        $currencyLabel = strtoupper($currency->value === 'toman' ? 'T' : $currency->value);
+        $result = $breakdown->handle($entries, $currency);
         $summary = $result['summary'];
 
         $lines = [];
         $lines[] = '📊 Portfolio';
         $lines[] = '';
-        $lines[] = '💰 Net worth: '.$summary['total_current_value_formatted'].' T';
+        $lines[] = '💰 Net worth: '.$summary['total_current_value_formatted'].' '.$currencyLabel;
 
         if ($summary['has_cost_basis_data'] && $summary['total_pnl_formatted'] !== null) {
             $arrow = $summary['total_pnl_is_positive'] ? '▲' : '▼';
-            $lines[] = "P/L: {$arrow} ".$summary['total_pnl_formatted'].' T ('.$summary['total_pnl_percent'].'%)';
+            $lines[] = "P/L: {$arrow} ".$summary['total_pnl_formatted'].' '.$currencyLabel.' ('.$summary['total_pnl_percent'].'%)';
         }
 
         $lines[] = '';
@@ -380,11 +402,11 @@ class TelegramHandler extends WebhookHandler
             $lines[] = $asset['label'].'  '.$qtyDisplay.' '.$asset['unit'];
 
             if ($asset['price_available']) {
-                $valueLine = '→ '.$asset['current_value_formatted'].' T';
+                $valueLine = '→ '.$asset['current_value_formatted'].' '.$currencyLabel;
 
                 if ($asset['pnl'] !== null && $asset['pnl_formatted'] !== null) {
                     $sign = $asset['pnl_is_positive'] ? '+' : '-';
-                    $valueLine .= '  ('.$sign.$asset['pnl_formatted'].' T)';
+                    $valueLine .= '  ('.$sign.$asset['pnl_formatted'].' '.$currencyLabel.')';
                 }
 
                 $lines[] = $valueLine;

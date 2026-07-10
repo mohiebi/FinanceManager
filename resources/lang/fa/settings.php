@@ -188,6 +188,8 @@ return [
             'gregorian' => 'میلادی',
             'jalali' => 'جلالی',
         ],
+        'default_currency' => 'ارز پیش‌فرض',
+        'no_default_currency' => 'تنظیم نشده',
     ],
     'navigation' => [
         'assets' => 'دارایی‌ها',

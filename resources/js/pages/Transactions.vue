@@ -288,7 +288,7 @@
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
                                     <div
-                                        class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+                                        class="flex items-center justify-center gap-1"
                                     >
                                         <button
                                             type="button"
@@ -462,7 +462,7 @@
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
                                     <div
-                                        class="flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+                                        class="flex items-center justify-center gap-1"
                                     >
                                         <button
                                             type="button"

@@ -16,6 +16,7 @@ use App\Models\Category;
 use App\Models\InvestmentAsset;
 use App\Models\Transaction;
 use App\Services\AssetPriceService;
+use App\Support\CurrencyPreference;
 use App\Support\FrontendLocalization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -39,7 +40,7 @@ class TransactionController extends Controller
         AssetPriceService $priceService,
     ): Response {
         $user = $request->user();
-        $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
+        $selectedCurrency = CurrencyPreference::resolve($request);
 
         return $this->renderTransactionWorkspace($request, $currencyConverter, 'Dashboard', false, [
             'upcomingBills' => $this->upcomingBills($request, $currencyConverter, $selectedCurrency),
@@ -73,7 +74,7 @@ class TransactionController extends Controller
     ): Response {
         $user = $request->user();
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
-        $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
+        $selectedCurrency = CurrencyPreference::resolve($request);
         $selectedType = $withFilters
             ? $this->resolveTransactionType((string) $request->query('type'))
             : null;

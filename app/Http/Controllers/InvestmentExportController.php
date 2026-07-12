@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\Currency;
 use App\Services\AssetPriceService;
+use App\Support\CurrencyPreference;
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -21,7 +22,7 @@ class InvestmentExportController extends Controller
         CurrencyConverter $currencyConverter,
     ): StreamedResponse {
         $user = $request->user();
-        $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
+        $selectedCurrency = CurrencyPreference::resolve($request);
         $currencyLabel = strtoupper($selectedCurrency->value);
 
         $convert = function (float $amount) use ($selectedCurrency, $currencyConverter): float {

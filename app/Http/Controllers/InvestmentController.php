@@ -9,6 +9,7 @@ use App\Models\AssetPriceSnapshot;
 use App\Models\Investment;
 use App\Models\InvestmentAsset;
 use App\Services\AssetPriceService;
+use App\Support\CurrencyPreference;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -25,7 +26,7 @@ class InvestmentController extends Controller
         $range = in_array($request->query('range'), ['1w', '1m', '3m', '1y', 'all'])
             ? (string) $request->query('range')
             : '1m';
-        $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
+        $selectedCurrency = CurrencyPreference::resolve($request);
 
         $fmt = function (float $amount) use ($selectedCurrency, $currencyConverter): string {
             if ($selectedCurrency === Currency::Toman) {

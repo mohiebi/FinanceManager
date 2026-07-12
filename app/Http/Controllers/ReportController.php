@@ -9,6 +9,7 @@ use App\Http\Resources\CategoryResource;
 use App\Http\Resources\TransactionResource;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Support\CurrencyPreference;
 use App\Support\DateFormatter;
 use App\Support\FrontendLocalization;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,7 +30,7 @@ class ReportController extends Controller
     public function __invoke(Request $request, CurrencyConverter $currencyConverter): Response
     {
         $selectedRange = $this->resolveRange((string) $request->query('range'));
-        $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
+        $selectedCurrency = CurrencyPreference::resolve($request);
         $calendar = FrontendLocalization::normalizeCalendar($request->user()?->calendar);
         $selectedType = $this->resolveTransactionType((string) $request->query('type'));
         $selectedCategoryId = $this->resolveCategoryId($request);

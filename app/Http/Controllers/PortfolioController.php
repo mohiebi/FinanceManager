@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Enums\Currency;
 use App\Services\AssetPriceService;
+use App\Support\CurrencyPreference;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,7 +18,7 @@ class PortfolioController extends Controller
         BuildPortfolioBreakdown $breakdownBuilder,
     ): Response {
         $user = $request->user();
-        $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
+        $selectedCurrency = CurrencyPreference::resolve($request);
 
         $allEntries = $breakdownBuilder->entriesFor($user);
 

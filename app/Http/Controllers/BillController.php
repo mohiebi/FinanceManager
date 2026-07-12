@@ -12,6 +12,7 @@ use App\Models\Bill;
 use App\Models\BillOccurrence;
 use App\Models\Category;
 use App\Models\User;
+use App\Support\CurrencyPreference;
 use App\Support\FrontendLocalization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -27,7 +28,7 @@ class BillController extends Controller
     {
         $user = $request->user();
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
-        $selectedCurrency = Currency::tryFrom((string) $request->query('currency')) ?? Currency::Toman;
+        $selectedCurrency = CurrencyPreference::resolve($request);
 
         // Proactively generate 3-month lookahead occurrences for all active monthly bills
         $user->bills()

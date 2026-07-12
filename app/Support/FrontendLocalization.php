@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class FrontendLocalization
@@ -25,6 +26,26 @@ class FrontendLocalization
     public static function normalizeLocale(?string $locale): string
     {
         return in_array($locale, self::locales(), true) ? $locale : self::DEFAULT_LOCALE;
+    }
+
+    public static function sessionLocale(Request $request): ?string
+    {
+        $locale = $request->session()->get('locale');
+
+        return is_string($locale) && in_array($locale, self::locales(), true)
+            ? $locale
+            : null;
+    }
+
+    public static function persistSessionLocale(Request $request, User $user): void
+    {
+        $locale = self::sessionLocale($request);
+
+        if ($locale === null || $user->locale === $locale) {
+            return;
+        }
+
+        $user->forceFill(['locale' => $locale])->save();
     }
 
     /**

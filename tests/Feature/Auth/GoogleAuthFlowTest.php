@@ -69,6 +69,27 @@ test('google callback links existing users by email and redirects complete profi
     ]);
 });
 
+test('google callback persists the selected guest locale on the user profile', function () {
+    $user = User::factory()->unverified()->create([
+        'email' => 'localized-google@example.com',
+        'locale' => 'en',
+    ]);
+
+    $this->get(route('home.localized', ['locale' => 'fa']))->assertOk();
+
+    Socialite::fake(SocialAccount::ProviderGoogle, fakeGoogleUser([
+        'sub' => 'google-user-localized',
+        'name' => $user->name,
+        'email' => 'localized-google@example.com',
+        'email_verified' => true,
+    ]));
+
+    $this->get(route('auth.google.callback'))
+        ->assertRedirect(route('dashboard', absolute: false));
+
+    expect($user->refresh()->locale)->toBe('fa');
+});
+
 test('api google login issues sanctum tokens and flags incomplete profiles', function () {
     $provider = Mockery::mock();
     $provider->shouldReceive('userFromToken')

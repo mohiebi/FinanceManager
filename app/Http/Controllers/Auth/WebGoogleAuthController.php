@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Actions\Auth\GoogleAuthBroker;
 use App\Http\Controllers\Controller;
+use App\Support\FrontendLocalization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -49,6 +50,8 @@ class WebGoogleAuthController extends Controller
                 'google' => 'We could not sign you in with Google.',
             ]);
         }
+
+        FrontendLocalization::persistSessionLocale($request, $user);
 
         Auth::login($user);
         $request->session()->regenerate();

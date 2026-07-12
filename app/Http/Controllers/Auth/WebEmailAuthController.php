@@ -8,6 +8,7 @@ use App\Http\Requests\Auth\CodeVerificationRequest;
 use App\Http\Requests\Auth\CompleteSignupRequest;
 use App\Http\Requests\Auth\PasswordLoginRequest;
 use App\Http\Requests\Auth\StartEmailAuthRequest;
+use App\Support\FrontendLocalization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -42,6 +43,8 @@ class WebEmailAuthController extends Controller
             $request->string('password')->toString(),
         );
 
+        FrontendLocalization::persistSessionLocale($request, $user);
+
         $request->session()->forget('auth_flow');
 
         Auth::login($user, $request->boolean('remember'));
@@ -71,6 +74,8 @@ class WebEmailAuthController extends Controller
             $request->string('email')->toString(),
             $request->string('code')->toString(),
         );
+
+        FrontendLocalization::persistSessionLocale($request, $user);
 
         $request->session()->forget('auth_flow');
 
@@ -109,6 +114,8 @@ class WebEmailAuthController extends Controller
                 $request->string('email')->toString(),
             ),
         );
+
+        FrontendLocalization::persistSessionLocale($request, $user);
 
         $request->session()->forget('auth_flow');
 

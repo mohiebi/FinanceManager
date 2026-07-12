@@ -220,6 +220,45 @@ test('verified signup flow can complete using the session token', function () {
     ]);
 });
 
+test('signup completion persists the selected guest locale on the new user', function () {
+    Notification::fake();
+
+    $this->get(route('home.localized', ['locale' => 'fa']))->assertOk();
+
+    $this->post(route('auth.email.start'), [
+        'email' => 'localized.signup@example.com',
+    ]);
+
+    $code = null;
+
+    Notification::assertSentOnDemand(
+        AuthChallengeCodeNotification::class,
+        function (AuthChallengeCodeNotification $notification) use (&$code) {
+            $code = $notification->code;
+
+            return $notification->purpose === AuthChallenge::PurposeSignup;
+        },
+    );
+
+    $this->post(route('auth.signup.verify'), [
+        'email' => 'localized.signup@example.com',
+        'code' => $code,
+    ])->assertRedirect();
+
+    $response = $this->post(route('auth.signup.complete'), [
+        'signup_token' => '',
+        'email' => 'localized.signup@example.com',
+        'name' => 'Localized Signup User',
+        'birthdate' => '1997-02-24',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ]);
+
+    $response->assertRedirect(route('dashboard', absolute: false));
+
+    expect(User::where('email', 'localized.signup@example.com')->first()?->locale)->toBe('fa');
+});
+
 test('verified signup flow can complete using the posted email when the session token is unavailable', function () {
     Notification::fake();
 
@@ -352,6 +391,22 @@ test('existing users can log in with password', function () {
 
     $response->assertRedirect(route('dashboard', absolute: false));
     $this->assertAuthenticatedAs($user);
+});
+
+test('password login persists the selected guest locale on the user profile', function () {
+    $user = User::factory()->create([
+        'email' => 'localized.login@example.com',
+        'locale' => 'en',
+    ]);
+
+    $this->get(route('home.localized', ['locale' => 'fa']))->assertOk();
+
+    $this->post(route('auth.login.password'), [
+        'email' => $user->email,
+        'password' => 'password',
+    ])->assertRedirect(route('dashboard', absolute: false));
+
+    expect($user->refresh()->locale)->toBe('fa');
 });
 
 test('existing users can log in with a recovery code', function () {

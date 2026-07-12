@@ -38,6 +38,13 @@ test('the sitemap lists localized landing urls with alternates', function () {
         ->assertSee('hreflang="x-default"', false);
 });
 
+test('a physical sitemap file is available for static web servers', function () {
+    expect(file_get_contents(public_path('sitemap.xml')))
+        ->toContain('<loc>https://cashpilot.mohiebi.com/</loc>')
+        ->toContain('<loc>https://cashpilot.mohiebi.com/fa</loc>')
+        ->toContain('hreflang="x-default"');
+});
+
 test('robots txt advertises the sitemap', function () {
     expect(file_get_contents(public_path('robots.txt')))
         ->toContain('Sitemap: https://cashpilot.mohiebi.com/sitemap.xml');

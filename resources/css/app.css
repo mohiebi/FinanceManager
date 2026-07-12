@@ -114,7 +114,25 @@
             'Vazirmatn', ui-sans-serif, system-ui, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
             'Noto Color Emoji';
+        --default-font-family:
+            'Vazirmatn', ui-sans-serif, system-ui, sans-serif,
+            'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+            'Noto Color Emoji';
     }
+}
+
+/*
+ * @theme inline bakes font stacks as literal values into utility classes
+ * (.font-sans { font-family: Instrument Sans, ... }) so CSS variable overrides
+ * alone have no effect on elements with that class. This unlayered rule beats
+ * any @layer utilities rule regardless of specificity.
+ */
+html[lang='fa'] body,
+html[dir='rtl'] body {
+    font-family:
+        'Vazirmatn', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
 }
 
 :root {

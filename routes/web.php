@@ -23,7 +23,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::inertia('/', 'Landing')->name('home');
+Route::get('/', function (Request $request) {
+    $request->session()->forget('locale');
+
+    return Inertia::render('Landing');
+})->name('home');
 
 Route::get('sitemap.xml', fn () => response(SeoMetadata::sitemapXml(), 200, [
     'Content-Type' => 'application/xml; charset=UTF-8',

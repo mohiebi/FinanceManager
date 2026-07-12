@@ -12,9 +12,10 @@ test('telegram main keyboard groups related actions into rows', function () {
     expect(collect($keyboard)->map(fn (array $row): array => array_column($row, 'text'))->all())
         ->toBe([
             ['Add cost', 'Add income'],
-            ['Last transactions', 'Add investment'],
+            ['Last 10 transactions', 'Add investment'],
             ['Add bill', 'My bills'],
-            ['Today report', 'Week report', 'Month report'],
+            ['Portfolio', 'Daily report'],
+            ['Weekly report', 'Monthly report'],
         ]);
 });
 

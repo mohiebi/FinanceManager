@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import AuthIllustration from '@/components/auth/AuthIllustration.vue';
+import AuthIllustrationDe from '@/components/auth/AuthIllustrationDe.vue';
+import AuthIllustrationFa from '@/components/auth/AuthIllustrationFa.vue';
 import { home } from '@/routes';
 import authLogo from '../../../img/Logo-green.svg';
 
@@ -14,6 +18,17 @@ withDefaults(
         caption: '',
     },
 );
+
+const page = usePage();
+const { t } = useI18n();
+
+const locale = computed(() => (page.props.locale as string | undefined) ?? 'en');
+
+const illustration = computed(() => {
+    if (locale.value === 'fa') return AuthIllustrationFa;
+    if (locale.value === 'de') return AuthIllustrationDe;
+    return AuthIllustration;
+});
 </script>
 
 <template>
@@ -34,13 +49,14 @@ withDefaults(
                     class="flex min-h-[20rem] flex-col bg-[#161616] p-6 text-white sm:p-8 lg:min-h-0 lg:border-r lg:border-white/10 lg:px-10 lg:py-[35px]"
                 >
                     <p class="text-[0.95rem] font-medium text-white/90">
-                        All in one simple, powerful place
+                        {{ t('landing.auth_panel.tagline') }}
                     </p>
 
                     <div
                         class="flex flex-1 items-center justify-center py-6 lg:pt-[52px]"
                     >
-                        <AuthIllustration
+                        <component
+                            :is="illustration"
                             class="w-full max-w-[420px] object-contain"
                             aria-hidden="true"
                         />
@@ -50,15 +66,14 @@ withDefaults(
                         <h2
                             class="text-[70px] leading-[1] font-[500] tracking-normal lg:whitespace-nowrap"
                         >
-                            Your <br />
-                            Money, <br />
-                            on Autopilot
+                            {{ t('landing.auth_panel.headline_1') }} <br />
+                            {{ t('landing.auth_panel.headline_2') }} <br />
+                            {{ t('landing.auth_panel.headline_3') }}
                         </h2>
                         <p
                             class="text-[20px] leading-6 font-[400] text-white/82"
                         >
-                            See your finances clearly, stay in control, <br />
-                            and make smarter decisions without the guesswork.
+                            {{ t('landing.auth_panel.description') }}
                         </p>
                     </div>
                 </aside>

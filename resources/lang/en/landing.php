@@ -204,4 +204,12 @@ return [
         'sign_in' => 'Sign in',
         'get_started' => 'Get started',
     ],
+
+    'auth_panel' => [
+        'tagline' => 'All in one simple, powerful place',
+        'headline_1' => 'Your',
+        'headline_2' => 'Money,',
+        'headline_3' => 'on Autopilot',
+        'description' => 'See your finances clearly, stay in control, and make smarter decisions without the guesswork.',
+    ],
 ];

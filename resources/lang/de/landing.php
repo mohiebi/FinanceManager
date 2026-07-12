@@ -204,4 +204,12 @@ return [
         'sign_in' => 'Anmelden',
         'get_started' => 'Jetzt starten',
     ],
+
+    'auth_panel' => [
+        'tagline' => 'Alles an einem einfachen, leistungsstarken Ort',
+        'headline_1' => 'Dein',
+        'headline_2' => 'Geld,',
+        'headline_3' => 'auf Autopilot',
+        'description' => 'Überblicke deine Finanzen klar, behalte die Kontrolle und triff klügere Entscheidungen ohne Rätselraten.',
+    ],
 ];

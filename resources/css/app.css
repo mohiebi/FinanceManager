@@ -101,7 +101,6 @@
 }
 
 @layer utilities {
-    body,
     html {
         --font-sans:
             'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
@@ -112,9 +111,9 @@
     html[lang='fa'],
     html[dir='rtl'] {
         --font-sans:
-            'Vazirmatn', 'Instrument Sans', ui-sans-serif, system-ui,
-            sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-            'Segoe UI Symbol', 'Noto Color Emoji';
+            'Vazirmatn', ui-sans-serif, system-ui, sans-serif,
+            'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+            'Noto Color Emoji';
     }
 }
 

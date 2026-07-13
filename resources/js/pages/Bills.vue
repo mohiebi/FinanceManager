@@ -481,7 +481,7 @@
                                 }}</label>
                                 <div class="flex items-center gap-2">
                                     <Select v-model="form.reminder_time">
-                                        <SelectTrigger :class="fieldClass" class="w-[100px]">
+                                        <SelectTrigger :class="fieldClass" class="w-[120px] shrink-0">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent class="finance-dialog-select-content max-h-48">

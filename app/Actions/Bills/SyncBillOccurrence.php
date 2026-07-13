@@ -21,13 +21,13 @@ class SyncBillOccurrence
      * Creates the first occurrence for a brand-new bill, if one doesn't
      * already exist.
      */
-    public function ensureInitial(Bill $bill): void
+    public function ensureInitial(Bill $bill, ?string $calendar = null): void
     {
         if ($bill->occurrences()->whereNull('paid_at')->exists()) {
             return;
         }
 
-        $dueDate = $this->resolveCurrentDueDate($bill);
+        $dueDate = $this->resolveCurrentDueDate($bill, $calendar);
 
         if ($dueDate === null) {
             return;
@@ -44,9 +44,9 @@ class SyncBillOccurrence
      * change (e.g. due day edited). Resets reminder-sent flags when the due
      * date actually moves, so reminders correctly re-fire for the new date.
      */
-    public function syncPending(Bill $bill): void
+    public function syncPending(Bill $bill, ?string $calendar = null): void
     {
-        $dueDate = $this->resolveCurrentDueDate($bill);
+        $dueDate = $this->resolveCurrentDueDate($bill, $calendar);
 
         if ($dueDate === null) {
             return;
@@ -97,8 +97,9 @@ class SyncBillOccurrence
      * firstOrCreate to avoid unique(bill_id, due_date) constraint violations.
      *
      * @param  string|null  $calendar  Pre-resolved calendar ('gregorian'|'jalali'). If omitted, resolved from $bill->user.
+     * @param  string|null  $latestDueDate  Pre-fetched max due_date (avoids a per-bill query when calling in a loop).
      */
-    public function lookahead(Bill $bill, int $months = 3, ?string $calendar = null): void
+    public function lookahead(Bill $bill, int $months = 3, ?string $calendar = null, ?string $latestDueDate = null): void
     {
         if ($bill->recurrence_type !== BillRecurrenceType::Monthly || $bill->due_day_of_month === null) {
             return;
@@ -107,10 +108,15 @@ class SyncBillOccurrence
         $calendar = $calendar ?? ($bill->user->calendar ?? 'gregorian');
         $horizon = Carbon::today()->addDays(90);
 
-        // Start generating after the latest occurrence already on record
-        $latest = $bill->occurrences()->orderByDesc('due_date')->first();
-        $after = $latest
-            ? Carbon::parse($latest->due_date->toDateString())->addDay()
+        // Start generating after the latest occurrence already on record.
+        // $latestDueDate may be pre-fetched by the caller (withMax) to avoid N+1.
+        if ($latestDueDate === null) {
+            $latest = $bill->occurrences()->orderByDesc('due_date')->first();
+            $latestDueDate = $latest?->due_date->toDateString();
+        }
+
+        $after = $latestDueDate !== null
+            ? Carbon::parse($latestDueDate)->addDay()
             : Carbon::today();
 
         for ($i = 0; $i < $months; $i++) {
@@ -129,7 +135,7 @@ class SyncBillOccurrence
         }
     }
 
-    private function resolveCurrentDueDate(Bill $bill): ?string
+    private function resolveCurrentDueDate(Bill $bill, ?string $calendar = null): ?string
     {
         if ($bill->recurrence_type === BillRecurrenceType::OneTime) {
             return $bill->due_date?->toDateString();
@@ -139,7 +145,7 @@ class SyncBillOccurrence
             return null;
         }
 
-        $calendar = $bill->user->calendar ?? 'gregorian';
+        $calendar ??= $bill->user->calendar ?? 'gregorian';
 
         return $this->calculator->nextOccurrence($bill->due_day_of_month, $calendar)->toDateString();
     }

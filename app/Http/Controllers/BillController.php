@@ -30,12 +30,14 @@ class BillController extends Controller
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
         $selectedCurrency = CurrencyPreference::resolve($request);
 
-        // Proactively generate 3-month lookahead occurrences for all active monthly bills
+        // Proactively generate 3-month lookahead occurrences for all active monthly bills.
+        // withMax fetches the latest due_date per bill in the same query, avoiding N+1.
         $user->bills()
             ->where('recurrence_type', BillRecurrenceType::Monthly->value)
             ->where('is_active', true)
+            ->withMax('occurrences', 'due_date')
             ->get()
-            ->each(fn (Bill $bill) => $syncBillOccurrence->lookahead($bill, 3, $calendar));
+            ->each(fn (Bill $bill) => $syncBillOccurrence->lookahead($bill, 3, $calendar, $bill->occurrences_max_due_date));
 
         $bills = $user->bills()
             ->with(['category', 'occurrences' => fn ($query) => $query->whereNull('paid_at')->orderBy('due_date')])

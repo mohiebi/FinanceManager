@@ -291,13 +291,33 @@
                                         for="bill-amount"
                                         >{{ t('finance.fields.amount') }}</Label
                                     >
+                                    <div
+                                        v-if="isTomanBillCurrency"
+                                        :class="moneyFieldClass"
+                                    >
+                                        <Input
+                                            id="bill-amount"
+                                            v-model="displayBillAmount"
+                                            class="h-full min-w-0 flex-1 border-0 bg-transparent px-[17px] py-0 text-[16px] leading-[18px] font-normal text-white shadow-none ring-0 outline-none placeholder:text-[#686868] focus-visible:border-0 focus-visible:ring-0"
+                                            inputmode="numeric"
+                                            placeholder="0"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="finance-dialog-money-button"
+                                            title="x 1,000"
+                                            @click="multiplyBillTomanAmount"
+                                        >
+                                            000
+                                        </button>
+                                    </div>
                                     <Input
+                                        v-else
                                         id="bill-amount"
-                                        v-model="form.amount"
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
+                                        v-model="displayBillAmount"
                                         :class="fieldClass"
+                                        inputmode="decimal"
+                                        placeholder="0.00"
                                     />
                                     <InputError :message="form.errors.amount" />
                                 </div>
@@ -445,8 +465,7 @@
                                 class="flex cursor-pointer items-center gap-2.5"
                             >
                                 <Checkbox
-                                    :checked="form.telegram_reminder_enabled"
-                                    @update:checked="setTelegramReminder"
+                                    v-model:checked="form.telegram_reminder_enabled"
                                 />
                                 <span class="text-sm text-white/85">{{
                                     t('finance.bills.telegram_reminder')
@@ -455,54 +474,29 @@
 
                             <div
                                 v-if="form.telegram_reminder_enabled"
-                                class="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4"
+                                class="rounded-xl border border-white/10 bg-white/[0.03] p-4"
                             >
-                                <div class="grid gap-2">
-                                    <label class="finance-dialog-label">{{
-                                        t('finance.bills.reminder_time')
-                                    }}</label>
-                                    <div class="flex items-center gap-2">
-                                        <Select v-model="reminderHour">
-                                            <SelectTrigger :class="fieldClass" class="w-[88px]">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent class="finance-dialog-select-content max-h-48">
-                                                <SelectItem
-                                                    v-for="h in hours"
-                                                    :key="h"
-                                                    :value="h"
-                                                >
-                                                    {{ h }}
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                <label class="finance-dialog-label mb-2 block">{{
+                                    t('finance.bills.reminder_time')
+                                }}</label>
+                                <div class="flex items-center gap-2">
+                                    <Select v-model="form.reminder_time">
+                                        <SelectTrigger :class="fieldClass" class="w-[100px]">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent class="finance-dialog-select-content max-h-48">
+                                            <SelectItem
+                                                v-for="time in timeOptions"
+                                                :key="time"
+                                                :value="time"
+                                            >
+                                                {{ time }}
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
 
-                                        <span class="text-sm font-bold text-white/50">:</span>
-
-                                        <Select v-model="reminderMinute">
-                                            <SelectTrigger :class="fieldClass" class="w-[88px]">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent class="finance-dialog-select-content">
-                                                <SelectItem
-                                                    v-for="m in minutes"
-                                                    :key="m"
-                                                    :value="m"
-                                                >
-                                                    {{ m }}
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <InputError :message="form.errors.reminder_time" />
-                                </div>
-
-                                <div class="grid gap-2">
-                                    <label class="finance-dialog-label">{{
-                                        t('finance.bills.reminder_timezone')
-                                    }}</label>
                                     <Select v-model="form.reminder_timezone">
-                                        <SelectTrigger :class="fieldClass">
+                                        <SelectTrigger :class="fieldClass" class="min-w-0 flex-1">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent class="finance-dialog-select-content max-h-56">
@@ -515,8 +509,9 @@
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    <InputError :message="form.errors.reminder_timezone" />
                                 </div>
+                                <InputError class="mt-1" :message="form.errors.reminder_time" />
+                                <InputError :message="form.errors.reminder_timezone" />
                             </div>
                         </div>
                     </div>
@@ -709,24 +704,10 @@ const form = useForm({
     reminder_timezone: 'UTC',
 });
 
-const reminderHour = computed({
-    get: () => form.reminder_time.split(':')[0] ?? '09',
-    set: (h: string) => {
-        form.reminder_time = `${h}:${form.reminder_time.split(':')[1] ?? '00'}`;
-    },
-});
-
-const reminderMinute = computed({
-    get: () => form.reminder_time.split(':')[1] ?? '00',
-    set: (m: string) => {
-        form.reminder_time = `${form.reminder_time.split(':')[0] ?? '09'}:${m}`;
-    },
-});
-
-const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-const minutes = ['00', '15', '30', '45'];
-
-type CheckboxState = boolean | 'indeterminate';
+const timeOptions = Array.from(
+    { length: 24 },
+    (_, i) => `${String(i).padStart(2, '0')}:00`,
+);
 
 const categoryModel = computed({
     get: () => (form.category_id ? String(form.category_id) : undefined),
@@ -734,6 +715,81 @@ const categoryModel = computed({
         form.category_id = value ?? '';
     },
 });
+
+const moneyFieldClass =
+    'finance-dialog-money-field finance-dialog-field-income focus-within:border-[#02CD86] focus-within:ring-2 focus-within:ring-[#02CD86]/25';
+
+const isTomanBillCurrency = computed(() => form.currency === 'toman');
+
+function normalizeMoneyInput(value: string, currency: string): string {
+    const normalizedDigits = value
+        .replace(/[۰-۹]/g, (digit) =>
+            String(digit.charCodeAt(0) - 0x06f0),
+        )
+        .replace(/[٠-٩]/g, (digit) =>
+            String(digit.charCodeAt(0) - 0x0660),
+        )
+        .replace(/٫/g, '.')
+        .replace(/[٬،]/g, '');
+    let normalized = '';
+    let hasDecimal = false;
+
+    for (const character of normalizedDigits) {
+        if (/\d/.test(character)) {
+            normalized += character;
+            continue;
+        }
+        if (currency === 'toman' && character === '.') {
+            break;
+        }
+        if (currency !== 'toman' && character === '.' && !hasDecimal) {
+            normalized += character;
+            hasDecimal = true;
+        }
+    }
+
+    if (normalized.startsWith('.')) {
+        return `0${normalized}`;
+    }
+
+    return normalized;
+}
+
+function formatBillMoneyInput(value: string): string {
+    if (value === '') {
+        return '';
+    }
+
+    const normalized = normalizeMoneyInput(value, form.currency);
+    const [integerPart, decimalPart] = normalized.split('.');
+    const formattedInteger = (integerPart ?? '').replace(
+        /\B(?=(\d{3})+(?!\d))/g,
+        ',',
+    );
+
+    if (normalized.includes('.')) {
+        return `${formattedInteger}.${decimalPart ?? ''}`;
+    }
+
+    return formattedInteger;
+}
+
+const displayBillAmount = computed({
+    get: () => formatBillMoneyInput(form.amount),
+    set: (value: string) => {
+        form.amount = normalizeMoneyInput(value, form.currency);
+    },
+});
+
+function multiplyBillTomanAmount(): void {
+    const amount = Number(normalizeMoneyInput(form.amount, 'toman'));
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+        return;
+    }
+
+    form.amount = String(Math.trunc(amount * 1000));
+}
 
 function openCreateDialog(): void {
     editingId.value = null;
@@ -751,7 +807,7 @@ function openEditDialog(bill: Bill): void {
     editingId.value = bill.id;
     form.clearErrors();
     form.title = bill.title;
-    form.amount = String(bill.amount);
+    form.amount = normalizeMoneyInput(String(bill.amount), bill.currency);
     form.currency = bill.currency;
     form.category_id = bill.category_id ? String(bill.category_id) : '';
     form.recurrence_type = bill.recurrence_type;
@@ -760,13 +816,10 @@ function openEditDialog(bill: Bill): void {
         : '1';
     form.due_date = bill.due_date ?? '';
     form.telegram_reminder_enabled = Boolean(bill.telegram_reminder_enabled);
-    form.reminder_time = bill.reminder_time ?? '09:00';
+    const storedHour = (bill.reminder_time ?? '09:00').split(':')[0]?.padStart(2, '0') ?? '09';
+    form.reminder_time = `${storedHour}:00`;
     form.reminder_timezone = bill.reminder_timezone ?? 'UTC';
     isDialogOpen.value = true;
-}
-
-function setTelegramReminder(value: CheckboxState): void {
-    form.telegram_reminder_enabled = value === true;
 }
 
 function closeDialog(): void {
@@ -786,11 +839,6 @@ function submitBill(): void {
         preserveScroll: true,
         onSuccess: () => closeDialog(),
     };
-
-    form.transform((data) => ({
-        ...data,
-        telegram_reminder_enabled: data.telegram_reminder_enabled ? 1 : 0,
-    }));
 
     if (editingId.value !== null) {
         form.put(updateBill.url(editingId.value), options);
@@ -839,6 +887,13 @@ function markPaid(bill: Bill): void {
         },
     );
 }
+
+watch(
+    () => form.currency,
+    (currency) => {
+        form.amount = normalizeMoneyInput(form.amount, currency);
+    },
+);
 
 watch(
     () => form.recurrence_type,

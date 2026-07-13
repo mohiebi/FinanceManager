@@ -50,7 +50,7 @@ class ReportController extends Controller
 
         $transactions = $request->user()
             ->transactions()
-            ->with('category:id,name,type')
+            ->with('category:id,name,slug,type,is_default')
             ->whereDate('occurred_at', '>=', $fromDate->toDateString())
             ->whereDate('occurred_at', '<=', $toDate->toDateString())
             ->when(

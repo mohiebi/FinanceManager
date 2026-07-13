@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 
 test('it sends a day-before reminder exactly once', function () {
-    Carbon::setTestNow(Carbon::create(2026, 7, 14));
+    Carbon::setTestNow(Carbon::create(2026, 7, 14, 9));
     Notification::fake();
 
     try {
@@ -49,7 +49,7 @@ test('it sends a day-before reminder exactly once', function () {
 });
 
 test('it sends a due-day reminder and dispatches a telegram message when linked', function () {
-    Carbon::setTestNow(Carbon::create(2026, 7, 15));
+    Carbon::setTestNow(Carbon::create(2026, 7, 15, 9));
     Queue::fake();
 
     try {
@@ -83,7 +83,7 @@ test('it sends a due-day reminder and dispatches a telegram message when linked'
 });
 
 test('it skips telegram dispatch when the user has not linked telegram', function () {
-    Carbon::setTestNow(Carbon::create(2026, 7, 15));
+    Carbon::setTestNow(Carbon::create(2026, 7, 15, 9));
     Queue::fake();
 
     try {
@@ -109,7 +109,7 @@ test('it skips telegram dispatch when the user has not linked telegram', functio
 });
 
 test('it does not remind for a paid occurrence', function () {
-    Carbon::setTestNow(Carbon::create(2026, 7, 15));
+    Carbon::setTestNow(Carbon::create(2026, 7, 15, 9));
     Notification::fake();
 
     try {

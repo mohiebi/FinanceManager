@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'due_day_of_month',
     'due_date',
     'telegram_reminder_enabled',
+    'reminder_time',
+    'reminder_timezone',
     'is_active',
 ])]
 class Bill extends Model

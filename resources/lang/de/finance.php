@@ -36,6 +36,8 @@ return [
         'due_day_label' => 'Tag {day}',
         'due_date' => 'Fälligkeitsdatum',
         'telegram_reminder' => 'Auf Telegram erinnern',
+        'reminder_time' => 'Erinnerungszeit',
+        'reminder_timezone' => 'Zeitzone',
         'next_due' => 'Nächste Fälligkeit',
         'no_upcoming' => 'Kein anstehendes Fälligkeitsdatum',
         'mark_paid' => 'Als bezahlt markieren',

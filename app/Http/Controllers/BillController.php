@@ -64,6 +64,8 @@ class BillController extends Controller
                     'is_active' => $bill->is_active,
                     'category_id' => $bill->category_id,
                     'category_name' => $bill->category?->name,
+                    'reminder_time' => $bill->reminder_time ?? '09:00',
+                    'reminder_timezone' => $bill->reminder_timezone ?? 'UTC',
                     'next_occurrence' => $next ? [
                         'id' => $next->id,
                         'due_date' => $next->due_date->toDateString(),
@@ -92,6 +94,7 @@ class BillController extends Controller
                 'label' => $c->label(),
                 'value' => $c->value,
             ]),
+            'timezones' => $this->timezoneOptions(),
             'selectedCurrency' => $selectedCurrency->value,
             'monthlyBillSummary' => $this->monthlyBillSummary($user, $calendar, $currencyConverter, $selectedCurrency),
             'upcomingOccurrences' => $this->upcomingOccurrences($user, $currencyConverter, $selectedCurrency),
@@ -212,6 +215,8 @@ class BillController extends Controller
             'due_day_of_month' => ['required_if:recurrence_type,monthly', 'nullable', 'integer', 'min:1', 'max:31'],
             'due_date' => ['required_if:recurrence_type,one_time', 'nullable', 'date'],
             'telegram_reminder_enabled' => ['boolean'],
+            'reminder_time' => ['nullable', 'string', 'regex:/^\d{2}:\d{2}$/'],
+            'reminder_timezone' => ['nullable', 'string', 'max:50', 'timezone:all'],
         ]);
 
         $validated['category_id'] = $request->filled('category_id') ? (int) $validated['category_id'] : null;
@@ -264,6 +269,38 @@ class BillController extends Controller
             'count' => $count,
             'from' => $fromDate->toDateString(),
             'to' => $toDate->toDateString(),
+        ];
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function timezoneOptions(): array
+    {
+        return [
+            ['value' => 'UTC', 'label' => 'UTC (UTC+0)'],
+            ['value' => 'Asia/Tehran', 'label' => 'Tehran (UTC+3:30)'],
+            ['value' => 'Asia/Dubai', 'label' => 'Dubai (UTC+4)'],
+            ['value' => 'Asia/Riyadh', 'label' => 'Riyadh (UTC+3)'],
+            ['value' => 'Europe/Istanbul', 'label' => 'Istanbul (UTC+3)'],
+            ['value' => 'Africa/Cairo', 'label' => 'Cairo (UTC+2)'],
+            ['value' => 'Europe/Moscow', 'label' => 'Moscow (UTC+3)'],
+            ['value' => 'Europe/London', 'label' => 'London (UTC+0/+1)'],
+            ['value' => 'Europe/Paris', 'label' => 'Paris (UTC+1/+2)'],
+            ['value' => 'Europe/Berlin', 'label' => 'Berlin (UTC+1/+2)'],
+            ['value' => 'Asia/Karachi', 'label' => 'Karachi (UTC+5)'],
+            ['value' => 'Asia/Kolkata', 'label' => 'India (UTC+5:30)'],
+            ['value' => 'Asia/Dhaka', 'label' => 'Dhaka (UTC+6)'],
+            ['value' => 'Asia/Bangkok', 'label' => 'Bangkok (UTC+7)'],
+            ['value' => 'Asia/Singapore', 'label' => 'Singapore (UTC+8)'],
+            ['value' => 'Asia/Shanghai', 'label' => 'China (UTC+8)'],
+            ['value' => 'Asia/Tokyo', 'label' => 'Tokyo (UTC+9)'],
+            ['value' => 'Australia/Sydney', 'label' => 'Sydney (UTC+10/+11)'],
+            ['value' => 'America/New_York', 'label' => 'New York (UTC-5/-4)'],
+            ['value' => 'America/Chicago', 'label' => 'Chicago (UTC-6/-5)'],
+            ['value' => 'America/Los_Angeles', 'label' => 'Los Angeles (UTC-8/-7)'],
+            ['value' => 'America/Toronto', 'label' => 'Toronto (UTC-5/-4)'],
+            ['value' => 'America/Sao_Paulo', 'label' => 'São Paulo (UTC-3)'],
         ];
     }
 

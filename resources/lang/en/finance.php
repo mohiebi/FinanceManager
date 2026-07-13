@@ -36,6 +36,8 @@ return [
         'due_day_label' => 'Day {day}',
         'due_date' => 'Due date',
         'telegram_reminder' => 'Remind me on Telegram',
+        'reminder_time' => 'Reminder time',
+        'reminder_timezone' => 'Timezone',
         'next_due' => 'Next due',
         'upcoming' => 'Upcoming Bills',
         'no_upcoming' => 'No upcoming due date',

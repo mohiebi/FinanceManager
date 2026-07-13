@@ -111,20 +111,41 @@ class BillReminderJob implements ShouldQueue
      */
     private function sendDueReminders(Bill $bill, Collection $unpaid): void
     {
-        $today = Carbon::today();
-        $tomorrow = Carbon::tomorrow();
+        if (! $bill->telegram_reminder_enabled) {
+            return;
+        }
+
+        $tz = filled($bill->reminder_timezone) ? $bill->reminder_timezone : 'UTC';
+        $time = filled($bill->reminder_time) ? $bill->reminder_time : '09:00';
+
+        try {
+            [$rh, $rm] = array_map('intval', explode(':', $time));
+            $nowInTz = Carbon::now($tz);
+            // Job runs every 15 min; match the 15-min bucket that contains the reminder minute.
+            $currentBucket = (int) floor($nowInTz->minute / 15) * 15;
+
+            if ($nowInTz->hour !== $rh || $currentBucket !== $rm) {
+                return;
+            }
+
+            $todayStr = $nowInTz->toDateString();
+            $tomorrowStr = $nowInTz->copy()->addDay()->toDateString();
+        } catch (\Throwable) {
+            return;
+        }
 
         $occurrences = $unpaid->filter(
-            fn (BillOccurrence $occurrence) => $occurrence->due_date->isSameDay($today) || $occurrence->due_date->isSameDay($tomorrow),
+            fn (BillOccurrence $occurrence) => $occurrence->due_date->toDateString() === $todayStr
+                || $occurrence->due_date->toDateString() === $tomorrowStr,
         );
 
         foreach ($occurrences as $occurrence) {
-            if ($occurrence->due_date->isSameDay($tomorrow) && ! $occurrence->reminder_day_before_sent_at) {
+            if ($occurrence->due_date->toDateString() === $tomorrowStr && ! $occurrence->reminder_day_before_sent_at) {
                 $bill->user->notify(new BillDueNotification($bill, $occurrence, 'day_before'));
                 $occurrence->forceFill(['reminder_day_before_sent_at' => now()])->save();
             }
 
-            if ($occurrence->due_date->isSameDay($today) && ! $occurrence->reminder_due_day_sent_at) {
+            if ($occurrence->due_date->toDateString() === $todayStr && ! $occurrence->reminder_due_day_sent_at) {
                 $bill->user->notify(new BillDueNotification($bill, $occurrence, 'due_day'));
                 $occurrence->forceFill(['reminder_due_day_sent_at' => now()])->save();
             }

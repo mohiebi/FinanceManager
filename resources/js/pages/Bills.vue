@@ -452,6 +452,72 @@
                                     t('finance.bills.telegram_reminder')
                                 }}</span>
                             </label>
+
+                            <div
+                                v-if="form.telegram_reminder_enabled"
+                                class="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4"
+                            >
+                                <div class="grid gap-2">
+                                    <label class="finance-dialog-label">{{
+                                        t('finance.bills.reminder_time')
+                                    }}</label>
+                                    <div class="flex items-center gap-2">
+                                        <Select v-model="reminderHour">
+                                            <SelectTrigger :class="fieldClass" class="w-[88px]">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent class="finance-dialog-select-content max-h-48">
+                                                <SelectItem
+                                                    v-for="h in hours"
+                                                    :key="h"
+                                                    :value="h"
+                                                >
+                                                    {{ h }}
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+
+                                        <span class="text-sm font-bold text-white/50">:</span>
+
+                                        <Select v-model="reminderMinute">
+                                            <SelectTrigger :class="fieldClass" class="w-[88px]">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent class="finance-dialog-select-content">
+                                                <SelectItem
+                                                    v-for="m in minutes"
+                                                    :key="m"
+                                                    :value="m"
+                                                >
+                                                    {{ m }}
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <InputError :message="form.errors.reminder_time" />
+                                </div>
+
+                                <div class="grid gap-2">
+                                    <label class="finance-dialog-label">{{
+                                        t('finance.bills.reminder_timezone')
+                                    }}</label>
+                                    <Select v-model="form.reminder_timezone">
+                                        <SelectTrigger :class="fieldClass">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent class="finance-dialog-select-content max-h-56">
+                                            <SelectItem
+                                                v-for="tz in props.timezones"
+                                                :key="tz.value"
+                                                :value="tz.value"
+                                            >
+                                                {{ tz.label }}
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError :message="form.errors.reminder_timezone" />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -544,6 +610,8 @@ type Bill = {
     due_day_of_month: number | null;
     due_date: string | null;
     telegram_reminder_enabled: boolean;
+    reminder_time: string;
+    reminder_timezone: string;
     is_active: boolean;
     category_id: number | null;
     category_name: string | null;
@@ -572,6 +640,7 @@ const props = defineProps<{
     bills: Bill[];
     categories: { id: number; name: string }[];
     currencies: { label: string; value: string }[];
+    timezones: { value: string; label: string }[];
     selectedCurrency: string;
     monthlyBillSummary: MonthlyBillSummary;
     upcomingOccurrences: UpcomingOccurrence[];
@@ -636,7 +705,26 @@ const form = useForm({
     due_day_of_month: '1',
     due_date: '',
     telegram_reminder_enabled: true,
+    reminder_time: '09:00',
+    reminder_timezone: 'UTC',
 });
+
+const reminderHour = computed({
+    get: () => form.reminder_time.split(':')[0] ?? '09',
+    set: (h: string) => {
+        form.reminder_time = `${h}:${form.reminder_time.split(':')[1] ?? '00'}`;
+    },
+});
+
+const reminderMinute = computed({
+    get: () => form.reminder_time.split(':')[1] ?? '00',
+    set: (m: string) => {
+        form.reminder_time = `${form.reminder_time.split(':')[0] ?? '09'}:${m}`;
+    },
+});
+
+const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const minutes = ['00', '15', '30', '45'];
 
 type CheckboxState = boolean | 'indeterminate';
 
@@ -654,6 +742,8 @@ function openCreateDialog(): void {
     form.currency = props.currencies[0]?.value ?? 'toman';
     form.recurrence_type = 'monthly';
     form.due_day_of_month = '1';
+    form.reminder_time = '09:00';
+    form.reminder_timezone = 'UTC';
     isDialogOpen.value = true;
 }
 
@@ -670,6 +760,8 @@ function openEditDialog(bill: Bill): void {
         : '1';
     form.due_date = bill.due_date ?? '';
     form.telegram_reminder_enabled = Boolean(bill.telegram_reminder_enabled);
+    form.reminder_time = bill.reminder_time ?? '09:00';
+    form.reminder_timezone = bill.reminder_timezone ?? 'UTC';
     isDialogOpen.value = true;
 }
 

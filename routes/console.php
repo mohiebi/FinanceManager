@@ -11,4 +11,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::job(new RefreshAssetPricesJob)->hourly();
-Schedule::job(new BillReminderJob)->dailyAt('07:00');
+Schedule::job(new BillReminderJob)->everyFifteenMinutes();

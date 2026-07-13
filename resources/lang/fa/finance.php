@@ -36,6 +36,8 @@ return [
         'due_day_label' => 'روز {day}',
         'due_date' => 'تاریخ سررسید',
         'telegram_reminder' => 'یادآوری در تلگرام',
+        'reminder_time' => 'زمان یادآوری',
+        'reminder_timezone' => 'منطقه زمانی',
         'next_due' => 'سررسید بعدی',
         'upcoming' => 'قبض‌های پیش رو',
         'no_upcoming' => 'سررسید آینده‌ای ثبت نشده',

@@ -138,13 +138,28 @@ function submit(): void {
                 <InputError :message="form.errors.default_currency" />
             </div>
 
-            <Button
-                class="bg-[#02CD86] text-[#101010] hover:bg-[#08dd93]"
-                :disabled="form.processing"
-            >
-                <Spinner v-if="form.processing" />
-                {{ t('common.save') }}
-            </Button>
+            <div class="flex items-center gap-4">
+                <Button
+                    class="bg-[#02CD86] text-[#101010] hover:bg-[#08dd93]"
+                    :disabled="form.processing"
+                >
+                    <Spinner v-if="form.processing" />
+                    {{ t('common.save') }}
+                </Button>
+                <Transition
+                    enter-active-class="transition ease-in-out"
+                    enter-from-class="opacity-0"
+                    leave-active-class="transition ease-in-out"
+                    leave-to-class="opacity-0"
+                >
+                    <p
+                        v-show="form.recentlySuccessful"
+                        class="text-sm text-[#02CD86]"
+                    >
+                        {{ t('common.saved') }}
+                    </p>
+                </Transition>
+            </div>
         </form>
     </div>
 </template>

@@ -466,7 +466,7 @@
                             >
                                 <Checkbox
                                     :checked="form.telegram_reminder_enabled"
-                                    @update:checked="(val) => { form.telegram_reminder_enabled = val === true }"
+                                    @update:checked="(val: boolean | 'indeterminate') => { form.telegram_reminder_enabled = val === true }"
                                 />
                                 <span class="text-sm text-white/85">{{
                                     t('finance.bills.telegram_reminder')

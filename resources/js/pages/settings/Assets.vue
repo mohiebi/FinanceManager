@@ -579,22 +579,37 @@ defineOptions({
                 </div>
             </div>
 
-            <div class="flex items-center justify-between gap-3">
-                <InputError
-                    :message="
-                        createForm.errors.name ||
-                        createForm.errors.unit ||
-                        createForm.errors.icon ||
-                        createForm.errors.icon_svg ||
-                        createForm.errors.color ||
-                        createForm.errors.price_source_type ||
-                        createForm.errors['price_source_config.price'] ||
-                        createForm.errors['price_source_config.formula'] ||
-                        createForm.errors['price_source_config.url'] ||
-                        createForm.errors['price_source_config.path'] ||
-                        createForm.errors['price_source_config.xpath']
-                    "
-                />
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <InputError
+                        :message="
+                            createForm.errors.name ||
+                            createForm.errors.unit ||
+                            createForm.errors.icon ||
+                            createForm.errors.icon_svg ||
+                            createForm.errors.color ||
+                            createForm.errors.price_source_type ||
+                            createForm.errors['price_source_config.price'] ||
+                            createForm.errors['price_source_config.formula'] ||
+                            createForm.errors['price_source_config.url'] ||
+                            createForm.errors['price_source_config.path'] ||
+                            createForm.errors['price_source_config.xpath']
+                        "
+                    />
+                    <Transition
+                        enter-active-class="transition ease-in-out"
+                        enter-from-class="opacity-0"
+                        leave-active-class="transition ease-in-out"
+                        leave-to-class="opacity-0"
+                    >
+                        <p
+                            v-show="createForm.recentlySuccessful"
+                            class="text-sm text-[#02CD86]"
+                        >
+                            {{ t('common.saved') }}
+                        </p>
+                    </Transition>
+                </div>
                 <Button
                     class="h-9 bg-[#02CD86] text-[#101010] hover:bg-[#08dd93]"
                     :disabled="createForm.processing"

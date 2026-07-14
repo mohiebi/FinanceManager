@@ -259,7 +259,7 @@ type Transaction = {
     description: string | null;
     occurred_at: string;
     category: Category | null;
-    category_id: number;
+    category_id: number | null;
 };
 
 type CurrencyOption = { label: string; value: Currency };
@@ -408,7 +408,7 @@ function resetForm(type: TransactionType): void {
 function fillForm(transaction: Transaction): void {
     form.clearErrors();
     form.type = transaction.type;
-    form.category_id = transaction.category_id.toString();
+    form.category_id = transaction.category_id?.toString() ?? '';
     form.currency = transaction.currency;
     form.amount = normalizeMoneyInput(transaction.amount, transaction.currency);
     form.title = transaction.title;

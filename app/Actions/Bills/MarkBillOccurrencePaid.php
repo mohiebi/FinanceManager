@@ -5,6 +5,7 @@ namespace App\Actions\Bills;
 use App\Enums\TransactionType;
 use App\Models\Bill;
 use App\Models\BillOccurrence;
+use App\Models\Category;
 use App\Models\Transaction;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -32,8 +33,14 @@ class MarkBillOccurrencePaid
                 return $locked?->transaction;
             }
 
+            $categoryId = $bill->category_id ?? Category::query()
+                ->whereNull('user_id')
+                ->where('type', TransactionType::Cost)
+                ->where('slug', 'bills')
+                ->value('id');
+
             $transaction = $bill->user->transactions()->create([
-                'category_id' => $bill->category_id,
+                'category_id' => $categoryId,
                 'type' => TransactionType::Cost,
                 'amount' => (float) $bill->amount,
                 'currency' => $bill->currency,

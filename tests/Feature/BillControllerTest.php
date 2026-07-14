@@ -365,6 +365,31 @@ test('store rejects a category_id that does not belong to the user', function ()
     expect(Bill::query()->count())->toBe(0);
 });
 
+test('marking a bill occurrence paid without a category falls back to the default bills category', function () {
+    $user = User::factory()->create();
+    $billsCategory = Category::query()->firstOrCreate(
+        ['user_id' => null, 'type' => 'cost', 'slug' => 'bills'],
+        ['name' => 'Bills', 'is_default' => true],
+    );
+
+    $bill = $user->bills()->create([
+        'title' => 'Electricity',
+        'amount' => 200000,
+        'currency' => 'toman',
+        'category_id' => null,
+        'recurrence_type' => 'monthly',
+        'due_day_of_month' => 10,
+    ]);
+
+    $occurrence = $bill->occurrences()->create(['due_date' => '2026-07-10']);
+
+    app(MarkBillOccurrencePaid::class)($bill, $occurrence);
+
+    $transaction = $occurrence->fresh()->transaction;
+    expect($transaction)->not->toBeNull()
+        ->and($transaction->category_id)->toBe($billsCategory->id);
+});
+
 test('store rejects an income category for a bill', function () {
     $user = User::factory()->create();
     $incomeCategory = Category::factory()->income()->create();

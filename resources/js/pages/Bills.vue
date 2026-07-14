@@ -30,13 +30,19 @@
                         <p
                             class="text-[10px] font-medium tracking-widest text-[#6b6b6b] uppercase"
                         >
-                            {{ t('finance.fields.total_cost') }} · {{ t('finance.reports.this_month') }}
+                            {{ t('finance.fields.total_cost') }} ·
+                            {{ t('finance.reports.this_month') }}
                         </p>
-                        <p class="text-2xl font-bold leading-none text-white">
+                        <p class="text-2xl leading-none font-bold text-white">
                             {{ formatAmount(props.monthlyBillSummary.amount) }}
-                            <span class="ml-1 text-xs font-normal text-[#989898]">{{
-                                currencyLabel(props.monthlyBillSummary.currency)
-                            }}</span>
+                            <span
+                                class="ml-1 text-xs font-normal text-[#989898]"
+                                >{{
+                                    currencyLabel(
+                                        props.monthlyBillSummary.currency,
+                                    )
+                                }}</span
+                            >
                         </p>
                     </div>
                     <Button
@@ -219,23 +225,29 @@
                             <span
                                 v-if="occ.is_overdue"
                                 class="rounded-md bg-[#2f1717] px-2 py-0.5 text-[10px] font-medium text-[#E94E50]"
-                            >{{ t('finance.bills.overdue') }}</span>
+                                >{{ t('finance.bills.overdue') }}</span
+                            >
                             <span
                                 v-else-if="occ.is_due_today"
                                 class="rounded-md bg-[#0d2620] px-2 py-0.5 text-[10px] font-medium text-[#02CD86]"
-                            >{{ t('finance.bills.due_today') }}</span>
+                                >{{ t('finance.bills.due_today') }}</span
+                            >
                             <span
                                 v-else
-                                class="hidden text-xs tabular-nums text-[#6b6b6b] sm:inline"
-                            >{{ displayDate(occ.due_date) }}</span>
+                                class="hidden text-xs text-[#6b6b6b] tabular-nums sm:inline"
+                                >{{ displayDate(occ.due_date) }}</span
+                            >
 
                             <span
-                                class="min-w-[110px] text-right text-sm font-bold tabular-nums text-white"
+                                class="min-w-[110px] text-right text-sm font-bold text-white tabular-nums"
                             >
                                 {{ formatAmount(occ.display_amount) }}
-                                <span class="text-[10px] font-normal text-[#6b6b6b]">{{
-                                    currencyLabel(occ.display_currency)
-                                }}</span>
+                                <span
+                                    class="text-[10px] font-normal text-[#6b6b6b]"
+                                    >{{
+                                        currencyLabel(occ.display_currency)
+                                    }}</span
+                                >
                             </span>
                         </div>
                     </div>
@@ -465,8 +477,15 @@
                                 class="flex cursor-pointer items-center gap-2.5"
                             >
                                 <Checkbox
-                                    :checked="form.telegram_reminder_enabled"
-                                    @update:checked="(val: boolean | 'indeterminate') => { form.telegram_reminder_enabled = val === true }"
+                                    :model-value="
+                                        form.telegram_reminder_enabled
+                                    "
+                                    @update:model-value="
+                                        (val: boolean | 'indeterminate') => {
+                                            form.telegram_reminder_enabled =
+                                                val === true;
+                                        }
+                                    "
                                 />
                                 <span class="text-sm text-white/85">{{
                                     t('finance.bills.telegram_reminder')
@@ -477,15 +496,23 @@
                                 v-if="form.telegram_reminder_enabled"
                                 class="rounded-xl border border-white/10 bg-white/[0.03] p-4"
                             >
-                                <label class="finance-dialog-label mb-2 block">{{
-                                    t('finance.bills.reminder_time')
-                                }}</label>
+                                <label
+                                    class="finance-dialog-label mb-2 block"
+                                    >{{
+                                        t('finance.bills.reminder_time')
+                                    }}</label
+                                >
                                 <div class="flex items-center gap-2">
                                     <Select v-model="form.reminder_time">
-                                        <SelectTrigger :class="fieldClass" class="w-[120px] shrink-0">
+                                        <SelectTrigger
+                                            :class="fieldClass"
+                                            class="w-[120px] shrink-0"
+                                        >
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent class="finance-dialog-select-content max-h-48">
+                                        <SelectContent
+                                            class="finance-dialog-select-content max-h-48"
+                                        >
                                             <SelectItem
                                                 v-for="time in timeOptions"
                                                 :key="time"
@@ -497,10 +524,15 @@
                                     </Select>
 
                                     <Select v-model="form.reminder_timezone">
-                                        <SelectTrigger :class="fieldClass" class="min-w-0 flex-1">
+                                        <SelectTrigger
+                                            :class="fieldClass"
+                                            class="min-w-0 flex-1"
+                                        >
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent class="finance-dialog-select-content max-h-56">
+                                        <SelectContent
+                                            class="finance-dialog-select-content max-h-56"
+                                        >
                                             <SelectItem
                                                 v-for="tz in props.timezones"
                                                 :key="tz.value"
@@ -511,8 +543,13 @@
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <InputError class="mt-1" :message="form.errors.reminder_time" />
-                                <InputError :message="form.errors.reminder_timezone" />
+                                <InputError
+                                    class="mt-1"
+                                    :message="form.errors.reminder_time"
+                                />
+                                <InputError
+                                    :message="form.errors.reminder_timezone"
+                                />
                             </div>
                         </div>
                     </div>
@@ -584,7 +621,11 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { toJalaali } from 'jalaali-js';
-import { formatAppDate, jalaliMonthAbbreviations, monthBucketKeyFromIso } from '@/lib/date';
+import {
+    formatAppDate,
+    jalaliMonthAbbreviations,
+    monthBucketKeyFromIso,
+} from '@/lib/date';
 import { dashboard } from '@/routes';
 import {
     index as billsIndex,
@@ -724,12 +765,8 @@ const isTomanBillCurrency = computed(() => form.currency === 'toman');
 
 function normalizeMoneyInput(value: string, currency: string): string {
     const normalizedDigits = value
-        .replace(/[۰-۹]/g, (digit) =>
-            String(digit.charCodeAt(0) - 0x06f0),
-        )
-        .replace(/[٠-٩]/g, (digit) =>
-            String(digit.charCodeAt(0) - 0x0660),
-        )
+        .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 0x06f0))
+        .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 0x0660))
         .replace(/٫/g, '.')
         .replace(/[٬،]/g, '');
     let normalized = '';
@@ -817,7 +854,8 @@ function openEditDialog(bill: Bill): void {
         : '1';
     form.due_date = bill.due_date ?? '';
     form.telegram_reminder_enabled = Boolean(bill.telegram_reminder_enabled);
-    const storedHour = (bill.reminder_time ?? '09:00').split(':')[0]?.padStart(2, '0') ?? '09';
+    const storedHour =
+        (bill.reminder_time ?? '09:00').split(':')[0]?.padStart(2, '0') ?? '09';
     form.reminder_time = `${storedHour}:00`;
     form.reminder_timezone = bill.reminder_timezone ?? 'UTC';
     isDialogOpen.value = true;

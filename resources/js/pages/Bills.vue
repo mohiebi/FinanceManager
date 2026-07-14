@@ -465,7 +465,8 @@
                                 class="flex cursor-pointer items-center gap-2.5"
                             >
                                 <Checkbox
-                                    v-model:checked="form.telegram_reminder_enabled"
+                                    :checked="form.telegram_reminder_enabled"
+                                    @update:checked="(val) => { form.telegram_reminder_enabled = val === true }"
                                 />
                                 <span class="text-sm text-white/85">{{
                                     t('finance.bills.telegram_reminder')
@@ -699,7 +700,7 @@ const form = useForm({
     recurrence_type: 'monthly' as 'one_time' | 'monthly',
     due_day_of_month: '1',
     due_date: '',
-    telegram_reminder_enabled: true,
+    telegram_reminder_enabled: false,
     reminder_time: '09:00',
     reminder_timezone: 'UTC',
 });

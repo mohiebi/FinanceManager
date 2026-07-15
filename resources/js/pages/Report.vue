@@ -409,7 +409,7 @@
                         </h2>
                     </div>
                     <span class="text-xs text-[#989898]">
-                        {{ props.transactions.costs.length }}
+                        {{ props.transactions.meta.costs.total }}
                         {{ t('finance.metrics.entries') }}
                     </span>
                 </div>
@@ -498,6 +498,51 @@
                         </tbody>
                     </table>
                 </div>
+
+                <div
+                    v-if="props.transactions.meta.costs.last_page > 1"
+                    class="flex items-center justify-center gap-3 border-t border-white/[0.07] px-5 py-3 text-xs"
+                >
+                    <button
+                        type="button"
+                        :aria-label="t('buttons.back')"
+                        :disabled="
+                            props.transactions.meta.costs.current_page <= 1
+                        "
+                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="
+                            changeCostPage(
+                                props.transactions.meta.costs.current_page - 1,
+                            )
+                        "
+                    >
+                        ←
+                    </button>
+                    <span class="text-[#989898]">
+                        {{ props.transactions.meta.costs.current_page }}
+                        /
+                        {{ props.transactions.meta.costs.last_page }}
+                        <span class="ml-1 text-[#6b6b6b]">
+                            ({{ props.transactions.meta.costs.total }})
+                        </span>
+                    </span>
+                    <button
+                        type="button"
+                        :aria-label="t('buttons.next')"
+                        :disabled="
+                            props.transactions.meta.costs.current_page >=
+                            props.transactions.meta.costs.last_page
+                        "
+                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="
+                            changeCostPage(
+                                props.transactions.meta.costs.current_page + 1,
+                            )
+                        "
+                    >
+                        →
+                    </button>
+                </div>
             </section>
 
             <!-- Incomes table -->
@@ -518,7 +563,7 @@
                         </h2>
                     </div>
                     <span class="text-xs text-[#989898]">
-                        {{ props.transactions.incomes.length }}
+                        {{ props.transactions.meta.incomes.total }}
                         {{ t('finance.metrics.entries') }}
                     </span>
                 </div>
@@ -608,6 +653,53 @@
                         </tbody>
                     </table>
                 </div>
+
+                <div
+                    v-if="props.transactions.meta.incomes.last_page > 1"
+                    class="flex items-center justify-center gap-3 border-t border-white/[0.07] px-5 py-3 text-xs"
+                >
+                    <button
+                        type="button"
+                        :aria-label="t('buttons.back')"
+                        :disabled="
+                            props.transactions.meta.incomes.current_page <= 1
+                        "
+                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="
+                            changeIncomePage(
+                                props.transactions.meta.incomes.current_page -
+                                    1,
+                            )
+                        "
+                    >
+                        ←
+                    </button>
+                    <span class="text-[#989898]">
+                        {{ props.transactions.meta.incomes.current_page }}
+                        /
+                        {{ props.transactions.meta.incomes.last_page }}
+                        <span class="ml-1 text-[#6b6b6b]">
+                            ({{ props.transactions.meta.incomes.total }})
+                        </span>
+                    </span>
+                    <button
+                        type="button"
+                        :aria-label="t('buttons.next')"
+                        :disabled="
+                            props.transactions.meta.incomes.current_page >=
+                            props.transactions.meta.incomes.last_page
+                        "
+                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="
+                            changeIncomePage(
+                                props.transactions.meta.incomes.current_page +
+                                    1,
+                            )
+                        "
+                    >
+                        →
+                    </button>
+                </div>
             </section>
         </div>
     </div>
@@ -673,6 +765,12 @@ type CurrencyOption = {
     value: Currency;
 };
 
+type PaginationMeta = {
+    current_page: number;
+    last_page: number;
+    total: number;
+};
+
 const props = defineProps<{
     filters: {
         range: ReportRange;
@@ -686,6 +784,14 @@ const props = defineProps<{
         label: string;
     };
     transactions: {
+        costs: Transaction[];
+        incomes: Transaction[];
+        meta: {
+            costs: PaginationMeta;
+            incomes: PaginationMeta;
+        };
+    };
+    analyticsTransactions: {
         costs: Transaction[];
         incomes: Transaction[];
     };
@@ -808,7 +914,7 @@ const flowByBucket = computed(() => {
         totals.set(bucket.key, { income: 0, cost: 0 });
     }
 
-    for (const transaction of props.transactions.incomes) {
+    for (const transaction of props.analyticsTransactions.incomes) {
         const entry = totals.get(bucketKeyFor(transaction.occurred_at));
 
         if (entry) {
@@ -816,7 +922,7 @@ const flowByBucket = computed(() => {
         }
     }
 
-    for (const transaction of props.transactions.costs) {
+    for (const transaction of props.analyticsTransactions.costs) {
         const entry = totals.get(bucketKeyFor(transaction.occurred_at));
 
         if (entry) {
@@ -861,7 +967,7 @@ const netSavings = computed(() =>
 const topSpending = computed(() => {
     const totals = new Map<string, number>();
 
-    for (const transaction of props.transactions.costs) {
+    for (const transaction of props.analyticsTransactions.costs) {
         const name =
             transaction.category?.name ?? t('finance.categories.uncategorized');
         totals.set(
@@ -943,6 +1049,8 @@ function selectRange(range: ReportRange): void {
 function applyFilters(
     range: ReportRange = selectedRange.value,
     currency: Currency = selectedCurrency.value,
+    costPage: number | null = null,
+    incomePage: number | null = null,
 ): void {
     router.get(
         report.url(),
@@ -957,12 +1065,36 @@ function applyFilters(
                     ? null
                     : selectedCategory.value,
             currency,
+            cost_page: costPage && costPage > 1 ? costPage : null,
+            income_page: incomePage && incomePage > 1 ? incomePage : null,
         },
         {
             preserveScroll: true,
             preserveState: true,
             replace: true,
         },
+    );
+}
+
+function changeCostPage(page: number): void {
+    const incomePage = props.transactions.meta.incomes.current_page;
+
+    applyFilters(
+        selectedRange.value,
+        selectedCurrency.value,
+        page,
+        incomePage > 1 ? incomePage : null,
+    );
+}
+
+function changeIncomePage(page: number): void {
+    const costPage = props.transactions.meta.costs.current_page;
+
+    applyFilters(
+        selectedRange.value,
+        selectedCurrency.value,
+        costPage > 1 ? costPage : null,
+        page,
     );
 }
 

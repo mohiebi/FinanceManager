@@ -22,12 +22,12 @@ withDefaults(defineProps<Props>(), {
         </div>
         <AppContent
             variant="sidebar"
-            class="app-mobile-scroll-content min-h-0 overflow-x-hidden overflow-y-auto"
+            class="min-h-0 overflow-x-hidden overflow-y-auto pb-4 lg:pb-0"
         >
             <AppSidebarHeader :breadcrumbs="breadcrumbs" />
             <slot />
         </AppContent>
-    </AppShell>
 
-    <AppBottomNav />
+        <AppBottomNav />
+    </AppShell>
 </template>

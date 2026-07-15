@@ -282,3 +282,48 @@ test('report filters transactions by type category and search', function () {
 
     Carbon::setTestNow();
 });
+
+test('report paginates cost and income tables independently without changing analytics', function () {
+    Carbon::setTestNow('2026-05-26');
+
+    $user = User::factory()->create();
+    $costCategory = Category::factory()->cost()->forUser($user)->create();
+    $incomeCategory = Category::factory()->income()->forUser($user)->create();
+
+    Transaction::factory()
+        ->count(17)
+        ->cost()
+        ->for($user)
+        ->for($costCategory)
+        ->create(['occurred_at' => '2026-05-12']);
+
+    Transaction::factory()
+        ->count(17)
+        ->income()
+        ->for($user)
+        ->for($incomeCategory)
+        ->create(['occurred_at' => '2026-05-15']);
+
+    $this->actingAs($user)
+        ->get(route('report', [
+            'cost_page' => 2,
+            'income_page' => 2,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Report')
+            ->has('transactions.costs', 2)
+            ->has('transactions.incomes', 2)
+            ->where('transactions.meta.costs.current_page', 2)
+            ->where('transactions.meta.costs.last_page', 2)
+            ->where('transactions.meta.costs.total', 17)
+            ->where('transactions.meta.incomes.current_page', 2)
+            ->where('transactions.meta.incomes.last_page', 2)
+            ->where('transactions.meta.incomes.total', 17)
+            ->has('analyticsTransactions.costs', 17)
+            ->has('analyticsTransactions.incomes', 17)
+            ->where('summary.count', 34),
+        );
+
+    Carbon::setTestNow();
+});

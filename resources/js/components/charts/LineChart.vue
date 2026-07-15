@@ -18,6 +18,11 @@ const props = defineProps<{
     // When the categories are already display-ready (e.g. month names),
     // skip the ISO-date reformatting of the x-axis labels.
     rawLabels?: boolean;
+    valueSuffix?: string;
+    noDataText?: string;
+    // Plot the second series on an opposite y-axis so series with very
+    // different magnitudes (e.g. new vs cumulative customers) stay readable.
+    dualAxis?: boolean;
 }>();
 
 const chartRef = ref<HTMLElement | null>(null);
@@ -66,14 +71,26 @@ const buildOptions = () => ({
         crosshairs: { stroke: { color: '#333333', dashArray: 4 } },
         tooltip: { enabled: false },
     },
-    yaxis: {
-        labels: {
-            style: { colors: '#686868', fontSize: '11px' },
-            formatter: abbreviate,
-        },
-        axisBorder: { show: false },
-        axisTicks: { show: false },
-    },
+    yaxis:
+        props.dualAxis && props.series.length === 2
+            ? props.series.map((s, index) => ({
+                  seriesName: s.name,
+                  opposite: index === 1,
+                  labels: {
+                      style: { colors: s.color, fontSize: '11px' },
+                      formatter: abbreviate,
+                  },
+                  axisBorder: { show: false },
+                  axisTicks: { show: false },
+              }))
+            : {
+                  labels: {
+                      style: { colors: '#686868', fontSize: '11px' },
+                      formatter: abbreviate,
+                  },
+                  axisBorder: { show: false },
+                  axisTicks: { show: false },
+              },
     stroke: { curve: 'smooth' as const, width: 2 },
     fill: {
         type: 'gradient',
@@ -96,7 +113,8 @@ const buildOptions = () => ({
         shared: true,
         intersect: false,
         y: {
-            formatter: (amount: number) => abbreviate(amount) + ' T',
+            formatter: (amount: number) =>
+                abbreviate(amount) + (props.valueSuffix ?? ' T'),
         },
         style: { fontSize: '12px' },
     },
@@ -115,7 +133,9 @@ const buildOptions = () => ({
         hover: { size: 4 },
     },
     noData: {
-        text: 'No data yet — add your first investment entry.',
+        text:
+            props.noDataText ??
+            'No data yet — add your first investment entry.',
         style: { color: '#686868', fontSize: '13px' },
     },
 });

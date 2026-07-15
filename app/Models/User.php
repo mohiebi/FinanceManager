@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -14,8 +15,8 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'birthdate', 'locale', 'calendar', 'default_currency', 'password', 'email_verified_at', 'telegram_chat_id', 'telegram_connect_token'])]
-#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
+#[Fillable(['name', 'email', 'birthdate', 'locale', 'calendar', 'default_currency', 'password', 'email_verified_at', 'last_active_at', 'signup_source', 'telegram_chat_id', 'telegram_connect_token'])]
+#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'telegram_chat_id', 'telegram_connect_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
@@ -100,6 +101,27 @@ class User extends Authenticatable implements MustVerifyEmail
         return filled($this->telegram_chat_id);
     }
 
+    public function isAdmin(): bool
+    {
+        $adminEmail = trim((string) config('app.admin_email'));
+
+        return $adminEmail !== '' && strcasecmp($this->email, $adminEmail) === 0;
+    }
+
+    /**
+     * Exclude the configured administrator from customer analytics.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopeCustomers(Builder $query): void
+    {
+        $adminEmail = mb_strtolower(trim((string) config('app.admin_email')));
+
+        if ($adminEmail !== '') {
+            $query->whereRaw('LOWER(email) != ?', [$adminEmail]);
+        }
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -110,6 +132,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'birthdate' => 'date:Y-m-d',
             'email_verified_at' => 'datetime',
+            'last_active_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];

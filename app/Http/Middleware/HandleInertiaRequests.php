@@ -46,6 +46,7 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                'isAdmin' => $request->user()?->isAdmin() ?? false,
             ],
             'locale' => $locale,
             'locales' => FrontendLocalization::locales(),

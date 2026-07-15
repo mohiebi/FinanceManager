@@ -51,8 +51,7 @@ const navItems = computed(() => [
     <!-- Visible only below lg breakpoint -->
     <nav
         :aria-label="t('navigation.mobile')"
-        class="fixed inset-x-0 bottom-0 z-[200] flex h-16 items-stretch border-t border-white/10 bg-[#353535] lg:hidden"
-        style="padding-bottom: env(safe-area-inset-bottom, 0px)"
+        class="app-mobile-bottom-nav fixed inset-x-0 bottom-0 z-[200] flex items-stretch border-t border-white/10 bg-[#353535] lg:hidden"
     >
         <!-- Main nav items -->
         <Link

@@ -136,6 +136,7 @@ html[dir='rtl'] body {
 }
 
 :root {
+    --mobile-bottom-nav-height: 4rem;
     --background: hsl(0 0% 100%);
     --foreground: hsl(0 0% 3.9%);
     --card: hsl(0 0% 100%);
@@ -248,6 +249,31 @@ html[dir='rtl'] body {
 }
 
 @layer components {
+    .app-mobile-bottom-nav {
+        height: calc(
+            var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px)
+        );
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .app-mobile-scroll-content {
+        padding-bottom: calc(
+            var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px) +
+                1rem
+        );
+        scroll-padding-bottom: calc(
+            var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px) +
+                1rem
+        );
+    }
+
+    @media (min-width: 64rem) {
+        .app-mobile-scroll-content {
+            padding-bottom: 0;
+            scroll-padding-bottom: 0;
+        }
+    }
+
     .auth-theme {
         font-family: var(--font-sans);
     }

@@ -256,24 +256,6 @@ html[dir='rtl'] body {
         padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
-    .app-mobile-scroll-content {
-        padding-bottom: calc(
-            var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px) +
-                1rem
-        );
-        scroll-padding-bottom: calc(
-            var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px) +
-                1rem
-        );
-    }
-
-    @media (min-width: 64rem) {
-        .app-mobile-scroll-content {
-            padding-bottom: 0;
-            scroll-padding-bottom: 0;
-        }
-    }
-
     .auth-theme {
         font-family: var(--font-sans);
     }

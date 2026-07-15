@@ -18,6 +18,8 @@ const props = defineProps<{
     // When the categories are already display-ready (e.g. month names),
     // skip the ISO-date reformatting of the x-axis labels.
     rawLabels?: boolean;
+    valueSuffix?: string;
+    noDataText?: string;
 }>();
 
 const chartRef = ref<HTMLElement | null>(null);
@@ -96,7 +98,8 @@ const buildOptions = () => ({
         shared: true,
         intersect: false,
         y: {
-            formatter: (amount: number) => abbreviate(amount) + ' T',
+            formatter: (amount: number) =>
+                abbreviate(amount) + (props.valueSuffix ?? ' T'),
         },
         style: { fontSize: '12px' },
     },
@@ -115,7 +118,9 @@ const buildOptions = () => ({
         hover: { size: 4 },
     },
     noData: {
-        text: 'No data yet — add your first investment entry.',
+        text:
+            props.noDataText ??
+            'No data yet — add your first investment entry.',
         style: { color: '#686868', fontSize: '13px' },
     },
 });

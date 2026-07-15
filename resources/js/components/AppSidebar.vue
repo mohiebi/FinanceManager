@@ -8,6 +8,7 @@ import {
     Receipt,
     ReceiptText,
     Settings,
+    ShieldCheck,
     TrendingUp,
     Wallet,
 } from 'lucide-vue-next';
@@ -22,31 +23,48 @@ import { Sidebar, useSidebar } from '@/components/ui/sidebar';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { dashboard, portfolio, report } from '@/routes';
+import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as billsIndex } from '@/routes/bills';
 import { index as investmentsIndex } from '@/routes/investments';
 import { index as transactionsIndex } from '@/routes/transactions';
 import type { NavItem } from '@/types';
 
 const { t } = useI18n();
-
-const mainNavItems = computed<NavItem[]>(() => [
-    { title: t('navigation.dashboard'), href: dashboard(), icon: LayoutGrid },
-    {
-        title: t('navigation.transactions'),
-        href: transactionsIndex(),
-        icon: ReceiptText,
-    },
-    { title: t('navigation.report'), href: report(), icon: ChartPie },
-    {
-        title: t('navigation.investments'),
-        href: investmentsIndex(),
-        icon: TrendingUp,
-    },
-    { title: t('navigation.portfolio'), href: portfolio(), icon: Wallet },
-    { title: t('navigation.bills'), href: billsIndex(), icon: Receipt },
-]);
-
 const page = usePage();
+
+const mainNavItems = computed<NavItem[]>(() => {
+    const items: NavItem[] = [
+        {
+            title: t('navigation.dashboard'),
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+        {
+            title: t('navigation.transactions'),
+            href: transactionsIndex(),
+            icon: ReceiptText,
+        },
+        { title: t('navigation.report'), href: report(), icon: ChartPie },
+        {
+            title: t('navigation.investments'),
+            href: investmentsIndex(),
+            icon: TrendingUp,
+        },
+        { title: t('navigation.portfolio'), href: portfolio(), icon: Wallet },
+        { title: t('navigation.bills'), href: billsIndex(), icon: Receipt },
+    ];
+
+    if (page.props.auth.isAdmin) {
+        items.push({
+            title: 'Admin',
+            href: adminDashboard(),
+            icon: ShieldCheck,
+        });
+    }
+
+    return items;
+});
+
 const user = computed(() => page.props.auth.user);
 const isRtl = computed(() => page.props.dir === 'rtl');
 const { isMobile, state, toggleSidebar } = useSidebar();

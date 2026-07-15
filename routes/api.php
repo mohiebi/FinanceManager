@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\TransactionController;
+use App\Http\Middleware\TrackUserActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -17,7 +18,7 @@ Route::prefix('auth')->name('api.auth.')->group(function () {
     Route::post('signup/verify', [AuthController::class, 'verifySignup'])->middleware('throttle:10,1')->name('signup.verify');
     Route::post('signup/complete', [AuthController::class, 'completeSignup'])->middleware('throttle:10,1')->name('signup.complete');
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', TrackUserActivity::class])->group(function () {
         Route::get('me', [AuthController::class, 'me'])->name('me');
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
     });
@@ -25,9 +26,9 @@ Route::prefix('auth')->name('api.auth.')->group(function () {
 
 Route::get('/user', function (Request $request) {
     return $request->user();
-})->middleware('auth:sanctum');
+})->middleware(['auth:sanctum', TrackUserActivity::class]);
 
-Route::middleware('auth:sanctum')->name('api.')->group(function () {
+Route::middleware(['auth:sanctum', TrackUserActivity::class])->name('api.')->group(function () {
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::apiResource('transactions', TransactionController::class);
     Route::apiResource('categories', CategoryController::class)->only(['index']);

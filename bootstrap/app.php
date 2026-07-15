@@ -3,6 +3,7 @@
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetUserPreferences;
+use App\Http\Middleware\TrackUserActivity;
 use App\Jobs\BillReminderJob;
 use App\Jobs\RefreshAssetPricesJob;
 use Illuminate\Console\Scheduling\Schedule;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleAppearance::class,
             SetUserPreferences::class,
+            TrackUserActivity::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);

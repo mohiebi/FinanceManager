@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Link, router } from '@inertiajs/vue3';
-import { LogOut, Settings } from 'lucide-vue-next';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { LogOut, Settings, ShieldCheck } from 'lucide-vue-next';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
     DropdownMenuGroup,
@@ -10,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
 import { logout } from '@/routes';
+import { dashboard as adminDashboard } from '@/routes/admin';
 import { edit } from '@/routes/profile';
 import type { User } from '@/types';
 
@@ -22,6 +24,8 @@ const handleLogout = () => {
 };
 
 const { t } = useI18n();
+const page = usePage();
+const isAdmin = computed(() => page.props.auth.isAdmin);
 
 defineProps<Props>();
 </script>
@@ -34,6 +38,16 @@ defineProps<Props>();
     </DropdownMenuLabel>
     <DropdownMenuSeparator />
     <DropdownMenuGroup>
+        <DropdownMenuItem v-if="isAdmin" :as-child="true">
+            <Link
+                class="block w-full cursor-pointer"
+                :href="adminDashboard()"
+                prefetch
+            >
+                <ShieldCheck class="mr-2 h-4 w-4" />
+                Admin
+            </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem :as-child="true">
             <Link class="block w-full cursor-pointer" :href="edit()" prefetch>
                 <Settings class="mr-2 h-4 w-4" />

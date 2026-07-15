@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AssetPriceSyncController;
 use App\Http\Controllers\Auth\EmailAuthPageController;
 use App\Http\Controllers\Auth\WebEmailAuthController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionExportController;
 use App\Http\Controllers\TransactionImportController;
 use App\Http\Middleware\EnsureProfileIsComplete;
+use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Support\FrontendLocalization;
 use App\Support\SeoMetadata;
 use Illuminate\Http\Request;
@@ -86,6 +88,10 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(function () {
+    Route::get('admin', AdminDashboardController::class)
+        ->middleware(EnsureUserIsAdmin::class)
+        ->name('admin.dashboard');
+
     Route::get('dashboard', [TransactionController::class, 'dashboard'])->name('dashboard');
     Route::get('reports', ReportController::class)->name('report');
     Route::get('transactions/import-template', [TransactionImportController::class, 'template'])->name('transactions.import-template');

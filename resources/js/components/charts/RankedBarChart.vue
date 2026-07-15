@@ -2,13 +2,19 @@
 import type ApexCharts from 'apexcharts';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 
-const props = defineProps<{
-    labels: string[];
-    values: number[];
-    colors: string[];
-    seriesName: string;
-    height?: number;
-}>();
+const props = withDefaults(
+    defineProps<{
+        labels: string[];
+        values: number[];
+        colors: string[];
+        seriesName: string;
+        height?: number;
+        percentageLabels?: boolean;
+    }>(),
+    {
+        percentageLabels: true,
+    },
+);
 
 const chartRef = ref<HTMLElement | null>(null);
 let chart: ApexCharts | null = null;
@@ -59,7 +65,7 @@ const buildOptions = () => {
         dataLabels: {
             enabled: true,
             formatter: (value: number) =>
-                total > 0
+                props.percentageLabels && total > 0
                     ? ((value / total) * 100).toFixed(0) + '%'
                     : formatAmount(value),
             style: { fontSize: '11px', fontWeight: 600 },

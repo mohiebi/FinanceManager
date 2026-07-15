@@ -2,6 +2,7 @@
 
 use App\Enums\Currency;
 use App\Enums\InvestmentAssetPriceSource;
+use App\Models\DailyStat;
 use App\Models\Investment;
 use App\Models\InvestmentAsset;
 use App\Models\SocialAccount;
@@ -69,18 +70,27 @@ test('admin summary uses defined activity boundaries and excludes the administra
         $this->actingAs($admin)
             ->get(route('admin.dashboard'))
             ->assertInertia(fn (Assert $page) => $page
+                ->where('range', '12m')
                 ->where('summary.total_customers', 3)
-                ->where('summary.new_customers_30d', 1)
-                ->where('summary.new_customers_change', 0)
+                ->where('summary.total_customers_change', 50)
+                ->where('summary.new_customers', 3)
+                ->where('summary.new_customers_change', null)
                 ->where('summary.online_customers', 1)
                 ->where('summary.active_customers_7d', 1)
                 ->where('summary.active_customers_30d', 2)
+                ->where('summary.active_customers_30d_change', null)
+                ->where('summary.stickiness', 50)
                 ->where('summary.telegram_customers', 1)
                 ->where('summary.telegram_adoption', 33.3)
+                ->where('summary.telegram_customers_change', null)
                 ->where('summary.verified_customers', 2)
                 ->where('summary.verification_rate', 66.7)
+                ->where('summary.verified_customers_change', null)
                 ->where('summary.completed_profiles', 2)
                 ->where('summary.profile_completion_rate', 66.7)
+                ->where('summary.activated_customers', 0)
+                ->where('summary.activation_rate', 0)
+                ->where('summary.median_days_to_first_transaction', null)
                 ->where('users.total', 3)
             );
     } finally {
@@ -142,7 +152,110 @@ test('admin analytics expose growth adoption authentication and locale data as d
                     ->where('analytics.product_adoption.values', [1, 1, 1, 1])
                     ->where('analytics.authentication_mix.values', [1, 1, 0])
                     ->where('analytics.locales.values', [0, 1, 1])
+                    ->where('analytics.funnel.values', [2, 2, 2, 1, 0])
+                    ->where('analytics.acquisition.labels', ['Direct / unknown'])
+                    ->where('analytics.acquisition.values', [2])
+                    ->where('analytics.retention_segments.labels', ['Persian', 'Telegram linked'])
+                    ->where('analytics.engagement_trend.labels', [])
                 )
+            );
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('the analysis range scopes new customer metrics and growth granularity', function () {
+    Carbon::setTestNow('2026-07-15 12:00:00');
+
+    try {
+        $admin = User::factory()->create(['email' => 'admin@example.com']);
+        User::factory()->create([
+            'email' => 'recent@example.com',
+            'created_at' => now()->subDays(5),
+        ]);
+        User::factory()->create([
+            'email' => 'older@example.com',
+            'created_at' => now()->subDays(45),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard', ['range' => '30d']))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('range', '30d')
+                ->where('summary.new_customers', 1)
+                ->loadDeferredProps('analytics', fn (Assert $page) => $page
+                    ->has('analytics.growth.labels', 30)
+                )
+            );
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard', ['range' => 'bogus']))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('range', '12m')
+                ->where('summary.new_customers', 2)
+            );
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('summary deltas are computed from the baseline daily snapshot', function () {
+    Carbon::setTestNow('2026-07-15 12:00:00');
+
+    try {
+        DailyStat::query()->create([
+            'date' => now()->subDays(35)->toDateString(),
+            'total_customers' => 1,
+            'active_customers_30d' => 1,
+            'telegram_customers' => 1,
+            'verified_customers' => 1,
+        ]);
+
+        $admin = User::factory()->create(['email' => 'admin@example.com']);
+        User::factory()->create([
+            'telegram_chat_id' => 'chat-a',
+            'last_active_at' => now()->subDays(2),
+        ]);
+        User::factory()->create([
+            'last_active_at' => now()->subDays(3),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('summary.active_customers_30d_change', 100)
+                ->where('summary.telegram_customers_change', 0)
+                ->where('summary.verified_customers_change', 100)
+            );
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('activation tracks first transactions within a week of signup', function () {
+    Carbon::setTestNow('2026-07-15 12:00:00');
+
+    try {
+        $admin = User::factory()->create(['email' => 'admin@example.com']);
+        $activated = User::factory()->create(['created_at' => now()->subDays(20)]);
+        $late = User::factory()->create(['created_at' => now()->subDays(20)]);
+        User::factory()->create(['created_at' => now()->subDays(20)]);
+
+        Transaction::factory()->create([
+            'user_id' => $activated->id,
+            'created_at' => now()->subDays(18),
+        ]);
+        Transaction::factory()->create([
+            'user_id' => $late->id,
+            'created_at' => now()->subDays(2),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('summary.activated_customers', 1)
+                ->where('summary.activation_rate', 33.3)
+                ->where('summary.median_days_to_first_transaction', 10)
             );
     } finally {
         Carbon::setTestNow();
@@ -185,6 +298,22 @@ test('the directory supports filters and never exposes sensitive customer fields
             ->missing('users.data.0.telegram_chat_id')
             ->missing('users.data.0.telegram_connect_token')
             ->missing('users.data.0.two_factor_secret')
+        );
+});
+
+test('the directory can sort customers by product usage', function () {
+    $admin = User::factory()->create(['email' => 'admin@example.com']);
+    $light = User::factory()->create(['email' => 'light@example.com']);
+    $heavy = User::factory()->create(['email' => 'heavy@example.com']);
+    Transaction::factory()->create(['user_id' => $light->id]);
+    Transaction::factory()->count(3)->create(['user_id' => $heavy->id]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.dashboard', ['sort' => 'transactions']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.sort', 'transactions')
+            ->where('users.data.0.email', 'heavy@example.com')
+            ->where('users.data.0.transaction_count', 3)
         );
 });
 

@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Middleware\CaptureAcquisitionSource;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetUserPreferences;
 use App\Http\Middleware\TrackUserActivity;
 use App\Jobs\BillReminderJob;
+use App\Jobs\CaptureDailyStatsJob;
 use App\Jobs\RefreshAssetPricesJob;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -27,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleAppearance::class,
             SetUserPreferences::class,
+            CaptureAcquisitionSource::class,
             TrackUserActivity::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
@@ -41,6 +44,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // withoutOverlapping guards against a stuck/delayed queue worker letting
         // two runs stack and double-send reminders.
         $schedule->job(new BillReminderJob)->dailyAt('09:00')->withoutOverlapping();
+
+        // Captures one row of customer metrics per day so the admin dashboard
+        // can chart engagement trends and period-over-period deltas from real
+        // history. updateOrCreate keeps reruns on the same day idempotent.
+        $schedule->job(new CaptureDailyStatsJob)->dailyAt('00:10');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminCustomerExportController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AssetPriceSyncController;
 use App\Http\Controllers\Auth\EmailAuthPageController;
@@ -91,6 +92,10 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     Route::get('admin', AdminDashboardController::class)
         ->middleware(EnsureUserIsAdmin::class)
         ->name('admin.dashboard');
+
+    Route::get('admin/customers/export', AdminCustomerExportController::class)
+        ->middleware(EnsureUserIsAdmin::class)
+        ->name('admin.customers.export');
 
     Route::get('dashboard', [TransactionController::class, 'dashboard'])->name('dashboard');
     Route::get('reports', ReportController::class)->name('report');

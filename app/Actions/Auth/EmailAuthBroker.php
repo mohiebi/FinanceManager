@@ -5,6 +5,7 @@ namespace App\Actions\Auth;
 use App\Models\AuthChallenge;
 use App\Models\User;
 use App\Notifications\AuthChallengeCodeNotification;
+use App\Support\AcquisitionSource;
 use App\Support\FrontendLocalization;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Crypt;
@@ -131,6 +132,7 @@ class EmailAuthBroker
             'birthdate' => $attributes['birthdate'],
             'password' => $attributes['password'],
             'email_verified_at' => now(),
+            'signup_source' => AcquisitionSource::pull(),
         ]);
 
         $challenge->forceFill(['consumed_at' => now()])->save();

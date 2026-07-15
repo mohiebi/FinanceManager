@@ -21,7 +21,10 @@ withDefaults(defineProps<Props>(), {
             <AppSidebar />
         </div>
         <!-- pb-16 reserves space for the fixed bottom nav on mobile -->
-        <AppContent variant="sidebar" class="overflow-x-hidden pb-16 lg:pb-0">
+        <AppContent
+            variant="sidebar"
+            class="min-h-0 overflow-x-hidden overflow-y-auto pb-16 lg:pb-0"
+        >
             <AppSidebarHeader :breadcrumbs="breadcrumbs" />
             <slot />
         </AppContent>

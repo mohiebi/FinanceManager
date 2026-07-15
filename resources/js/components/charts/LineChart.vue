@@ -20,6 +20,9 @@ const props = defineProps<{
     rawLabels?: boolean;
     valueSuffix?: string;
     noDataText?: string;
+    // Plot the second series on an opposite y-axis so series with very
+    // different magnitudes (e.g. new vs cumulative customers) stay readable.
+    dualAxis?: boolean;
 }>();
 
 const chartRef = ref<HTMLElement | null>(null);
@@ -68,14 +71,26 @@ const buildOptions = () => ({
         crosshairs: { stroke: { color: '#333333', dashArray: 4 } },
         tooltip: { enabled: false },
     },
-    yaxis: {
-        labels: {
-            style: { colors: '#686868', fontSize: '11px' },
-            formatter: abbreviate,
-        },
-        axisBorder: { show: false },
-        axisTicks: { show: false },
-    },
+    yaxis:
+        props.dualAxis && props.series.length === 2
+            ? props.series.map((s, index) => ({
+                  seriesName: s.name,
+                  opposite: index === 1,
+                  labels: {
+                      style: { colors: s.color, fontSize: '11px' },
+                      formatter: abbreviate,
+                  },
+                  axisBorder: { show: false },
+                  axisTicks: { show: false },
+              }))
+            : {
+                  labels: {
+                      style: { colors: '#686868', fontSize: '11px' },
+                      formatter: abbreviate,
+                  },
+                  axisBorder: { show: false },
+                  axisTicks: { show: false },
+              },
     stroke: { curve: 'smooth' as const, width: 2 },
     fill: {
         type: 'gradient',

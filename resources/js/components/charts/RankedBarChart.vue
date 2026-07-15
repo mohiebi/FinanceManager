@@ -10,9 +10,13 @@ const props = withDefaults(
         seriesName: string;
         height?: number;
         percentageLabels?: boolean;
+        // The values themselves are already percentages (0-100); format
+        // labels, axis, and tooltip accordingly instead of as counts.
+        percentValues?: boolean;
     }>(),
     {
         percentageLabels: true,
+        percentValues: false,
     },
 );
 
@@ -64,10 +68,15 @@ const buildOptions = () => {
         },
         dataLabels: {
             enabled: true,
-            formatter: (value: number) =>
-                props.percentageLabels && total > 0
+            formatter: (value: number) => {
+                if (props.percentValues) {
+                    return value.toFixed(1) + '%';
+                }
+
+                return props.percentageLabels && total > 0
                     ? ((value / total) * 100).toFixed(0) + '%'
-                    : formatAmount(value),
+                    : formatAmount(value);
+            },
             style: { fontSize: '11px', fontWeight: 600 },
             offsetX: 4,
         },
@@ -75,9 +84,13 @@ const buildOptions = () => {
             categories: props.labels,
             axisBorder: { show: false },
             axisTicks: { show: false },
+            max: props.percentValues ? 100 : undefined,
             labels: {
                 style: { colors: '#686868', fontSize: '11px' },
-                formatter: formatAmount,
+                formatter: (value: number) =>
+                    props.percentValues
+                        ? Number(value).toFixed(0) + '%'
+                        : formatAmount(value),
             },
         },
         yaxis: {
@@ -96,7 +109,12 @@ const buildOptions = () => {
         legend: { show: false },
         tooltip: {
             theme: 'dark' as const,
-            y: { formatter: formatAmount },
+            y: {
+                formatter: (value: number) =>
+                    props.percentValues
+                        ? value.toFixed(1) + '%'
+                        : formatAmount(value),
+            },
             style: { fontSize: '12px' },
         },
         states: {

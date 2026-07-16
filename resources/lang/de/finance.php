@@ -8,6 +8,7 @@ return [
         'add_first_entry' => 'Ersten Eintrag hinzufügen',
         'apply_custom_range' => 'Benutzerdefinierten Zeitraum anwenden',
         'filter' => 'Filtern',
+        'export_transactions' => 'Exportieren',
         'import_transactions' => 'Importieren',
         'reset_filters' => 'Filter zurücksetzen',
         'see_all' => 'Alle ansehen ->',

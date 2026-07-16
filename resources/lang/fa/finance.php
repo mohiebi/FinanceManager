@@ -8,6 +8,7 @@ return [
         'add_first_entry' => 'افزودن اولین رکورد',
         'apply_custom_range' => 'اعمال بازه سفارشی',
         'filter' => 'فیلتر',
+        'export_transactions' => 'برون‌ریزی',
         'import_transactions' => 'درون‌ریزی',
         'reset_filters' => 'بازنشانی فیلترها',
         'see_all' => 'مشاهده همه ←',

@@ -8,6 +8,7 @@ return [
         'add_first_entry' => 'Add first entry',
         'apply_custom_range' => 'Apply custom range',
         'filter' => 'Filter',
+        'export_transactions' => 'Export',
         'import_transactions' => 'Import',
         'reset_filters' => 'Reset filters',
         'see_all' => 'See all ->',

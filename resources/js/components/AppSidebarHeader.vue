@@ -77,7 +77,7 @@ function changeCurrency(value: string) {
 
 <template>
     <header
-        class="flex min-h-[72px] shrink-0 items-center bg-[#454545] px-4 text-white shadow-sm transition-[width,height] ease-linear lg:min-h-[92px] lg:px-7"
+        class="flex min-h-[72px] shrink-0 items-center bg-[#454545] px-4 text-white shadow-sm transition-[width,height] ease-linear lg:min-h-[92px] lg:px-7 py-3 lg:py-6"
     >
         <div
             class="flex w-full flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-0"

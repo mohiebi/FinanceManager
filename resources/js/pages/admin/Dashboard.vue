@@ -301,7 +301,7 @@ function activityTone(user: AdminUser): string {
     <div class="contents">
         <Head title="Admin analytics" />
         <main
-            class="min-h-full bg-[#111111] px-4 py-6 text-white sm:px-6 lg:px-8 lg:py-8"
+            class="min-h-[calc(100vh-92px)] bg-[#111111] px-4 py-6 text-white sm:px-6 lg:px-8 lg:py-8"
         >
             <div class="mx-auto flex w-full max-w-[1600px] flex-col gap-6">
                 <header

@@ -251,7 +251,7 @@ function submit(): void {
                                 type="button"
                                 :class="[
                                     fieldClass,
-                                    'flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border px-3 text-left text-base transition-colors',
+                                    'flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border px-3 text-start text-base transition-colors',
                                 ]"
                                 @click="showEmojiPicker = !showEmojiPicker"
                             >

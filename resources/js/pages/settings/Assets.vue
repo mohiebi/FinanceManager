@@ -320,7 +320,7 @@ defineOptions({
                     <div class="relative">
                         <button
                             type="button"
-                            class="finance-dialog-field finance-dialog-field-income flex h-9 w-full items-center gap-2 px-3 text-left"
+                            class="finance-dialog-field finance-dialog-field-income flex h-9 w-full items-center gap-2 px-3 text-start"
                             @click="showCreateEmoji = !showCreateEmoji"
                         >
                             <span
@@ -674,7 +674,7 @@ defineOptions({
                                 <div class="relative">
                                     <button
                                         type="button"
-                                        class="finance-dialog-field finance-dialog-field-income flex h-9 w-full items-center gap-2 px-3 text-left"
+                                        class="finance-dialog-field finance-dialog-field-income flex h-9 w-full items-center gap-2 px-3 text-start"
                                         @click="showEditEmoji = !showEditEmoji"
                                     >
                                         <span

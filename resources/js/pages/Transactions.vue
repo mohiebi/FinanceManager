@@ -650,7 +650,7 @@
                 class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-[#1a1a1a] p-0 text-white shadow-2xl ring-1 ring-white/10 sm:max-w-[980px]"
             >
                 <div class="space-y-6 px-6 py-8">
-                    <DialogHeader class="space-y-2 text-left">
+                    <DialogHeader class="space-y-2 text-start">
                         <DialogTitle
                             class="text-[22px] leading-tight font-medium text-white"
                         >
@@ -801,28 +801,28 @@
                         <table class="w-full min-w-[900px] text-sm">
                             <thead class="bg-[#111111] text-[#989898]">
                                 <tr>
-                                    <th class="px-3 py-3 text-left">
+                                    <th class="px-3 py-3 text-start">
                                         {{ t('finance.import.row') }}
                                     </th>
-                                    <th class="px-3 py-3 text-left">
+                                    <th class="px-3 py-3 text-start">
                                         {{ t('finance.import.status') }}
                                     </th>
-                                    <th class="px-3 py-3 text-left">
+                                    <th class="px-3 py-3 text-start">
                                         {{ t('finance.fields.date') }}
                                     </th>
-                                    <th class="px-3 py-3 text-left">
+                                    <th class="px-3 py-3 text-start">
                                         {{ t('finance.fields.type') }}
                                     </th>
-                                    <th class="px-3 py-3 text-left">
+                                    <th class="px-3 py-3 text-start">
                                         {{ t('finance.fields.category') }}
                                     </th>
-                                    <th class="px-3 py-3 text-left">
+                                    <th class="px-3 py-3 text-start">
                                         {{ t('finance.fields.amount') }}
                                     </th>
-                                    <th class="px-3 py-3 text-left">
+                                    <th class="px-3 py-3 text-start">
                                         {{ t('finance.fields.subject') }}
                                     </th>
-                                    <th class="px-3 py-3 text-left">
+                                    <th class="px-3 py-3 text-start">
                                         {{ t('finance.import.notes') }}
                                     </th>
                                 </tr>

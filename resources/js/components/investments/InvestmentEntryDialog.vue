@@ -11,7 +11,7 @@
                 <div
                     class="flex-1 overflow-y-auto px-4 pt-10 pb-5 sm:px-[80px] sm:pt-[68px] sm:pb-6"
                 >
-                    <DialogHeader class="mb-6 space-y-2 text-left">
+                    <DialogHeader class="mb-6 space-y-2 text-start">
                         <DialogTitle
                             class="text-[20px] leading-normal font-medium text-white"
                         >
@@ -39,7 +39,7 @@
                                         type="button"
                                         :class="[
                                             fieldClass,
-                                            'flex h-9 w-full cursor-pointer items-center gap-2 px-3 text-left',
+                                            'flex h-9 w-full cursor-pointer items-center gap-2 px-3 text-start',
                                         ]"
                                         @click="
                                             assetDropdownOpen =
@@ -88,7 +88,7 @@
                                             v-for="assetType in assetTypes"
                                             :key="assetType.id"
                                             type="button"
-                                            class="flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-white/5"
+                                            class="flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-start transition-colors hover:bg-white/5"
                                             :class="
                                                 String(assetType.id) ===
                                                 String(form.investment_asset_id)

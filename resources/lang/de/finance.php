@@ -103,6 +103,8 @@ return [
     'delete' => [
         'transaction_title' => '"{title}" löschen?',
         'transaction_description' => 'Diese Transaktion wird dauerhaft gelöscht.',
+        'bulk_transactions_title' => '{count} ausgewählte Transaktionen löschen?',
+        'bulk_transactions_description' => 'Diese Transaktionen werden dauerhaft gelöscht.',
         'investment_title' => 'Investitionseintrag löschen?',
         'investment_description' => 'Dieser Eintrag wird dauerhaft aus deinem Portfolio entfernt.',
         'bill_title' => '"{title}" löschen?',

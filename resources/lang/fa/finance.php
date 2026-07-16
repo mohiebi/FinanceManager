@@ -112,6 +112,8 @@ return [
     'delete' => [
         'transaction_title' => 'حذف «{title}»؟',
         'transaction_description' => 'این تراکنش برای همیشه حذف می‌شود.',
+        'bulk_transactions_title' => 'حذف {count} تراکنش انتخاب‌شده؟',
+        'bulk_transactions_description' => 'این تراکنش‌ها برای همیشه حذف می‌شوند.',
         'investment_title' => 'حذف رکورد سرمایه‌گذاری؟',
         'investment_description' => 'این رکورد برای همیشه از پرتفوی شما حذف می‌شود.',
         'bill_title' => 'حذف «{title}»؟',

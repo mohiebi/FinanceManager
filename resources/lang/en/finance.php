@@ -112,6 +112,8 @@ return [
     'delete' => [
         'transaction_title' => 'Delete "{title}"?',
         'transaction_description' => 'This transaction will be permanently deleted.',
+        'bulk_transactions_title' => 'Delete {count} selected transactions?',
+        'bulk_transactions_description' => 'These transactions will be permanently deleted.',
         'investment_title' => 'Delete investment entry?',
         'investment_description' => 'This entry will be permanently removed from your portfolio.',
         'bill_title' => 'Delete "{title}"?',

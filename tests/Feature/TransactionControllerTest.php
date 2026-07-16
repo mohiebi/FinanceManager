@@ -175,6 +175,38 @@ test('users can delete their own transactions', function () {
     expect($transaction->fresh())->toBeNull();
 });
 
+test('users can bulk delete their own selected transactions only', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $category = Category::factory()->cost()->forUser($user)->create();
+
+    $transactions = Transaction::factory()
+        ->count(3)
+        ->cost()
+        ->for($user)
+        ->for($category)
+        ->create();
+    $otherTransaction = Transaction::factory()
+        ->cost()
+        ->for($otherUser)
+        ->create();
+
+    $this->actingAs($user)
+        ->delete(route('transactions.destroy-bulk'), [
+            'ids' => [
+                $transactions[0]->id,
+                $transactions[1]->id,
+                $otherTransaction->id,
+            ],
+        ])
+        ->assertRedirect();
+
+    expect($transactions[0]->fresh())->toBeNull()
+        ->and($transactions[1]->fresh())->toBeNull()
+        ->and($transactions[2]->fresh())->not->toBeNull()
+        ->and($otherTransaction->fresh())->not->toBeNull();
+});
+
 test('transactions reject categories for another transaction type', function () {
     $user = User::factory()->create();
     $category = Category::factory()->income()->forUser($user)->create();

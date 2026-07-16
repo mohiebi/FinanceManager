@@ -91,12 +91,17 @@ const growthSeries = computed(() => [
         key: 'new_customers',
         color: '#02CD86',
         data: props.analytics?.growth.new_customers ?? [],
+        // Columns instead of a second line: with independent dual-axis
+        // scales, two lines would invite comparing their heights even
+        // though the axes differ.
+        type: 'column' as const,
     },
     {
         name: 'Total customers',
         key: 'cumulative_customers',
         color: '#6C4EE9',
         data: props.analytics?.growth.cumulative_customers ?? [],
+        type: 'area' as const,
     },
 ]);
 
@@ -770,7 +775,7 @@ function activityTone(user: AdminUser): string {
                 </Deferred>
 
                 <section
-                    class="overflow-hidden rounded-[18px] bg-[#1a1a1a] ring-1 ring-white/10 mb-4"
+                    class="mb-4 overflow-hidden rounded-[18px] bg-[#1a1a1a] ring-1 ring-white/10"
                 >
                     <div class="border-b border-white/10 p-5">
                         <div

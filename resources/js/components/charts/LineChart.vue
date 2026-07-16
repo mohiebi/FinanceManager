@@ -8,6 +8,10 @@ export type ChartSeries = {
     key: string;
     color: string;
     data: number[];
+    // Render this series as columns instead of an area line. Useful next to
+    // a dual axis, where two lines with independent scales would invite a
+    // misleading visual comparison of their heights.
+    type?: 'area' | 'column';
 };
 
 const props = defineProps<{
@@ -44,9 +48,11 @@ const abbreviate = (amount: number): string => {
     return amount.toFixed(0);
 };
 
+const hasMixedTypes = () => props.series.some((s) => s.type === 'column');
+
 const buildOptions = () => ({
     chart: {
-        type: 'area' as const,
+        type: hasMixedTypes() ? ('line' as const) : ('area' as const),
         height: props.height ?? 300,
         background: 'transparent',
         toolbar: { show: false },
@@ -55,8 +61,19 @@ const buildOptions = () => ({
         animations: { enabled: true, speed: 500, easing: 'easeinout' as const },
     },
     dataLabels: { enabled: false },
-    series: props.series.map((s) => ({ name: s.name, data: s.data })),
+    series: props.series.map((s) => ({
+        name: s.name,
+        data: s.data,
+        ...(hasMixedTypes() ? { type: s.type ?? 'area' } : {}),
+    })),
     colors: props.series.map((s) => s.color),
+    plotOptions: {
+        bar: {
+            columnWidth: '45%',
+            borderRadius: 3,
+            borderRadiusApplication: 'end' as const,
+        },
+    },
     xaxis: {
         categories: props.categories,
         axisBorder: { show: false },
@@ -91,9 +108,21 @@ const buildOptions = () => ({
                   axisBorder: { show: false },
                   axisTicks: { show: false },
               },
-    stroke: { curve: 'smooth' as const, width: 2 },
+    stroke: {
+        curve: 'smooth' as const,
+        width: hasMixedTypes()
+            ? props.series.map((s) => (s.type === 'column' ? 0 : 2))
+            : 2,
+    },
     fill: {
-        type: 'gradient',
+        type: hasMixedTypes()
+            ? props.series.map((s) =>
+                  s.type === 'column' ? 'solid' : 'gradient',
+              )
+            : 'gradient',
+        opacity: hasMixedTypes()
+            ? props.series.map((s) => (s.type === 'column' ? 0.85 : 1))
+            : 1,
         gradient: {
             shadeIntensity: 1,
             opacityFrom: 0.18,

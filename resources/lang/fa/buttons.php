@@ -13,7 +13,7 @@ return [
     'next' => 'بعدی',
     'close' => 'بستن',
     'use_another_email' => 'استفاده از ایمیل دیگر',
-    'send_code_instead' => 'ارسال کد به جای رمز',
+    'send_code_instead' => 'ارسال کد به‌جای رمز عبور',
     'something_went_wrong' => 'مشکلی پیش آمد.',
     'sign_in' => 'ورود',
     'sign_in_with_google' => 'ورود با گوگل',

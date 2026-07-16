@@ -5,7 +5,7 @@ return [
     'transactions' => 'تراکنش‌ها',
     'report' => 'گزارش',
     'investments' => 'سرمایه‌گذاری‌ها',
-    'portfolio' => 'پرتفو',
+    'portfolio' => 'پرتفوی',
     'bills' => 'قبض‌ها',
     'primary' => 'ناوبری اصلی',
     'platform' => 'پلتفرم',

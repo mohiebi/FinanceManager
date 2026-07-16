@@ -109,7 +109,7 @@ return [
     'starts_with' => ':attribute باید با یکی از این موارد شروع شود: :values.',
     'string' => ':attribute باید متن باشد.',
     'timezone' => ':attribute باید منطقه زمانی معتبر باشد.',
-    'unique' => ':attribute قبلا انتخاب شده است.',
+    'unique' => ':attribute قبلاً استفاده شده است.',
     'uploaded' => 'بارگذاری :attribute ناموفق بود.',
     'url' => 'قالب :attribute معتبر نیست.',
     'uuid' => ':attribute باید UUID معتبر باشد.',

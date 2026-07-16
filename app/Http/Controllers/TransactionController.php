@@ -244,7 +244,7 @@ class TransactionController extends Controller
             ->limit(3)
             ->get()
             ->filter(fn (BillOccurrence $occurrence) => $occurrence->bill !== null)
-            ->map(function (BillOccurrence $occurrence) use ($currencyConverter, $selectedCurrency, $today): array {
+            ->map(function (BillOccurrence $occurrence) use ($currencyConverter, $request, $selectedCurrency, $today): array {
                 $bill = $occurrence->bill;
                 $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
 
@@ -254,7 +254,9 @@ class TransactionController extends Controller
                     'title' => $bill->title,
                     'display_amount' => $currencyConverter->format($bill->amount, $billCurrency, $selectedCurrency),
                     'display_currency' => $selectedCurrency->value,
-                    'category_name' => $bill->category?->name,
+                    'category_name' => $bill->category
+                        ? (new CategoryResource($bill->category))->resolve($request)['name']
+                        : null,
                     'due_date' => $occurrence->due_date->toDateString(),
                     'is_overdue' => $occurrence->due_date->lt($today),
                     'is_due_today' => $occurrence->due_date->isSameDay($today),

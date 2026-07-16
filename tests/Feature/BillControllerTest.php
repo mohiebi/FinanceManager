@@ -97,6 +97,34 @@ test('it converts bill amounts to the selected currency and sorts by next due da
     }
 });
 
+test('it localizes default bill category options and labels', function () {
+    $user = User::factory()->create(['locale' => 'fa']);
+    $category = Category::factory()->cost()->create([
+        'name' => 'Bills',
+        'slug' => 'bills',
+    ]);
+    $expectedCategoryName = __('finance.categories.cost.bills', [], 'fa');
+
+    $bill = $user->bills()->create([
+        'title' => 'Water',
+        'amount' => 100,
+        'currency' => Currency::Toman->value,
+        'category_id' => $category->id,
+        'recurrence_type' => 'one_time',
+        'due_date' => '2026-07-10',
+    ]);
+    $bill->occurrences()->create(['due_date' => '2026-07-10']);
+
+    $this->actingAs($user)
+        ->get(route('bills.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Bills')
+            ->where('categories.0.name', $expectedCategoryName)
+            ->where('bills.0.category_name', $expectedCategoryName)
+        );
+});
+
 test('it creates a recurring bill and generates the first occurrence', function () {
     Carbon::setTestNow(Carbon::create(2026, 7, 10));
 

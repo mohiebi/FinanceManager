@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Currency;
+use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -90,7 +91,12 @@ test('dashboard exposes upcoming unpaid bills in the selected currency', functio
         'eur' => 175500.0,
     ], now()->addMinutes(5));
 
-    $user = User::factory()->create();
+    $user = User::factory()->create(['locale' => 'fa']);
+    $category = Category::factory()->cost()->create([
+        'name' => 'Bills',
+        'slug' => 'bills',
+    ]);
+    $expectedCategoryName = __('finance.categories.cost.bills', [], 'fa');
 
     $farBill = $user->bills()->create([
         'title' => 'Far bill',
@@ -105,6 +111,7 @@ test('dashboard exposes upcoming unpaid bills in the selected currency', functio
         'title' => 'Close bill',
         'amount' => 300000,
         'currency' => Currency::Toman->value,
+        'category_id' => $category->id,
         'recurrence_type' => 'monthly',
         'due_day_of_month' => 10,
     ]);
@@ -141,6 +148,7 @@ test('dashboard exposes upcoming unpaid bills in the selected currency', functio
                 ->where('upcomingBills.0.title', 'Overdue bill')
                 ->where('upcomingBills.0.is_overdue', true)
                 ->where('upcomingBills.1.title', 'Close bill')
+                ->where('upcomingBills.1.category_name', $expectedCategoryName)
                 ->where('upcomingBills.1.due_date', '2026-07-10')
                 ->where('upcomingBills.1.display_amount', '2.00')
                 ->where('upcomingBills.1.display_currency', Currency::Usd->value)

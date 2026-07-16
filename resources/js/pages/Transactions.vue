@@ -7,116 +7,132 @@
         <section
             class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
-            <div
-                class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.9fr_0.8fr_0.8fr_auto]"
-            >
-                <div class="grid gap-2">
-                    <Label for="transaction_search">{{
-                        t('finance.fields.search')
-                    }}</Label>
-                    <Input
-                        id="transaction_search"
-                        v-model="filterSearch"
-                        :class="filterFieldClass"
-                        :placeholder="t('finance.filters.title_or_note')"
-                        @keyup.enter="applyFilters()"
-                    />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="transaction_type">{{
-                        t('finance.fields.type')
-                    }}</Label>
-                    <Select
-                        v-model="filterType"
-                        @update:model-value="applyTypeFilter"
-                    >
-                        <SelectTrigger
-                            id="transaction_type"
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-wrap items-end gap-4">
+                    <div class="grid w-full gap-2 sm:w-80">
+                        <Label for="transaction_search">{{
+                            t('finance.fields.search')
+                        }}</Label>
+                        <Input
+                            id="transaction_search"
+                            v-model="filterSearch"
                             :class="filterFieldClass"
-                        >
-                            <SelectValue
-                                :placeholder="t('finance.filters.all_types')"
-                            />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">{{
-                                t('finance.filters.all_types')
-                            }}</SelectItem>
-                            <SelectItem value="cost">{{
-                                t('finance.filters.costs')
-                            }}</SelectItem>
-                            <SelectItem value="income">{{
-                                t('finance.filters.incomes')
-                            }}</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                            :placeholder="t('finance.filters.title_or_note')"
+                            @keyup.enter="applyFilters()"
+                        />
+                    </div>
 
-                <div class="grid gap-2">
-                    <Label for="transaction_category">{{
-                        t('finance.fields.category')
-                    }}</Label>
-                    <Select
-                        v-model="filterCategory"
-                        @update:model-value="applyFilters()"
-                    >
-                        <SelectTrigger
-                            id="transaction_category"
-                            :class="filterFieldClass"
-                        >
-                            <SelectValue
-                                :placeholder="
-                                    t('finance.filters.all_categories')
-                                "
-                            />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">{{
-                                t('finance.filters.all_categories')
-                            }}</SelectItem>
-                            <SelectItem
-                                v-for="category in filterCategories"
-                                :key="category.id"
-                                :value="category.id.toString()"
+                    <div class="grid w-full gap-2 sm:w-40">
+                        <Label for="transaction_type">{{
+                            t('finance.fields.type')
+                        }}</Label>
+                        <Select v-model="filterType">
+                            <SelectTrigger
+                                id="transaction_type"
+                                :class="filterFieldClass"
                             >
-                                {{ category.name }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                                <SelectValue
+                                    :placeholder="
+                                        t('finance.filters.all_types')
+                                    "
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{{
+                                    t('finance.filters.all_types')
+                                }}</SelectItem>
+                                <SelectItem value="cost">{{
+                                    t('finance.filters.costs')
+                                }}</SelectItem>
+                                <SelectItem value="income">{{
+                                    t('finance.filters.incomes')
+                                }}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div class="grid w-full gap-2 sm:w-60">
+                        <Label for="transaction_category">{{
+                            t('finance.fields.category')
+                        }}</Label>
+                        <Select v-model="filterCategory">
+                            <SelectTrigger
+                                id="transaction_category"
+                                :class="filterFieldClass"
+                            >
+                                <SelectValue
+                                    :placeholder="
+                                        t('finance.filters.all_categories')
+                                    "
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{{
+                                    t('finance.filters.all_categories')
+                                }}</SelectItem>
+                                <SelectItem
+                                    v-for="category in filterCategories"
+                                    :key="category.id"
+                                    :value="category.id.toString()"
+                                >
+                                    {{ category.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div class="grid w-full gap-2 sm:w-80">
+                        <Label for="transaction_from">{{
+                            t('finance.fields.from')
+                        }}</Label>
+                        <BirthdatePicker
+                            v-model="filterFrom"
+                            name="transaction_from"
+                            :required="false"
+                            :years-back="16"
+                            :years-forward="1"
+                            :trigger-class="filterFieldClass"
+                        />
+                    </div>
+
+                    <div class="grid w-full gap-2 sm:w-80">
+                        <Label for="transaction_to">{{
+                            t('finance.fields.to')
+                        }}</Label>
+                        <BirthdatePicker
+                            v-model="filterTo"
+                            name="transaction_to"
+                            :required="false"
+                            :years-back="16"
+                            :years-forward="1"
+                            :trigger-class="filterFieldClass"
+                        />
+                    </div>
+
+                    <div class="flex items-end gap-2">
+                        <Button
+                            class="h-9 shrink-0 rounded-full bg-[#02CD86] px-5 text-sm font-semibold text-[#071812] shadow-[0_10px_24px_rgba(2,205,134,0.22)] hover:bg-[#00b978]"
+                            @click="applyFilters()"
+                        >
+                            <Search class="size-4" />
+                            {{ t('finance.actions.filter') }}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            class="size-9 shrink-0 rounded-full border-white/10 bg-[#252525] p-0 text-[#989898] shadow-none hover:bg-white/10 hover:text-white"
+                            @click="clearFilters"
+                        >
+                            <RotateCcw class="size-4" />
+                            <span class="sr-only">{{
+                                t('finance.actions.reset_filters')
+                            }}</span>
+                        </Button>
+                    </div>
                 </div>
 
-                <div class="grid gap-2">
-                    <Label for="transaction_from">{{
-                        t('finance.fields.from')
-                    }}</Label>
-                    <BirthdatePicker
-                        v-model="filterFrom"
-                        name="transaction_from"
-                        :required="false"
-                        :years-back="16"
-                        :years-forward="1"
-                        :trigger-class="filterFieldClass"
-                    />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="transaction_to">{{
-                        t('finance.fields.to')
-                    }}</Label>
-                    <BirthdatePicker
-                        v-model="filterTo"
-                        name="transaction_to"
-                        :required="false"
-                        :years-back="16"
-                        :years-forward="1"
-                        :trigger-class="filterFieldClass"
-                    />
-                </div>
-
-                <div class="flex flex-wrap items-end gap-2 xl:justify-end">
+                <div class="flex shrink-0 flex-wrap gap-2 sm:justify-end">
                     <Button
-                        class="shrink-0 rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15"
+                        class="h-9 shrink-0 rounded-full bg-white/5 px-4 text-sm text-white shadow-none ring-1 ring-white/15 hover:bg-white/10"
                         @click="openImportDialog"
                     >
                         <Upload class="size-4" />
@@ -124,28 +140,11 @@
                     </Button>
                     <a
                         :href="`/transactions/export?currency=${selectedCurrency}`"
-                        class="inline-flex shrink-0 items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm whitespace-nowrap text-white ring-1 ring-white/20 transition-colors hover:bg-white/15"
+                        class="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-white/5 px-4 text-sm whitespace-nowrap text-white ring-1 ring-white/15 transition-colors hover:bg-white/10"
                     >
                         <Download class="size-4" />
                         Export
                     </a>
-                    <Button
-                        class="shrink-0 rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15"
-                        @click="applyFilters()"
-                    >
-                        <Search class="size-4" />
-                        {{ t('finance.actions.filter') }}
-                    </Button>
-                    <Button
-                        variant="outline"
-                        class="size-10 shrink-0 rounded-full bg-white/10 p-0 text-[#989898] ring-1 ring-white/15 hover:bg-white/15"
-                        @click="clearFilters"
-                    >
-                        <RotateCcw class="size-4" />
-                        <span class="sr-only">{{
-                            t('finance.actions.reset_filters')
-                        }}</span>
-                    </Button>
                 </div>
             </div>
         </section>
@@ -1468,19 +1467,6 @@ function changeCostPage(page: number): void {
 function changeIncomePage(page: number): void {
     const cp = props.transactions.meta?.costs?.current_page;
     applyFilters(selectedCurrency.value, cp && cp > 1 ? cp : null, page);
-}
-
-function applyTypeFilter(): void {
-    if (
-        filterCategory.value !== 'all' &&
-        !filterCategories.value.some(
-            (category) => category.id.toString() === filterCategory.value,
-        )
-    ) {
-        filterCategory.value = 'all';
-    }
-
-    applyFilters();
 }
 
 function clearFilters(): void {

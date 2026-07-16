@@ -91,10 +91,7 @@ const growthSeries = computed(() => [
         key: 'new_customers',
         color: '#02CD86',
         data: props.analytics?.growth.new_customers ?? [],
-        // Columns instead of a second line: with independent dual-axis
-        // scales, two lines would invite comparing their heights even
-        // though the axes differ.
-        type: 'column' as const,
+        type: 'area' as const,
     },
     {
         name: 'Total customers',
@@ -557,7 +554,6 @@ function activityTone(user: AdminUser): string {
                                 :series="growthSeries"
                                 :categories="analytics.growth.labels"
                                 raw-labels
-                                dual-axis
                                 value-suffix=""
                                 no-data-text="No customer growth data yet"
                                 :height="280"

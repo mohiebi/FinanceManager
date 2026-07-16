@@ -8,6 +8,7 @@ use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\BillRecurrenceType;
 use App\Enums\Currency;
 use App\Enums\TransactionType;
+use App\Http\Resources\CategoryResource;
 use App\Models\Bill;
 use App\Models\BillOccurrence;
 use App\Models\Category;
@@ -42,7 +43,7 @@ class BillController extends Controller
         $bills = $user->bills()
             ->with(['category', 'occurrences' => fn ($query) => $query->whereNull('paid_at')->orderBy('due_date')])
             ->get()
-            ->map(function (Bill $bill) use ($currencyConverter, $selectedCurrency) {
+            ->map(function (Bill $bill) use ($currencyConverter, $request, $selectedCurrency) {
                 $next = $bill->occurrences->first();
                 $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
 
@@ -63,7 +64,7 @@ class BillController extends Controller
                     'telegram_reminder_enabled' => $bill->telegram_reminder_enabled,
                     'is_active' => $bill->is_active,
                     'category_id' => $bill->category_id,
-                    'category_name' => $bill->category?->name,
+                    'category_name' => $this->localizedCategoryName($request, $bill->category),
                     'reminder_time' => $bill->reminder_time ?? '09:00',
                     'reminder_timezone' => $bill->reminder_timezone ?? 'UTC',
                     'next_occurrence' => $next ? [
@@ -85,7 +86,8 @@ class BillController extends Controller
             ->where('type', TransactionType::Cost)
             ->orderByDesc('is_default')
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get()
+            ->map(fn (Category $category) => (new CategoryResource($category))->resolve($request));
 
         return Inertia::render('Bills', [
             'bills' => $bills,
@@ -185,6 +187,15 @@ class BillController extends Controller
             })
             ->values()
             ->all();
+    }
+
+    private function localizedCategoryName(Request $request, ?Category $category): ?string
+    {
+        if (! $category) {
+            return null;
+        }
+
+        return (string) (new CategoryResource($category))->resolve($request)['name'];
     }
 
     /**

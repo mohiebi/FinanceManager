@@ -163,27 +163,37 @@
                             {{ t('finance.tables.money_going_out') }}
                         </h2>
                     </div>
-                    <Button
-                        class="h-14 w-max justify-between rounded-md bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-3.5 text-[22px] leading-none font-bold text-white shadow-[0_10px_20px_rgba(108,78,233,0.22)] transition hover:brightness-105"
-                        @click="openCreateForm('cost')"
-                    >
-                        <span class="grid text-left">
-                            <span class="col-start-1 row-start-1">
-                                {{ t('finance.actions.add_cost') }}
+                    <div class="flex flex-wrap items-center justify-end gap-2">
+                        <Button
+                            v-if="hasCostGroupSelection"
+                            class="h-12 rounded-md bg-[#E94E50] px-3.5 text-sm font-semibold text-white shadow-none hover:bg-[#d43e40]"
+                            @click="requestBulkDelete"
+                        >
+                            <Trash2 class="size-4" />
+                            {{ t('finance.actions.bulk_delete') }}
+                        </Button>
+                        <Button
+                            class="h-14 w-max justify-between rounded-md bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-3.5 text-[22px] leading-none font-bold text-white shadow-[0_10px_20px_rgba(108,78,233,0.22)] transition hover:brightness-105"
+                            @click="openCreateForm('cost')"
+                        >
+                            <span class="grid text-left">
+                                <span class="col-start-1 row-start-1">
+                                    {{ t('finance.actions.add_cost') }}
+                                </span>
+                                <span
+                                    class="invisible col-start-1 row-start-1"
+                                    aria-hidden="true"
+                                >
+                                    {{ t('finance.actions.add_income') }}
+                                </span>
                             </span>
                             <span
-                                class="invisible col-start-1 row-start-1"
-                                aria-hidden="true"
+                                class="grid h-[1.65em] w-[1.65em] min-w-[1.65em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_42%,rgba(45,45,45,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
                             >
-                                {{ t('finance.actions.add_income') }}
+                                <Plus class="size-6" />
                             </span>
-                        </span>
-                        <span
-                            class="grid h-[1.65em] w-[1.65em] min-w-[1.65em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_42%,rgba(45,45,45,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
-                        >
-                            <Plus class="size-6" />
-                        </span>
-                    </Button>
+                        </Button>
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto px-3 pb-5">
@@ -360,27 +370,37 @@
                             {{ t('finance.tables.money_coming_in') }}
                         </h2>
                     </div>
-                    <Button
-                        class="h-14 w-max justify-between rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00A96F_100%)] px-3.5 text-[22px] leading-none font-bold text-white shadow-[0_10px_20px_rgba(2,205,134,0.22)] transition hover:brightness-105"
-                        @click="openCreateForm('income')"
-                    >
-                        <span class="grid text-left">
-                            <span class="col-start-1 row-start-1">
-                                {{ t('finance.actions.add_income') }}
+                    <div class="flex flex-wrap items-center justify-end gap-2">
+                        <Button
+                            v-if="hasIncomeGroupSelection"
+                            class="h-12 rounded-md bg-[#E94E50] px-3.5 text-sm font-semibold text-white shadow-none hover:bg-[#d43e40]"
+                            @click="requestBulkDelete"
+                        >
+                            <Trash2 class="size-4" />
+                            {{ t('finance.actions.bulk_delete') }}
+                        </Button>
+                        <Button
+                            class="h-14 w-max justify-between rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00A96F_100%)] px-3.5 text-[22px] leading-none font-bold text-white shadow-[0_10px_20px_rgba(2,205,134,0.22)] transition hover:brightness-105"
+                            @click="openCreateForm('income')"
+                        >
+                            <span class="grid text-left">
+                                <span class="col-start-1 row-start-1">
+                                    {{ t('finance.actions.add_income') }}
+                                </span>
+                                <span
+                                    class="invisible col-start-1 row-start-1"
+                                    aria-hidden="true"
+                                >
+                                    {{ t('finance.actions.add_income') }}
+                                </span>
                             </span>
                             <span
-                                class="invisible col-start-1 row-start-1"
-                                aria-hidden="true"
+                                class="grid h-[1.65em] w-[1.65em] min-w-[1.65em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_42%,rgba(45,45,45,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
                             >
-                                {{ t('finance.actions.add_income') }}
+                                <Plus class="size-6" />
                             </span>
-                        </span>
-                        <span
-                            class="grid h-[1.65em] w-[1.65em] min-w-[1.65em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_42%,rgba(45,45,45,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
-                        >
-                            <Plus class="size-6" />
-                        </span>
-                    </Button>
+                        </Button>
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto px-3 pb-5">
@@ -1152,6 +1172,8 @@ const totalSelected = computed(
     () => selectedCostIds.value.size + selectedIncomeIds.value.size,
 );
 const hasGroupSelection = computed(() => totalSelected.value > 1);
+const hasCostGroupSelection = computed(() => selectedCostIds.value.size > 1);
+const hasIncomeGroupSelection = computed(() => selectedIncomeIds.value.size > 1);
 const selectionType = computed<TransactionType | null>(() => {
     if (selectedCostIds.value.size > 0 && selectedIncomeIds.value.size === 0) {
         return 'cost';

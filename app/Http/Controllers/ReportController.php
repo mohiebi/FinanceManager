@@ -48,7 +48,7 @@ class ReportController extends Controller
             ->orderBy('name')
             ->get();
 
-        $transactions = $request->user()
+        $query = $request->user()
             ->transactions()
             ->with('category:id,name,slug,type,is_default')
             ->whereDate('occurred_at', '>=', $fromDate->toDateString())
@@ -69,8 +69,9 @@ class ReportController extends Controller
                 }),
             )
             ->latest('occurred_at')
-            ->latest()
-            ->get();
+            ->latest();
+
+        $transactions = $query->get();
 
         $costs = $transactions
             ->where('type', TransactionType::Cost)
@@ -79,6 +80,15 @@ class ReportController extends Controller
         $incomes = $transactions
             ->where('type', TransactionType::Income)
             ->values();
+
+        $costPage = max(1, (int) $request->query('cost_page', 1));
+        $incomePage = max(1, (int) $request->query('income_page', 1));
+        $costPaginator = (clone $query)
+            ->where('type', TransactionType::Cost)
+            ->paginate(15, ['*'], 'cost_page', $costPage);
+        $incomePaginator = (clone $query)
+            ->where('type', TransactionType::Income)
+            ->paginate(15, ['*'], 'income_page', $incomePage);
 
         return Inertia::render('Report', [
             'filters' => [
@@ -93,6 +103,32 @@ class ReportController extends Controller
                 'label' => $this->makePeriodLabel($selectedRange, $fromDate, $toDate, $calendar),
             ],
             'transactions' => [
+                'costs' => $this->transformTransactions(
+                    $costPaginator->getCollection(),
+                    $request,
+                    $currencyConverter,
+                    $selectedCurrency,
+                ),
+                'incomes' => $this->transformTransactions(
+                    $incomePaginator->getCollection(),
+                    $request,
+                    $currencyConverter,
+                    $selectedCurrency,
+                ),
+                'meta' => [
+                    'costs' => [
+                        'current_page' => $costPaginator->currentPage(),
+                        'last_page' => $costPaginator->lastPage(),
+                        'total' => $costPaginator->total(),
+                    ],
+                    'incomes' => [
+                        'current_page' => $incomePaginator->currentPage(),
+                        'last_page' => $incomePaginator->lastPage(),
+                        'total' => $incomePaginator->total(),
+                    ],
+                ],
+            ],
+            'analyticsTransactions' => [
                 'costs' => $this->transformTransactions(
                     $costs,
                     $request,

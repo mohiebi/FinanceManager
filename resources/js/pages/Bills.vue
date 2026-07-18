@@ -477,10 +477,8 @@
                                 class="flex cursor-pointer items-center gap-2.5"
                             >
                                 <Checkbox
-                                    :model-value="
-                                        form.telegram_reminder_enabled
-                                    "
-                                    @update:model-value="
+                                    :checked="form.telegram_reminder_enabled"
+                                    @update:checked="
                                         (val: boolean | 'indeterminate') => {
                                             form.telegram_reminder_enabled =
                                                 val === true;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CheckboxRootProps, CheckedState } from "reka-ui"
+import type { CheckboxCheckedState, CheckboxRootProps } from "reka-ui"
 import type { HTMLAttributes } from "vue"
 import { reactiveOmit } from "@vueuse/core"
 import { Check } from "lucide-vue-next"
@@ -8,16 +8,16 @@ import { cn } from "@/lib/utils"
 
 const props = defineProps<CheckboxRootProps & {
   class?: HTMLAttributes["class"]
-  checked?: CheckedState
+  checked?: CheckboxCheckedState
 }>()
 const emits = defineEmits<{
-  "update:modelValue": [value: CheckedState]
-  "update:checked": [value: CheckedState]
+  "update:modelValue": [value: CheckboxCheckedState]
+  "update:checked": [value: CheckboxCheckedState]
 }>()
 
 const delegatedProps = reactiveOmit(props, "class", "checked")
 
-function updateChecked(value: CheckedState) {
+function updateChecked(value: CheckboxCheckedState) {
   emits("update:modelValue", value)
   emits("update:checked", value)
 }

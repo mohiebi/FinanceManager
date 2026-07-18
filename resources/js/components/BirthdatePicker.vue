@@ -149,20 +149,22 @@ const birthdate = computed(() => {
 });
 
 watch(
+    modelValue,
+    (value) => {
+        syncDate(value);
+    },
+    { immediate: true },
+);
+
+// Registered after the modelValue watcher so its immediate empty-model sync
+// cannot wipe the selections initialised from defaultValue.
+watch(
     () => props.defaultValue,
     (value) => {
         if (!value || modelValue.value) {
             return;
         }
 
-        syncDate(value);
-    },
-    { immediate: true },
-);
-
-watch(
-    modelValue,
-    (value) => {
         syncDate(value);
     },
     { immediate: true },

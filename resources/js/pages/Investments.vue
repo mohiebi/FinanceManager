@@ -8,26 +8,8 @@
         <div
             class="flex flex-wrap items-center gap-x-3 gap-y-2 px-[18px] pt-[18px]"
         >
-            <button
-                type="button"
-                :disabled="syncing"
-                class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-xs whitespace-nowrap text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                @click="syncPrices"
-            >
-                <RefreshCw
-                    class="size-3"
-                    :class="{ 'animate-spin': syncing }"
-                />
-                {{ t('finance.actions.sync_prices') }}
-            </button>
             <span
-                v-if="syncError"
-                class="max-w-full min-w-0 text-xs break-words text-[#E94E50]"
-            >
-                {{ syncError }}
-            </span>
-            <span
-                v-else-if="lastSyncedLabel"
+                v-if="lastSyncedLabel"
                 class="max-w-full min-w-0 text-xs break-words text-[#989898]"
             >
                 {{ t('finance.last_synced', { time: lastSyncedLabel }) }}
@@ -571,7 +553,7 @@
 
 <script setup lang="ts">
 import { Deferred, Head, router, usePage } from '@inertiajs/vue3';
-import { Download, Plus, RefreshCw, Trash2, TrendingUp } from 'lucide-vue-next';
+import { Download, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
@@ -585,7 +567,6 @@ import { Spinner } from '@/components/ui/spinner';
 import { useRelativeTime } from '@/composables/useRelativeTime';
 import { formatAppDate } from '@/lib/date';
 import { dashboard } from '@/routes';
-import { sync as syncAssetPrices } from '@/routes/asset-prices';
 import { index as investmentsIndex } from '@/routes/investments';
 
 type AssetKey = string;
@@ -687,30 +668,10 @@ const props = defineProps<{
     pricesSyncedAt?: string | null;
 }>();
 
-const syncing = ref(false);
-const syncError = ref<string | null>(null);
 const { formatRelativeTime } = useRelativeTime();
 const lastSyncedLabel = computed(() =>
     formatRelativeTime(props.pricesSyncedAt),
 );
-
-const syncPrices = () => {
-    syncing.value = true;
-    syncError.value = null;
-    router.post(
-        syncAssetPrices.url(),
-        {},
-        {
-            preserveScroll: true,
-            onError: (errors) => {
-                syncError.value = errors.sync ?? null;
-            },
-            onFinish: () => {
-                syncing.value = false;
-            },
-        },
-    );
-};
 
 defineOptions({
     layout: {

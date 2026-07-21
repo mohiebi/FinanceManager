@@ -96,12 +96,12 @@ test('it does not snapshot assets without an available price', function () {
         ->toBeFalse();
 });
 
-test('the price refresh is scheduled hourly', function () {
+test('the price refresh is scheduled every five minutes', function () {
     $schedule = app(Schedule::class);
 
     $events = collect($schedule->events())
         ->filter(fn ($event) => str_contains((string) $event->description, RefreshAssetPricesJob::class));
 
     expect($events)->not->toBeEmpty();
-    expect($events->first()->expression)->toBe('0 * * * *');
+    expect($events->first()->expression)->toBe('*/5 * * * *');
 })->skip('Flaky when run alongside other tests due to Schedule singleton resolution order — verified manually via `php artisan schedule:list`.');

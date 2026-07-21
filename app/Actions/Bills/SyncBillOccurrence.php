@@ -52,6 +52,21 @@ class SyncBillOccurrence
             return;
         }
 
+        if ($bill->recurrence_type === BillRecurrenceType::Monthly) {
+            $calendar ??= $bill->user->calendar ?? 'gregorian';
+
+            while ($bill->occurrences()
+                ->where('due_date', $dueDate)
+                ->whereNotNull('paid_at')
+                ->exists()) {
+                $dueDate = $this->calculator->nextOccurrence(
+                    (int) $bill->due_day_of_month,
+                    $calendar,
+                    Carbon::parse($dueDate)->addDay(),
+                )->toDateString();
+            }
+        }
+
         $pending = $bill->occurrences()->whereNull('paid_at')->orderBy('due_date')->first();
 
         if (! $pending) {

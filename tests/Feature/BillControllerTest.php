@@ -195,6 +195,45 @@ test('updating the due day recomputes the pending occurrence instead of leaving 
     }
 });
 
+test('updating the due day skips an already paid occurrence and updates the next due date', function () {
+    Carbon::setTestNow(Carbon::create(2026, 7, 10));
+
+    try {
+        $user = User::factory()->create();
+        $bill = $user->bills()->create([
+            'title' => 'Server',
+            'amount' => 7.5,
+            'currency' => 'usd',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 1,
+        ]);
+
+        $bill->occurrences()->create([
+            'due_date' => '2026-07-12',
+            'paid_at' => now(),
+        ]);
+        $pending = $bill->occurrences()->create([
+            'due_date' => '2026-08-01',
+            'reminder_due_day_sent_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('bills.update', $bill), [
+                'title' => 'Server',
+                'amount' => 7.5,
+                'currency' => 'usd',
+                'recurrence_type' => 'monthly',
+                'due_day_of_month' => 12,
+            ])
+            ->assertRedirect();
+
+        expect($pending->refresh()->due_date->toDateString())->toBe('2026-08-12')
+            ->and($pending->reminder_due_day_sent_at)->toBeNull();
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
 test('updating a bill that already matches its due day leaves the occurrence untouched', function () {
     Carbon::setTestNow(Carbon::create(2026, 7, 10));
 

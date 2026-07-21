@@ -64,9 +64,7 @@
             class="mx-[18px] mt-[18px] rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
             <div class="flex flex-col gap-5">
-                <div
-                    class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
-                >
+                <div class="flex flex-col gap-4">
                     <!-- Range buttons -->
                     <div class="flex flex-wrap gap-2">
                         <button
@@ -83,34 +81,6 @@
                         >
                             {{ range.label }}
                         </button>
-                    </div>
-
-                    <!-- Currency selector -->
-                    <div class="grid gap-2 lg:min-w-56">
-                        <Label for="report_currency">{{
-                            t('finance.fields.display_currency')
-                        }}</Label>
-                        <Select v-model="selectedCurrency">
-                            <SelectTrigger
-                                id="report_currency"
-                                :class="filterFieldClass"
-                            >
-                                <SelectValue
-                                    :placeholder="
-                                        t('finance.filters.select_currency')
-                                    "
-                                />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem
-                                    v-for="currency in props.currencies"
-                                    :key="currency.value"
-                                    :value="currency.value"
-                                >
-                                    {{ currency.label }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
                     </div>
                 </div>
 
@@ -838,7 +808,6 @@ const toDate = ref(props.filters.to);
 const search = ref(props.filters.search);
 const selectedType = ref<FilterType>(props.filters.type);
 const selectedCategory = ref(props.filters.category?.toString() ?? 'all');
-const selectedCurrency = ref<Currency>(props.selectedCurrency);
 const page = usePage();
 const displayCalendar = computed(
     () => (page.props.calendar as string | undefined) ?? 'gregorian',
@@ -1010,21 +979,6 @@ watch(
     { deep: true },
 );
 
-watch(
-    () => props.selectedCurrency,
-    (value) => {
-        selectedCurrency.value = value;
-    },
-);
-
-watch(selectedCurrency, (value) => {
-    if (value === props.selectedCurrency) {
-        return;
-    }
-
-    applyFilters(selectedRange.value, value);
-});
-
 watch(selectedType, () => {
     if (
         selectedCategory.value !== 'all' &&
@@ -1048,7 +1002,6 @@ function selectRange(range: ReportRange): void {
 
 function applyFilters(
     range: ReportRange = selectedRange.value,
-    currency: Currency = selectedCurrency.value,
     costPage: number | null = null,
     incomePage: number | null = null,
 ): void {
@@ -1064,7 +1017,7 @@ function applyFilters(
                 selectedCategory.value === 'all'
                     ? null
                     : selectedCategory.value,
-            currency,
+            currency: props.selectedCurrency,
             cost_page: costPage && costPage > 1 ? costPage : null,
             income_page: incomePage && incomePage > 1 ? incomePage : null,
         },
@@ -1079,23 +1032,13 @@ function applyFilters(
 function changeCostPage(page: number): void {
     const incomePage = props.transactions.meta.incomes.current_page;
 
-    applyFilters(
-        selectedRange.value,
-        selectedCurrency.value,
-        page,
-        incomePage > 1 ? incomePage : null,
-    );
+    applyFilters(selectedRange.value, page, incomePage > 1 ? incomePage : null);
 }
 
 function changeIncomePage(page: number): void {
     const costPage = props.transactions.meta.costs.current_page;
 
-    applyFilters(
-        selectedRange.value,
-        selectedCurrency.value,
-        costPage > 1 ? costPage : null,
-        page,
-    );
+    applyFilters(selectedRange.value, costPage > 1 ? costPage : null, page);
 }
 
 function applyTypeFilter(): void {

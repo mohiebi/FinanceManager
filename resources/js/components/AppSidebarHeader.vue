@@ -1,10 +1,39 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { User } from 'lucide-vue-next';
-import { computed } from 'vue';
+import {
+    ChartPie,
+    LayoutGrid,
+    Menu,
+    Receipt,
+    ReceiptText,
+    Settings,
+    ShieldCheck,
+    TrendingUp,
+    User,
+    Wallet,
+} from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import NotificationBell from '@/components/NotificationBell.vue';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+    Sheet,
+    SheetContent,
+    SheetTitle,
+    SheetTrigger,
+} from '@/components/ui/sheet';
+import UserMenuContent from '@/components/UserMenuContent.vue';
+import { useCurrentUrl } from '@/composables/useCurrentUrl';
+import { dashboard, portfolio, report } from '@/routes';
+import { dashboard as adminDashboard } from '@/routes/admin';
+import { index as billsIndex } from '@/routes/bills';
+import { index as investmentsIndex } from '@/routes/investments';
 import { edit as editProfile } from '@/routes/profile';
+import { index as transactionsIndex } from '@/routes/transactions';
 import type { BreadcrumbItem } from '@/types';
 import logoGreen from '../../img/Logo-green.svg';
 
@@ -25,6 +54,28 @@ type CurrencyPageProps = {
 
 const page = usePage();
 const { t } = useI18n();
+const { isCurrentUrl } = useCurrentUrl();
+
+const isMenuOpen = ref(false);
+
+const user = computed(() => page.props.auth.user);
+
+const mainNavItems = computed(() => {
+    const items = [
+        { title: t('navigation.dashboard'), href: dashboard(), icon: LayoutGrid },
+        { title: t('navigation.transactions'), href: transactionsIndex(), icon: ReceiptText },
+        { title: t('navigation.report'), href: report(), icon: ChartPie },
+        { title: t('navigation.investments'), href: investmentsIndex(), icon: TrendingUp },
+        { title: t('navigation.portfolio'), href: portfolio(), icon: Wallet },
+        { title: t('navigation.bills'), href: billsIndex(), icon: Receipt },
+    ];
+
+    if (page.props.auth.isAdmin) {
+        items.push({ title: 'Admin', href: adminDashboard(), icon: ShieldCheck });
+    }
+
+    return items;
+});
 
 const pageTitle = computed(() => {
     const title = props.breadcrumbs.at(-1)?.title ?? 'Dashboard';
@@ -111,6 +162,52 @@ function changeCurrency(value: string) {
                             t('navigation.account')
                         }}</span>
                     </Link>
+
+                    <!-- Hamburger menu -->
+                    <Sheet v-model:open="isMenuOpen">
+                        <SheetTrigger as-child>
+                            <button
+                                type="button"
+                                class="grid size-9 cursor-pointer place-items-center rounded-md bg-[#2d2d2d] text-white transition-colors duration-150 hover:bg-[#02cd86] hover:text-[#1a1a1a]"
+                                :aria-label="t('navigation.primary')"
+                            >
+                                <Menu class="size-[18px]" />
+                            </button>
+                        </SheetTrigger>
+                        <SheetContent side="right" class="w-72 bg-[#353535] p-0 text-white border-l border-white/10">
+                            <SheetTitle class="sr-only">{{ t('navigation.primary') }}</SheetTitle>
+                            <div class="flex h-full flex-col justify-between px-5 pb-10 pt-6">
+                                <nav class="flex flex-col gap-3" :aria-label="t('navigation.primary')">
+                                    <Link
+                                        v-for="item in mainNavItems"
+                                        :key="item.title"
+                                        :href="item.href"
+                                        class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150"
+                                        :class="isCurrentUrl(item.href) ? 'bg-[#454545] text-[#02cd86]' : 'text-white/70 hover:bg-[#454545] hover:text-white'"
+                                        @click="isMenuOpen = false"
+                                    >
+                                        <component :is="item.icon" class="size-[18px] shrink-0" />
+                                        {{ item.title }}
+                                    </Link>
+                                </nav>
+
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <button
+                                            type="button"
+                                            class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-white/70 transition-colors duration-150 hover:bg-[#454545] hover:text-white focus-visible:outline-none"
+                                        >
+                                            <Settings class="size-[18px] shrink-0" />
+                                            {{ t('settings.title') }}
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent class="w-64" side="top" align="start" :side-offset="8">
+                                        <UserMenuContent :user="user" />
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
                 </div>
             </div>
 

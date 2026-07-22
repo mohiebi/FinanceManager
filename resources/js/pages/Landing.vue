@@ -22,7 +22,7 @@ import {
     Wallet,
     X,
 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, onUnmounted, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { dashboard, home, login } from '@/routes';
 import logoGreen from '../../img/Logo-green.svg';
@@ -130,6 +130,30 @@ const faqKeys = [
 function toggleFaq(key: string): void {
     openFaq.value = openFaq.value === key ? null : key;
 }
+
+let structuredDataEl: HTMLScriptElement | null = null;
+
+watchEffect(() => {
+    const data = seo.value?.structuredData;
+
+    if (structuredDataEl) {
+        structuredDataEl.remove();
+        structuredDataEl = null;
+    }
+
+    if (data) {
+        structuredDataEl = document.createElement('script');
+        structuredDataEl.type = 'application/ld+json';
+        structuredDataEl.setAttribute('data-head-key', 'structured-data');
+        structuredDataEl.textContent = data;
+        document.head.appendChild(structuredDataEl);
+    }
+});
+
+onUnmounted(() => {
+    structuredDataEl?.remove();
+    structuredDataEl = null;
+});
 </script>
 
 <template>
@@ -215,12 +239,6 @@ function toggleFaq(key: string): void {
             name="twitter:image"
             :content="seo.image"
         />
-        <script
-            v-if="seo?.structuredData"
-            head-key="structured-data"
-            type="application/ld+json"
-            v-html="seo.structuredData"
-        ></script>
     </Head>
 
     <div class="min-h-screen overflow-x-hidden bg-[#0a0a0a] text-white">

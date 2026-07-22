@@ -17,8 +17,8 @@ use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\Fluent\AssertableJson;
+use Laravel\Passport\AccessToken;
 use Laravel\Passport\Client;
-use Laravel\Passport\Passport;
 
 test('a proposal records the OAuth client attached to the Passport token', function () {
     $user = User::factory()->create();
@@ -31,7 +31,9 @@ test('a proposal records the OAuth client attached to the Passport token', funct
         'revoked' => false,
     ]);
 
-    Passport::actingAs($user, ['mcp:use'], client: $client);
+    $user->withAccessToken(new AccessToken([
+        'oauth_client_id' => (string) $client->getKey(),
+    ]));
 
     $proposal = app(ProposalService::class)->propose(
         $user,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Bills\MarkBillOccurrencePaid;
+use App\Actions\Bills\SaveBill;
 use App\Actions\Bills\SyncBillOccurrence;
 use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\BillRecurrenceType;
@@ -104,26 +105,18 @@ class BillController extends Controller
         ]);
     }
 
-    public function store(Request $request, SyncBillOccurrence $syncBillOccurrence): RedirectResponse
+    public function store(Request $request, SaveBill $saveBill): RedirectResponse
     {
-        $validated = $this->validatedBillData($request);
-
-        $bill = $request->user()->bills()->create($validated);
-
-        $syncBillOccurrence->ensureInitial($bill);
+        $saveBill->create($request->user(), $this->validatedBillData($request));
 
         return back();
     }
 
-    public function update(Request $request, Bill $bill, SyncBillOccurrence $syncBillOccurrence): RedirectResponse
+    public function update(Request $request, Bill $bill, SaveBill $saveBill): RedirectResponse
     {
         abort_unless((int) $bill->user_id === (int) $request->user()->id, 404);
 
-        $validated = $this->validatedBillData($request);
-
-        $bill->update($validated);
-
-        $syncBillOccurrence->syncPending($bill);
+        $saveBill->update($bill, $this->validatedBillData($request));
 
         return back();
     }
@@ -203,43 +196,13 @@ class BillController extends Controller
      */
     private function validatedBillData(Request $request): array
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:100'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
-            'currency' => ['required', 'string', 'max:10'],
-            'category_id' => [
-                'nullable',
-                'integer',
-                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
-                    $exists = Category::query()
-                        ->availableFor($request->user())
-                        ->where('type', TransactionType::Cost)
-                        ->whereKey($value)
-                        ->exists();
+        $validated = $request->validate(SaveBill::rules($request->user()));
 
-                    if (! $exists) {
-                        $fail(__('finance.bills.invalid_category'));
-                    }
-                },
-            ],
-            'recurrence_type' => ['required', 'string', 'in:one_time,monthly'],
-            'due_day_of_month' => ['required_if:recurrence_type,monthly', 'nullable', 'integer', 'min:1', 'max:31'],
-            'due_date' => ['required_if:recurrence_type,one_time', 'nullable', 'date'],
-            'telegram_reminder_enabled' => ['boolean'],
-            'reminder_time' => ['nullable', 'string', 'regex:/^\d{2}:\d{2}$/'],
-            'reminder_timezone' => ['nullable', 'string', 'max:50', 'timezone:all'],
-        ]);
-
-        $validated['category_id'] = $request->filled('category_id') ? (int) $validated['category_id'] : null;
-        $validated['telegram_reminder_enabled'] = $request->boolean('telegram_reminder_enabled', true);
-
-        if ($validated['recurrence_type'] === BillRecurrenceType::Monthly->value) {
-            $validated['due_date'] = null;
-        } else {
-            $validated['due_day_of_month'] = null;
-        }
-
-        return $validated;
+        return SaveBill::normalize(
+            $validated,
+            $request->filled('category_id'),
+            $request->has('telegram_reminder_enabled') ? $request->boolean('telegram_reminder_enabled') : null,
+        );
     }
 
     /**

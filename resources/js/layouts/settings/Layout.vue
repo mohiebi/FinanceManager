@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
+import { edit as editAiConnections } from '@/routes/ai-connections';
 import { edit as editCategories } from '@/routes/categories';
 import { edit as editInvestmentAssets } from '@/routes/investment-assets';
 import { edit as editNotifications } from '@/routes/notifications';
@@ -28,6 +29,7 @@ const sidebarNavItems = computed<NavItem[]>(() => [
     { title: t('settings.navigation.categories'), href: editCategories() },
     { title: t('settings.navigation.assets'), href: editInvestmentAssets() },
     { title: t('settings.navigation.telegram'), href: editTelegram() },
+    { title: t('settings.navigation.ai'), href: editAiConnections() },
 ]);
 
 const { isCurrentOrParentUrl } = useCurrentUrl();

@@ -8,6 +8,7 @@ use App\Http\Middleware\TrackUserActivity;
 use App\Jobs\BillReminderJob;
 use App\Jobs\CaptureDailyStatsJob;
 use App\Jobs\RefreshAssetPricesJob;
+use App\Models\McpProposal;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -49,6 +50,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // can chart engagement trends and period-over-period deltas from real
         // history. updateOrCreate keeps reruns on the same day idempotent.
         $schedule->job(new CaptureDailyStatsJob)->dailyAt('00:10');
+
+        // Prunes resolved/expired MCP proposals older than the 90-day audit window.
+        $schedule->command('model:prune', ['--model' => [McpProposal::class]])->daily();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

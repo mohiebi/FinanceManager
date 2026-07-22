@@ -5,9 +5,9 @@ namespace App\Mcp\Support;
 use App\Enums\McpProposalStatus;
 use App\Models\McpProposal;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
+use Laravel\Passport\Passport;
 
 /**
  * Stores MCP change proposals and formats the standard proposal response.
@@ -30,7 +30,7 @@ class ProposalService
         array $payload,
         array $diff,
     ): McpProposal {
-        [$clientId, $clientName] = $this->clientIdentity();
+        [$clientId, $clientName] = $this->clientIdentity($user);
 
         return McpProposal::query()->create([
             'user_id' => $user->id,
@@ -82,19 +82,21 @@ class ProposalService
     }
 
     /**
-     * Resolves the OAuth client attached to the current Passport request.
+     * Resolves the OAuth client from the access token Passport already attached
+     * to the authenticated user.
      *
      * @return array{0: string|null, 1: string|null}
      */
-    private function clientIdentity(): array
+    private function clientIdentity(User $user): array
     {
-        $guard = Auth::guard('api');
+        $token = method_exists($user, 'currentAccessToken') ? $user->currentAccessToken() : null;
+        $clientId = $token?->oauth_client_id;
 
-        if (! method_exists($guard, 'client')) {
+        if (blank($clientId)) {
             return [null, null];
         }
 
-        $client = $guard->client();
+        $client = Passport::client()->newQuery()->find($clientId);
 
         if ($client === null) {
             return [null, null];

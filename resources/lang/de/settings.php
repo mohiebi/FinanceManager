@@ -298,11 +298,17 @@ return [
         'authorize' => [
             'title' => ':client autorisieren',
             'description' => 'Dieser KI-Assistent kann deine Finanzdaten lesen und Änderungen vorschlagen, die du vor der Anwendung im Chat bestätigst.',
+            'secure_connection' => 'Sichere Verbindung',
+            'client_label' => 'Zugriff wird angefragt',
             'logged_in_as' => 'Angemeldet als:',
             'permissions' => 'Berechtigungen:',
+            'privacy_note' => 'Dein Passwort wird nie mit diesem Assistenten geteilt. Du kannst den Zugriff jederzeit unter KI-Verbindungen widerrufen.',
+            'returning' => 'Du kehrst zu :client zurück, um die Verbindung abzuschließen.',
             'cancel' => 'Abbrechen',
             'approve' => 'Autorisieren',
             'authorizing' => 'Autorisiere...',
+            'success_title' => 'Verbindung genehmigt',
+            'success_description' => ':client wird geöffnet, um die Verbindung abzuschließen.',
         ],
     ],
     'general' => [

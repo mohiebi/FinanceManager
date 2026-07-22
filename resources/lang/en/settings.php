@@ -298,11 +298,17 @@ return [
         'authorize' => [
             'title' => 'Authorize :client',
             'description' => 'This AI assistant will be able to read your finance data and propose changes that you approve in chat before they are applied.',
+            'secure_connection' => 'Secure connection',
+            'client_label' => 'Requesting access',
             'logged_in_as' => 'Logged in as:',
             'permissions' => 'Permissions:',
+            'privacy_note' => 'Your password is never shared with this assistant. You can revoke access at any time from AI connections.',
+            'returning' => 'You will return to :client to finish connecting.',
             'cancel' => 'Cancel',
             'approve' => 'Authorize',
             'authorizing' => 'Authorizing...',
+            'success_title' => 'Connection approved',
+            'success_description' => 'Opening :client to finish the connection.',
         ],
     ],
     'general' => [

@@ -2,6 +2,7 @@
 
 use App\Enums\McpProposalStatus;
 use App\Mcp\Servers\FinanceServer;
+use App\Mcp\Support\ProposalService;
 use App\Mcp\Tools\Bills\ProposeBillTool;
 use App\Mcp\Tools\Bills\ProposePayBillTool;
 use App\Mcp\Tools\Investments\ProposeCustomAssetTool;
@@ -16,6 +17,34 @@ use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\Fluent\AssertableJson;
+use Laravel\Passport\Client;
+use Laravel\Passport\Passport;
+
+test('a proposal records the OAuth client attached to the Passport token', function () {
+    $user = User::factory()->create();
+    $client = Client::query()->forceCreate([
+        'name' => 'Codex',
+        'secret' => null,
+        'provider' => null,
+        'redirect_uris' => ['http://localhost/callback'],
+        'grant_types' => ['authorization_code', 'refresh_token'],
+        'revoked' => false,
+    ]);
+
+    Passport::actingAs($user, ['mcp:use'], client: $client);
+
+    $proposal = app(ProposalService::class)->propose(
+        $user,
+        'create',
+        'transaction',
+        null,
+        ['title' => 'Coffee beans'],
+        ['title' => ['old' => null, 'new' => 'Coffee beans']],
+    );
+
+    expect($proposal->oauth_client_id)->toBe((string) $client->getKey())
+        ->and($proposal->client_name)->toBe('Codex');
+});
 
 test('proposing a transaction stores a pending proposal and writes nothing', function () {
     $user = User::factory()->create();

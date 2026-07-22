@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InvestmentAssetController;
+use App\Http\Controllers\Settings\AiConnectionsController;
 use App\Http\Controllers\Settings\NotificationController;
 use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -46,6 +47,9 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     Route::get('settings/assets', [InvestmentAssetController::class, 'edit'])->name('investment-assets.edit');
     Route::patch('investment-assets/{investment_asset}', [InvestmentAssetController::class, 'update'])->name('investment-assets.update');
     Route::delete('investment-assets/{investment_asset}', [InvestmentAssetController::class, 'destroy'])->name('investment-assets.destroy');
+
+    Route::get('settings/ai-connections', [AiConnectionsController::class, 'edit'])->name('ai-connections.edit');
+    Route::delete('settings/ai-connections/{token}', [AiConnectionsController::class, 'destroy'])->name('ai-connections.destroy');
 
     Route::get('settings/telegram', [TelegramController::class, 'edit'])->name('telegram.edit');
     Route::post('settings/telegram/connect', [TelegramController::class, 'connect'])->name('telegram.connect');

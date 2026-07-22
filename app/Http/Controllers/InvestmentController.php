@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Investments\SaveInvestment;
 use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\Currency;
 use App\Http\Resources\InvestmentAssetResource;
@@ -14,7 +15,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -146,22 +146,22 @@ class InvestmentController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, SaveInvestment $saveInvestment): RedirectResponse
     {
         $validated = $this->validatedInvestmentData($request);
 
-        $request->user()->investments()->create($validated);
+        $saveInvestment->create($request->user(), $validated);
 
         return redirect()->back();
     }
 
-    public function update(Request $request, Investment $investment): RedirectResponse
+    public function update(Request $request, Investment $investment, SaveInvestment $saveInvestment): RedirectResponse
     {
         abort_unless((int) $investment->user_id === (int) $request->user()->id, 404);
 
         $validated = $this->validatedInvestmentData($request);
 
-        $investment->fill($validated)->save();
+        $saveInvestment->update($investment, $validated);
 
         return redirect()->back();
     }
@@ -176,77 +176,13 @@ class InvestmentController extends Controller
     }
 
     /**
-     * @return array{
-     *     investment_asset_id: int,
-     *     asset_type: string,
-     *     quantity: mixed,
-     *     cost_basis: float|null,
-     *     cost_basis_currency: string|null,
-     *     note?: string|null,
-     *     occurred_at: mixed
-     * }
+     * @return array<string, mixed>
      */
     private function validatedInvestmentData(Request $request): array
     {
-        $validated = $request->validate([
-            'investment_asset_id' => ['nullable', 'integer'],
-            'asset_type' => ['nullable', 'string', 'max:100'],
-            'quantity' => ['required', 'numeric', 'min:0.00000001'],
-            'total_cost' => ['nullable', 'numeric', 'min:0'],
-            'cost_basis' => ['nullable', 'numeric', 'min:0'],
-            'cost_basis_currency' => ['nullable', 'string', 'max:10'],
-            'note' => ['nullable', 'string', 'max:500'],
-            'occurred_at' => ['required', 'date', 'before_or_equal:today'],
-        ]);
+        $validated = $request->validate(SaveInvestment::rules());
 
-        $asset = $this->resolveInvestmentAsset($request);
-        $quantity = (float) $validated['quantity'];
-        $totalCost = $this->nullableFloat($validated['total_cost'] ?? null);
-        $costBasis = $totalCost !== null
-            ? $totalCost / $quantity
-            : $this->nullableFloat($validated['cost_basis'] ?? null);
-
-        unset($validated['total_cost']);
-
-        $validated['investment_asset_id'] = $asset->id;
-        $validated['asset_type'] = $asset->slug;
-        $validated['cost_basis'] = $costBasis;
-        $validated['cost_basis_currency'] = $costBasis !== null
-            ? ($validated['cost_basis_currency'] ?? null)
-            : null;
-
-        return $validated;
-    }
-
-    private function resolveInvestmentAsset(Request $request): InvestmentAsset
-    {
-        $query = InvestmentAsset::query()->availableFor($request->user());
-
-        $asset = null;
-        if ($request->filled('investment_asset_id')) {
-            $asset = (clone $query)->whereKey((int) $request->input('investment_asset_id'))->first();
-        }
-
-        if (! $asset && $request->filled('asset_type')) {
-            $asset = (clone $query)->where('slug', (string) $request->input('asset_type'))->first();
-        }
-
-        if (! $asset) {
-            throw ValidationException::withMessages([
-                'investment_asset_id' => __('settings.assets.invalid'),
-            ]);
-        }
-
-        return $asset;
-    }
-
-    private function nullableFloat(mixed $value): ?float
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return (float) $value;
+        return SaveInvestment::normalize($request->user(), $validated);
     }
 
     /**

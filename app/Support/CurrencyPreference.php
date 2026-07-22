@@ -10,9 +10,16 @@ class CurrencyPreference
 {
     public static function resolve(Request $request): Currency
     {
-        $user = $request->user();
+        return self::resolveFor($request->user(), (string) $request->query('currency'));
+    }
 
-        return Currency::tryFrom((string) $request->query('currency'))
+    /**
+     * Resolves a currency preference without an HTTP request, e.g. for MCP
+     * tools where the requested currency arrives as a tool argument.
+     */
+    public static function resolveFor(?User $user, ?string $currency = null): Currency
+    {
+        return Currency::tryFrom((string) $currency)
             ?? Currency::tryFrom(self::defaultCurrency($user))
             ?? Currency::Toman;
     }

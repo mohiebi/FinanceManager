@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\McpProposal;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Passport\RefreshToken;
@@ -17,19 +18,33 @@ class AiConnectionsController extends Controller
     {
         $user = $request->user();
 
-        $connections = Token::query()
+        /** @var Collection<int, Token> $tokens */
+        $tokens = Token::query()
             ->where('user_id', $user->id)
             ->where('revoked', false)
             ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
             ->with('client')
             ->orderByDesc('created_at')
             ->get()
-            ->map(fn (Token $token): array => [
-                'id' => $token->getKey(),
-                'client_name' => $token->client?->name ?? 'Unknown application',
-                'created_at' => $token->created_at?->toIso8601String(),
-                'expires_at' => $token->expires_at?->toIso8601String(),
-            ]);
+            ->filter(fn (Token $token): bool => $token->can('mcp:use'));
+
+        $connections = $tokens
+            ->groupBy('client_id')
+            ->map(function (Collection $clientTokens): array {
+                /** @var Token $oldestToken */
+                $oldestToken = $clientTokens->sortBy('created_at')->first();
+                /** @var Token $earliestExpiringToken */
+                $earliestExpiringToken = $clientTokens->sortBy('expires_at')->first();
+
+                return [
+                    'id' => (string) $oldestToken->client_id,
+                    'client_name' => $oldestToken->client?->name ?? 'Unknown application',
+                    'created_at' => $oldestToken->created_at?->toIso8601String(),
+                    'expires_at' => $earliestExpiringToken->expires_at?->toIso8601String(),
+                    'active_sessions' => $clientTokens->count(),
+                ];
+            })
+            ->values();
 
         $history = McpProposal::query()
             ->where('user_id', $user->id)
@@ -44,6 +59,7 @@ class AiConnectionsController extends Controller
                 'status' => $proposal->status->value,
                 'diff' => $proposal->diff_summary,
                 'created_at' => $proposal->created_at->toIso8601String(),
+                'consumed_at' => $proposal->consumed_at?->toIso8601String(),
             ]);
 
         return Inertia::render('settings/AiConnections', [
@@ -53,17 +69,24 @@ class AiConnectionsController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, string $tokenId): RedirectResponse
+    public function destroy(Request $request, string $clientId): RedirectResponse
     {
-        $token = Token::query()
-            ->whereKey($tokenId)
+        /** @var Collection<int, Token> $tokens */
+        $tokens = Token::query()
             ->where('user_id', $request->user()->id)
-            ->firstOrFail();
+            ->where('client_id', $clientId)
+            ->where('revoked', false)
+            ->get()
+            ->filter(fn (Token $token): bool => $token->can('mcp:use'));
 
-        $token->revoke();
+        abort_if($tokens->isEmpty(), 404);
+
+        $tokenIds = $tokens->pluck('id');
+
+        Token::query()->whereIn('id', $tokenIds)->update(['revoked' => true]);
 
         RefreshToken::query()
-            ->where('access_token_id', $token->getKey())
+            ->whereIn('access_token_id', $tokenIds)
             ->update(['revoked' => true]);
 
         return back();

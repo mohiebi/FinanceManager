@@ -7,14 +7,17 @@ use Laravel\Passport\Client;
 use Laravel\Passport\RefreshToken;
 use Laravel\Passport\Token;
 
-function createAccessToken(User $user, Client $client): Token
+/**
+ * @param  array<int, string>  $scopes
+ */
+function createAccessToken(User $user, Client $client, array $scopes = ['mcp:use']): Token
 {
     return Token::query()->forceCreate([
         'id' => Str::random(80),
         'user_id' => $user->id,
         'client_id' => $client->getKey(),
         'name' => null,
-        'scopes' => ['mcp:use'],
+        'scopes' => $scopes,
         'revoked' => false,
         'created_at' => now(),
         'updated_at' => now(),
@@ -38,6 +41,7 @@ test('the ai connections page lists active connections and change history', func
     $user = User::factory()->create();
     $client = createOauthClient();
     createAccessToken($user, $client);
+    createAccessToken($user, $client);
     McpProposal::factory()->confirmed()->create([
         'user_id' => $user->id,
         'client_name' => 'Claude',
@@ -50,6 +54,7 @@ test('the ai connections page lists active connections and change history', func
             ->component('settings/AiConnections')
             ->has('connections', 1)
             ->where('connections.0.client_name', 'Claude')
+            ->where('connections.0.active_sessions', 2)
             ->has('history', 1)
             ->where('history.0.status', 'confirmed')
             ->where('mcpUrl', url('/mcp/finance')));
@@ -71,24 +76,35 @@ test('revoked and expired tokens are not listed', function () {
         ->assertInertia(fn ($page) => $page->has('connections', 0));
 });
 
-test('a user can revoke their own connection', function () {
+test('a user can revoke all active sessions for their own MCP connection', function () {
     $user = User::factory()->create();
     $client = createOauthClient();
-    $token = createAccessToken($user, $client);
+    $firstToken = createAccessToken($user, $client);
+    $secondToken = createAccessToken($user, $client);
+    $nonMcpToken = createAccessToken($user, $client, ['profile:read']);
 
     RefreshToken::query()->forceCreate([
         'id' => Str::random(80),
-        'access_token_id' => $token->getKey(),
+        'access_token_id' => $firstToken->getKey(),
+        'revoked' => false,
+        'expires_at' => now()->addDays(30),
+    ]);
+    RefreshToken::query()->forceCreate([
+        'id' => Str::random(80),
+        'access_token_id' => $secondToken->getKey(),
         'revoked' => false,
         'expires_at' => now()->addDays(30),
     ]);
 
     $this->actingAs($user)
-        ->delete(route('ai-connections.destroy', $token->getKey()))
+        ->delete(route('ai-connections.destroy', $client->getKey()))
         ->assertRedirect();
 
-    expect($token->fresh()->revoked)->toBeTrue()
-        ->and(RefreshToken::query()->where('access_token_id', $token->getKey())->first()->revoked)->toBeTrue();
+    expect($firstToken->fresh()->revoked)->toBeTrue()
+        ->and($secondToken->fresh()->revoked)->toBeTrue()
+        ->and($nonMcpToken->fresh()->revoked)->toBeFalse()
+        ->and(RefreshToken::query()->where('access_token_id', $firstToken->getKey())->first()->revoked)->toBeTrue()
+        ->and(RefreshToken::query()->where('access_token_id', $secondToken->getKey())->first()->revoked)->toBeTrue();
 });
 
 test('a user cannot revoke another user\'s connection', function () {
@@ -98,7 +114,7 @@ test('a user cannot revoke another user\'s connection', function () {
     $token = createAccessToken($userA, $client);
 
     $this->actingAs($userB)
-        ->delete(route('ai-connections.destroy', $token->getKey()))
+        ->delete(route('ai-connections.destroy', $client->getKey()))
         ->assertNotFound();
 
     expect($token->fresh()->revoked)->toBeFalse();

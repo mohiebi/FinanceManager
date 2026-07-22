@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { Bot, Check, Copy, Unlink } from 'lucide-vue-next';
+import {
+    Bot,
+    Check,
+    ChevronDown,
+    ChevronUp,
+    Copy,
+    ShieldCheck,
+    Unlink,
+} from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
@@ -11,6 +19,12 @@ type Connection = {
     client_name: string;
     created_at: string | null;
     expires_at: string | null;
+    active_sessions: number;
+};
+
+type Change = {
+    old: unknown;
+    new: unknown;
 };
 
 type HistoryEntry = {
@@ -19,8 +33,9 @@ type HistoryEntry = {
     action: string;
     resource_type: string;
     status: 'pending' | 'confirmed' | 'rejected' | 'expired';
-    diff: Record<string, unknown>;
+    diff: Record<string, Change>;
     created_at: string;
+    consumed_at: string | null;
 };
 
 const props = defineProps<{
@@ -33,6 +48,7 @@ const { t, locale } = useI18n();
 
 const revokeTarget = ref<Connection | null>(null);
 const copiedKey = ref<string | null>(null);
+const expandedHistoryId = ref<string | null>(null);
 
 const dateFormatter = computed(
     () =>
@@ -43,7 +59,7 @@ const dateFormatter = computed(
 );
 
 function formatDate(value: string | null): string {
-    return value ? dateFormatter.value.format(new Date(value)) : '—';
+    return value ? dateFormatter.value.format(new Date(value)) : '\u2014';
 }
 
 function copyText(text: string, key: string): void {
@@ -57,12 +73,46 @@ function copyText(text: string, key: string): void {
     });
 }
 
-type ClientKey = 'claude' | 'codex' | 'cursor' | 'other';
+function actionLabel(action: string): string {
+    return t(`settings.ai.actions.${action}`);
+}
+
+function resourceLabel(resourceType: string): string {
+    return t(`settings.ai.resources.${resourceType}`);
+}
+
+function fieldLabel(field: string): string {
+    const key = `settings.ai.fields.${field}`;
+    const translated = t(key);
+
+    return translated === key ? field.replaceAll('_', ' ') : translated;
+}
+
+function formatChangeValue(value: unknown): string {
+    if (value === null || value === undefined || value === '') {
+        return '\u2014';
+    }
+
+    if (typeof value === 'boolean') {
+        return value ? t('settings.ai.yes') : t('settings.ai.no');
+    }
+
+    if (Array.isArray(value)) {
+        return value.map(formatChangeValue).join(', ');
+    }
+
+    if (typeof value === 'object') {
+        return JSON.stringify(value);
+    }
+
+    return String(value);
+}
+
+type ClientKey = 'claude' | 'codex' | 'other';
 
 type SetupStep = {
     text?: string;
     code?: string;
-    link?: { href: string; label: string };
 };
 
 type SetupSection = {
@@ -75,14 +125,20 @@ const selectedClient = ref<ClientKey | null>(null);
 const clientOptions = computed<{ key: ClientKey; label: string }[]>(() => [
     { key: 'claude', label: t('settings.ai.connect.clients.claude') },
     { key: 'codex', label: t('settings.ai.connect.clients.codex') },
-    { key: 'cursor', label: t('settings.ai.connect.clients.cursor') },
     { key: 'other', label: t('settings.ai.connect.clients.other') },
 ]);
 
-const cursorDeepLink = computed(() => {
-    const config = btoa(JSON.stringify({ url: props.mcpUrl }));
+const installCommands = computed<Partial<Record<ClientKey, string>>>(() => ({
+    claude: `claude mcp add --transport http cashpilot ${props.mcpUrl}`,
+    codex: `codex mcp add cashpilot --url ${props.mcpUrl}`,
+}));
 
-    return `cursor://anysphere.cursor-deeplink/mcp/install?name=cashpilot&config=${config}`;
+const selectedInstallCommand = computed(() => {
+    if (selectedClient.value === null) {
+        return null;
+    }
+
+    return installCommands.value[selectedClient.value] ?? null;
 });
 
 const clientSections = computed<Record<ClientKey, SetupSection[]>>(() => ({
@@ -103,7 +159,7 @@ const clientSections = computed<Record<ClientKey, SetupSection[]>>(() => ({
             steps: [
                 {
                     text: t('settings.ai.connect.claude.code_step1'),
-                    code: `claude mcp add --transport http cashpilot ${props.mcpUrl}`,
+                    code: installCommands.value.claude,
                 },
                 { text: t('settings.ai.connect.claude.code_step2') },
             ],
@@ -124,27 +180,9 @@ const clientSections = computed<Record<ClientKey, SetupSection[]>>(() => ({
             steps: [
                 {
                     text: t('settings.ai.connect.codex.cli_step1'),
-                    code: `[mcp_servers.cashpilot]\nurl = "${props.mcpUrl}"`,
+                    code: installCommands.value.codex,
                 },
                 { text: t('settings.ai.connect.codex.cli_step2') },
-            ],
-        },
-    ],
-    cursor: [
-        {
-            steps: [
-                {
-                    text: t('settings.ai.connect.cursor.step1'),
-                    link: {
-                        href: cursorDeepLink.value,
-                        label: t('settings.ai.connect.cursor.button'),
-                    },
-                },
-                {
-                    text: t('settings.ai.connect.cursor.step2'),
-                    code: `{\n    "mcpServers": {\n        "cashpilot": { "url": "${props.mcpUrl}" }\n    }\n}`,
-                },
-                { text: t('settings.ai.connect.cursor.step3') },
             ],
         },
     ],
@@ -206,6 +244,25 @@ defineOptions({
             </p>
         </div>
 
+        <section
+            class="flex gap-3 rounded-2xl bg-[#02CD86]/8 p-4 ring-1 ring-[#02CD86]/20"
+            aria-labelledby="ai-safety-title"
+        >
+            <div
+                class="grid size-9 shrink-0 place-items-center rounded-xl bg-[#02CD86]/12"
+            >
+                <ShieldCheck class="size-4 text-[#02CD86]" />
+            </div>
+            <div>
+                <p id="ai-safety-title" class="text-sm font-medium text-white">
+                    {{ t('settings.ai.safety.title') }}
+                </p>
+                <p class="mt-1 max-w-prose text-sm leading-6 text-[#989898]">
+                    {{ t('settings.ai.safety.description') }}
+                </p>
+            </div>
+        </section>
+
         <!-- Connect your assistant -->
         <div class="rounded-[22px] bg-[#252525] p-5 ring-1 ring-white/10">
             <p class="font-medium text-white">
@@ -241,6 +298,43 @@ defineOptions({
                 v-if="selectedClient"
                 class="mt-4 space-y-5 rounded-xl bg-[#101010] p-4 ring-1 ring-white/5"
             >
+                <div
+                    v-if="selectedInstallCommand"
+                    class="flex flex-col gap-3 rounded-xl bg-[#02CD86]/8 p-3 ring-1 ring-[#02CD86]/20 sm:flex-row sm:items-center sm:justify-between"
+                >
+                    <div>
+                        <p class="text-sm font-medium text-white">
+                            {{ t('settings.ai.connect.quick_install.title') }}
+                        </p>
+                        <p class="mt-1 text-xs leading-5 text-[#989898]">
+                            {{ t('settings.ai.connect.quick_install.description') }}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#02CD86] px-3 py-2.5 text-sm font-medium text-[#101010] transition hover:brightness-110"
+                        @click="
+                            copyText(
+                                selectedInstallCommand,
+                                `quick-install-${selectedClient}`,
+                            )
+                        "
+                    >
+                        <Check
+                            v-if="
+                                copiedKey === `quick-install-${selectedClient}`
+                            "
+                            class="size-4"
+                        />
+                        <Copy v-else class="size-4" />
+                        {{
+                            copiedKey === `quick-install-${selectedClient}`
+                                ? t('settings.ai.connect.quick_install.copied')
+                                : t('settings.ai.connect.quick_install.button')
+                        }}
+                    </button>
+                </div>
+
                 <div
                     v-for="(section, sectionIndex) in clientSections[
                         selectedClient
@@ -302,14 +396,6 @@ defineOptions({
                                         <Copy v-else class="size-4" />
                                     </button>
                                 </div>
-                                <a
-                                    v-if="step.link"
-                                    :href="step.link.href"
-                                    class="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#02CD86] px-4 py-2.5 text-sm font-medium text-[#101010] transition hover:brightness-110"
-                                >
-                                    <Bot class="size-4" />
-                                    {{ step.link.label }}
-                                </a>
                             </div>
                         </li>
                     </ol>
@@ -347,7 +433,13 @@ defineOptions({
                         <p class="text-xs text-[#989898]">
                             {{ t('settings.ai.connected_at') }}:
                             {{ formatDate(connection.created_at) }}
-                            <span class="mx-1 text-white/20">·</span>
+                            <span class="mx-1 text-white/20">&middot;</span>
+                            {{
+                                t('settings.ai.active_sessions', {
+                                    count: connection.active_sessions,
+                                })
+                            }}
+                            <span class="mx-1 text-white/20">&middot;</span>
                             {{ t('settings.ai.expires_at') }}:
                             {{ formatDate(connection.expires_at) }}
                         </p>
@@ -383,11 +475,27 @@ defineOptions({
                 <li
                     v-for="entry in history"
                     :key="entry.id"
-                    class="rounded-xl bg-[#252525] px-4 py-3"
+                    class="overflow-hidden rounded-xl bg-[#252525] ring-1 ring-white/5"
                 >
-                    <div class="flex items-center gap-2">
-                        <span class="text-sm font-medium text-white">
-                            {{ entry.action }} {{ entry.resource_type }}
+                    <button
+                        type="button"
+                        class="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left transition hover:bg-white/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#02CD86]"
+                        :aria-expanded="expandedHistoryId === entry.id"
+                        @click="
+                            expandedHistoryId =
+                                expandedHistoryId === entry.id ? null : entry.id
+                        "
+                    >
+                        <span class="min-w-0 flex-1">
+                            <span class="block truncate text-sm font-medium text-white">
+                                {{ actionLabel(entry.action) }}
+                                {{ resourceLabel(entry.resource_type) }}
+                            </span>
+                            <span class="mt-1 block text-xs text-[#989898]">
+                                {{ entry.client_name ?? t('settings.ai.unknown_client') }}
+                                <span class="mx-1 text-white/20">&middot;</span>
+                                {{ formatDate(entry.consumed_at ?? entry.created_at) }}
+                            </span>
                         </span>
                         <span
                             class="rounded-full px-2 py-0.5 text-[11px] font-medium"
@@ -395,16 +503,41 @@ defineOptions({
                         >
                             {{ t(`settings.ai.statuses.${entry.status}`) }}
                         </span>
-                        <span class="ml-auto text-xs text-[#989898]">
-                            {{ formatDate(entry.created_at) }}
-                        </span>
-                    </div>
-                    <p
-                        v-if="entry.client_name"
-                        class="mt-1 text-xs text-[#989898]"
+                        <ChevronUp
+                            v-if="expandedHistoryId === entry.id"
+                            class="size-4 shrink-0 text-[#989898]"
+                        />
+                        <ChevronDown
+                            v-else
+                            class="size-4 shrink-0 text-[#989898]"
+                        />
+                    </button>
+                    <div
+                        v-if="expandedHistoryId === entry.id"
+                        class="border-t border-white/5 bg-[#101010]/45 px-4 py-4"
                     >
-                        {{ entry.client_name }}
-                    </p>
+                        <p
+                            class="mb-3 text-xs font-medium tracking-[0.15em] text-[#989898] uppercase"
+                        >
+                            {{ t('settings.ai.change_details') }}
+                        </p>
+                        <dl class="grid gap-2 sm:grid-cols-2">
+                            <div
+                                v-for="(change, field) in entry.diff"
+                                :key="field"
+                                class="rounded-xl bg-[#252525] px-3 py-2.5"
+                            >
+                                <dt class="text-[11px] font-medium tracking-[0.08em] text-[#989898] uppercase">
+                                    {{ fieldLabel(field) }}
+                                </dt>
+                                <dd class="mt-1 break-words text-xs text-white">
+                                    <span class="text-[#989898]">{{ formatChangeValue(change.old) }}</span>
+                                    <span class="mx-1.5 text-[#02CD86]">&rarr;</span>
+                                    <span>{{ formatChangeValue(change.new) }}</span>
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
                 </li>
             </ul>
         </div>

@@ -5,9 +5,9 @@ namespace App\Mcp\Support;
 use App\Enums\McpProposalStatus;
 use App\Models\McpProposal;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
-use Laravel\Passport\Passport;
 
 /**
  * Stores MCP change proposals and formats the standard proposal response.
@@ -30,7 +30,7 @@ class ProposalService
         array $payload,
         array $diff,
     ): McpProposal {
-        [$clientId, $clientName] = $this->clientIdentity($user);
+        [$clientId, $clientName] = $this->clientIdentity();
 
         return McpProposal::query()->create([
             'user_id' => $user->id,
@@ -82,23 +82,24 @@ class ProposalService
     }
 
     /**
-     * Resolves the OAuth client behind the current Passport access token.
-     * The User model uses Sanctum's HasApiTokens trait, whose
-     * currentAccessToken() returns whatever Passport's guard attached.
+     * Resolves the OAuth client attached to the current Passport request.
      *
      * @return array{0: string|null, 1: string|null}
      */
-    private function clientIdentity(User $user): array
+    private function clientIdentity(): array
     {
-        $token = method_exists($user, 'currentAccessToken') ? $user->currentAccessToken() : null;
-        $clientId = $token->oauth_client_id ?? null;
+        $guard = Auth::guard('api');
 
-        if ($clientId === null) {
+        if (! method_exists($guard, 'client')) {
             return [null, null];
         }
 
-        $clientName = Passport::client()->newQuery()->find($clientId)?->name;
+        $client = $guard->client();
 
-        return [(string) $clientId, $clientName];
+        if ($client === null) {
+            return [null, null];
+        }
+
+        return [(string) $client->getKey(), $client->name];
     }
 }

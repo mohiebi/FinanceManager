@@ -37,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configurePassport(): void
     {
+        Passport::loadKeysFrom(storage_path('passport'));
         Passport::authorizationView('mcp.authorize');
         Passport::tokensExpireIn(now()->addDays(15));
         Passport::refreshTokensExpireIn(now()->addDays(30));

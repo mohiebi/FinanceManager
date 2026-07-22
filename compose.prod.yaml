@@ -14,12 +14,14 @@ services:
     volumes:
       - storage-data:/var/www/html/storage/app
       - storage-logs:/var/www/html/storage/logs
+      - passport-keys:/var/www/html/storage/passport
     networks:
       - portfolio-net
 
 volumes:
   storage-data:
   storage-logs:
+  passport-keys:
 
 networks:
   portfolio-net:

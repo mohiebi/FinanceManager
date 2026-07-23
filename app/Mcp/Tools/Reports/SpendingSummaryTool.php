@@ -3,9 +3,9 @@
 namespace App\Mcp\Tools\Reports;
 
 use App\Actions\Transactions\CurrencyConverter;
-use App\Enums\Currency;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Support\CalendarDates;
 use App\Support\CurrencyPreference;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[IsReadOnly]
-#[Description('Summarize the user\'s spending and income for a date range, grouped by category or by month. Amounts in other currencies are converted to the requested currency (defaults to the user\'s preferred currency).')]
+#[Description('Summarize the user\'s spending and income for a date range, grouped by category or by month. Dates may be Gregorian or Jalali (auto-detected). Monthly grouping follows the user\'s calendar preference. Amounts in other currencies are converted to the requested currency (defaults to the user\'s preferred currency).')]
 class SpendingSummaryTool extends Tool
 {
     public function __construct(private readonly CurrencyConverter $currencyConverter) {}
@@ -25,6 +25,13 @@ class SpendingSummaryTool extends Tool
     {
         $user = $request->user();
         assert($user instanceof User);
+
+        // Jalali input dates are converted server-side before validation so
+        // they are never misread as ancient Gregorian dates.
+        $request->merge([
+            'from_date' => CalendarDates::normalizeToGregorian($request->get('from_date')),
+            'to_date' => CalendarDates::normalizeToGregorian($request->get('to_date')),
+        ]);
 
         $validated = $request->validate([
             'from_date' => ['required', 'date'],
@@ -35,6 +42,7 @@ class SpendingSummaryTool extends Tool
 
         $currency = CurrencyPreference::resolveFor($user, $validated['currency'] ?? null);
         $groupBy = $validated['group_by'] ?? 'category';
+        $isJalali = CalendarDates::isJalaliUser($user);
 
         // Multi-currency amounts cannot be summed in SQL; convert per row.
         $transactions = $user->transactions()
@@ -54,8 +62,12 @@ class SpendingSummaryTool extends Tool
                 $currency,
             );
 
+            // Monthly buckets follow the user's calendar: a Jalali month spans
+            // two Gregorian months, so Gregorian buckets would misalign.
             $key = $groupBy === 'month'
-                ? $transaction->occurred_at->format('Y-m')
+                ? ($isJalali
+                    ? CalendarDates::jalaliMonthKey($transaction->occurred_at)
+                    : $transaction->occurred_at->format('Y-m'))
                 : ($transaction->category?->name ?? 'Uncategorized');
 
             $groups[$key] ??= ['cost' => 0.0, 'income' => 0.0, 'count' => 0];
@@ -68,9 +80,13 @@ class SpendingSummaryTool extends Tool
 
         return Response::structured([
             'currency' => $currency->value,
+            'calendar' => $isJalali ? 'jalali' : 'gregorian',
             'from_date' => $validated['from_date'],
             'to_date' => $validated['to_date'],
+            'from_date_jalali' => $isJalali ? CalendarDates::toJalali($validated['from_date']) : null,
+            'to_date_jalali' => $isJalali ? CalendarDates::toJalali($validated['to_date']) : null,
             'group_by' => $groupBy,
+            'month_calendar' => $groupBy === 'month' ? ($isJalali ? 'jalali' : 'gregorian') : null,
             'groups' => collect($groups)->map(fn (array $group, string $key): array => [
                 'group' => $key,
                 'cost' => round($group['cost'], 2),
@@ -90,9 +106,9 @@ class SpendingSummaryTool extends Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'from_date' => $schema->string()->description('Start of the range (YYYY-MM-DD, Gregorian).')->required(),
-            'to_date' => $schema->string()->description('End of the range (YYYY-MM-DD, Gregorian).')->required(),
-            'group_by' => $schema->string()->enum(['category', 'month'])->description('Group results by category (default) or by month.'),
+            'from_date' => $schema->string()->description('Start of the range (YYYY-MM-DD). Gregorian or Jalali — Jalali years (1100-1599) are auto-detected and converted server-side; pass the user\'s Jalali dates unchanged.')->required(),
+            'to_date' => $schema->string()->description('End of the range (YYYY-MM-DD). Gregorian or Jalali, auto-detected.')->required(),
+            'group_by' => $schema->string()->enum(['category', 'month'])->description('Group results by category (default) or by month in the user\'s calendar.'),
             'currency' => $schema->string()->enum(['toman', 'usd', 'eur'])->description('Currency for converted amounts. Defaults to the user\'s preferred currency.'),
         ];
     }

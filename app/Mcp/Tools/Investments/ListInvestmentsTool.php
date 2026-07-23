@@ -5,6 +5,7 @@ namespace App\Mcp\Tools\Investments;
 use App\Models\Investment;
 use App\Models\InvestmentAsset;
 use App\Models\User;
+use App\Support\CalendarDates;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -21,6 +22,8 @@ class ListInvestmentsTool extends Tool
     {
         $user = $request->user();
         assert($user instanceof User);
+
+        $isJalali = CalendarDates::isJalaliUser($user);
 
         // Quantities and cost basis are encrypted at rest, so all shaping
         // happens in PHP on a bounded result set.
@@ -41,6 +44,9 @@ class ListInvestmentsTool extends Tool
                 'cost_basis_currency' => $investment->cost_basis_currency,
                 'note' => $investment->note,
                 'occurred_at' => $investment->occurred_at->toDateString(),
+                'occurred_at_jalali' => $isJalali
+                    ? CalendarDates::toJalali($investment->occurred_at)
+                    : null,
             ]);
 
         $assets = InvestmentAsset::query()
@@ -57,6 +63,7 @@ class ListInvestmentsTool extends Tool
             ]);
 
         return Response::structured([
+            'calendar' => $isJalali ? 'jalali' : 'gregorian',
             'entries' => $entries->all(),
             'available_assets' => $assets->all(),
         ]);

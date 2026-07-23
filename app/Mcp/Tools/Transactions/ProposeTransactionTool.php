@@ -5,6 +5,7 @@ namespace App\Mcp\Tools\Transactions;
 use App\Mcp\Support\ProposalService;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Support\CalendarDates;
 use App\Support\TransactionRules;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -54,6 +55,12 @@ class ProposeTransactionTool extends Tool
             return $this->proposals->toResponse($proposal);
         }
 
+        // Jalali dates are converted server-side before validation so they
+        // are never misread as ancient Gregorian dates.
+        $request->merge([
+            'occurred_at' => CalendarDates::normalizeToGregorian($request->get('occurred_at')),
+        ]);
+
         $validated = $request->validate(TransactionRules::rules());
 
         if ($errors = TransactionRules::categoryErrors($user, $validated['category_id'], $validated['type'])) {
@@ -72,13 +79,22 @@ class ProposeTransactionTool extends Tool
             'occurred_at' => $transaction->occurred_at->toDateString(),
         ] : [];
 
+        $diff = $this->proposals->diff($payload, $old);
+
+        // Jalali users approve the diff in chat, so date changes carry their
+        // calendar's representation alongside the stored Gregorian value.
+        if (CalendarDates::isJalaliUser($user) && isset($diff['occurred_at'])) {
+            $diff['occurred_at']['new_jalali'] = CalendarDates::toJalali($diff['occurred_at']['new']);
+            $diff['occurred_at']['old_jalali'] = CalendarDates::toJalali($diff['occurred_at']['old']);
+        }
+
         $proposal = $this->proposals->propose(
             $user,
             $action,
             'transaction',
             $transaction?->id,
             $payload,
-            $this->proposals->diff($payload, $old),
+            $diff,
         );
 
         return $this->proposals->toResponse($proposal);
@@ -98,7 +114,7 @@ class ProposeTransactionTool extends Tool
             'currency' => $schema->string()->enum(['toman', 'usd', 'eur'])->description('Currency (required for create/update).'),
             'title' => $schema->string()->description('Short title (required for create/update).'),
             'description' => $schema->string()->description('Optional longer note.'),
-            'occurred_at' => $schema->string()->description('Date of the transaction (YYYY-MM-DD, Gregorian). Required for create/update.'),
+            'occurred_at' => $schema->string()->description('Date of the transaction (YYYY-MM-DD). Gregorian or Jalali — Jalali years (1100-1599) are auto-detected and converted server-side; pass the user\'s Jalali dates unchanged. Required for create/update.'),
         ];
     }
 }

@@ -5,10 +5,12 @@ use Laravel\Passport\Client;
 use Laravel\Passport\Passport;
 
 test('Passport keys are loaded from persistent storage', function () {
-    expect(Passport::keyPath('oauth-private.key'))
-        ->toBe(storage_path('passport/oauth-private.key'))
-        ->and(Passport::keyPath('oauth-public.key'))
-        ->toBe(storage_path('passport/oauth-public.key'));
+    $normalize = fn (string $path): string => str_replace('\\', '/', $path);
+
+    expect($normalize(Passport::keyPath('oauth-private.key')))
+        ->toBe($normalize(storage_path('passport/oauth-private.key')))
+        ->and($normalize(Passport::keyPath('oauth-public.key')))
+        ->toBe($normalize(storage_path('passport/oauth-public.key')));
 });
 
 test('oauth authorization server metadata advertises the mcp scope and PKCE', function () {

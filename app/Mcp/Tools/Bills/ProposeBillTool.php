@@ -6,6 +6,7 @@ use App\Actions\Bills\SaveBill;
 use App\Mcp\Support\ProposalService;
 use App\Models\Bill;
 use App\Models\User;
+use App\Support\CalendarDates;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -41,6 +42,12 @@ class ProposeBillTool extends Tool
             }
         }
 
+        // Jalali dates are converted server-side before validation so they
+        // are never misread as ancient Gregorian dates.
+        $request->merge([
+            'due_date' => CalendarDates::normalizeToGregorian($request->get('due_date')),
+        ]);
+
         $validated = $request->validate(SaveBill::rules($user));
         $payload = SaveBill::normalize(
             $validated,
@@ -58,13 +65,22 @@ class ProposeBillTool extends Tool
             'due_date' => $bill->due_date?->toDateString(),
         ] : [];
 
+        $diff = $this->proposals->diff($payload, $old);
+
+        // Jalali users approve the diff in chat, so date changes carry their
+        // calendar's representation alongside the stored Gregorian value.
+        if (CalendarDates::isJalaliUser($user) && isset($diff['due_date'])) {
+            $diff['due_date']['new_jalali'] = CalendarDates::toJalali($diff['due_date']['new']);
+            $diff['due_date']['old_jalali'] = CalendarDates::toJalali($diff['due_date']['old']);
+        }
+
         $proposal = $this->proposals->propose(
             $user,
             $action,
             'bill',
             $bill?->id,
             $payload,
-            $this->proposals->diff($payload, $old),
+            $diff,
         );
 
         return $this->proposals->toResponse($proposal);
@@ -84,7 +100,7 @@ class ProposeBillTool extends Tool
             'category_id' => $schema->integer()->description('Optional cost-category id (see list-categories).'),
             'recurrence_type' => $schema->string()->enum(['one_time', 'monthly'])->description('Whether the bill repeats monthly or is due once.')->required(),
             'due_day_of_month' => $schema->integer()->description('For monthly bills: day of month it is due (1-31).'),
-            'due_date' => $schema->string()->description('For one-time bills: due date (YYYY-MM-DD, Gregorian).'),
+            'due_date' => $schema->string()->description('For one-time bills: due date (YYYY-MM-DD). Gregorian or Jalali — Jalali years (1100-1599) are auto-detected and converted server-side.'),
             'telegram_reminder_enabled' => $schema->boolean()->description('Send Telegram reminders for this bill (defaults to true).'),
             'reminder_time' => $schema->string()->description('Reminder time as HH:MM (24h).'),
             'reminder_timezone' => $schema->string()->description('IANA timezone for the reminder, e.g. Asia/Tehran.'),

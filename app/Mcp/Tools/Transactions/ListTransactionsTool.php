@@ -5,6 +5,7 @@ namespace App\Mcp\Tools\Transactions;
 use App\Enums\TransactionType;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Support\CalendarDates;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Validation\Rule;
 use Laravel\Mcp\Request;
@@ -15,13 +16,20 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[IsReadOnly]
-#[Description('List the user\'s transactions, newest first. Supports filtering by date range (YYYY-MM-DD, Gregorian), type (cost or income), category, and free-text search over title and description. Results are paginated.')]
+#[Description('List the user\'s transactions, newest first. Supports filtering by date range (Gregorian or Jalali dates, auto-detected), type (cost or income), category, and free-text search over title and description. Results are paginated.')]
 class ListTransactionsTool extends Tool
 {
     public function handle(Request $request): Response|ResponseFactory
     {
         $user = $request->user();
         assert($user instanceof User);
+
+        // Jalali input dates are converted server-side before validation so
+        // they are never misread as ancient Gregorian dates.
+        $request->merge([
+            'from_date' => CalendarDates::normalizeToGregorian($request->get('from_date')),
+            'to_date' => CalendarDates::normalizeToGregorian($request->get('to_date')),
+        ]);
 
         $validated = $request->validate([
             'from_date' => ['nullable', 'date'],
@@ -51,7 +59,10 @@ class ListTransactionsTool extends Tool
                 page: (int) ($validated['page'] ?? 1),
             );
 
+        $isJalali = CalendarDates::isJalaliUser($user);
+
         return Response::structured([
+            'calendar' => $isJalali ? 'jalali' : 'gregorian',
             'transactions' => collect($paginator->items())->map(fn (Transaction $transaction): array => [
                 'id' => $transaction->id,
                 'title' => $transaction->title,
@@ -62,6 +73,9 @@ class ListTransactionsTool extends Tool
                 'category_id' => $transaction->category_id,
                 'category' => $transaction->category?->name,
                 'occurred_at' => $transaction->occurred_at->toDateString(),
+                'occurred_at_jalali' => $isJalali
+                    ? CalendarDates::toJalali($transaction->occurred_at)
+                    : null,
             ])->all(),
             'page' => $paginator->currentPage(),
             'per_page' => $paginator->perPage(),
@@ -75,8 +89,8 @@ class ListTransactionsTool extends Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'from_date' => $schema->string()->description('Only include transactions on or after this date (YYYY-MM-DD, Gregorian).'),
-            'to_date' => $schema->string()->description('Only include transactions on or before this date (YYYY-MM-DD, Gregorian).'),
+            'from_date' => $schema->string()->description('Only include transactions on or after this date (YYYY-MM-DD). Gregorian or Jalali — Jalali years (1100-1599) are auto-detected and converted server-side; pass the user\'s Jalali dates unchanged.'),
+            'to_date' => $schema->string()->description('Only include transactions on or before this date (YYYY-MM-DD). Gregorian or Jalali, auto-detected.'),
             'type' => $schema->string()->enum(['cost', 'income'])->description('Filter by transaction type.'),
             'category_id' => $schema->integer()->description('Filter by category id (see list-categories).'),
             'search' => $schema->string()->description('Free-text search over title and description.'),

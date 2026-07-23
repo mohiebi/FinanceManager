@@ -5,6 +5,7 @@ namespace App\Mcp\Servers;
 use App\Mcp\Tools\Bills\ListBillsTool;
 use App\Mcp\Tools\Bills\ProposeBillTool;
 use App\Mcp\Tools\Bills\ProposePayBillTool;
+use App\Mcp\Tools\GetUserContextTool;
 use App\Mcp\Tools\Investments\ListInvestmentsTool;
 use App\Mcp\Tools\Investments\PortfolioSummaryTool;
 use App\Mcp\Tools\Investments\ProposeCustomAssetTool;
@@ -28,9 +29,18 @@ use Laravel\Mcp\Server\Attributes\Version;
 CashPilot is a personal finance app. All data you can see or change belongs
 exclusively to the authenticated user.
 
-Currencies: toman (Iranian toman, the default), usd, eur. Dates are always
-Gregorian YYYY-MM-DD in tool arguments and results, even for users who use
-the Jalali calendar in the app.
+ALWAYS call get-user-context first: it returns the user's language, calendar
+system (gregorian or jalali), preferred currency, and today's date in both
+calendars. Users with the jalali calendar think and speak in Jalali dates.
+
+Dates: pass dates to tools exactly as the user gives them, in YYYY-MM-DD
+form. Jalali years (1100-1599) are auto-detected and converted server-side —
+NEVER convert between calendars yourself; you will get it wrong. Tool
+results include *_jalali fields for jalali users; present those dates to
+the user, not the Gregorian ones. Monthly summaries group by the user's
+calendar months.
+
+Currencies: toman (Iranian toman, the default), usd, eur.
 
 Reading data (transactions, categories, bills, investments, portfolio,
 spending summaries) is direct.
@@ -48,6 +58,9 @@ MARKDOWN)]
 class FinanceServer extends Server
 {
     protected array $tools = [
+        // Context
+        GetUserContextTool::class,
+
         // Read
         ListTransactionsTool::class,
         ListCategoriesTool::class,

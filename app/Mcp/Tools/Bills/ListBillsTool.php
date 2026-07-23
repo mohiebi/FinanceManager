@@ -4,6 +4,7 @@ namespace App\Mcp\Tools\Bills;
 
 use App\Models\Bill;
 use App\Models\User;
+use App\Support\CalendarDates;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -25,12 +26,14 @@ class ListBillsTool extends Tool
             'only_active' => ['nullable', 'boolean'],
         ]);
 
+        $isJalali = CalendarDates::isJalaliUser($user);
+
         // Bill amounts are encrypted at rest, so all shaping happens in PHP.
         $bills = $user->bills()
             ->with(['category', 'occurrences' => fn ($query) => $query->whereNull('paid_at')->orderBy('due_date')])
             ->when($validated['only_active'] ?? true, fn ($query) => $query->where('is_active', true))
             ->get()
-            ->map(function (Bill $bill): array {
+            ->map(function (Bill $bill) use ($isJalali): array {
                 $next = $bill->occurrences->first();
 
                 return [
@@ -44,10 +47,16 @@ class ListBillsTool extends Tool
                     'category' => $bill->category?->name,
                     'is_active' => $bill->is_active,
                     'next_due_date' => $next?->due_date->toDateString(),
+                    'next_due_date_jalali' => $isJalali
+                        ? CalendarDates::toJalali($next?->due_date)
+                        : null,
                     'pending_occurrences' => $bill->occurrences
                         ->map(fn ($occurrence): array => [
                             'id' => $occurrence->id,
                             'due_date' => $occurrence->due_date->toDateString(),
+                            'due_date_jalali' => $isJalali
+                                ? CalendarDates::toJalali($occurrence->due_date)
+                                : null,
                         ])
                         ->values()
                         ->all(),
@@ -56,7 +65,10 @@ class ListBillsTool extends Tool
             ->sortBy(fn (array $bill): string => $bill['next_due_date'] ?? '9999-12-31')
             ->values();
 
-        return Response::structured(['bills' => $bills->all()]);
+        return Response::structured([
+            'calendar' => $isJalali ? 'jalali' : 'gregorian',
+            'bills' => $bills->all(),
+        ]);
     }
 
     /**

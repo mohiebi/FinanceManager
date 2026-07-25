@@ -21,7 +21,7 @@ use Laravel\Passport\AccessToken;
 use Laravel\Passport\Client;
 
 test('a proposal records the OAuth client attached to the Passport token', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $client = Client::query()->forceCreate([
         'name' => 'Codex',
         'secret' => null,
@@ -49,7 +49,7 @@ test('a proposal records the OAuth client attached to the Passport token', funct
 });
 
 test('proposing a transaction stores a pending proposal and writes nothing', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $category = Category::factory()->cost()->create();
 
     FinanceServer::actingAs($user)
@@ -75,7 +75,7 @@ test('proposing a transaction stores a pending proposal and writes nothing', fun
 });
 
 test('proposal payload is encrypted at rest', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $category = Category::factory()->cost()->create();
 
     FinanceServer::actingAs($user)
@@ -97,7 +97,7 @@ test('proposal payload is encrypted at rest', function () {
 });
 
 test('confirming a proposal applies it exactly once', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $category = Category::factory()->cost()->create();
 
     FinanceServer::actingAs($user)->tool(ProposeTransactionTool::class, [
@@ -130,7 +130,7 @@ test('confirming a proposal applies it exactly once', function () {
 });
 
 test('rejecting a proposal records it and never applies', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $proposal = McpProposal::factory()->create(['user_id' => $user->id]);
 
     FinanceServer::actingAs($user)
@@ -147,7 +147,7 @@ test('rejecting a proposal records it and never applies', function () {
 });
 
 test('expired proposals cannot be confirmed', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $proposal = McpProposal::factory()->expired()->create(['user_id' => $user->id]);
 
     FinanceServer::actingAs($user)
@@ -158,8 +158,8 @@ test('expired proposals cannot be confirmed', function () {
 });
 
 test('users cannot confirm or reject another user\'s proposals', function () {
-    $userA = User::factory()->create();
-    $userB = User::factory()->create();
+    $userA = User::factory()->withModules()->create();
+    $userB = User::factory()->withModules()->create();
     $proposal = McpProposal::factory()->create(['user_id' => $userA->id]);
 
     FinanceServer::actingAs($userB)
@@ -174,8 +174,8 @@ test('users cannot confirm or reject another user\'s proposals', function () {
 });
 
 test('proposing an update to another user\'s transaction fails', function () {
-    $userA = User::factory()->create();
-    $userB = User::factory()->create();
+    $userA = User::factory()->withModules()->create();
+    $userB = User::factory()->withModules()->create();
     $transaction = Transaction::factory()->cost()->create(['user_id' => $userA->id]);
 
     FinanceServer::actingAs($userB)
@@ -187,7 +187,7 @@ test('proposing an update to another user\'s transaction fails', function () {
 });
 
 test('a category type mismatch is rejected at proposal time', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $incomeCategory = Category::factory()->income()->create();
 
     FinanceServer::actingAs($user)
@@ -204,7 +204,7 @@ test('a category type mismatch is rejected at proposal time', function () {
 });
 
 test('confirming a bill payment marks the occurrence paid and creates the cost transaction', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $bill = $user->bills()->create([
         'title' => 'Rent',
@@ -231,7 +231,7 @@ test('confirming a bill payment marks the occurrence paid and creates the cost t
 });
 
 test('confirming a bill creation generates its initial occurrence', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     FinanceServer::actingAs($user)
         ->tool(ProposeBillTool::class, [
@@ -257,7 +257,7 @@ test('confirming a bill creation generates its initial occurrence', function () 
 });
 
 test('custom assets cannot be proposed with URL price sources', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     FinanceServer::actingAs($user)
         ->tool(ProposeCustomAssetTool::class, [
@@ -269,7 +269,7 @@ test('custom assets cannot be proposed with URL price sources', function () {
 });
 
 test('duplicate categories are rejected at proposal time', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     Category::factory()->cost()->create(['name' => 'Food']);
 
     FinanceServer::actingAs($user)
@@ -281,8 +281,8 @@ test('duplicate categories are rejected at proposal time', function () {
 });
 
 test('list-pending-proposals shows only the user\'s unexpired pending proposals', function () {
-    $user = User::factory()->create();
-    $other = User::factory()->create();
+    $user = User::factory()->withModules()->create();
+    $other = User::factory()->withModules()->create();
 
     $pending = McpProposal::factory()->create(['user_id' => $user->id]);
     McpProposal::factory()->expired()->create(['user_id' => $user->id]);

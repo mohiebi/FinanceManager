@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools\Proposals;
 
 use App\Enums\McpProposalStatus;
+use App\Exceptions\FeatureDisabledException;
 use App\Mcp\Support\ProposalApplier;
 use App\Models\McpProposal;
 use App\Models\User;
@@ -65,6 +66,8 @@ class ConfirmProposalTool extends Tool
             });
         } catch (ValidationException $exception) {
             return Response::error('The proposed change is no longer valid: '.implode(' ', $exception->validator->errors()->all()));
+        } catch (FeatureDisabledException $exception) {
+            return Response::error($exception->getMessage());
         }
 
         if (isset($result['error'])) {

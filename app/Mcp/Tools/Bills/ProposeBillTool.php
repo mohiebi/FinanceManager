@@ -3,6 +3,8 @@
 namespace App\Mcp\Tools\Bills;
 
 use App\Actions\Bills\SaveBill;
+use App\Enums\Feature;
+use App\Mcp\Concerns\RequiresFeature;
 use App\Mcp\Support\ProposalService;
 use App\Models\Bill;
 use App\Models\User;
@@ -19,6 +21,16 @@ use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 #[Description('Propose creating or updating a bill (recurring monthly or one-time). This does NOT change any data: it returns a diff and a proposal_id — show it to the user, get approval, then call confirm-proposal.')]
 class ProposeBillTool extends Tool
 {
+    use RequiresFeature;
+
+    /**
+     * @return array<int, Feature>
+     */
+    protected static function requiredFeatures(): array
+    {
+        return [Feature::Bills];
+    }
+
     public function __construct(private readonly ProposalService $proposals) {}
 
     public function handle(Request $request): Response|ResponseFactory

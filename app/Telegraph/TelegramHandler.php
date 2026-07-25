@@ -7,6 +7,7 @@ use App\Actions\Bills\SyncBillOccurrence;
 use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Enums\BillRecurrenceType;
 use App\Enums\Currency;
+use App\Enums\Feature;
 use App\Enums\TransactionType;
 use App\Models\Category;
 use App\Models\Investment;
@@ -24,6 +25,10 @@ use Morilog\Jalali\Jalalian;
 
 class TelegramHandler extends WebhookHandler
 {
+    private ?User $resolvedUser = null;
+
+    private bool $userResolved = false;
+
     public function start(string $token = ''): void
     {
         if ($token !== '') {
@@ -121,6 +126,10 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        if ($this->featureLocked($user, Feature::Investments)) {
+            return;
+        }
+
         $buttons = InvestmentAsset::query()
             ->availableFor($user)
             ->orderByDesc('is_default')
@@ -148,6 +157,10 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        if ($this->featureLocked($user, Feature::Bills)) {
+            return;
+        }
+
         $this->clearActiveWizards();
         $this->chat->storage()->set('bill_wizard', ['step' => 'title', 'user_id' => $user->id]);
 
@@ -165,6 +178,10 @@ class TelegramHandler extends WebhookHandler
         if (! $user) {
             $this->sendNotLinked();
 
+            return;
+        }
+
+        if ($this->featureLocked($user, Feature::Bills)) {
             return;
         }
 
@@ -216,6 +233,10 @@ class TelegramHandler extends WebhookHandler
         $user = $this->resolveUser();
 
         if (! $user) {
+            return;
+        }
+
+        if ($this->featureLocked($user, Feature::Bills)) {
             return;
         }
 
@@ -363,6 +384,10 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        if ($this->featureLocked($user, Feature::Portfolio)) {
+            return;
+        }
+
         /** @var BuildPortfolioBreakdown $breakdown */
         $breakdown = app(BuildPortfolioBreakdown::class);
         $entries = $breakdown->entriesFor($user);
@@ -487,6 +512,10 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        if ($this->featureLocked($user, Feature::Investments)) {
+            return;
+        }
+
         $currency = Currency::tryFrom($currency ?? (string) $this->data->get('currency'));
         $wizard = $this->chat->storage()->get('inv_wizard', []);
 
@@ -530,8 +559,16 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        // A wizard can outlive the module being switched off in the web app, so
+        // re-check before letting an in-flight one write anything.
         $invWizard = $this->chat->storage()->get('inv_wizard');
         if ($invWizard) {
+            if ($this->featureLocked($user, Feature::Investments)) {
+                $this->clearActiveWizards();
+
+                return;
+            }
+
             $this->handleInvestmentWizard($invWizard, $text, $user);
 
             return;
@@ -539,6 +576,12 @@ class TelegramHandler extends WebhookHandler
 
         $billWizard = $this->chat->storage()->get('bill_wizard');
         if ($billWizard) {
+            if ($this->featureLocked($user, Feature::Bills)) {
+                $this->clearActiveWizards();
+
+                return;
+            }
+
             $this->handleBillWizard($billWizard, $text, $user);
 
             return;
@@ -913,6 +956,10 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        if ($this->featureLocked($user, Feature::Bills)) {
+            return;
+        }
+
         $wizard = $this->chat->storage()->get('bill_wizard', []);
 
         if (empty($wizard) || ! isset($wizard['title'], $wizard['amount'], $wizard['currency'], $wizard['recurrence_type'])) {
@@ -1095,7 +1142,33 @@ class TelegramHandler extends WebhookHandler
 
     private function resolveUser(): ?User
     {
-        return User::query()->where('telegram_chat_id', (string) $this->chat->chat_id)->first();
+        if (! $this->userResolved) {
+            $this->resolvedUser = User::query()->where('telegram_chat_id', (string) $this->chat->chat_id)->first();
+            $this->userResolved = true;
+        }
+
+        return $this->resolvedUser;
+    }
+
+    /**
+     * Replies with a "switch this on first" message when the module is off.
+     *
+     * Telegram keyboards persist in old messages and callbacks can arrive long
+     * after a module was disabled, so filtering the keyboard is not enough on its
+     * own — every entry point needs this guard too.
+     */
+    private function featureLocked(User $user, Feature $feature): bool
+    {
+        if ($user->hasFeature($feature)) {
+            return false;
+        }
+
+        $this->chat
+            ->message(__('modules.telegram_locked', ['module' => $feature->label()]))
+            ->keyboard($this->mainKeyboard())
+            ->send();
+
+        return true;
     }
 
     private function sendNotLinked(): void
@@ -1134,18 +1207,33 @@ class TelegramHandler extends WebhookHandler
 
     private function mainKeyboard(): Keyboard
     {
-        return Keyboard::make()->buttons([
+        $user = $this->resolveUser();
+
+        $buttons = [
             Button::make('Add cost')->action('add_cost')->width(0.5),
             Button::make('Add income')->action('add_income')->width(0.5),
             Button::make('Last 10 transactions')->action('list')->width(0.5),
-            Button::make('Add investment')->action('add_investment')->width(0.5),
-            Button::make('Add bill')->action('add_bill')->width(0.5),
-            Button::make('My bills')->action('list_bills')->width(0.5),
-            Button::make('Portfolio')->action('portfolio')->width(0.5),
-            Button::make('Daily report')->action('report_daily')->width(0.5),
-            Button::make('Weekly report')->action('report_week')->width(0.5),
-            Button::make('Monthly report')->action('report_month')->width(0.5),
-        ]);
+        ];
+
+        if ($user?->hasFeature(Feature::Investments)) {
+            $buttons[] = Button::make('Add investment')->action('add_investment')->width(0.5);
+        }
+
+        if ($user?->hasFeature(Feature::Bills)) {
+            $buttons[] = Button::make('Add bill')->action('add_bill')->width(0.5);
+            $buttons[] = Button::make('My bills')->action('list_bills')->width(0.5);
+        }
+
+        if ($user?->hasFeature(Feature::Portfolio)) {
+            $buttons[] = Button::make('Portfolio')->action('portfolio')->width(0.5);
+        }
+
+        // Reports are core — always offered.
+        $buttons[] = Button::make('Daily report')->action('report_daily')->width(0.5);
+        $buttons[] = Button::make('Weekly report')->action('report_week')->width(0.5);
+        $buttons[] = Button::make('Monthly report')->action('report_month')->width(0.5);
+
+        return Keyboard::make()->buttons($buttons);
     }
 
     private function currencyKeyboard(): Keyboard

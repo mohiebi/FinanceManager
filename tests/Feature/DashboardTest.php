@@ -91,7 +91,7 @@ test('dashboard exposes upcoming unpaid bills in the selected currency', functio
         'eur' => 175500.0,
     ], now()->addMinutes(5));
 
-    $user = User::factory()->create(['locale' => 'fa']);
+    $user = User::factory()->withModules()->create(['locale' => 'fa']);
     $category = Category::factory()->cost()->create([
         'name' => 'Bills',
         'slug' => 'bills',
@@ -161,7 +161,7 @@ test('dashboard exposes upcoming unpaid bills in the selected currency', functio
 });
 
 test('dashboard defers the portfolio snapshot and live prices', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $this->actingAs($user)
         ->get(route('dashboard'))
@@ -183,6 +183,24 @@ test('dashboard defers the portfolio snapshot and live prices', function () {
                 ->has('assetPrices.0.label')
                 ->has('assetPrices.0.price_formatted')
             )
+        );
+});
+
+test('dashboard omits module props entirely when their module is off', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Dashboard')
+            // Absent, not null: <Deferred> renders its fallback forever for an
+            // undefined prop, so the Vue side must never see these keys at all.
+            ->missing('upcomingBills')
+            ->missing('pricesSyncedAt')
+            ->missing('portfolio')
+            ->missing('assetPrices')
+            ->has('monthlyTrend')
         );
 });
 

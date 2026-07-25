@@ -5,7 +5,7 @@ use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('transaction workspaces expose display currency options', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $this->actingAs($user)
         ->get(route('dashboard'))
@@ -18,7 +18,7 @@ test('transaction workspaces expose display currency options', function () {
 });
 
 test('investment workspaces expose display currency options', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $this->actingAs($user)
         ->get(route('investments.index'))
@@ -40,7 +40,7 @@ test('investment workspaces expose display currency options', function () {
 });
 
 test('finance pages use the saved default currency when there is no page override', function () {
-    $user = User::factory()->create([
+    $user = User::factory()->withModules()->create([
         'default_currency' => Currency::Usd->value,
     ]);
 
@@ -66,7 +66,7 @@ test('finance pages use the saved default currency when there is no page overrid
 });
 
 test('a page currency override does not persist over the saved default currency', function () {
-    $user = User::factory()->create([
+    $user = User::factory()->withModules()->create([
         'default_currency' => Currency::Usd->value,
     ]);
 

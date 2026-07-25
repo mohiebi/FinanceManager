@@ -197,6 +197,7 @@ return [
         'notifications' => 'اعلان‌ها',
         'security' => 'امنیت',
         'preferences' => 'ترجیحات',
+        'modules' => 'ماژول‌ها',
         'categories' => 'دسته‌بندی‌ها',
         'telegram' => 'تلگرام',
         'ai' => 'اتصال‌های هوش مصنوعی',

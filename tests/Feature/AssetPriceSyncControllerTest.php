@@ -10,7 +10,7 @@ test('it forgets the price cache, dispatches a refresh job, and redirects back',
     Cache::flush();
     Cache::put('asset-prices.tgju', ['usd' => 100000.0], now()->addMinutes(5));
 
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $this->actingAs($user)
         ->from('/portfolio')
@@ -27,7 +27,7 @@ test('it rejects a manual sync within 5 minutes of the last sync', function () {
     Cache::flush();
     Cache::put('asset-prices.tgju.synced_at', now()->subMinutes(2)->toIso8601String());
 
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $this->actingAs($user)
         ->post(route('asset-prices.sync'))
@@ -41,7 +41,7 @@ test('it allows a manual sync once 5 minutes have passed since the last sync', f
     Cache::flush();
     Cache::put('asset-prices.tgju.synced_at', now()->subMinutes(6)->toIso8601String());
 
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $this->actingAs($user)
         ->post(route('asset-prices.sync'))
@@ -54,7 +54,7 @@ test('it allows a manual sync once 5 minutes have passed since the last sync', f
 test('it is throttled', function () {
     Queue::fake();
 
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     for ($i = 0; $i < 3; $i++) {
         $this->actingAs($user)->post(route('asset-prices.sync'))->assertRedirect();

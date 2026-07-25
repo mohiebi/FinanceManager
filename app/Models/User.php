@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Enums\Feature;
+use App\Enums\FeatureTier;
 use App\Enums\TransactionType;
+use App\Support\FeatureSet;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -21,6 +25,12 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable;
+
+    /**
+     * Resolved once per instance. The auth guard memoizes the User, so middleware,
+     * shared Inertia props, the nav and every dashboard check reuse a single query.
+     */
+    private ?FeatureSet $featureSet = null;
 
     /**
      * @return HasMany<Transaction, User>
@@ -86,6 +96,52 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Bill::class);
     }
 
+    /**
+     * @return HasMany<UserFeature, User>
+     */
+    public function features(): HasMany
+    {
+        return $this->hasMany(UserFeature::class);
+    }
+
+    /**
+     * The user's resolved feature state, merging their sparse overrides over the
+     * enum defaults.
+     */
+    public function featureSet(): FeatureSet
+    {
+        return $this->featureSet ??= FeatureSet::fromOverrides(
+            $this->relationLoaded('features') ? $this->features : $this->features()->get()
+        );
+    }
+
+    /**
+     * Plan entitlement — whether the user may use this feature at all.
+     *
+     * Distinct from {@see self::hasFeature()}, which also asks whether they turned
+     * it on. Every feature is free today; a paid tier plugs in here.
+     */
+    public function mayUse(Feature $feature): bool
+    {
+        return $feature->tier() === FeatureTier::Free || $this->isPro();
+    }
+
+    public function hasFeature(Feature $feature): bool
+    {
+        return $this->mayUse($feature) && $this->featureSet()->enabled($feature);
+    }
+
+    public function isPro(): bool
+    {
+        return false;
+    }
+
+    public function forgetFeatureSet(): void
+    {
+        $this->featureSet = null;
+        $this->unsetRelation('features');
+    }
+
     public function hasPassword(): bool
     {
         return filled($this->password);
@@ -120,6 +176,32 @@ class User extends Authenticatable implements MustVerifyEmail
         if ($adminEmail !== '') {
             $query->whereRaw('LOWER(email) != ?', [$adminEmail]);
         }
+    }
+
+    /**
+     * Restrict to users who have the given feature enabled.
+     *
+     * Encodes the sparse-override semantics in one place for the query contexts
+     * (jobs, CLI) that have no in-memory FeatureSet to consult.
+     *
+     * @param  Builder<User>  $query
+     */
+    #[Scope]
+    protected function whereFeatureEnabled(Builder $query, Feature $feature): void
+    {
+        if ($feature->isCore()) {
+            // On for everyone, and FeatureSet ignores overrides for core features —
+            // so a stray row must not exclude anyone here either.
+            return;
+        }
+
+        $feature->enabledByDefault()
+            ? $query->whereDoesntHave('features', fn (Builder $query) => $query
+                ->where('feature', $feature->value)
+                ->where('enabled', false))
+            : $query->whereHas('features', fn (Builder $query) => $query
+                ->where('feature', $feature->value)
+                ->where('enabled', true));
     }
 
     /**

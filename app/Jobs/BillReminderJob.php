@@ -3,12 +3,14 @@
 namespace App\Jobs;
 
 use App\Enums\BillRecurrenceType;
+use App\Enums\Feature;
 use App\Models\Bill;
 use App\Models\BillOccurrence;
 use App\Notifications\BillDueNotification;
 use App\Support\BillDueDateCalculator;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -32,6 +34,9 @@ class BillReminderJob implements ShouldQueue
     {
         Bill::query()
             ->where('is_active', true)
+            // Someone who switched the bills module off should not keep getting
+            // reminders for bills they can no longer see.
+            ->whereHas('user', fn (Builder $query) => $query->whereFeatureEnabled(Feature::Bills))
             ->with(['user', 'occurrences' => fn ($query) => $query->whereNull('paid_at')])
             ->chunkById(100, function ($bills) use ($calculator): void {
                 foreach ($bills as $bill) {

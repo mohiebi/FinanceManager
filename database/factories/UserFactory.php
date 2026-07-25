@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Actions\Features\UpdateUserFeature;
+use App\Enums\Feature;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -37,6 +39,25 @@ class UserFactory extends Factory
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
         ];
+    }
+
+    /**
+     * Switch feature modules on for the user.
+     *
+     * Modules are off by default (see App\Enums\Feature), so any test exercising
+     * bills, investments or portfolio needs this. Goes through UpdateUserFeature
+     * so dependencies resolve — asking for Portfolio also enables Investments.
+     * Pass no arguments to enable every toggleable module.
+     */
+    public function withModules(Feature ...$features): static
+    {
+        $features = $features === [] ? Feature::toggleable() : $features;
+
+        return $this->afterCreating(function (User $user) use ($features): void {
+            foreach ($features as $feature) {
+                app(UpdateUserFeature::class)($user, $feature, true);
+            }
+        });
     }
 
     /**

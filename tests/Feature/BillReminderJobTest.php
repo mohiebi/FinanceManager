@@ -9,12 +9,38 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 
+test('it skips users who have the bills module switched off', function () {
+    Carbon::setTestNow(Carbon::create(2026, 7, 14, 9));
+    Notification::fake();
+
+    try {
+        // No withModules() — bills ships switched off.
+        $user = User::factory()->create(['telegram_chat_id' => '12345']);
+
+        $bill = $user->bills()->create([
+            'title' => 'Rent',
+            'amount' => 100,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 15,
+        ]);
+
+        $bill->occurrences()->create(['due_date' => '2026-07-15']);
+
+        app(BillReminderJob::class)->handle(app(BillDueDateCalculator::class));
+
+        Notification::assertNothingSent();
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
 test('it sends a day-before reminder exactly once', function () {
     Carbon::setTestNow(Carbon::create(2026, 7, 14, 9));
     Notification::fake();
 
     try {
-        $user = User::factory()->create([
+        $user = User::factory()->withModules()->create([
             'telegram_chat_id' => '12345',
             'calendar' => 'jalali',
         ]);
@@ -53,7 +79,7 @@ test('it sends a due-day reminder and dispatches a telegram message when linked'
     Queue::fake();
 
     try {
-        $user = User::factory()->create([
+        $user = User::factory()->withModules()->create([
             'telegram_chat_id' => '12345',
             'calendar' => 'jalali',
         ]);
@@ -87,7 +113,7 @@ test('it skips telegram dispatch when the user has not linked telegram', functio
     Queue::fake();
 
     try {
-        $user = User::factory()->create(['telegram_chat_id' => null]);
+        $user = User::factory()->withModules()->create(['telegram_chat_id' => null]);
 
         $bill = $user->bills()->create([
             'title' => 'Internet',
@@ -113,7 +139,7 @@ test('it does not remind for a paid occurrence', function () {
     Notification::fake();
 
     try {
-        $user = User::factory()->create();
+        $user = User::factory()->withModules()->create();
 
         $bill = $user->bills()->create([
             'title' => 'Rent',
@@ -137,7 +163,7 @@ test('it generates the next occurrence for a recurring bill once the previous on
     Carbon::setTestNow(Carbon::create(2026, 8, 1));
 
     try {
-        $user = User::factory()->create();
+        $user = User::factory()->withModules()->create();
 
         $bill = $user->bills()->create([
             'title' => 'Rent',
@@ -167,7 +193,7 @@ test('it does not send a reminder when the computed due date lands on an already
     Notification::fake();
 
     try {
-        $user = User::factory()->create();
+        $user = User::factory()->withModules()->create();
 
         $bill = $user->bills()->create([
             'title' => 'Rent',

@@ -194,6 +194,7 @@ return [
         'notifications' => 'Benachrichtigungen',
         'security' => 'Sicherheit',
         'preferences' => 'Einstellungen',
+        'modules' => 'Module',
         'categories' => 'Kategorien',
         'assets' => 'Assets',
         'telegram' => 'Telegram',

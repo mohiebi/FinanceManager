@@ -11,7 +11,7 @@ use App\Services\TelegramReportService;
 use Carbon\Carbon;
 
 test('telegram weekly report is readable and ascii only', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $incomeCategory = Category::factory()->income()->forUser($user)->create(['name' => 'Salary']);
     $costCategory = Category::factory()->cost()->forUser($user)->create(['name' => 'Bills']);
 
@@ -56,7 +56,7 @@ test('telegram weekly report is readable and ascii only', function () {
 });
 
 test('telegram monthly report follows the preferred jalali calendar', function () {
-    $user = User::factory()->create(['calendar' => 'jalali']);
+    $user = User::factory()->withModules()->create(['calendar' => 'jalali']);
     $incomeCategory = Category::factory()->income()->forUser($user)->create(['name' => 'Salary']);
 
     Transaction::factory()
@@ -98,7 +98,7 @@ test('telegram monthly report follows the preferred jalali calendar', function (
 });
 
 test('telegram weekly report follows the preferred jalali calendar', function () {
-    $user = User::factory()->create(['calendar' => 'jalali']);
+    $user = User::factory()->withModules()->create(['calendar' => 'jalali']);
     $incomeCategory = Category::factory()->income()->forUser($user)->create(['name' => 'Salary']);
 
     Transaction::factory()

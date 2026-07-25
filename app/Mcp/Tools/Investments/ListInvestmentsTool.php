@@ -2,6 +2,8 @@
 
 namespace App\Mcp\Tools\Investments;
 
+use App\Enums\Feature;
+use App\Mcp\Concerns\RequiresFeature;
 use App\Models\Investment;
 use App\Models\InvestmentAsset;
 use App\Models\User;
@@ -18,6 +20,16 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[Description('List the user\'s investment entries (newest first) and the investment assets available to them. Each entry records a quantity of an asset acquired on a date, optionally with its cost basis.')]
 class ListInvestmentsTool extends Tool
 {
+    use RequiresFeature;
+
+    /**
+     * @return array<int, Feature>
+     */
+    protected static function requiredFeatures(): array
+    {
+        return [Feature::Investments];
+    }
+
     public function handle(Request $request): Response|ResponseFactory
     {
         $user = $request->user();

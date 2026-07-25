@@ -11,8 +11,8 @@ use App\Models\User;
 use Illuminate\Testing\Fluent\AssertableJson;
 
 test('list-transactions returns only the authenticated user\'s transactions', function () {
-    $user = User::factory()->create();
-    $other = User::factory()->create();
+    $user = User::factory()->withModules()->create();
+    $other = User::factory()->withModules()->create();
 
     $mine = Transaction::factory()->cost()->create(['user_id' => $user->id, 'title' => 'My groceries']);
     Transaction::factory()->cost()->create(['user_id' => $other->id, 'title' => 'Their secret purchase']);
@@ -29,7 +29,7 @@ test('list-transactions returns only the authenticated user\'s transactions', fu
 });
 
 test('list-transactions filters by type, date range, and search', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     Transaction::factory()->cost()->create([
         'user_id' => $user->id,
@@ -66,7 +66,7 @@ test('list-transactions filters by type, date range, and search', function () {
 });
 
 test('list-transactions rejects invalid arguments', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     FinanceServer::actingAs($user)
         ->tool(ListTransactionsTool::class, ['type' => 'nonsense'])
@@ -74,8 +74,8 @@ test('list-transactions rejects invalid arguments', function () {
 });
 
 test('list-categories returns global and own categories but not other users\' ones', function () {
-    $user = User::factory()->create();
-    $other = User::factory()->create();
+    $user = User::factory()->withModules()->create();
+    $other = User::factory()->withModules()->create();
 
     Category::factory()->cost()->create(['name' => 'Global groceries']);
     Category::factory()->cost()->forUser($user)->create(['name' => 'My custom category']);
@@ -90,8 +90,8 @@ test('list-categories returns global and own categories but not other users\' on
 });
 
 test('list-bills returns bills with pending occurrences and hides other users\' bills', function () {
-    $user = User::factory()->create();
-    $other = User::factory()->create();
+    $user = User::factory()->withModules()->create();
+    $other = User::factory()->withModules()->create();
 
     $bill = $user->bills()->create([
         'title' => 'Rent',
@@ -123,7 +123,7 @@ test('list-bills returns bills with pending occurrences and hides other users\' 
 });
 
 test('spending-summary groups by category and sums same-currency amounts', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $category = Category::factory()->cost()->create(['name' => 'Food']);
 
     Transaction::factory()->cost()->create([
@@ -156,7 +156,7 @@ test('spending-summary groups by category and sums same-currency amounts', funct
 });
 
 test('spending-summary requires a date range', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     FinanceServer::actingAs($user)
         ->tool(SpendingSummaryTool::class)

@@ -78,6 +78,10 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        if ($this->featureLocked($user, Feature::TelegramBot)) {
+            return;
+        }
+
         $this->clearActiveWizards();
         $this->chat->storage()->set('wizard', [
             'type' => 'cost',
@@ -99,6 +103,10 @@ class TelegramHandler extends WebhookHandler
         if (! $user) {
             $this->sendNotLinked();
 
+            return;
+        }
+
+        if ($this->featureLocked($user, Feature::TelegramBot)) {
             return;
         }
 
@@ -275,6 +283,10 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        if ($this->featureLocked($user, Feature::TelegramBot)) {
+            return;
+        }
+
         $transactions = $user->transactions()
             ->with('category')
             ->latest('occurred_at')
@@ -328,6 +340,10 @@ class TelegramHandler extends WebhookHandler
         if (! $user) {
             $this->sendNotLinked();
 
+            return;
+        }
+
+        if ($this->featureLocked($user, Feature::TelegramBot)) {
             return;
         }
 
@@ -453,6 +469,10 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        if ($this->featureLocked($user, Feature::TelegramBot)) {
+            return;
+        }
+
         $id = $this->data->get('id');
         $transaction = Transaction::query()->where('user_id', $user->id)->find($id);
 
@@ -473,6 +493,10 @@ class TelegramHandler extends WebhookHandler
         $user = $this->resolveUser();
 
         if (! $user) {
+            return;
+        }
+
+        if ($this->featureLocked($user, Feature::Investments)) {
             return;
         }
 
@@ -549,6 +573,10 @@ class TelegramHandler extends WebhookHandler
         if (! $user) {
             $this->chat->message('Please link your account first via Settings > Telegram in the app.')->send();
 
+            return;
+        }
+
+        if ($this->featureLocked($user, Feature::TelegramBot)) {
             return;
         }
 
@@ -840,6 +868,10 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        if ($this->featureLocked($user, Feature::Bills)) {
+            return;
+        }
+
         $currency = $currency ?? $this->data->get('currency');
         $currency = Currency::tryFrom((string) $currency);
         $wizard = $this->chat->storage()->get('bill_wizard', []);
@@ -887,6 +919,10 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        if ($this->featureLocked($user, Feature::Bills)) {
+            return;
+        }
+
         $catId = $cat_id ?? $this->data->get('cat_id');
         $wizard = $this->chat->storage()->get('bill_wizard', []);
 
@@ -912,6 +948,10 @@ class TelegramHandler extends WebhookHandler
         $user = $this->resolveUser();
 
         if (! $user) {
+            return;
+        }
+
+        if ($this->featureLocked($user, Feature::Bills)) {
             return;
         }
 
@@ -989,6 +1029,14 @@ class TelegramHandler extends WebhookHandler
     {
         $this->deleteKeyboardIfCallback();
 
+        $user = $this->resolveUser();
+
+        if ($user && $this->featureLocked($user, Feature::TelegramBot)) {
+            $this->clearActiveWizards();
+
+            return;
+        }
+
         $this->clearActiveWizards();
         $this->chat->message('Cancelled.')->keyboard($this->mainKeyboard())->send();
     }
@@ -1000,6 +1048,10 @@ class TelegramHandler extends WebhookHandler
         $user = $this->resolveUser();
 
         if (! $user) {
+            return;
+        }
+
+        if ($this->featureLocked($user, Feature::TelegramBot)) {
             return;
         }
 
@@ -1030,6 +1082,10 @@ class TelegramHandler extends WebhookHandler
         $user = $this->resolveUser();
 
         if (! $user) {
+            return;
+        }
+
+        if ($this->featureLocked($user, Feature::TelegramBot)) {
             return;
         }
 
@@ -1081,6 +1137,10 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        if ($this->featureLocked($user, Feature::TelegramBot)) {
+            return;
+        }
+
         $wizard = $this->chat->storage()->get('wizard', []);
 
         if (empty($wizard)) {
@@ -1107,6 +1167,14 @@ class TelegramHandler extends WebhookHandler
     {
         $this->deleteKeyboardIfCallback();
 
+        $user = $this->resolveUser();
+
+        if ($user && $this->featureLocked($user, Feature::TelegramBot)) {
+            $this->clearActiveWizards();
+
+            return;
+        }
+
         $this->clearActiveWizards();
         $this->chat->message('Cancelled.')->keyboard($this->mainKeyboard())->send();
     }
@@ -1114,6 +1182,14 @@ class TelegramHandler extends WebhookHandler
     public function cancel_current(): void
     {
         $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if ($user && $this->featureLocked($user, Feature::TelegramBot)) {
+            $this->clearActiveWizards();
+
+            return;
+        }
 
         $this->clearActiveWizards();
         $this->chat->message('Cancelled. Choose an action:')->keyboard($this->mainKeyboard())->send();
@@ -1133,6 +1209,13 @@ class TelegramHandler extends WebhookHandler
             'telegram_chat_id' => (string) $this->chat->chat_id,
             'telegram_connect_token' => null,
         ]);
+
+        $this->resolvedUser = $user->refresh();
+        $this->userResolved = true;
+
+        if ($this->featureLocked($user, Feature::TelegramBot)) {
+            return;
+        }
 
         $this->chat->message(
             "*Account linked successfully!*\n\n".
@@ -1159,6 +1242,10 @@ class TelegramHandler extends WebhookHandler
      */
     private function featureLocked(User $user, Feature $feature): bool
     {
+        if ($feature !== Feature::TelegramBot && ! $user->hasFeature(Feature::TelegramBot)) {
+            return $this->featureLocked($user, Feature::TelegramBot);
+        }
+
         if ($user->hasFeature($feature)) {
             return false;
         }
@@ -1181,6 +1268,10 @@ class TelegramHandler extends WebhookHandler
 
     private function sendHelp(User $user): void
     {
+        if ($this->featureLocked($user, Feature::TelegramBot)) {
+            return;
+        }
+
         $this->chat->message(
             "Hello, *{$user->name}*.\n\n".
             'Choose an action:'
@@ -1202,12 +1293,20 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
+        if ($this->featureLocked($user, Feature::TelegramBot)) {
+            return;
+        }
+
         $this->chat->message($reportBuilder($user))->keyboard($this->mainKeyboard())->send();
     }
 
     private function mainKeyboard(): Keyboard
     {
         $user = $this->resolveUser();
+
+        if ($user && ! $user->hasFeature(Feature::TelegramBot)) {
+            return Keyboard::make();
+        }
 
         $buttons = [
             Button::make('Add cost')->action('add_cost')->width(0.5),

@@ -473,7 +473,7 @@ test('store rejects an income category for a bill', function () {
         ->assertSessionHasErrors('category_id');
 });
 
-test('syncPending skips the update instead of crashing when the recomputed date collides with another occurrence', function () {
+test('syncPending skips a paid collision and moves the pending occurrence to the next cycle', function () {
     Carbon::setTestNow(Carbon::create(2026, 7, 10));
 
     try {
@@ -498,9 +498,9 @@ test('syncPending skips the update instead of crashing when the recomputed date 
 
         app(SyncBillOccurrence::class)->syncPending($bill);
 
-        // Update did not throw, and the pending occurrence was left alone
-        // since updating it to 2026-07-12 would collide with the paid one.
-        expect($pending->fresh()->due_date->toDateString())->toBe('2026-07-20');
+        // Update did not throw, and the pending occurrence moved past the
+        // already-paid 2026-07-12 occurrence to the next monthly cycle.
+        expect($pending->fresh()->due_date->toDateString())->toBe('2026-08-12');
     } finally {
         Carbon::setTestNow();
     }

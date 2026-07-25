@@ -1,5 +1,7 @@
 <?php
 
+use App\Actions\Features\UpdateUserFeature;
+use App\Enums\Feature;
 use App\Models\User;
 use Laravel\Passport\Client;
 use Laravel\Passport\Passport;
@@ -61,6 +63,7 @@ test('the mcp endpoint rejects unauthenticated requests with discovery headers',
 
 test('an authenticated ai client can list the finance tools', function () {
     $user = User::factory()->create();
+    app(UpdateUserFeature::class)($user, Feature::AiAssistant, true);
     Passport::actingAs($user, ['mcp:use']);
 
     $response = $this->postJson('/mcp/finance', [
@@ -76,6 +79,19 @@ test('an authenticated ai client can list the finance tools', function () {
     expect($names)->toContain('list-transactions-tool')
         ->toContain('propose-transaction-tool')
         ->toContain('confirm-proposal-tool');
+});
+
+test('users with the ai assistant module switched off cannot use the mcp endpoint', function () {
+    $user = User::factory()->create();
+    Passport::actingAs($user, ['mcp:use']);
+
+    $this->postJson('/mcp/finance', [
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/list',
+    ])
+        ->assertForbidden()
+        ->assertJsonPath('error_description', 'Turn on the AI Assistant module before connecting AI assistants.');
 });
 
 test('unverified users cannot use the mcp endpoint', function () {

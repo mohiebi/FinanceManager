@@ -220,7 +220,10 @@
                 </div>
                 <div class="grid items-stretch gap-[18px] md:grid-cols-2">
                     <!-- ── Net worth / portfolio snapshot ── -->
+                    <!-- The v-if is load-bearing: <Deferred> renders its fallback
+                         forever when the prop is absent, so the whole card must go. -->
                     <div
+                        v-if="features?.portfolio.enabled"
                         class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                     >
                         <div class="flex items-center justify-between gap-3">
@@ -383,6 +386,7 @@
 
                     <!-- ── Live asset prices ── -->
                     <div
+                        v-if="features?.investments.enabled"
                         class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                     >
                         <div class="flex items-center justify-between gap-3">
@@ -510,6 +514,7 @@
                     </p>
                 </div>
                 <div
+                    v-if="features?.bills.enabled"
                     class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 >
                     <div class="flex items-center justify-between gap-3">
@@ -540,11 +545,11 @@
                     </div>
 
                     <ul
-                        v-if="props.upcomingBills.length > 0"
+                        v-if="(props.upcomingBills ?? []).length > 0"
                         class="mt-4 flex flex-col gap-1"
                     >
                         <li
-                            v-for="bill in props.upcomingBills"
+                            v-for="bill in props.upcomingBills ?? []"
                             :key="bill.occurrence_id"
                             class="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-white/5"
                         >
@@ -1034,12 +1039,14 @@ const props = defineProps<{
     selectedCurrency: Currency;
     summary: { cost: string; income: string };
     period: Period;
-    upcomingBills: UpcomingBill[];
     monthlyTrend: { label: string; income: number; cost: number }[];
-    // Deferred props — undefined until the follow-up request lands.
+    // Module props — absent entirely when the owning module is switched off.
+    upcomingBills?: UpcomingBill[];
+    pricesSyncedAt?: string | null;
+    // Deferred props — undefined until the follow-up request lands, and never
+    // sent at all when their module is off.
     portfolio?: PortfolioSnapshot | null;
     assetPrices?: HeadlinePrice[];
-    pricesSyncedAt: string | null;
 }>();
 
 defineOptions({
@@ -1049,6 +1056,7 @@ defineOptions({
 });
 
 const page = usePage();
+const features = computed(() => page.props.features);
 const { t } = useI18n();
 const user = computed(
     () => (page.props.auth as { user?: { name: string } } | undefined)?.user,

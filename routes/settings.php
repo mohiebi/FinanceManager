@@ -3,11 +3,13 @@
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InvestmentAssetController;
 use App\Http\Controllers\Settings\AiConnectionsController;
+use App\Http\Controllers\Settings\ModuleController;
 use App\Http\Controllers\Settings\NotificationController;
 use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\TelegramController;
+use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\EnsureProfileIsComplete;
 use Illuminate\Support\Facades\Route;
 
@@ -40,18 +42,27 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     Route::get('settings/preferences', [PreferencesController::class, 'edit'])->name('preferences.edit');
     Route::patch('settings/preferences', [PreferencesController::class, 'update'])->name('preferences.update');
 
+    Route::get('settings/modules', [ModuleController::class, 'edit'])->name('modules.edit');
+    Route::patch('settings/modules', [ModuleController::class, 'update'])->name('modules.update');
+
     Route::get('settings/categories', [CategoryController::class, 'edit'])->name('categories.edit');
     Route::patch('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
-    Route::get('settings/assets', [InvestmentAssetController::class, 'edit'])->name('investment-assets.edit');
-    Route::patch('investment-assets/{investment_asset}', [InvestmentAssetController::class, 'update'])->name('investment-assets.update');
-    Route::delete('investment-assets/{investment_asset}', [InvestmentAssetController::class, 'destroy'])->name('investment-assets.destroy');
+    Route::middleware(EnsureFeatureEnabled::class.':investments')->group(function () {
+        Route::get('settings/assets', [InvestmentAssetController::class, 'edit'])->name('investment-assets.edit');
+        Route::patch('investment-assets/{investment_asset}', [InvestmentAssetController::class, 'update'])->name('investment-assets.update');
+        Route::delete('investment-assets/{investment_asset}', [InvestmentAssetController::class, 'destroy'])->name('investment-assets.destroy');
+    });
 
-    Route::get('settings/ai-connections', [AiConnectionsController::class, 'edit'])->name('ai-connections.edit');
-    Route::delete('settings/ai-connections/{token}', [AiConnectionsController::class, 'destroy'])->name('ai-connections.destroy');
+    Route::middleware(EnsureFeatureEnabled::class.':ai_assistant')->group(function () {
+        Route::get('settings/ai-connections', [AiConnectionsController::class, 'edit'])->name('ai-connections.edit');
+        Route::delete('settings/ai-connections/{token}', [AiConnectionsController::class, 'destroy'])->name('ai-connections.destroy');
+    });
 
-    Route::get('settings/telegram', [TelegramController::class, 'edit'])->name('telegram.edit');
-    Route::post('settings/telegram/connect', [TelegramController::class, 'connect'])->name('telegram.connect');
-    Route::delete('settings/telegram', [TelegramController::class, 'disconnect'])->name('telegram.disconnect');
+    Route::middleware(EnsureFeatureEnabled::class.':telegram_bot')->group(function () {
+        Route::get('settings/telegram', [TelegramController::class, 'edit'])->name('telegram.edit');
+        Route::post('settings/telegram/connect', [TelegramController::class, 'connect'])->name('telegram.connect');
+        Route::delete('settings/telegram', [TelegramController::class, 'disconnect'])->name('telegram.disconnect');
+    });
 });

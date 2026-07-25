@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { FeatureMap } from '@/types/features';
 import type { NotificationData } from '@/types/notifications';
 
 // Extend ImportMeta interface for Vite...
@@ -23,6 +24,7 @@ declare module '@inertiajs/core' {
             dir: 'ltr' | 'rtl';
             calendar: 'gregorian' | 'jalali';
             translations: Record<string, unknown>;
+            features: FeatureMap | null;
             seo: {
                 siteName: string;
                 title: string;

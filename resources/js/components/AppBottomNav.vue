@@ -1,14 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import {
-    ChartPie,
-    LayoutGrid,
-    Receipt,
-    ReceiptText,
-    Settings,
-    TrendingUp,
-    Wallet,
-} from 'lucide-vue-next';
+import { Plus, Settings } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
@@ -18,33 +10,20 @@ import {
 } from '@/components/ui/dropdown-menu';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import { dashboard, portfolio, report } from '@/routes';
-import { index as billsIndex } from '@/routes/bills';
-import { index as investmentsIndex } from '@/routes/investments';
-import { index as transactionsIndex } from '@/routes/transactions';
+import { useModuleNav } from '@/composables/useModuleNav';
+import type { ModuleNavItem } from '@/composables/useModuleNav';
 
 const { t } = useI18n();
 const { isCurrentUrl } = useCurrentUrl();
+const { navItems } = useModuleNav();
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 
-const navItems = computed(() => [
-    { title: t('navigation.dashboard'), href: dashboard(), icon: LayoutGrid },
-    {
-        title: t('navigation.transactions'),
-        href: transactionsIndex(),
-        icon: ReceiptText,
-    },
-    { title: t('navigation.report'), href: report(), icon: ChartPie },
-    {
-        title: t('navigation.investments'),
-        href: investmentsIndex(),
-        icon: TrendingUp,
-    },
-    { title: t('navigation.portfolio'), href: portfolio(), icon: Wallet },
-    { title: t('navigation.bills'), href: billsIndex(), icon: Receipt },
-]);
+// Promo items should not appear active while they are only discovery prompts.
+function isActive(item: ModuleNavItem): boolean {
+    return item.state === 'enabled' && isCurrentUrl(item.href);
+}
 </script>
 
 <template>
@@ -56,22 +35,30 @@ const navItems = computed(() => [
         <!-- Main nav items -->
         <Link
             v-for="item in navItems"
-            :key="item.title"
+            :key="item.key"
             :href="item.href"
-            :aria-current="isCurrentUrl(item.href) ? 'page' : undefined"
+            :aria-current="isActive(item) ? 'page' : undefined"
             class="relative flex flex-1 flex-col items-center justify-center gap-1 transition-colors duration-150"
             :class="
-                isCurrentUrl(item.href)
+                isActive(item)
                     ? 'text-[#02cd86]'
-                    : 'text-white/45 hover:text-white/75'
+                    : item.state === 'promo'
+                      ? 'text-white/25'
+                      : 'text-white/45 hover:text-white/75'
             "
         >
             <!-- Active indicator bar -->
             <span
-                v-if="isCurrentUrl(item.href)"
+                v-if="isActive(item)"
                 class="absolute inset-x-3 top-0 h-[2px] rounded-b-full bg-[#02cd86]"
             />
-            <component :is="item.icon" class="size-[22px] shrink-0" />
+            <span class="relative">
+                <component :is="item.icon" class="size-[22px] shrink-0" />
+                <Plus
+                    v-if="item.state === 'promo'"
+                    class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#02cd86] text-[#353535] rtl:-left-1"
+                />
+            </span>
             <span
                 class="max-w-full truncate text-[9px] leading-tight font-medium tracking-wide"
             >

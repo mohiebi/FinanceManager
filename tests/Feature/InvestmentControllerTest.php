@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('it stores total investment cost as per unit cost basis', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $this->actingAs($user)
         ->post(route('investments.store'), [
@@ -32,7 +32,7 @@ test('it stores total investment cost as per unit cost basis', function () {
 });
 
 test('it updates total investment cost as per unit cost basis', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $asset = InvestmentAsset::query()->where('slug', AssetType::Silver->value)->firstOrFail();
     $investment = Investment::query()->create([
         'user_id' => $user->id,
@@ -60,7 +60,7 @@ test('it updates total investment cost as per unit cost basis', function () {
 });
 
 test('it stores investments for custom assets', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $asset = InvestmentAsset::query()->create([
         'user_id' => $user->id,
         'name' => 'Nim half coin',
@@ -98,7 +98,7 @@ test('investment page shows live common and custom asset prices except the selec
         'bitcoin' => 15000000000.0,
     ], now()->addMinutes(5));
 
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     InvestmentAsset::query()->create([
         'user_id' => $user->id,
         'name' => 'Nim half coin',
@@ -142,7 +142,7 @@ test('the value-over-time chart prices past dates from snapshots and today from 
         // Live price today.
         Cache::put('asset-prices.tgju', ['usd' => 150000.0], now()->addMinutes(5));
 
-        $user = User::factory()->create();
+        $user = User::factory()->withModules()->create();
         $usdAsset = InvestmentAsset::query()->where('slug', 'usd')->firstOrFail();
 
         Investment::query()->create([

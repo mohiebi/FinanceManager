@@ -18,6 +18,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionExportController;
 use App\Http\Controllers\TransactionImportController;
+use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\EnsureProfileIsComplete;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Support\FrontendLocalization;
@@ -98,29 +99,38 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
         ->name('admin.customers.export');
 
     Route::get('dashboard', [TransactionController::class, 'dashboard'])->name('dashboard');
-    Route::get('reports', ReportController::class)->name('report');
     Route::get('transactions/import-template', [TransactionImportController::class, 'template'])->name('transactions.import-template');
     Route::post('transactions/imports/preview', [TransactionImportController::class, 'preview'])->name('transactions.imports.preview');
     Route::post('transactions/imports', [TransactionImportController::class, 'store'])->name('transactions.imports.store');
     Route::get('transactions/export', TransactionExportController::class)->name('transactions.export');
     Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
-    Route::post('investment-assets', [InvestmentAssetController::class, 'store'])->name('investment-assets.store');
     Route::delete('transactions/bulk', [TransactionController::class, 'destroyBulk'])->name('transactions.destroy-bulk');
     Route::patch('transactions/bulk/category', [TransactionController::class, 'updateBulkCategory'])->name('transactions.update-bulk-category');
     Route::resource('transactions', TransactionController::class)->only(['index', 'store', 'update', 'destroy']);
-    Route::get('investments/export', InvestmentExportController::class)->name('investments.export');
-    Route::resource('investments', InvestmentController::class)->only(['index', 'store', 'update', 'destroy']);
-    // Forces a real outbound scrape against tgju.org when cache is cold, so this is
-    // throttled stricter than the codebase's usual 10,1 / 5,1 write endpoints.
-    Route::post('asset-prices/sync', AssetPriceSyncController::class)
-        ->middleware('throttle:3,1')
-        ->name('asset-prices.sync');
-    Route::get('portfolio/export', PortfolioExportController::class)->name('portfolio.export');
-    Route::get('portfolio', PortfolioController::class)->name('portfolio');
 
-    Route::resource('bills', BillController::class)->only(['index', 'store', 'update', 'destroy']);
-    Route::post('bills/{bill}/occurrences/{occurrence}/pay', [BillController::class, 'markPaid'])
-        ->name('bills.occurrences.pay');
+    Route::get('reports', ReportController::class)->name('report');
+
+    Route::middleware(EnsureFeatureEnabled::class.':investments')->group(function () {
+        Route::post('investment-assets', [InvestmentAssetController::class, 'store'])->name('investment-assets.store');
+        Route::get('investments/export', InvestmentExportController::class)->name('investments.export');
+        Route::resource('investments', InvestmentController::class)->only(['index', 'store', 'update', 'destroy']);
+        // Forces a real outbound scrape against tgju.org when cache is cold, so this is
+        // throttled stricter than the codebase's usual 10,1 / 5,1 write endpoints.
+        Route::post('asset-prices/sync', AssetPriceSyncController::class)
+            ->middleware('throttle:3,1')
+            ->name('asset-prices.sync');
+    });
+
+    Route::middleware(EnsureFeatureEnabled::class.':portfolio')->group(function () {
+        Route::get('portfolio/export', PortfolioExportController::class)->name('portfolio.export');
+        Route::get('portfolio', PortfolioController::class)->name('portfolio');
+    });
+
+    Route::middleware(EnsureFeatureEnabled::class.':bills')->group(function () {
+        Route::resource('bills', BillController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::post('bills/{bill}/occurrences/{occurrence}/pay', [BillController::class, 'markPaid'])
+            ->name('bills.occurrences.pay');
+    });
 });
 
 require __DIR__.'/settings.php';

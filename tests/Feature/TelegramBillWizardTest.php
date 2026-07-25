@@ -33,7 +33,7 @@ beforeEach(function () {
 });
 
 test('the full add-bill wizard creates a monthly bill with its first occurrence', function () {
-    $user = User::factory()->create(['telegram_chat_id' => '555111']);
+    $user = User::factory()->withModules()->create(['telegram_chat_id' => '555111']);
     Category::factory()->cost()->create(['name' => 'Housing']);
 
     $handler = telegramHandlerFor($user);
@@ -60,7 +60,7 @@ test('the full add-bill wizard creates a monthly bill with its first occurrence'
 });
 
 test('the add-bill wizard supports a one-time bill with a category', function () {
-    $user = User::factory()->create(['telegram_chat_id' => '555222']);
+    $user = User::factory()->withModules()->create(['telegram_chat_id' => '555222']);
     $category = Category::factory()->cost()->create(['name' => 'Housing']);
 
     $handler = telegramHandlerFor($user);
@@ -85,7 +85,7 @@ test('the add-bill wizard supports a one-time bill with a category', function ()
 });
 
 test('cancelling the wizard does not create a bill', function () {
-    $user = User::factory()->create(['telegram_chat_id' => '555333']);
+    $user = User::factory()->withModules()->create(['telegram_chat_id' => '555333']);
     $handler = telegramHandlerFor($user);
 
     $handler->add_bill();
@@ -96,7 +96,7 @@ test('cancelling the wizard does not create a bill', function () {
 });
 
 test('cancel current clears running telegram wizards and returns to menu', function () {
-    $user = User::factory()->create(['telegram_chat_id' => '555334']);
+    $user = User::factory()->withModules()->create(['telegram_chat_id' => '555334']);
     $handler = telegramHandlerFor($user);
 
     $handler->add_bill();
@@ -115,7 +115,7 @@ test('cancel current clears running telegram wizards and returns to menu', funct
 });
 
 test('rejects a non-numeric amount and stays on the same step', function () {
-    $user = User::factory()->create(['telegram_chat_id' => '555444']);
+    $user = User::factory()->withModules()->create(['telegram_chat_id' => '555444']);
     $handler = telegramHandlerFor($user);
 
     $handler->add_bill();
@@ -129,7 +129,7 @@ test('rejects a non-numeric amount and stays on the same step', function () {
 });
 
 test('pay_bill marks the occurrence paid and creates a matching cost transaction', function () {
-    $user = User::factory()->create(['telegram_chat_id' => '555555']);
+    $user = User::factory()->withModules()->create(['telegram_chat_id' => '555555']);
     $category = Category::factory()->cost()->create();
 
     $bill = $user->bills()->create([
@@ -155,7 +155,7 @@ test('pay_bill marks the occurrence paid and creates a matching cost transaction
 });
 
 test('list_bills sends a message for bills with and without a pending occurrence', function () {
-    $user = User::factory()->create([
+    $user = User::factory()->withModules()->create([
         'telegram_chat_id' => '555888',
         'calendar' => 'jalali',
     ]);
@@ -193,7 +193,7 @@ test('list_bills sends a message for bills with and without a pending occurrence
 });
 
 test('last transactions use newest records when dates are tied', function () {
-    $user = User::factory()->create(['telegram_chat_id' => '555999']);
+    $user = User::factory()->withModules()->create(['telegram_chat_id' => '555999']);
     $category = Category::factory()->cost()->create();
 
     foreach (range(1, 11) as $index) {
@@ -225,8 +225,8 @@ test('last transactions use newest records when dates are tied', function () {
 });
 
 test('pay_bill does not let a user pay another users bill', function () {
-    $owner = User::factory()->create(['telegram_chat_id' => '555666']);
-    $intruder = User::factory()->create(['telegram_chat_id' => '555777']);
+    $owner = User::factory()->withModules()->create(['telegram_chat_id' => '555666']);
+    $intruder = User::factory()->withModules()->create(['telegram_chat_id' => '555777']);
 
     $bill = $owner->bills()->create([
         'title' => 'Rent',

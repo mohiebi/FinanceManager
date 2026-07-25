@@ -1,16 +1,11 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import {
-    ChartPie,
-    LayoutGrid,
     PanelLeftClose,
     PanelLeftOpen,
-    Receipt,
-    ReceiptText,
+    Plus,
     Settings,
     ShieldCheck,
-    TrendingUp,
-    Wallet,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -22,56 +17,42 @@ import {
 import { Sidebar, useSidebar } from '@/components/ui/sidebar';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import { dashboard, portfolio, report } from '@/routes';
+import { useModuleNav } from '@/composables/useModuleNav';
+import type { ModuleNavItem } from '@/composables/useModuleNav';
 import { dashboard as adminDashboard } from '@/routes/admin';
-import { index as billsIndex } from '@/routes/bills';
-import { index as investmentsIndex } from '@/routes/investments';
-import { index as transactionsIndex } from '@/routes/transactions';
-import type { NavItem } from '@/types';
 
 const { t } = useI18n();
 const page = usePage();
+const { navItems } = useModuleNav();
+const { isCurrentUrl } = useCurrentUrl();
 
-const mainNavItems = computed<NavItem[]>(() => {
-    const items: NavItem[] = [
-        {
-            title: t('navigation.dashboard'),
-            href: dashboard(),
-            icon: LayoutGrid,
-        },
-        {
-            title: t('navigation.transactions'),
-            href: transactionsIndex(),
-            icon: ReceiptText,
-        },
-        { title: t('navigation.report'), href: report(), icon: ChartPie },
-        {
-            title: t('navigation.investments'),
-            href: investmentsIndex(),
-            icon: TrendingUp,
-        },
-        { title: t('navigation.portfolio'), href: portfolio(), icon: Wallet },
-        { title: t('navigation.bills'), href: billsIndex(), icon: Receipt },
-    ];
+const mainNavItems = computed<ModuleNavItem[]>(() => {
+    const items = [...navItems.value];
 
     if (page.props.auth.isAdmin) {
         items.push({
+            key: 'admin',
             title: 'Admin',
             href: adminDashboard(),
             icon: ShieldCheck,
+            state: 'enabled',
         });
     }
 
     return items;
 });
 
+// Promo items should not appear active while they are only discovery prompts.
+function isActive(item: ModuleNavItem): boolean {
+    return item.state === 'enabled' && isCurrentUrl(item.href);
+}
+
 const user = computed(() => page.props.auth.user);
 const isRtl = computed(() => page.props.dir === 'rtl');
 const { isMobile, state, toggleSidebar } = useSidebar();
-const { isCurrentUrl } = useCurrentUrl();
 
 const iconBoxBase =
-    'flex h-9 w-9 shrink-0 items-center justify-center rounded-md shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition-colors';
+    'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition-colors';
 const iconBoxDefault = `${iconBoxBase} bg-[#2d2d2d]`;
 const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
 </script>
@@ -129,7 +110,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                 >
                     <Link
                         v-for="item in mainNavItems"
-                        :key="item.title"
+                        :key="item.key"
                         :href="item.href"
                         class="flex w-full items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#353535] focus-visible:outline-none"
                         :title="item.title"
@@ -137,18 +118,21 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                         <!-- Icon box — the ONLY element with bg + shadow -->
                         <span
                             :class="[
-                                isCurrentUrl(item.href)
-                                    ? iconBoxActive
-                                    : iconBoxDefault,
+                                isActive(item) ? iconBoxActive : iconBoxDefault,
                                 'hover:bg-[#3a3a3a]',
-                                isCurrentUrl(item.href)
+                                isActive(item)
                                     ? 'text-[#02cd86]'
                                     : 'text-white',
+                                item.state === 'promo' ? 'opacity-40' : '',
                             ]"
                         >
                             <component
                                 :is="item.icon"
                                 class="size-[18px] shrink-0"
+                            />
+                            <Plus
+                                v-if="item.state === 'promo'"
+                                class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#02cd86] text-[#353535] rtl:-left-1"
                             />
                         </span>
 
@@ -156,9 +140,11 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                         <span
                             :class="[
                                 'truncate text-sm font-medium group-data-[collapsible=icon]:sr-only',
-                                isCurrentUrl(item.href)
+                                isActive(item)
                                     ? 'text-[#02cd86]'
-                                    : 'text-white',
+                                    : item.state === 'promo'
+                                      ? 'text-white/40'
+                                      : 'text-white',
                             ]"
                         >
                             {{ item.title }}

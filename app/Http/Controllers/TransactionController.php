@@ -6,6 +6,7 @@ use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Actions\Transactions\CurrencyConverter;
 use App\Actions\Transactions\SaveTransaction;
 use App\Enums\Currency;
+use App\Enums\Feature;
 use App\Enums\TransactionType;
 use App\Http\Requests\Transaction\StoreTransactionRequest;
 use App\Http\Requests\Transaction\UpdateTransactionRequest;
@@ -41,17 +42,30 @@ class TransactionController extends Controller
     ): Response {
         $user = $request->user();
         $selectedCurrency = CurrencyPreference::resolve($request);
+        $features = $user->featureSet();
 
-        return $this->renderTransactionWorkspace($request, $currencyConverter, 'Dashboard', false, [
-            'upcomingBills' => $this->upcomingBills($request, $currencyConverter, $selectedCurrency),
+        $moduleProps = [
             'monthlyTrend' => $this->monthlyTrend($request, $currencyConverter, $selectedCurrency),
-            // Deferred: both hit the price cache (and possibly tgju on a cold
-            // cache), so they load in a background request after first paint —
-            // same pattern as the Portfolio page.
-            'portfolio' => Inertia::defer(fn () => $breakdownBuilder->snapshot($user, $selectedCurrency)),
-            'assetPrices' => Inertia::defer(fn () => $this->headlinePrices($priceService, $breakdownBuilder, $selectedCurrency)),
-            'pricesSyncedAt' => $priceService->lastSyncedAt(),
-        ]);
+        ];
+
+        if ($features->enabled(Feature::Bills)) {
+            $moduleProps['upcomingBills'] = $this->upcomingBills($request, $currencyConverter, $selectedCurrency);
+        }
+
+        // Deferred: these hit the price cache (and possibly tgju on a cold cache),
+        // so they load in a background request after first paint — same pattern as
+        // the Portfolio page. Omitting the key also drops it from Inertia's deferred
+        // manifest, so no follow-up request fires for a module that is switched off.
+        if ($features->enabled(Feature::Portfolio)) {
+            $moduleProps['portfolio'] = Inertia::defer(fn () => $breakdownBuilder->snapshot($user, $selectedCurrency));
+        }
+
+        if ($features->enabled(Feature::Investments)) {
+            $moduleProps['assetPrices'] = Inertia::defer(fn () => $this->headlinePrices($priceService, $breakdownBuilder, $selectedCurrency));
+            $moduleProps['pricesSyncedAt'] = $priceService->lastSyncedAt();
+        }
+
+        return $this->renderTransactionWorkspace($request, $currencyConverter, 'Dashboard', false, $moduleProps);
     }
 
     /**

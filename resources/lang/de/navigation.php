@@ -20,4 +20,6 @@ return [
     'expand_sidebar' => 'Seitenleiste erweitern',
     'collapse_sidebar' => 'Seitenleiste einklappen',
     'logout' => 'Abmelden',
+    'ai_assistant' => 'KI-Assistent',
+    'telegram_bot' => 'Telegram-Bot',
 ];

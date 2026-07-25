@@ -6,6 +6,8 @@ use App\Actions\Bills\MarkBillOccurrencePaid;
 use App\Actions\Bills\SaveBill;
 use App\Actions\Investments\SaveInvestment;
 use App\Actions\Transactions\SaveTransaction;
+use App\Enums\Feature;
+use App\Exceptions\FeatureDisabledException;
 use App\Models\Category;
 use App\Models\InvestmentAsset;
 use App\Models\McpProposal;
@@ -34,6 +36,8 @@ class ProposalApplier
     {
         $user = $proposal->user;
         $payload = $proposal->payload;
+
+        $this->assertFeatureEnabled($user, $proposal);
 
         return match ("{$proposal->resource_type}.{$proposal->action}") {
             'transaction.create' => [
@@ -85,6 +89,26 @@ class ProposalApplier
                 "Unknown proposal action [{$proposal->resource_type}.{$proposal->action}].",
             ),
         };
+    }
+
+    /**
+     * A proposal created while a module was on can still be confirmed after it is
+     * switched off, because the confirm tool is deliberately ungated. This is the
+     * chokepoint that stops it — and it covers any future non-MCP caller too.
+     *
+     * @throws FeatureDisabledException
+     */
+    private function assertFeatureEnabled(User $user, McpProposal $proposal): void
+    {
+        $required = match ($proposal->resource_type) {
+            'bill', 'bill_occurrence' => Feature::Bills,
+            'investment', 'investment_asset' => Feature::Investments,
+            default => null,
+        };
+
+        if ($required !== null && ! $user->hasFeature($required)) {
+            throw new FeatureDisabledException($required);
+        }
     }
 
     /**

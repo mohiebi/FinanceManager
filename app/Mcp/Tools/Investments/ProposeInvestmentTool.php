@@ -3,6 +3,8 @@
 namespace App\Mcp\Tools\Investments;
 
 use App\Actions\Investments\SaveInvestment;
+use App\Enums\Feature;
+use App\Mcp\Concerns\RequiresFeature;
 use App\Mcp\Support\ProposalService;
 use App\Models\Investment;
 use App\Models\User;
@@ -20,6 +22,16 @@ use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 #[Description('Propose recording, updating, or deleting an investment entry. To record a partial sale, update the entry with a reduced quantity; delete the entry for a full sale. This does NOT change any data: it returns a diff and a proposal_id — show it to the user, get approval, then call confirm-proposal.')]
 class ProposeInvestmentTool extends Tool
 {
+    use RequiresFeature;
+
+    /**
+     * @return array<int, Feature>
+     */
+    protected static function requiredFeatures(): array
+    {
+        return [Feature::Investments];
+    }
+
     public function __construct(private readonly ProposalService $proposals) {}
 
     public function handle(Request $request): Response|ResponseFactory

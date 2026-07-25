@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
@@ -7,6 +7,7 @@ import { toUrl } from '@/lib/utils';
 import { edit as editAiConnections } from '@/routes/ai-connections';
 import { edit as editCategories } from '@/routes/categories';
 import { edit as editInvestmentAssets } from '@/routes/investment-assets';
+import { edit as editModules } from '@/routes/modules';
 import { edit as editNotifications } from '@/routes/notifications';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
@@ -14,6 +15,18 @@ import { edit as editTelegram } from '@/routes/telegram';
 import type { NavItem } from '@/types';
 
 const { t } = useI18n();
+const page = usePage();
+
+// Custom assets only mean anything with the investments module switched on.
+const showAssets = computed(
+    () => page.props.features?.investments?.enabled !== false,
+);
+const showTelegram = computed(
+    () => page.props.features?.telegram_bot?.enabled !== false,
+);
+const showAiConnections = computed(
+    () => page.props.features?.ai_assistant?.enabled !== false,
+);
 
 const sidebarNavItems = computed<NavItem[]>(() => [
     { title: t('settings.navigation.profile'), href: editProfile() },
@@ -26,10 +39,22 @@ const sidebarNavItems = computed<NavItem[]>(() => [
         title: t('settings.navigation.preferences'),
         href: '/settings/preferences',
     },
+    { title: t('settings.navigation.modules'), href: editModules() },
     { title: t('settings.navigation.categories'), href: editCategories() },
-    { title: t('settings.navigation.assets'), href: editInvestmentAssets() },
-    { title: t('settings.navigation.telegram'), href: editTelegram() },
-    { title: t('settings.navigation.ai'), href: editAiConnections() },
+    ...(showAssets.value
+        ? [
+              {
+                  title: t('settings.navigation.assets'),
+                  href: editInvestmentAssets(),
+              },
+          ]
+        : []),
+    ...(showTelegram.value
+        ? [{ title: t('settings.navigation.telegram'), href: editTelegram() }]
+        : []),
+    ...(showAiConnections.value
+        ? [{ title: t('settings.navigation.ai'), href: editAiConnections() }]
+        : []),
 ]);
 
 const { isCurrentOrParentUrl } = useCurrentUrl();

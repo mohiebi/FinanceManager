@@ -2,7 +2,9 @@
 
 namespace App\Mcp\Tools\Investments;
 
+use App\Enums\Feature;
 use App\Enums\InvestmentAssetPriceSource;
+use App\Mcp\Concerns\RequiresFeature;
 use App\Mcp\Support\ProposalService;
 use App\Models\InvestmentAsset;
 use App\Models\User;
@@ -19,6 +21,16 @@ use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 #[Description('Propose creating a custom investment asset with a manually set price or a price formula. URL-based price feeds cannot be created through AI assistants. This does NOT change any data: it returns a proposal_id — show it to the user, get approval, then call confirm-proposal.')]
 class ProposeCustomAssetTool extends Tool
 {
+    use RequiresFeature;
+
+    /**
+     * @return array<int, Feature>
+     */
+    protected static function requiredFeatures(): array
+    {
+        return [Feature::Investments];
+    }
+
     public function __construct(private readonly ProposalService $proposals) {}
 
     public function handle(Request $request): Response|ResponseFactory

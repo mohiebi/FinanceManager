@@ -7,6 +7,8 @@ return [
     'investments' => 'Investments',
     'portfolio' => 'Portfolio',
     'bills' => 'Bills',
+    'ai_assistant' => 'AI Assistant',
+    'telegram_bot' => 'Telegram Bot',
     'primary' => 'Primary navigation',
     'platform' => 'Platform',
     'account' => 'Account navigation',

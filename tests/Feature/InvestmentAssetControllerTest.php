@@ -5,7 +5,7 @@ use App\Models\InvestmentAsset;
 use App\Models\User;
 
 test('users can create private investment assets', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $this->actingAs($user)
         ->post(route('investment-assets.store'), [
@@ -34,7 +34,7 @@ test('users can create private investment assets', function () {
 });
 
 test('invalid svg icons are rejected', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $this->actingAs($user)
         ->post(route('investment-assets.store'), [
@@ -48,7 +48,7 @@ test('invalid svg icons are rejected', function () {
 });
 
 test('users cannot duplicate available asset slugs', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $this->actingAs($user)
         ->post(route('investment-assets.store'), [
@@ -61,8 +61,8 @@ test('users cannot duplicate available asset slugs', function () {
 });
 
 test('users can update only their custom assets', function () {
-    $user = User::factory()->create();
-    $otherUser = User::factory()->create();
+    $user = User::factory()->withModules()->create();
+    $otherUser = User::factory()->withModules()->create();
     $asset = InvestmentAsset::query()->create([
         'user_id' => $user->id,
         'name' => 'Custom metal',
@@ -100,7 +100,7 @@ test('users can update only their custom assets', function () {
 });
 
 test('used custom assets cannot be deleted', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $asset = InvestmentAsset::query()->create([
         'user_id' => $user->id,
         'name' => 'Custom bond',
@@ -126,7 +126,7 @@ test('used custom assets cannot be deleted', function () {
 });
 
 test('unused custom assets can be deleted', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $asset = InvestmentAsset::query()->create([
         'user_id' => $user->id,
         'name' => 'Unused custom asset',

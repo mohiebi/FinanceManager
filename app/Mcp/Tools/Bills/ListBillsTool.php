@@ -2,6 +2,8 @@
 
 namespace App\Mcp\Tools\Bills;
 
+use App\Enums\Feature;
+use App\Mcp\Concerns\RequiresFeature;
 use App\Models\Bill;
 use App\Models\User;
 use App\Support\CalendarDates;
@@ -17,6 +19,16 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[Description('List the user\'s bills with their pending (unpaid) occurrences and next due dates. Bills are either monthly (recurring on a day of the month) or one-time (single due date).')]
 class ListBillsTool extends Tool
 {
+    use RequiresFeature;
+
+    /**
+     * @return array<int, Feature>
+     */
+    protected static function requiredFeatures(): array
+    {
+        return [Feature::Bills];
+    }
+
     public function handle(Request $request): Response|ResponseFactory
     {
         $user = $request->user();

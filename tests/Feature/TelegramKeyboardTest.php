@@ -1,22 +1,92 @@
 <?php
 
+use App\Actions\Features\UpdateUserFeature;
+use App\Enums\Feature;
+use App\Models\User;
 use App\Telegraph\TelegramHandler;
+use DefStudio\Telegraph\Models\TelegraphChat;
+use Illuminate\Support\Facades\Http;
 
-test('telegram main keyboard groups related actions into rows', function () {
+function keyboardHandlerFor(User $user): TelegramHandler
+{
+    $chat = TelegraphChat::factory()->create(['chat_id' => $user->telegram_chat_id]);
+
     $handler = new TelegramHandler;
-    $method = new ReflectionMethod($handler, 'mainKeyboard');
+    $property = new ReflectionProperty($handler, 'chat');
+    $property->setAccessible(true);
+    $property->setValue($handler, $chat);
+
+    return $handler;
+}
+
+/**
+ * @return array<int, array<int, string>>
+ */
+function mainKeyboardRowsFor(User $user): array
+{
+    $method = new ReflectionMethod(TelegramHandler::class, 'mainKeyboard');
     $method->setAccessible(true);
 
-    $keyboard = $method->invoke($handler)->toArray();
+    return collect($method->invoke(keyboardHandlerFor($user))->toArray())
+        ->map(fn (array $row): array => array_column($row, 'text'))
+        ->filter(fn (array $row): bool => $row !== [])
+        ->values()
+        ->all();
+}
 
-    expect(collect($keyboard)->map(fn (array $row): array => array_column($row, 'text'))->all())
-        ->toBe([
-            ['Add cost', 'Add income'],
-            ['Last 10 transactions', 'Add investment'],
-            ['Add bill', 'My bills'],
-            ['Portfolio', 'Daily report'],
-            ['Weekly report', 'Monthly report'],
-        ]);
+function enableTelegramBotFor(User $user): void
+{
+    app(UpdateUserFeature::class)($user, Feature::TelegramBot, true);
+}
+
+test('telegram main keyboard groups related actions into rows', function () {
+    $user = User::factory()->withModules()->create(['telegram_chat_id' => '555222']);
+
+    expect(mainKeyboardRowsFor($user))->toBe([
+        ['Add cost', 'Add income'],
+        ['Last 10 transactions', 'Add investment'],
+        ['Add bill', 'My bills'],
+        ['Portfolio', 'Daily report'],
+        ['Weekly report', 'Monthly report'],
+    ]);
+});
+
+test('telegram main keyboard omits buttons for modules that are switched off', function () {
+    $user = User::factory()->create(['telegram_chat_id' => '555333']);
+    enableTelegramBotFor($user);
+
+    expect(mainKeyboardRowsFor($user))->toBe([
+        ['Add cost', 'Add income'],
+        ['Last 10 transactions', 'Daily report'],
+        ['Weekly report', 'Monthly report'],
+    ]);
+});
+
+test('telegram main keyboard is empty when telegram bot is switched off', function () {
+    $user = User::factory()->create(['telegram_chat_id' => '555335']);
+
+    expect(mainKeyboardRowsFor($user))->toBe([]);
+});
+
+test('a stale telegram callback for a disabled module replies instead of acting', function () {
+    Http::fake(['api.telegram.org/*' => Http::response(['ok' => true, 'result' => ['message_id' => 1]])]);
+
+    $user = User::factory()->create(['telegram_chat_id' => '555444']);
+    enableTelegramBotFor($user);
+
+    keyboardHandlerFor($user)->add_bill();
+
+    Http::assertSent(fn ($request) => str_contains($request['text'] ?? '', 'Bills'));
+});
+
+test('a stale telegram action is refused when telegram bot is switched off', function () {
+    Http::fake(['api.telegram.org/*' => Http::response(['ok' => true, 'result' => ['message_id' => 1]])]);
+
+    $user = User::factory()->create(['telegram_chat_id' => '555445']);
+
+    keyboardHandlerFor($user)->add_cost();
+
+    Http::assertSent(fn ($request) => str_contains($request['text'] ?? '', 'Telegram Bot'));
 });
 
 test('telegram bill wizard offers currency choices', function () {

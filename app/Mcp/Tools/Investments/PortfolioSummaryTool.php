@@ -3,6 +3,8 @@
 namespace App\Mcp\Tools\Investments;
 
 use App\Actions\Investments\BuildPortfolioBreakdown;
+use App\Enums\Feature;
+use App\Mcp\Concerns\RequiresFeature;
 use App\Models\User;
 use App\Support\CurrencyPreference;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -17,6 +19,16 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[Description('Get the user\'s portfolio breakdown: per-asset holdings with current value, cost basis, and profit/loss, plus overall totals. Values can be reported in toman, usd, or eur (defaults to the user\'s preferred currency).')]
 class PortfolioSummaryTool extends Tool
 {
+    use RequiresFeature;
+
+    /**
+     * @return array<int, Feature>
+     */
+    protected static function requiredFeatures(): array
+    {
+        return [Feature::Portfolio];
+    }
+
     public function __construct(private readonly BuildPortfolioBreakdown $buildPortfolioBreakdown) {}
 
     public function handle(Request $request): Response|ResponseFactory

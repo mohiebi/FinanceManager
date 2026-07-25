@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\Currency;
+use App\Enums\Feature;
 use App\Enums\TransactionType;
 use App\Models\User;
 use App\Support\DateFormatter;
@@ -120,10 +121,12 @@ class TelegramReportService
             }
         }
 
-        $investments = $user->investments()
-            ->with('asset')
-            ->whereBetween('occurred_at', [$from->toDateString(), $to->toDateString()])
-            ->get();
+        $investments = $user->hasFeature(Feature::Investments)
+            ? $user->investments()
+                ->with('asset')
+                ->whereBetween('occurred_at', [$from->toDateString(), $to->toDateString()])
+                ->get()
+            : collect();
 
         if ($investments->isNotEmpty()) {
             $lines[] = '';

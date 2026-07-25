@@ -20,4 +20,6 @@ return [
     'expand_sidebar' => 'باز کردن نوار کناری',
     'collapse_sidebar' => 'بستن نوار کناری',
     'logout' => 'خروج',
+    'ai_assistant' => 'دستیار هوش مصنوعی',
+    'telegram_bot' => 'ربات تلگرام',
 ];

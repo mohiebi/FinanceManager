@@ -53,6 +53,10 @@ class HandleInertiaRequests extends Middleware
             'dir' => FrontendLocalization::direction($locale),
             'calendar' => $calendar,
             'translations' => FrontendLocalization::messages($locale),
+            // Eager, not deferred: the nav is built from this, and deferring would
+            // make menu items pop in after first paint. Costs one memoized query
+            // that the feature middleware has usually already paid for.
+            'features' => fn () => $request->user()?->featureSet()->toArray(),
             'fallbackLocale' => FrontendLocalization::DEFAULT_LOCALE,
             'fallbackTranslations' => $locale === FrontendLocalization::DEFAULT_LOCALE
                 ? null

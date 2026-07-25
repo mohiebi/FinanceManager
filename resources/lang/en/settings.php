@@ -194,6 +194,7 @@ return [
         'notifications' => 'Notifications',
         'security' => 'Security',
         'preferences' => 'Preferences',
+        'modules' => 'Modules',
         'categories' => 'Categories',
         'assets' => 'Assets',
         'telegram' => 'Telegram',

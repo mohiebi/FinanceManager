@@ -1,5 +1,7 @@
 <?php
 
+use App\Actions\Features\UpdateUserFeature;
+use App\Enums\Feature;
 use App\Models\McpProposal;
 use App\Models\User;
 use Illuminate\Support\Str;
@@ -39,6 +41,7 @@ function createOauthClient(string $name = 'Claude'): Client
 
 test('the ai connections page lists active connections and change history', function () {
     $user = User::factory()->create();
+    app(UpdateUserFeature::class)($user, Feature::AiAssistant, true);
     $client = createOauthClient();
     createAccessToken($user, $client);
     createAccessToken($user, $client);
@@ -62,6 +65,7 @@ test('the ai connections page lists active connections and change history', func
 
 test('revoked and expired tokens are not listed', function () {
     $user = User::factory()->create();
+    app(UpdateUserFeature::class)($user, Feature::AiAssistant, true);
     $client = createOauthClient();
 
     $revoked = createAccessToken($user, $client);
@@ -78,6 +82,7 @@ test('revoked and expired tokens are not listed', function () {
 
 test('a user can revoke all active sessions for their own MCP connection', function () {
     $user = User::factory()->create();
+    app(UpdateUserFeature::class)($user, Feature::AiAssistant, true);
     $client = createOauthClient();
     $firstToken = createAccessToken($user, $client);
     $secondToken = createAccessToken($user, $client);
@@ -110,6 +115,7 @@ test('a user can revoke all active sessions for their own MCP connection', funct
 test('a user cannot revoke another user\'s connection', function () {
     $userA = User::factory()->create();
     $userB = User::factory()->create();
+    app(UpdateUserFeature::class)($userB, Feature::AiAssistant, true);
     $client = createOauthClient();
     $token = createAccessToken($userA, $client);
 

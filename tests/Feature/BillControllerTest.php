@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Cache;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('it renders the bills index page', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $user->bills()->create([
         'title' => 'Rent',
@@ -37,7 +37,7 @@ test('it converts bill amounts to the selected currency and sorts by next due da
     ], now()->addMinutes(5));
 
     try {
-        $user = User::factory()->create();
+        $user = User::factory()->withModules()->create();
 
         $farBill = $user->bills()->create([
             'title' => 'Far bill',
@@ -98,7 +98,7 @@ test('it converts bill amounts to the selected currency and sorts by next due da
 });
 
 test('it localizes default bill category options and labels', function () {
-    $user = User::factory()->create(['locale' => 'fa']);
+    $user = User::factory()->withModules()->create(['locale' => 'fa']);
     $category = Category::factory()->cost()->create([
         'name' => 'Bills',
         'slug' => 'bills',
@@ -129,7 +129,7 @@ test('it creates a recurring bill and generates the first occurrence', function 
     Carbon::setTestNow(Carbon::create(2026, 7, 10));
 
     try {
-        $user = User::factory()->create();
+        $user = User::factory()->withModules()->create();
         $category = Category::factory()->cost()->create();
 
         $this->actingAs($user)
@@ -160,7 +160,7 @@ test('updating the due day recomputes the pending occurrence instead of leaving 
     Carbon::setTestNow(Carbon::create(2026, 7, 10));
 
     try {
-        $user = User::factory()->create();
+        $user = User::factory()->withModules()->create();
 
         $bill = $user->bills()->create([
             'title' => 'Room bill',
@@ -199,7 +199,7 @@ test('updating the due day skips an already paid occurrence and updates the next
     Carbon::setTestNow(Carbon::create(2026, 7, 10));
 
     try {
-        $user = User::factory()->create();
+        $user = User::factory()->withModules()->create();
         $bill = $user->bills()->create([
             'title' => 'Server',
             'amount' => 7.5,
@@ -238,7 +238,7 @@ test('updating a bill that already matches its due day leaves the occurrence unt
     Carbon::setTestNow(Carbon::create(2026, 7, 10));
 
     try {
-        $user = User::factory()->create();
+        $user = User::factory()->withModules()->create();
 
         $bill = $user->bills()->create([
             'title' => 'Rent',
@@ -272,7 +272,7 @@ test('updating a bill that already matches its due day leaves the occurrence unt
 });
 
 test('updating a bill preserves the telegram reminder preference', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $bill = $user->bills()->create([
         'title' => 'Rent',
@@ -311,7 +311,7 @@ test('updating a bill preserves the telegram reminder preference', function () {
 });
 
 test('it creates a one-time bill with the given due date', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $this->actingAs($user)
         ->post(route('bills.store'), [
@@ -330,7 +330,7 @@ test('it creates a one-time bill with the given due date', function () {
 });
 
 test('marking an occurrence paid creates a cost transaction and stops it from being reminded again', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $category = Category::factory()->cost()->create();
 
     $bill = $user->bills()->create([
@@ -357,8 +357,8 @@ test('marking an occurrence paid creates a cost transaction and stops it from be
 });
 
 test('users cannot mark another users bill occurrence as paid', function () {
-    $owner = User::factory()->create();
-    $intruder = User::factory()->create();
+    $owner = User::factory()->withModules()->create();
+    $intruder = User::factory()->withModules()->create();
 
     $bill = $owner->bills()->create([
         'title' => 'Rent',
@@ -376,7 +376,7 @@ test('users cannot mark another users bill occurrence as paid', function () {
 });
 
 test('it deletes a bill', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $bill = $user->bills()->create([
         'title' => 'Subscription',
@@ -394,7 +394,7 @@ test('it deletes a bill', function () {
 });
 
 test('calling MarkBillOccurrencePaid twice does not create a duplicate transaction', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
 
     $bill = $user->bills()->create([
         'title' => 'Rent',
@@ -414,8 +414,8 @@ test('calling MarkBillOccurrencePaid twice does not create a duplicate transacti
 });
 
 test('store rejects a category_id that does not belong to the user', function () {
-    $owner = User::factory()->create();
-    $intruder = User::factory()->create();
+    $owner = User::factory()->withModules()->create();
+    $intruder = User::factory()->withModules()->create();
     $category = Category::factory()->cost()->create(['user_id' => $owner->id, 'is_default' => false]);
 
     $this->actingAs($intruder)
@@ -433,7 +433,7 @@ test('store rejects a category_id that does not belong to the user', function ()
 });
 
 test('marking a bill occurrence paid without a category falls back to the default bills category', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $billsCategory = Category::query()->firstOrCreate(
         ['user_id' => null, 'type' => 'cost', 'slug' => 'bills'],
         ['name' => 'Bills', 'is_default' => true],
@@ -458,7 +458,7 @@ test('marking a bill occurrence paid without a category falls back to the defaul
 });
 
 test('store rejects an income category for a bill', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withModules()->create();
     $incomeCategory = Category::factory()->income()->create();
 
     $this->actingAs($user)
@@ -473,11 +473,11 @@ test('store rejects an income category for a bill', function () {
         ->assertSessionHasErrors('category_id');
 });
 
-test('syncPending skips the update instead of crashing when the recomputed date collides with another occurrence', function () {
+test('syncPending skips a paid collision and moves the pending occurrence to the next cycle', function () {
     Carbon::setTestNow(Carbon::create(2026, 7, 10));
 
     try {
-        $user = User::factory()->create();
+        $user = User::factory()->withModules()->create();
 
         $bill = $user->bills()->create([
             'title' => 'Rent',
@@ -498,9 +498,9 @@ test('syncPending skips the update instead of crashing when the recomputed date 
 
         app(SyncBillOccurrence::class)->syncPending($bill);
 
-        // Update did not throw, and the pending occurrence was left alone
-        // since updating it to 2026-07-12 would collide with the paid one.
-        expect($pending->fresh()->due_date->toDateString())->toBe('2026-07-20');
+        // Update did not throw, and the pending occurrence moved past the
+        // already-paid 2026-07-12 occurrence to the next monthly cycle.
+        expect($pending->fresh()->due_date->toDateString())->toBe('2026-08-12');
     } finally {
         Carbon::setTestNow();
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Feature;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,6 +32,13 @@ class EnsureMcpUserIsReady
             return response()->json([
                 'error' => 'forbidden',
                 'error_description' => 'Complete your CashPilot profile before connecting AI assistants.',
+            ], 403);
+        }
+
+        if (! $user->hasFeature(Feature::AiAssistant)) {
+            return response()->json([
+                'error' => 'forbidden',
+                'error_description' => 'Turn on the AI Assistant module before connecting AI assistants.',
             ], 403);
         }
 

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import {
+    Bot,
     ChartPie,
     Lock,
     Receipt,
     ReceiptText,
-    Tags,
+    Sparkles,
     TrendingUp,
     Wallet,
 } from 'lucide-vue-next';
@@ -32,10 +33,11 @@ defineOptions({
 });
 
 const icons: Record<string, Component> = {
+    Bot,
     ChartPie,
     Receipt,
     ReceiptText,
-    Tags,
+    Sparkles,
     TrendingUp,
     Wallet,
 };

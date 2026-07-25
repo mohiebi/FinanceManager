@@ -1,10 +1,11 @@
 export type FeatureKey =
     | 'transactions'
-    | 'categories'
     | 'reports'
     | 'bills'
     | 'investments'
-    | 'portfolio';
+    | 'portfolio'
+    | 'ai_assistant'
+    | 'telegram_bot';
 
 /** A feature's resolved state, as shared on every authenticated page. */
 export type ModuleState = {

@@ -20,8 +20,7 @@ const { navItems } = useModuleNav();
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 
-// Promo items all point at the modules page, so matching on the URL alone would
-// light every one of them up at once while you are on it.
+// Promo items should not appear active while they are only discovery prompts.
 function isActive(item: ModuleNavItem): boolean {
     return item.state === 'enabled' && isCurrentUrl(item.href);
 }

@@ -4,6 +4,9 @@ use App\Enums\Feature;
 use App\Models\InvestmentAsset;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Laravel\Passport\Client;
+use Laravel\Passport\Token;
 
 function runFeatureBackfill(): void
 {
@@ -35,13 +38,44 @@ function createInvestmentFor(User $user): void
     ]);
 }
 
+function createBackfillOauthClient(): Client
+{
+    return Client::query()->forceCreate([
+        'name' => 'Claude',
+        'secret' => null,
+        'provider' => null,
+        'redirect_uris' => ['https://claude.ai/api/mcp/auth_callback'],
+        'grant_types' => ['authorization_code', 'refresh_token'],
+        'revoked' => false,
+    ]);
+}
+
+function createBackfillMcpToken(User $user, Client $client): Token
+{
+    return Token::query()->forceCreate([
+        'id' => Str::random(80),
+        'user_id' => $user->id,
+        'client_id' => $client->getKey(),
+        'name' => null,
+        'scopes' => ['mcp:use'],
+        'revoked' => false,
+        'created_at' => now(),
+        'updated_at' => now(),
+        'expires_at' => now()->addDays(15),
+    ]);
+}
+
 test('the backfill switches on modules the user already had data in', function () {
     $billsUser = User::factory()->create();
     $investmentsUser = User::factory()->create();
+    $telegramUser = User::factory()->create(['telegram_chat_id' => '123456']);
+    $aiUser = User::factory()->create();
     $newUser = User::factory()->create();
+    $client = createBackfillOauthClient();
 
     createBillFor($billsUser);
     createInvestmentFor($investmentsUser);
+    createBackfillMcpToken($aiUser, $client);
 
     runFeatureBackfill();
 
@@ -54,6 +88,12 @@ test('the backfill switches on modules the user already had data in', function (
         ->and($investmentsUser->fresh()->hasFeature(Feature::Bills))->toBeFalse();
 
     // Nobody without data gets a row — they stay on the defaults and see the promo.
+    expect($telegramUser->fresh()->hasFeature(Feature::TelegramBot))->toBeTrue()
+        ->and($telegramUser->fresh()->hasFeature(Feature::AiAssistant))->toBeFalse();
+
+    expect($aiUser->fresh()->hasFeature(Feature::AiAssistant))->toBeTrue()
+        ->and($aiUser->fresh()->hasFeature(Feature::TelegramBot))->toBeFalse();
+
     expect($newUser->fresh()->features()->count())->toBe(0)
         ->and($newUser->fresh()->hasFeature(Feature::Reports))->toBeTrue();
 });

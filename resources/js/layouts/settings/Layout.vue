@@ -21,6 +21,12 @@ const page = usePage();
 const showAssets = computed(
     () => page.props.features?.investments?.enabled !== false,
 );
+const showTelegram = computed(
+    () => page.props.features?.telegram_bot?.enabled !== false,
+);
+const showAiConnections = computed(
+    () => page.props.features?.ai_assistant?.enabled !== false,
+);
 
 const sidebarNavItems = computed<NavItem[]>(() => [
     { title: t('settings.navigation.profile'), href: editProfile() },
@@ -43,8 +49,12 @@ const sidebarNavItems = computed<NavItem[]>(() => [
               },
           ]
         : []),
-    { title: t('settings.navigation.telegram'), href: editTelegram() },
-    { title: t('settings.navigation.ai'), href: editAiConnections() },
+    ...(showTelegram.value
+        ? [{ title: t('settings.navigation.telegram'), href: editTelegram() }]
+        : []),
+    ...(showAiConnections.value
+        ? [{ title: t('settings.navigation.ai'), href: editAiConnections() }]
+        : []),
 ]);
 
 const { isCurrentOrParentUrl } = useCurrentUrl();

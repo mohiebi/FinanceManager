@@ -11,6 +11,8 @@ dataset('gated pages', [
     'portfolio' => ['portfolio', Feature::Portfolio],
     'portfolio export' => ['portfolio.export', Feature::Portfolio],
     'bills index' => ['bills.index', Feature::Bills],
+    'ai connections settings' => ['ai-connections.edit', Feature::AiAssistant],
+    'telegram settings' => ['telegram.edit', Feature::TelegramBot],
 ]);
 
 test('a page whose module is off redirects to the modules page', function (string $routeName, Feature $feature) {
@@ -30,7 +32,7 @@ test('a page whose module is on is reachable', function (string $routeName, Feat
 
     app(UpdateUserFeature::class)($user, $feature, true);
 
-    $this->actingAs($user)
+    $this->actingAs($user->fresh())
         ->get(route($routeName))
         ->assertSuccessful();
 })->with('gated pages');

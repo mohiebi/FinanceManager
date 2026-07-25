@@ -13,8 +13,8 @@ test('the modules page lists every toggleable module at its default state', func
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/Modules')
-            ->has('modules', 3)
-            ->has('coreModules', 3)
+            ->has('modules', 5)
+            ->has('coreModules', 2)
             ->where('modules.0.key', Feature::Bills->value)
             ->where('modules.0.enabled', false)
             ->where('modules.1.key', Feature::Investments->value)
@@ -22,6 +22,10 @@ test('the modules page lists every toggleable module at its default state', func
             ->where('modules.2.key', Feature::Portfolio->value)
             ->where('modules.2.enabled', false)
             ->where('modules.2.requires', ['Investments'])
+            ->where('modules.3.key', Feature::AiAssistant->value)
+            ->where('modules.3.enabled', false)
+            ->where('modules.4.key', Feature::TelegramBot->value)
+            ->where('modules.4.enabled', false)
         );
 });
 
@@ -96,6 +100,8 @@ test('the resolved feature map is shared with every authenticated page', functio
             ->where('features.bills.enabled', true)
             ->where('features.investments.enabled', false)
             ->where('features.investments.show_promo', true)
+            ->where('features.ai_assistant.enabled', false)
+            ->where('features.telegram_bot.enabled', false)
             ->where('features.transactions.core', true)
         );
 });

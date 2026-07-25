@@ -55,10 +55,14 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
         Route::delete('investment-assets/{investment_asset}', [InvestmentAssetController::class, 'destroy'])->name('investment-assets.destroy');
     });
 
-    Route::get('settings/ai-connections', [AiConnectionsController::class, 'edit'])->name('ai-connections.edit');
-    Route::delete('settings/ai-connections/{token}', [AiConnectionsController::class, 'destroy'])->name('ai-connections.destroy');
+    Route::middleware(EnsureFeatureEnabled::class.':ai_assistant')->group(function () {
+        Route::get('settings/ai-connections', [AiConnectionsController::class, 'edit'])->name('ai-connections.edit');
+        Route::delete('settings/ai-connections/{token}', [AiConnectionsController::class, 'destroy'])->name('ai-connections.destroy');
+    });
 
-    Route::get('settings/telegram', [TelegramController::class, 'edit'])->name('telegram.edit');
-    Route::post('settings/telegram/connect', [TelegramController::class, 'connect'])->name('telegram.connect');
-    Route::delete('settings/telegram', [TelegramController::class, 'disconnect'])->name('telegram.disconnect');
+    Route::middleware(EnsureFeatureEnabled::class.':telegram_bot')->group(function () {
+        Route::get('settings/telegram', [TelegramController::class, 'edit'])->name('telegram.edit');
+        Route::post('settings/telegram/connect', [TelegramController::class, 'connect'])->name('telegram.connect');
+        Route::delete('settings/telegram', [TelegramController::class, 'disconnect'])->name('telegram.disconnect');
+    });
 });

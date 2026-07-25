@@ -1,9 +1,11 @@
 import { usePage } from '@inertiajs/vue3';
 import {
+    Bot,
     ChartPie,
     LayoutGrid,
     Receipt,
     ReceiptText,
+    Sparkles,
     TrendingUp,
     Wallet,
 } from 'lucide-vue-next';
@@ -11,16 +13,18 @@ import type { ComputedRef } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { dashboard, portfolio, report } from '@/routes';
+import { edit as editAiConnections } from '@/routes/ai-connections';
 import { index as billsIndex } from '@/routes/bills';
 import { index as investmentsIndex } from '@/routes/investments';
 import { edit as editModules } from '@/routes/modules';
+import { edit as editTelegram } from '@/routes/telegram';
 import { index as transactionsIndex } from '@/routes/transactions';
 import type { FeatureKey } from '@/types/features';
 import type { NavItem } from '@/types/navigation';
 
 /**
- * `enabled` renders normally; `promo` renders greyed with a "+" and links to the
- * modules page. Modules the user hid are dropped from the list entirely, so there
+ * `enabled` renders normally; `promo` renders greyed with a "+". Modules the
+ * user hid are dropped from the list entirely, so there
  * is no third state to render.
  */
 export type ModuleNavState = 'enabled' | 'promo';
@@ -94,6 +98,20 @@ export function useModuleNav(): UseModuleNavReturn {
                 title: t('navigation.bills'),
                 href: billsIndex(),
                 icon: Receipt,
+            },
+            {
+                key: 'ai_assistant',
+                feature: 'ai_assistant',
+                title: t('navigation.ai_assistant'),
+                href: editAiConnections(),
+                icon: Sparkles,
+            },
+            {
+                key: 'telegram_bot',
+                feature: 'telegram_bot',
+                title: t('navigation.telegram_bot'),
+                href: editTelegram(),
+                icon: Bot,
             },
         ];
 

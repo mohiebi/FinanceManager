@@ -12,11 +12,12 @@ namespace App\Enums;
 enum Feature: string
 {
     case Transactions = 'transactions';
-    case Categories = 'categories';
     case Reports = 'reports';
     case Bills = 'bills';
     case Investments = 'investments';
     case Portfolio = 'portfolio';
+    case AiAssistant = 'ai_assistant';
+    case TelegramBot = 'telegram_bot';
 
     public function label(): string
     {
@@ -29,11 +30,12 @@ enum Feature: string
 
         return match ($this) {
             self::Transactions => 'Transactions',
-            self::Categories => 'Categories',
             self::Reports => 'Reports',
             self::Bills => 'Bills',
             self::Investments => 'Investments',
             self::Portfolio => 'Portfolio',
+            self::AiAssistant => 'AI Assistant',
+            self::TelegramBot => 'Telegram Bot',
         };
     }
 
@@ -49,7 +51,7 @@ enum Feature: string
     public function isCore(): bool
     {
         return match ($this) {
-            self::Transactions, self::Categories, self::Reports => true,
+            self::Transactions, self::Reports => true,
             default => false,
         };
     }
@@ -130,11 +132,12 @@ enum Feature: string
     {
         return match ($this) {
             self::Transactions => 'ReceiptText',
-            self::Categories => 'Tags',
             self::Reports => 'ChartPie',
             self::Bills => 'Receipt',
             self::Investments => 'TrendingUp',
             self::Portfolio => 'Wallet',
+            self::AiAssistant => 'Sparkles',
+            self::TelegramBot => 'Bot',
         };
     }
 

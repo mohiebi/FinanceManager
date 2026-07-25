@@ -19,7 +19,7 @@ return new class extends Migration
     {
         $now = now();
 
-        DB::table('users')->select('id')->orderBy('id')->chunkById(500, function ($users) use ($now): void {
+        DB::table('users')->select('id', 'telegram_chat_id')->orderBy('id')->chunkById(500, function ($users) use ($now): void {
             $ids = collect($users)->pluck('id');
 
             $withBills = DB::table('bills')
@@ -41,6 +41,20 @@ return new class extends Migration
                 ->unique()
                 ->flip();
 
+            $withTelegram = collect($users)
+                ->filter(fn ($user): bool => filled($user->telegram_chat_id))
+                ->pluck('id')
+                ->flip();
+
+            $withAiAssistant = DB::table('oauth_access_tokens')
+                ->whereIn('user_id', $ids)
+                ->where('revoked', false)
+                ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', $now))
+                ->where('scopes', 'like', '%mcp:use%')
+                ->distinct()
+                ->pluck('user_id')
+                ->flip();
+
             $rows = [];
 
             foreach ($ids as $id) {
@@ -50,6 +64,8 @@ return new class extends Migration
                     'bills' => $withBills->has($id),
                     'investments' => $withInvestments->has($id),
                     'portfolio' => $withInvestments->has($id),
+                    'ai_assistant' => $withAiAssistant->has($id),
+                    'telegram_bot' => $withTelegram->has($id),
                 ];
 
                 foreach ($enabled as $feature => $isEnabled) {
@@ -81,7 +97,7 @@ return new class extends Migration
     public function down(): void
     {
         DB::table('user_features')
-            ->whereIn('feature', ['bills', 'investments', 'portfolio'])
+            ->whereIn('feature', ['bills', 'investments', 'portfolio', 'ai_assistant', 'telegram_bot'])
             ->delete();
     }
 };

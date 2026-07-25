@@ -48,4 +48,12 @@ return [
         'label' => 'Portfolio',
         'description' => 'Sieh dein Nettovermögen sowie Gewinn und Verlust über alle Anlagen hinweg.',
     ],
+    'ai_assistant' => [
+        'label' => 'KI-Assistent',
+        'description' => 'Verbinde KI-Tools, die deine Finanzdaten lesen und Aenderungen zur Freigabe vorschlagen koennen.',
+    ],
+    'telegram_bot' => [
+        'label' => 'Telegram-Bot',
+        'description' => 'Nutze CashPilot in Telegram, um Eintraege zu erfassen, Zusammenfassungen zu pruefen und Erinnerungen zu erhalten.',
+    ],
 ];

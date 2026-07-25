@@ -9,11 +9,12 @@ test('a user with no feature rows sits at the enum defaults', function () {
     $user = User::factory()->create();
 
     expect($user->hasFeature(Feature::Transactions))->toBeTrue()
-        ->and($user->hasFeature(Feature::Categories))->toBeTrue()
         ->and($user->hasFeature(Feature::Reports))->toBeTrue()
         ->and($user->hasFeature(Feature::Bills))->toBeFalse()
         ->and($user->hasFeature(Feature::Investments))->toBeFalse()
         ->and($user->hasFeature(Feature::Portfolio))->toBeFalse()
+        ->and($user->hasFeature(Feature::AiAssistant))->toBeFalse()
+        ->and($user->hasFeature(Feature::TelegramBot))->toBeFalse()
         ->and($user->features()->count())->toBe(0);
 });
 

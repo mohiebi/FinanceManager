@@ -28,10 +28,6 @@ return [
         'label' => 'Transactions',
         'description' => 'Record what you earn and spend. The base of everything else.',
     ],
-    'categories' => [
-        'label' => 'Categories',
-        'description' => 'Group your transactions so reports and budgets mean something.',
-    ],
     'reports' => [
         'label' => 'Reports',
         'description' => 'Break your income and spending down by category and by month.',
@@ -47,5 +43,13 @@ return [
     'portfolio' => [
         'label' => 'Portfolio',
         'description' => 'See your net worth and profit or loss across every asset you hold.',
+    ],
+    'ai_assistant' => [
+        'label' => 'AI Assistant',
+        'description' => 'Connect AI tools that can read your finance data and propose changes for your approval.',
+    ],
+    'telegram_bot' => [
+        'label' => 'Telegram Bot',
+        'description' => 'Use CashPilot from Telegram to add entries, review summaries, and receive reminders.',
     ],
 ];

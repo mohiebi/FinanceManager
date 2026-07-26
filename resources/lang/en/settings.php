@@ -57,6 +57,58 @@ return [
         'hide_recovery_codes' => 'Hide recovery codes',
         'regenerate_recovery_codes' => 'Regenerate codes',
         'recovery_codes_notice' => 'Each recovery code can be used once to access your account and will be removed after use. If you need more, click {action} above.',
+        'vault' => [
+            'title' => 'Private vault',
+            'armed_status' => 'Private vault is on. Only you hold the key now.',
+            'disarmed_status' => 'Private vault is off. CashPilot can read your amounts and titles again.',
+
+            'off_heading' => 'Your data is encrypted with a key that is yours alone',
+            'off_point_1' => 'Every amount, title and note is encrypted before it is stored. A stolen database is unreadable.',
+            'off_point_2' => 'CashPilot can still read your data to build reports, run the Telegram bot and answer the AI assistant.',
+            'off_point_3' => 'Forgotten your password? You can always get back in by email.',
+
+            'on_heading' => 'Only you hold the key',
+            'on_point_1' => 'We cannot read your amounts or titles. Not our staff, not under a court order.',
+            'on_point_2' => 'Telegram, the AI assistant and Portfolio are off, because they need a server that can read.',
+            'on_point_3' => 'If you lose both your passphrase and your recovery key, your data is gone for good.',
+
+            'enable' => 'Turn on private vault',
+            'disable' => 'Turn off private vault',
+            'needs_password' => 'Add a password to your account first — turning the vault on is confirmed with it.',
+
+            'gain' => 'What you gain',
+            'lose' => 'What you give up',
+            'enable_gain' => 'Nobody but you can read your amounts and titles, whatever happens to our servers.',
+            'enable_lose' => 'Telegram, the AI assistant, Portfolio, spreadsheet import and export — and any way back if you lose both secrets.',
+            'disable_gain' => 'Those features come back, and you can recover your account by email again.',
+            'disable_lose' => 'CashPilot can read your amounts and titles again. This is the privacy downgrade.',
+
+            'passphrase' => 'Vault passphrase',
+            'passphrase_help' => 'Separate from your login password, and never sent to us. Twelve characters minimum.',
+            'generate' => 'Generate one for me',
+            'passphrase_too_short' => 'Use at least 12 characters, or let us generate one.',
+
+            'recovery_heading' => 'Save your recovery key',
+            'recovery_help' => 'The only way back if you forget your passphrase. Store it somewhere safe — a password manager, or on paper.',
+            'recovery_confirm' => 'Type group :position to confirm you saved it',
+            'recovery_mismatch' => 'That does not match. Check your saved copy.',
+            'acknowledge' => 'I have saved my recovery key somewhere safe',
+
+            'confirm_word' => 'Type :word to confirm',
+            'confirm_word_value' => 'TURN OFF',
+            'confirm_understood' => 'I understand CashPilot will be able to read my amounts and titles again',
+            'cancel' => 'Cancel',
+            'continue' => 'Continue',
+
+            'unlock_title' => 'Unlock your vault',
+            'unlock_description' => 'Your data is encrypted with a key only you hold. Enter your passphrase to read it.',
+            'unlock' => 'Unlock',
+            'unlock_failed' => 'That passphrase did not open the vault.',
+            'use_recovery' => 'Use my recovery key instead',
+            'use_passphrase' => 'Use my passphrase instead',
+            'recovery_key' => 'Recovery key',
+            'reload_note' => 'You will be asked again after a reload or in a new tab — the key is never stored.',
+        ],
     ],
     'telegram' => [
         'title' => 'Telegram settings',

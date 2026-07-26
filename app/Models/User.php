@@ -159,6 +159,40 @@ class User extends Authenticatable implements MustVerifyEmail
         return app(UserKeyRing::class)->for($this->getKey()) === null;
     }
 
+    public function forgetEncryptionKey(): void
+    {
+        $this->unsetRelation('encryptionKey');
+    }
+
+    /**
+     * What the browser needs to unlock, shared on every authenticated page.
+     *
+     * Everything here is public by design: two salts, an iteration count, a hash
+     * of a 256-bit random value, and two ciphertexts nobody without the passphrase
+     * or recovery key can open.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function vaultDescriptor(): ?array
+    {
+        $key = $this->encryptionKey;
+
+        if ($key === null || ! $key->vaultIsArmed()) {
+            return null;
+        }
+
+        return [
+            'armed' => true,
+            'kdf' => $key->kdf,
+            'iterations' => $key->kdf_iterations,
+            'salt' => $key->kdf_salt,
+            'recoverySalt' => $key->recovery_salt,
+            'fingerprint' => $key->dek_fingerprint,
+            'wrappedPassphrase' => $key->wrapped_dek_passphrase,
+            'wrappedRecovery' => $key->wrapped_dek_recovery,
+        ];
+    }
+
     /**
      * The user's resolved feature state, merging their sparse overrides over the
      * enum defaults.

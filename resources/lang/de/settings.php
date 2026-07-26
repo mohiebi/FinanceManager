@@ -57,6 +57,58 @@ return [
         'hide_recovery_codes' => 'Wiederherstellungscodes ausblenden',
         'regenerate_recovery_codes' => 'Codes neu generieren',
         'recovery_codes_notice' => 'Jeder Wiederherstellungscode kann einmal für den Kontozugriff verwendet werden und wird danach entfernt. Wenn du mehr benötigst, klicke oben auf {action}.',
+        'vault' => [
+            'title' => 'Privater Tresor',
+            'armed_status' => 'Der private Tresor ist an. Nur du hast jetzt den Schlüssel.',
+            'disarmed_status' => 'Der private Tresor ist aus. CashPilot kann deine Beträge und Titel wieder lesen.',
+
+            'off_heading' => 'Deine Daten sind mit einem Schlüssel verschlüsselt, der nur dir gehört',
+            'off_point_1' => 'Jeder Betrag, Titel und jede Notiz wird vor dem Speichern verschlüsselt. Eine gestohlene Datenbank ist unlesbar.',
+            'off_point_2' => 'CashPilot kann deine Daten weiterhin lesen, um Berichte zu erstellen, den Telegram-Bot zu betreiben und den KI-Assistenten zu beantworten.',
+            'off_point_3' => 'Passwort vergessen? Du kommst jederzeit per E-Mail wieder hinein.',
+
+            'on_heading' => 'Nur du hast den Schlüssel',
+            'on_point_1' => 'Wir können deine Beträge und Titel nicht lesen. Weder unsere Mitarbeitenden noch auf gerichtliche Anordnung.',
+            'on_point_2' => 'Telegram, der KI-Assistent und das Portfolio sind aus, weil sie einen lesenden Server brauchen.',
+            'on_point_3' => 'Verlierst du Passphrase und Wiederherstellungsschlüssel, sind deine Daten endgültig weg.',
+
+            'enable' => 'Privaten Tresor einschalten',
+            'disable' => 'Privaten Tresor ausschalten',
+            'needs_password' => 'Lege zuerst ein Passwort für dein Konto fest — damit wird das Einschalten bestätigt.',
+
+            'gain' => 'Was du gewinnst',
+            'lose' => 'Was du aufgibst',
+            'enable_gain' => 'Niemand außer dir kann deine Beträge und Titel lesen, was auch immer mit unseren Servern passiert.',
+            'enable_lose' => 'Telegram, den KI-Assistenten, das Portfolio, Import und Export — und jeden Weg zurück, falls du beide Geheimnisse verlierst.',
+            'disable_gain' => 'Diese Funktionen kommen zurück, und du kannst dein Konto wieder per E-Mail wiederherstellen.',
+            'disable_lose' => 'CashPilot kann deine Beträge und Titel wieder lesen. Das ist der Rückschritt beim Datenschutz.',
+
+            'passphrase' => 'Tresor-Passphrase',
+            'passphrase_help' => 'Getrennt von deinem Login-Passwort und wird nie an uns gesendet. Mindestens zwölf Zeichen.',
+            'generate' => 'Erzeuge eine für mich',
+            'passphrase_too_short' => 'Nutze mindestens 12 Zeichen, oder lass uns eine erzeugen.',
+
+            'recovery_heading' => 'Sichere deinen Wiederherstellungsschlüssel',
+            'recovery_help' => 'Der einzige Weg zurück, wenn du deine Passphrase vergisst. Bewahre ihn sicher auf — im Passwortmanager oder auf Papier.',
+            'recovery_confirm' => 'Tippe Gruppe :position, um die Sicherung zu bestätigen',
+            'recovery_mismatch' => 'Das stimmt nicht überein. Prüfe deine Kopie.',
+            'acknowledge' => 'Ich habe meinen Wiederherstellungsschlüssel sicher gespeichert',
+
+            'confirm_word' => 'Tippe :word zur Bestätigung',
+            'confirm_word_value' => 'AUSSCHALTEN',
+            'confirm_understood' => 'Mir ist klar, dass CashPilot meine Beträge und Titel wieder lesen kann',
+            'cancel' => 'Abbrechen',
+            'continue' => 'Weiter',
+
+            'unlock_title' => 'Tresor entsperren',
+            'unlock_description' => 'Deine Daten sind mit einem Schlüssel verschlüsselt, den nur du hast. Gib deine Passphrase ein, um sie zu lesen.',
+            'unlock' => 'Entsperren',
+            'unlock_failed' => 'Mit dieser Passphrase ließ sich der Tresor nicht öffnen.',
+            'use_recovery' => 'Stattdessen Wiederherstellungsschlüssel nutzen',
+            'use_passphrase' => 'Stattdessen Passphrase nutzen',
+            'recovery_key' => 'Wiederherstellungsschlüssel',
+            'reload_note' => 'Nach einem Neuladen oder in einem neuen Tab wirst du erneut gefragt — der Schlüssel wird nie gespeichert.',
+        ],
     ],
     'telegram' => [
         'title' => 'Telegram-Einstellungen',

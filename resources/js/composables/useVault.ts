@@ -68,6 +68,7 @@ export type UseVaultReturn = {
     unlockWithRecoveryKey: (
         recoveryKey: Uint8Array<ArrayBuffer>,
     ) => Promise<void>;
+    exportKeyWithPassphrase: (passphrase: string) => Promise<string>;
     lock: () => void;
 };
 
@@ -171,6 +172,39 @@ export function useVault(): UseVaultReturn {
         );
     }
 
+    /**
+     * Re-derive the raw data key from the passphrase, for handing back to the
+     * server when leaving the vault.
+     *
+     * Deliberately not read from the unlocked key: that one is imported
+     * non-extractable precisely so it can never be exported. Re-deriving means the
+     * raw bytes exist only for this call, and it makes the privacy downgrade
+     * re-authenticated rather than something a stray click can do.
+     */
+    async function exportKeyWithPassphrase(
+        passphrase: string,
+    ): Promise<string> {
+        const vault = descriptor();
+
+        if (vault === null || !vault.armed) {
+            throw new Error('The vault is not armed.');
+        }
+
+        const kek = await derivePassphraseKek(
+            passphrase,
+            base64ToBytes(vault.salt),
+            vault.iterations,
+        );
+
+        const raw = await decrypt(vault.wrappedPassphrase, kek, DEK_AAD);
+
+        if ((await fingerprintOf(base64ToBytes(raw))) !== vault.fingerprint) {
+            throw new Error('That passphrase did not open the vault.');
+        }
+
+        return raw;
+    }
+
     function lock(): void {
         dek = null;
         unlocked.value = false;
@@ -184,6 +218,7 @@ export function useVault(): UseVaultReturn {
         revealAsync,
         unlockWithPassphrase,
         unlockWithRecoveryKey,
+        exportKeyWithPassphrase,
         lock,
     };
 }

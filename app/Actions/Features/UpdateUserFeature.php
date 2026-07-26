@@ -16,14 +16,35 @@ final readonly class UpdateUserFeature
 
     public function __invoke(User $user, Feature $target, bool $enable): FeatureToggleResult
     {
-        $current = $user->featureSet()->toEnabledMap();
-
         // Defence in depth: the form request rejects these too, but a self-managed
         // feature reaching this action would mean a caller bypassed the crypto
         // handshake that owns it.
         if ($target->isSelfManaged()) {
-            return new FeatureToggleResult($current, [], FeatureToggleResult::REJECTED_SELF_MANAGED);
+            return new FeatureToggleResult(
+                $user->featureSet()->toEnabledMap(),
+                [],
+                FeatureToggleResult::REJECTED_SELF_MANAGED,
+            );
         }
+
+        return $this->apply($user, $target, $enable);
+    }
+
+    /**
+     * Toggle a self-managed feature.
+     *
+     * Only for the controller that owns that feature's crypto — VaultController
+     * calls this after the browser has wrapped the data key, which is the step the
+     * generic endpoint cannot perform.
+     */
+    public function force(User $user, Feature $target, bool $enable): FeatureToggleResult
+    {
+        return $this->apply($user, $target, $enable);
+    }
+
+    private function apply(User $user, Feature $target, bool $enable): FeatureToggleResult
+    {
+        $current = $user->featureSet()->toEnabledMap();
 
         if ($enable && ! $user->mayUse($target)) {
             return new FeatureToggleResult($current, [], FeatureToggleResult::REJECTED_ENTITLEMENT);

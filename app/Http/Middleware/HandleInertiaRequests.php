@@ -57,6 +57,9 @@ class HandleInertiaRequests extends Middleware
             // make menu items pop in after first paint. Costs one memoized query
             // that the feature middleware has usually already paid for.
             'features' => fn () => $request->user()?->featureSet()->toArray(),
+            // Eager like the feature map: the unlock dialog is a layout-level gate,
+            // and deferring it would flash unlocked-looking UI on every page load.
+            'vault' => fn () => $request->user()?->vaultDescriptor(),
             'fallbackLocale' => FrontendLocalization::DEFAULT_LOCALE,
             'fallbackTranslations' => $locale === FrontendLocalization::DEFAULT_LOCALE
                 ? null

@@ -90,11 +90,11 @@ return [
 
             'recovery_heading' => 'Sichere deinen Wiederherstellungsschlüssel',
             'recovery_help' => 'Der einzige Weg zurück, wenn du deine Passphrase vergisst. Bewahre ihn sicher auf — im Passwortmanager oder auf Papier.',
-            'recovery_confirm' => 'Tippe Gruppe :position, um die Sicherung zu bestätigen',
+            'recovery_confirm' => 'Tippe Gruppe {position}, um die Sicherung zu bestätigen',
             'recovery_mismatch' => 'Das stimmt nicht überein. Prüfe deine Kopie.',
             'acknowledge' => 'Ich habe meinen Wiederherstellungsschlüssel sicher gespeichert',
 
-            'confirm_word' => 'Tippe :word zur Bestätigung',
+            'confirm_word' => 'Tippe {word} zur Bestätigung',
             'confirm_word_value' => 'AUSSCHALTEN',
             'confirm_understood' => 'Mir ist klar, dass CashPilot meine Beträge und Titel wieder lesen kann',
             'cancel' => 'Abbrechen',

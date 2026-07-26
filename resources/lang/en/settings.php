@@ -90,11 +90,11 @@ return [
 
             'recovery_heading' => 'Save your recovery key',
             'recovery_help' => 'The only way back if you forget your passphrase. Store it somewhere safe — a password manager, or on paper.',
-            'recovery_confirm' => 'Type group :position to confirm you saved it',
+            'recovery_confirm' => 'Type group {position} to confirm you saved it',
             'recovery_mismatch' => 'That does not match. Check your saved copy.',
             'acknowledge' => 'I have saved my recovery key somewhere safe',
 
-            'confirm_word' => 'Type :word to confirm',
+            'confirm_word' => 'Type {word} to confirm',
             'confirm_word_value' => 'TURN OFF',
             'confirm_understood' => 'I understand CashPilot will be able to read my amounts and titles again',
             'cancel' => 'Cancel',

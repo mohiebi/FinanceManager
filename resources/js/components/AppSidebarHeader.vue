@@ -1,17 +1,6 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import {
-    ChartPie,
-    LayoutGrid,
-    Menu,
-    Receipt,
-    ReceiptText,
-    Settings,
-    ShieldCheck,
-    TrendingUp,
-    User,
-    Wallet,
-} from 'lucide-vue-next';
+import { Menu, Plus, Settings, ShieldCheck, User } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import NotificationBell from '@/components/NotificationBell.vue';
@@ -28,12 +17,10 @@ import {
 } from '@/components/ui/sheet';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import { dashboard, portfolio, report } from '@/routes';
+import { useModuleNav } from '@/composables/useModuleNav';
+import type { ModuleNavItem } from '@/composables/useModuleNav';
 import { dashboard as adminDashboard } from '@/routes/admin';
-import { index as billsIndex } from '@/routes/bills';
-import { index as investmentsIndex } from '@/routes/investments';
 import { edit as editProfile } from '@/routes/profile';
-import { index as transactionsIndex } from '@/routes/transactions';
 import type { BreadcrumbItem } from '@/types';
 import logoGreen from '../../img/Logo-green.svg';
 
@@ -55,27 +42,31 @@ type CurrencyPageProps = {
 const page = usePage();
 const { t } = useI18n();
 const { isCurrentUrl } = useCurrentUrl();
+const { navItems } = useModuleNav();
 
 const isMenuOpen = ref(false);
 
 const user = computed(() => page.props.auth.user);
 
-const mainNavItems = computed(() => {
-    const items = [
-        { title: t('navigation.dashboard'), href: dashboard(), icon: LayoutGrid },
-        { title: t('navigation.transactions'), href: transactionsIndex(), icon: ReceiptText },
-        { title: t('navigation.report'), href: report(), icon: ChartPie },
-        { title: t('navigation.investments'), href: investmentsIndex(), icon: TrendingUp },
-        { title: t('navigation.portfolio'), href: portfolio(), icon: Wallet },
-        { title: t('navigation.bills'), href: billsIndex(), icon: Receipt },
-    ];
+const mainNavItems = computed<ModuleNavItem[]>(() => {
+    const items = [...navItems.value];
 
     if (page.props.auth.isAdmin) {
-        items.push({ title: 'Admin', href: adminDashboard(), icon: ShieldCheck });
+        items.push({
+            key: 'admin',
+            title: 'Admin',
+            href: adminDashboard(),
+            icon: ShieldCheck,
+            state: 'enabled',
+        });
     }
 
     return items;
 });
+
+function isActive(item: ModuleNavItem): boolean {
+    return item.state === 'enabled' && isCurrentUrl(item.href);
+}
 
 const pageTitle = computed(() => {
     const title = props.breadcrumbs.at(-1)?.title ?? 'Dashboard';
@@ -128,7 +119,7 @@ function changeCurrency(value: string) {
 
 <template>
     <header
-        class="flex min-h-[72px] shrink-0 items-center bg-[#454545] px-4 text-white shadow-sm transition-[width,height] ease-linear lg:min-h-[92px] lg:px-7 py-3 lg:py-6"
+        class="sticky top-0 z-40 flex min-h-[72px] shrink-0 items-center bg-[#454545] px-4 py-3 text-white shadow-sm transition-[width,height] ease-linear lg:static lg:min-h-[92px] lg:px-7 lg:py-6"
     >
         <div
             class="flex w-full flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-0"
@@ -174,19 +165,44 @@ function changeCurrency(value: string) {
                                 <Menu class="size-[18px]" />
                             </button>
                         </SheetTrigger>
-                        <SheetContent side="right" class="w-72 bg-[#353535] p-0 text-white border-l border-white/10">
-                            <SheetTitle class="sr-only">{{ t('navigation.primary') }}</SheetTitle>
-                            <div class="flex h-full flex-col justify-between px-5 pb-10 pt-6">
-                                <nav class="flex flex-col gap-3" :aria-label="t('navigation.primary')">
+                        <SheetContent
+                            side="right"
+                            class="w-72 border-l border-white/10 bg-[#353535] p-0 text-white"
+                        >
+                            <SheetTitle class="sr-only">{{
+                                t('navigation.primary')
+                            }}</SheetTitle>
+                            <div
+                                class="flex h-full flex-col justify-between px-5 pt-6 pb-10"
+                            >
+                                <nav
+                                    class="flex flex-col gap-3"
+                                    :aria-label="t('navigation.primary')"
+                                >
                                     <Link
                                         v-for="item in mainNavItems"
-                                        :key="item.title"
+                                        :key="item.key"
                                         :href="item.href"
                                         class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150"
-                                        :class="isCurrentUrl(item.href) ? 'bg-[#454545] text-[#02cd86]' : 'text-white/70 hover:bg-[#454545] hover:text-white'"
+                                        :class="
+                                            isActive(item)
+                                                ? 'bg-[#454545] text-[#02cd86]'
+                                                : item.state === 'promo'
+                                                  ? 'text-white/35 hover:bg-[#454545] hover:text-white/60'
+                                                  : 'text-white/70 hover:bg-[#454545] hover:text-white'
+                                        "
                                         @click="isMenuOpen = false"
                                     >
-                                        <component :is="item.icon" class="size-[18px] shrink-0" />
+                                        <span class="relative">
+                                            <component
+                                                :is="item.icon"
+                                                class="size-[18px] shrink-0"
+                                            />
+                                            <Plus
+                                                v-if="item.state === 'promo'"
+                                                class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#02cd86] text-[#353535] rtl:-left-1"
+                                            />
+                                        </span>
                                         {{ item.title }}
                                     </Link>
                                 </nav>
@@ -197,11 +213,18 @@ function changeCurrency(value: string) {
                                             type="button"
                                             class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-white/70 transition-colors duration-150 hover:bg-[#454545] hover:text-white focus-visible:outline-none"
                                         >
-                                            <Settings class="size-[18px] shrink-0" />
+                                            <Settings
+                                                class="size-[18px] shrink-0"
+                                            />
                                             {{ t('settings.title') }}
                                         </button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent class="w-64" side="top" align="start" :side-offset="8">
+                                    <DropdownMenuContent
+                                        class="w-64"
+                                        side="top"
+                                        align="start"
+                                        :side-offset="8"
+                                    >
                                         <UserMenuContent :user="user" />
                                     </DropdownMenuContent>
                                 </DropdownMenu>

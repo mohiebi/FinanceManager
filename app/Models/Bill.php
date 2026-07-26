@@ -65,8 +65,10 @@ class Bill extends Model implements HasEncryptionOwner
     {
         return [
             'title' => UserEncrypted::class,
-            // Still APP_KEY-encrypted; moved onto the per-user key in Stage 3.
-            'amount' => 'encrypted',
+            // Plain string rather than ':decimal,2' on purpose — it preserves the
+            // exact shape the old APP_KEY 'encrypted' cast returned, so moving the
+            // key changes nothing downstream.
+            'amount' => UserEncrypted::class,
             'recurrence_type' => BillRecurrenceType::class,
             'due_date' => 'date:Y-m-d',
             'telegram_reminder_enabled' => 'boolean',

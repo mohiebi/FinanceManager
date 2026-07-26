@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Casts\UserEncrypted;
+use App\Concerns\OwnsEncryptedAttributes;
+use App\Contracts\HasEncryptionOwner;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,8 +19,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'note',
     'occurred_at',
 ])]
-class Investment extends Model
+class Investment extends Model implements HasEncryptionOwner
 {
+    use OwnsEncryptedAttributes;
+
     /**
      * @return BelongsTo<User, Investment>
      */
@@ -40,9 +45,9 @@ class Investment extends Model
     protected function casts(): array
     {
         return [
-            'quantity' => 'encrypted',
-            'cost_basis' => 'encrypted',
-            'note' => 'encrypted',
+            'quantity' => UserEncrypted::class,
+            'cost_basis' => UserEncrypted::class,
+            'note' => UserEncrypted::class,
             'occurred_at' => 'date:Y-m-d',
         ];
     }

@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Casts\UserEncrypted;
+use App\Concerns\OwnsEncryptedAttributes;
+use App\Contracts\HasEncryptionOwner;
 use App\Enums\McpProposalStatus;
 use Database\Factories\McpProposalFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -31,10 +34,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'expires_at',
     'consumed_at',
 ])]
-class McpProposal extends Model
+class McpProposal extends Model implements HasEncryptionOwner
 {
     /** @use HasFactory<McpProposalFactory> */
-    use HasFactory, HasUlids, MassPrunable;
+    use HasFactory, HasUlids, MassPrunable, OwnsEncryptedAttributes;
 
     /**
      * @return BelongsTo<User, McpProposal>
@@ -70,8 +73,8 @@ class McpProposal extends Model
     protected function casts(): array
     {
         return [
-            'payload' => 'encrypted:json',
-            'diff_summary' => 'encrypted:json',
+            'payload' => UserEncrypted::class.':json',
+            'diff_summary' => UserEncrypted::class.':json',
             'status' => McpProposalStatus::class,
             'expires_at' => 'datetime',
             'consumed_at' => 'datetime',

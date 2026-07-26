@@ -1,6 +1,7 @@
 import type { Auth } from '@/types/auth';
 import type { FeatureMap } from '@/types/features';
 import type { NotificationData } from '@/types/notifications';
+import type { VaultDescriptor } from '@/types/vault';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -25,6 +26,8 @@ declare module '@inertiajs/core' {
             calendar: 'gregorian' | 'jalali';
             translations: Record<string, unknown>;
             features: FeatureMap | null;
+            /** Null until a vault exists for this user; see Stage 6. */
+            vault: VaultDescriptor | null;
             seo: {
                 siteName: string;
                 title: string;

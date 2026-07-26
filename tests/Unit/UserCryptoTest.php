@@ -106,6 +106,27 @@ test('it decrypts the shared cross-language vectors', function () {
     }
 });
 
+test('it decrypts blobs produced by the browser implementation', function () {
+    $vectors = json_decode(
+        file_get_contents(dirname(__DIR__).'/fixtures/crypto-vectors-js.json'),
+        true,
+    );
+
+    expect($vectors['encryption'])->not->toBeEmpty();
+
+    // The reverse of the test above. Together they prove the cp1 format
+    // interoperates in both directions, which is the whole point of pinning it.
+    foreach ($vectors['encryption'] as $vector) {
+        $plaintext = UserCrypto::decrypt(
+            $vector['blob'],
+            hex2bin($vector['dek_hex']),
+            $vector['aad'],
+        );
+
+        expect($plaintext)->toBe($vector['plaintext'], "vector: {$vector['name']}");
+    }
+});
+
 test('it agrees with the shared PBKDF2 and HKDF vectors', function () {
     $vectors = cryptoVectors();
 

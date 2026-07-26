@@ -87,7 +87,9 @@
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <p class="truncate text-base font-semibold text-white">
-                            {{ bill.title }}
+                            <!-- Passes plaintext straight through today; the same
+                                 markup handles ciphertext once a vault is armed. -->
+                            <Ciphered :value="bill.title" table="bills" />
                         </p>
                         <p
                             v-if="bill.category_name"
@@ -598,6 +600,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { CalendarClock, Plus, Receipt, Trash2 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import Ciphered from '@/components/Ciphered.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';

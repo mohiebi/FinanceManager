@@ -1,0 +1,60 @@
+{
+    "_comment": "Blobs produced by the BROWSER implementation (resources/js/lib/vault/crypto.ts) and asserted by tests/Unit/UserCryptoTest.php. With crypto-vectors.json this proves the wire format interoperates in BOTH directions. Regenerate only when the format itself changes.",
+    "format": "cp1",
+    "encryption": [
+        {
+            "name": "decimal amount",
+            "dek_hex": "0101010101010101010101010101010101010101010101010101010101010101",
+            "table": "transactions",
+            "column": "amount",
+            "aad": "cp1:transactions:amount",
+            "plaintext": "1250.00",
+            "blob": "Y3Axzn2Mc1whYs3EUSM0lWYtDjgZ+wikkUHA9oLwe8IQE0lbEcQ="
+        },
+        {
+            "name": "ascii title",
+            "dek_hex": "0101010101010101010101010101010101010101010101010101010101010101",
+            "table": "transactions",
+            "column": "title",
+            "aad": "cp1:transactions:title",
+            "plaintext": "Weekly groceries",
+            "blob": "Y3AxqP8Z50TpGnUjOd0Te9E6PbTMpFxec6KHI8WNsdS7Ixk+29Sff0/odxwC/bc="
+        },
+        {
+            "name": "persian title",
+            "dek_hex": "02030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021",
+            "table": "transactions",
+            "column": "title",
+            "aad": "cp1:transactions:title",
+            "plaintext": "خرید هفتگی",
+            "blob": "Y3Ax+vgehL0G1uoctJB44Gs2PULRQjX5QBugXkHqs5PpHkjNkk+HPsfHpD6qfJJZV2A="
+        },
+        {
+            "name": "emoji and newlines",
+            "dek_hex": "02030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021",
+            "table": "transactions",
+            "column": "description",
+            "aad": "cp1:transactions:description",
+            "plaintext": "line one\nline two 🎉",
+            "blob": "Y3AxV+wV5jlronB/HUxno4RvcY2GYB06GuzJch6mlC+NXhQr60VeLiPZTTXGs9VThqdKV3g="
+        },
+        {
+            "name": "long text",
+            "dek_hex": "02030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021",
+            "table": "bills",
+            "column": "title",
+            "aad": "cp1:bills:title",
+            "plaintext": "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij",
+            "blob": "Y3AxR0axbcVP/dKsW9TcbNK53pWdIqRmE04mLxMyycApZhd2bGxgBbF4/drl9ZctkAlLo3h18gPvIGoeH0esOpkiDloqWCpITXUmIVrT9f2JZlvdBmxd4wHQ5fM8CNWyEwnU8IGRi8JsLmcR2RNcbQO9ocFoQu5WIdZ7NiLH9ne9oGJmYLAMhch9KDW+71wPQ/z19DGd2ZlKGnujacbT/vs0E1mOeUC7z2cxLS+8+OqBbZfsHPXm3xyJpq5SgikK1ke1hi/rlps9gkpM3smnW8LljsQdlZ282yR3XE9kXHE8gxk9Pd8qGynvmUMwtdQ20l37/QrD9/uQwLMRLBraQ/Syr8diCAu76y4ngHmmEjxz9PY+OGZkDOGNuVJUfw2H8l8uFWyg5+Pbf5dEP2NHamQH+EZezaBlMJG6huR83c5bdw46lHv2AAG6dZnhKjtWDGZowMTY8EQaYX8xaVpiWInHuVJi7c0GefCntgkX0ghj1UVsb+vkGBkNf8yTKmALZca8AafqlKHwqkUrzQE7JwSaXbKwC7DxqUn6HGJ5M6ds/MsSfHcf8jP+dTH25Rg="
+        },
+        {
+            "name": "negative decimal",
+            "dek_hex": "0101010101010101010101010101010101010101010101010101010101010101",
+            "table": "transactions",
+            "column": "amount",
+            "aad": "cp1:transactions:amount",
+            "plaintext": "-42.50",
+            "blob": "Y3Ax1g266KNOyjOvnyJo0V5UmrfgflE0n/t8i5llqF9L+RpTmQ=="
+        }
+    ]
+}

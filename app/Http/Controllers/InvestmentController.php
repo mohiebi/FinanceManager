@@ -49,7 +49,8 @@ class InvestmentController extends Controller
             ->orderBy('created_at')
             ->get();
 
-        $holdings = $this->computeHoldings($allEntries);
+        $vaultArmed = $user->vaultIsArmed();
+        $holdings = $vaultArmed ? [] : $this->computeHoldings($allEntries);
 
         $assetTypes = $assetOptions->map(fn (InvestmentAsset $asset) => (new InvestmentAssetResource($asset))->resolve($request));
 
@@ -59,7 +60,7 @@ class InvestmentController extends Controller
             ->orderByDesc('created_at')
             ->limit(100)
             ->get()
-            ->map(function (Investment $investment) {
+            ->map(function (Investment $investment) use ($vaultArmed) {
                 $asset = $investment->asset;
 
                 return [
@@ -71,8 +72,8 @@ class InvestmentController extends Controller
                     'asset_icon_svg' => $asset?->icon_svg,
                     'asset_color' => $asset?->color ?? '#02CD86',
                     'asset_unit' => $asset?->unit ?? '',
-                    'quantity' => (float) $investment->quantity,
-                    'cost_basis' => $investment->cost_basis !== null ? (float) $investment->cost_basis : null,
+                    'quantity' => $vaultArmed ? $investment->quantity : (float) $investment->quantity,
+                    'cost_basis' => $vaultArmed || $investment->cost_basis === null ? $investment->cost_basis : (float) $investment->cost_basis,
                     'cost_basis_currency' => $investment->cost_basis_currency,
                     'note' => $investment->note,
                     'occurred_at' => $investment->occurred_at->toDateString(),
@@ -104,7 +105,11 @@ class InvestmentController extends Controller
                     ];
                 }, $assets);
             }),
-            'summary' => Inertia::defer(function () use ($holdings, $priceService, $fmt, $allEntries) {
+            'summary' => Inertia::defer(function () use ($vaultArmed, $holdings, $priceService, $fmt, $allEntries) {
+                if ($vaultArmed) {
+                    return null;
+                }
+
                 $assets = $this->buildAssets($holdings, $priceService);
                 $totalValue = array_sum(array_column($assets, 'value'));
 
@@ -115,7 +120,7 @@ class InvestmentController extends Controller
                     'entry_count' => $allEntries->count(),
                 ];
             }),
-            'chartData' => Inertia::defer(fn () => $this->generateChartData($allEntries, $range, $priceService)),
+            'chartData' => Inertia::defer(fn () => $vaultArmed ? ['categories' => [], 'series' => []] : $this->generateChartData($allEntries, $range, $priceService)),
             'prices' => Inertia::defer(fn () => $assetOptions
                 ->mapWithKeys(fn (InvestmentAsset $asset) => [$asset->slug => $priceService->priceFor($asset)])
                 ->all()),
@@ -180,9 +185,10 @@ class InvestmentController extends Controller
      */
     private function validatedInvestmentData(Request $request): array
     {
-        $validated = $request->validate(SaveInvestment::rules());
+        $vaultArmed = $request->user()->vaultIsArmed();
+        $validated = $request->validate(SaveInvestment::rules($vaultArmed));
 
-        return SaveInvestment::normalize($request->user(), $validated);
+        return SaveInvestment::normalize($request->user(), $validated, $vaultArmed);
     }
 
     /**

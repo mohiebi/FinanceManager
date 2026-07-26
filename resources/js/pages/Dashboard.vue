@@ -56,7 +56,7 @@
                         <p
                             class="mt-3 text-[20px] leading-none font-bold text-white"
                         >
-                            {{ formatAmount(props.summary.income) }}
+                            {{ formatAmount(summaryIncome) }}
                             <span class="text-xs font-normal text-[#989898]">{{
                                 selectedCurrencyLabel
                             }}</span>
@@ -87,7 +87,7 @@
                         <p
                             class="mt-3 text-[20px] leading-none font-bold text-white"
                         >
-                            {{ formatAmount(props.summary.cost) }}
+                            {{ formatAmount(summaryCost) }}
                             <span class="text-xs font-normal text-[#989898]">{{
                                 selectedCurrencyLabel
                             }}</span>
@@ -290,8 +290,7 @@
                                         v-if="
                                             props.portfolio
                                                 .has_cost_basis_data &&
-                                            props.portfolio.pnl_percent !==
-                                                null
+                                            props.portfolio.pnl_percent !== null
                                         "
                                         class="rounded-md px-2 py-1 text-xs font-bold"
                                         :class="
@@ -364,11 +363,7 @@
 
                             <div v-else class="mt-4">
                                 <p class="text-sm text-[#989898]">
-                                    {{
-                                        t(
-                                            'finance.dashboard.portfolio_empty',
-                                        )
-                                    }}
+                                    {{ t('finance.dashboard.portfolio_empty') }}
                                 </p>
                                 <Link
                                     :href="investmentsIndex()"
@@ -726,13 +721,19 @@
                                         class="transition hover:text-[#6C4EE9]"
                                         @click="openEditForm(transaction)"
                                     >
-                                        {{ transaction.title }}
+                                        <Ciphered
+                                            :value="transaction.title"
+                                            table="transactions"
+                                        />
                                     </button>
                                     <div
                                         v-if="transaction.description"
                                         class="mt-0.5 line-clamp-1 text-xs text-[#989898]"
                                     >
-                                        {{ transaction.description }}
+                                        <Ciphered
+                                            :value="transaction.description"
+                                            table="transactions"
+                                        />
                                     </div>
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
@@ -745,9 +746,17 @@
                                 <td
                                     class="px-3 py-3.5 text-center text-[16px] leading-none font-semibold text-[#6C4EE9] sm:px-5"
                                 >
-                                    {{
-                                        formatAmount(transaction.display_amount)
-                                    }}
+                                    <CipheredMoney
+                                        :amount="transaction.amount"
+                                        :display-amount="
+                                            transaction.display_amount
+                                        "
+                                        :currency="transaction.currency"
+                                        :display-currency="
+                                            transaction.display_currency
+                                        "
+                                        :rates="props.rates"
+                                    />
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
                                     <div
@@ -842,13 +851,19 @@
                                         class="transition hover:text-[#02CD86]"
                                         @click="openEditForm(transaction)"
                                     >
-                                        {{ transaction.title }}
+                                        <Ciphered
+                                            :value="transaction.title"
+                                            table="transactions"
+                                        />
                                     </button>
                                     <div
                                         v-if="transaction.description"
                                         class="mt-0.5 line-clamp-1 text-xs text-[#989898]"
                                     >
-                                        {{ transaction.description }}
+                                        <Ciphered
+                                            :value="transaction.description"
+                                            table="transactions"
+                                        />
                                     </div>
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
@@ -861,9 +876,17 @@
                                 <td
                                     class="px-3 py-3.5 text-center text-[16px] leading-none font-semibold text-[#02CD86] sm:px-5"
                                 >
-                                    {{
-                                        formatAmount(transaction.display_amount)
-                                    }}
+                                    <CipheredMoney
+                                        :amount="transaction.amount"
+                                        :display-amount="
+                                            transaction.display_amount
+                                        "
+                                        :currency="transaction.currency"
+                                        :display-currency="
+                                            transaction.display_currency
+                                        "
+                                        :rates="props.rates"
+                                    />
                                 </td>
                                 <td class="px-3 py-3.5 text-center sm:px-5">
                                     <div
@@ -926,7 +949,14 @@
 </template>
 
 <script setup lang="ts">
-import { Deferred, Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import {
+    Deferred,
+    Head,
+    Link,
+    router,
+    useForm,
+    usePage,
+} from '@inertiajs/vue3';
 import { toJalaali } from 'jalaali-js';
 import {
     CalendarClock,
@@ -943,6 +973,8 @@ import {
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
+import Ciphered from '@/components/Ciphered.vue';
+import CipheredMoney from '@/components/CipheredMoney.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import PulseChart from '@/components/charts/PulseChart.vue';
@@ -950,11 +982,13 @@ import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import TransactionDialog from '@/components/transactions/TransactionDialog.vue';
 import { useRelativeTime } from '@/composables/useRelativeTime';
 import { formatAppDate } from '@/lib/date';
+import type { Rates } from '@/lib/money';
 import { dashboard, portfolio as portfolioRoute } from '@/routes';
 import { index as billsIndex } from '@/routes/bills';
 import { pay as payBill } from '@/routes/bills/occurrences';
 import { index as investmentsIndex } from '@/routes/investments';
 import { index as transactionsIndex } from '@/routes/transactions';
+import type { Encrypted } from '@/types/vault';
 
 type TransactionType = 'cost' | 'income';
 type Currency = 'toman' | 'usd' | 'eur';
@@ -970,12 +1004,12 @@ type Category = {
 type Transaction = {
     id: number;
     type: TransactionType;
-    amount: string;
+    amount: Encrypted<string>;
     currency: Currency;
-    display_amount: string;
+    display_amount: string | null;
     display_currency: Currency;
-    title: string;
-    description: string | null;
+    title: Encrypted<string>;
+    description: Encrypted<string> | null;
     occurred_at: string;
     category: Category | null;
     category_id: number;
@@ -1037,7 +1071,8 @@ const props = defineProps<{
     categories: Record<TransactionType, Category[]>;
     currencies: CurrencyOption[];
     selectedCurrency: Currency;
-    summary: { cost: string; income: string };
+    rates: Rates | null;
+    summary: { cost: string; income: string } | null;
     period: Period;
     monthlyTrend: { label: string; income: number; cost: number }[];
     // Module props — absent entirely when the owning module is switched off.
@@ -1122,12 +1157,15 @@ const availablePrices = computed(() =>
     (props.assetPrices ?? []).filter((price) => price.available),
 );
 
+const summaryIncome = computed(() => props.summary?.income ?? '0');
+const summaryCost = computed(() => props.summary?.cost ?? '0');
+
 function parseNum(value: string | number): number {
     return parseFloat(String(value).replace(/,/g, '')) || 0;
 }
 
-const incomeNum = computed(() => parseNum(props.summary.income));
-const costNum = computed(() => parseNum(props.summary.cost));
+const incomeNum = computed(() => parseNum(summaryIncome.value));
+const costNum = computed(() => parseNum(summaryCost.value));
 const balance = computed(() => incomeNum.value - costNum.value);
 
 const costOptimize = computed(() => {
@@ -1157,7 +1195,7 @@ const categoryBreakdown = computed(() => {
         const name = categoryName(transaction);
         totals.set(
             name,
-            (totals.get(name) ?? 0) + parseNum(transaction.display_amount),
+            (totals.get(name) ?? 0) + parseNum(transaction.display_amount ?? 0),
         );
     }
 
@@ -1176,7 +1214,9 @@ const categoryBreakdown = computed(() => {
     return {
         labels: top.map(([label]) => label),
         series: top.map(([, value]) => Math.round(value * 100) / 100),
-        colors: top.map((_, index) => chartPalette[index % chartPalette.length]),
+        colors: top.map(
+            (_, index) => chartPalette[index % chartPalette.length],
+        ),
         total: top.reduce((acc, [, value]) => acc + value, 0),
     };
 });
@@ -1222,7 +1262,7 @@ const dailySpending = computed(() => {
         const day = dayOfMonth(transaction.occurred_at);
 
         if (day >= 1 && day <= perDay.length) {
-            perDay[day - 1] += parseNum(transaction.display_amount);
+            perDay[day - 1] += parseNum(transaction.display_amount ?? 0);
         }
     }
 

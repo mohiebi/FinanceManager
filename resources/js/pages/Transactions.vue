@@ -237,9 +237,7 @@
                                 :key="transaction.id"
                                 class="group"
                             >
-                                <td
-                                    class="px-2 py-[17px] text-center sm:px-3"
-                                >
+                                <td class="px-2 py-[17px] text-center sm:px-3">
                                     <Checkbox
                                         :checked="
                                             selectedCostIds.has(transaction.id)
@@ -261,13 +259,19 @@
                                         type="button"
                                         @click="openEditForm(transaction)"
                                     >
-                                        {{ transaction.title }}
+                                        <Ciphered
+                                            :value="transaction.title"
+                                            table="transactions"
+                                        />
                                     </button>
                                     <div
                                         v-if="transaction.description"
                                         class="mt-1 line-clamp-1 text-xs text-[#989898]"
                                     >
-                                        {{ transaction.description }}
+                                        <Ciphered
+                                            :value="transaction.description"
+                                            table="transactions"
+                                        />
                                     </div>
                                 </td>
                                 <td class="px-3 py-[17px] text-center sm:px-5">
@@ -280,9 +284,17 @@
                                 <td
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
-                                    {{
-                                        formatAmount(transaction.display_amount)
-                                    }}
+                                    <CipheredMoney
+                                        :amount="transaction.amount"
+                                        :display-amount="
+                                            transaction.display_amount
+                                        "
+                                        :currency="transaction.currency"
+                                        :display-currency="
+                                            transaction.display_currency
+                                        "
+                                        :rates="props.rates"
+                                    />
                                 </td>
                                 <td
                                     class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
@@ -327,13 +339,22 @@
                 </div>
                 <!-- Cost table pagination -->
                 <div
-                    v-if="props.transactions.meta?.costs && props.transactions.meta.costs.last_page > 1"
+                    v-if="
+                        props.transactions.meta?.costs &&
+                        props.transactions.meta.costs.last_page > 1
+                    "
                     class="flex items-center justify-center gap-3 border-t border-white/[0.07] px-5 py-3 text-xs"
                 >
                     <button
-                        :disabled="props.transactions.meta.costs.current_page <= 1"
+                        :disabled="
+                            props.transactions.meta.costs.current_page <= 1
+                        "
                         class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
-                        @click="changeCostPage(props.transactions.meta.costs.current_page - 1)"
+                        @click="
+                            changeCostPage(
+                                props.transactions.meta.costs.current_page - 1,
+                            )
+                        "
                     >
                         ←
                     </button>
@@ -341,12 +362,21 @@
                         {{ props.transactions.meta.costs.current_page }}
                         /
                         {{ props.transactions.meta.costs.last_page }}
-                        <span class="ml-1 text-[#6b6b6b]">({{ props.transactions.meta.costs.total }})</span>
+                        <span class="ml-1 text-[#6b6b6b]"
+                            >({{ props.transactions.meta.costs.total }})</span
+                        >
                     </span>
                     <button
-                        :disabled="props.transactions.meta.costs.current_page >= props.transactions.meta.costs.last_page"
+                        :disabled="
+                            props.transactions.meta.costs.current_page >=
+                            props.transactions.meta.costs.last_page
+                        "
                         class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
-                        @click="changeCostPage(props.transactions.meta.costs.current_page + 1)"
+                        @click="
+                            changeCostPage(
+                                props.transactions.meta.costs.current_page + 1,
+                            )
+                        "
                     >
                         →
                     </button>
@@ -445,9 +475,7 @@
                                 :key="transaction.id"
                                 class="group"
                             >
-                                <td
-                                    class="px-2 py-[17px] text-center sm:px-3"
-                                >
+                                <td class="px-2 py-[17px] text-center sm:px-3">
                                     <Checkbox
                                         :checked="
                                             selectedIncomeIds.has(
@@ -471,13 +499,19 @@
                                         type="button"
                                         @click="openEditForm(transaction)"
                                     >
-                                        {{ transaction.title }}
+                                        <Ciphered
+                                            :value="transaction.title"
+                                            table="transactions"
+                                        />
                                     </button>
                                     <div
                                         v-if="transaction.description"
                                         class="mt-1 line-clamp-1 text-xs text-[#989898]"
                                     >
-                                        {{ transaction.description }}
+                                        <Ciphered
+                                            :value="transaction.description"
+                                            table="transactions"
+                                        />
                                     </div>
                                 </td>
                                 <td class="px-3 py-[17px] text-center sm:px-5">
@@ -490,9 +524,17 @@
                                 <td
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
-                                    {{
-                                        formatAmount(transaction.display_amount)
-                                    }}
+                                    <CipheredMoney
+                                        :amount="transaction.amount"
+                                        :display-amount="
+                                            transaction.display_amount
+                                        "
+                                        :currency="transaction.currency"
+                                        :display-currency="
+                                            transaction.display_currency
+                                        "
+                                        :rates="props.rates"
+                                    />
                                 </td>
                                 <td
                                     class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
@@ -537,13 +579,23 @@
                 </div>
                 <!-- Income table pagination -->
                 <div
-                    v-if="props.transactions.meta?.incomes && props.transactions.meta.incomes.last_page > 1"
+                    v-if="
+                        props.transactions.meta?.incomes &&
+                        props.transactions.meta.incomes.last_page > 1
+                    "
                     class="flex items-center justify-center gap-3 border-t border-white/[0.07] px-5 py-3 text-xs"
                 >
                     <button
-                        :disabled="props.transactions.meta.incomes.current_page <= 1"
+                        :disabled="
+                            props.transactions.meta.incomes.current_page <= 1
+                        "
                         class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
-                        @click="changeIncomePage(props.transactions.meta.incomes.current_page - 1)"
+                        @click="
+                            changeIncomePage(
+                                props.transactions.meta.incomes.current_page -
+                                    1,
+                            )
+                        "
                     >
                         ←
                     </button>
@@ -551,12 +603,22 @@
                         {{ props.transactions.meta.incomes.current_page }}
                         /
                         {{ props.transactions.meta.incomes.last_page }}
-                        <span class="ml-1 text-[#6b6b6b]">({{ props.transactions.meta.incomes.total }})</span>
+                        <span class="ml-1 text-[#6b6b6b]"
+                            >({{ props.transactions.meta.incomes.total }})</span
+                        >
                     </span>
                     <button
-                        :disabled="props.transactions.meta.incomes.current_page >= props.transactions.meta.incomes.last_page"
+                        :disabled="
+                            props.transactions.meta.incomes.current_page >=
+                            props.transactions.meta.incomes.last_page
+                        "
                         class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
-                        @click="changeIncomePage(props.transactions.meta.incomes.current_page + 1)"
+                        @click="
+                            changeIncomePage(
+                                props.transactions.meta.incomes.current_page +
+                                    1,
+                            )
+                        "
                     >
                         →
                     </button>
@@ -575,7 +637,7 @@
         >
             <div
                 v-if="totalSelected > 0"
-                class="fixed bottom-6 inset-x-0 z-50 flex justify-center"
+                class="fixed inset-x-0 bottom-6 z-50 flex justify-center"
             >
                 <div
                     class="flex flex-wrap items-center gap-3 rounded-2xl bg-[#1a1a1a] px-5 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.5)] ring-1 ring-white/15"
@@ -944,11 +1006,11 @@
             :open="deleteTarget !== null"
             :title="
                 t('finance.delete.transaction_title', {
-                    title: deleteTarget?.title ?? '',
+                    title: deleteTargetLabel,
                 })
             "
             :description="t('finance.delete.transaction_description')"
-            @update:open="deleteTarget = null"
+            @update:open="clearDeleteTarget"
             @confirm="confirmDelete"
         />
 
@@ -983,6 +1045,8 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import Ciphered from '@/components/Ciphered.vue';
+import CipheredMoney from '@/components/CipheredMoney.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import TransactionDialog from '@/components/transactions/TransactionDialog.vue';
@@ -1005,9 +1069,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { useVault } from '@/composables/useVault';
 import { formatAppDate } from '@/lib/date';
+import type { Rates } from '@/lib/money';
 import { dashboard } from '@/routes';
 import { index as transactionsIndex } from '@/routes/transactions';
+import type { Encrypted } from '@/types/vault';
 
 type TransactionType = 'cost' | 'income';
 type FilterType = TransactionType | 'all';
@@ -1024,12 +1091,12 @@ type Category = {
 type Transaction = {
     id: number;
     type: TransactionType;
-    amount: string;
+    amount: Encrypted<string>;
     currency: Currency;
-    display_amount: string;
+    display_amount: string | null;
     display_currency: Currency;
-    title: string;
-    description: string | null;
+    title: Encrypted<string>;
+    description: Encrypted<string> | null;
     occurred_at: string;
     category: Category | null;
     category_id: number;
@@ -1090,18 +1157,27 @@ const props = defineProps<{
         costs: Transaction[];
         incomes: Transaction[];
         meta?: {
-            costs: { current_page: number; last_page: number; total: number } | null;
-            incomes: { current_page: number; last_page: number; total: number } | null;
+            costs: {
+                current_page: number;
+                last_page: number;
+                total: number;
+            } | null;
+            incomes: {
+                current_page: number;
+                last_page: number;
+                total: number;
+            } | null;
         } | null;
     };
     categories: Record<TransactionType, Category[]>;
     currencies: CurrencyOption[];
     selectedCurrency: Currency;
+    rates: Rates | null;
     summary: {
         cost: string;
         income: string;
         count: number;
-    };
+    } | null;
 }>();
 
 defineOptions({
@@ -1125,14 +1201,22 @@ const isBulkDeleteDialogOpen = ref(false);
 const dialogTransactionType = ref<TransactionType>('cost');
 const editingTransaction = ref<Transaction | null>(null);
 const deleteTarget = ref<Transaction | null>(null);
+const deleteTargetLabel = ref('');
 const page = usePage();
 const { t } = useI18n();
+const { revealAsync } = useVault();
 const displayCalendar = computed(
     () => (page.props.calendar as string | undefined) ?? 'gregorian',
 );
 
-const requestDelete = (transaction: Transaction) => {
+const requestDelete = async (transaction: Transaction) => {
     deleteTarget.value = transaction;
+    deleteTargetLabel.value =
+        (await revealAsync<string>(
+            transaction.title,
+            'transactions',
+            'string',
+        )) ?? `#${transaction.id}`;
 };
 
 const confirmDelete = () => {
@@ -1143,8 +1227,13 @@ const confirmDelete = () => {
     router.delete(`/transactions/${deleteTarget.value.id}`, {
         preserveScroll: true,
     });
-    deleteTarget.value = null;
+    clearDeleteTarget();
 };
+
+function clearDeleteTarget(): void {
+    deleteTarget.value = null;
+    deleteTargetLabel.value = '';
+}
 const selectedCurrency = ref<Currency>(props.selectedCurrency);
 const importFileInput = ref<HTMLInputElement | null>(null);
 const importPreview = ref<ImportPreview | null>(null);
@@ -1168,7 +1257,9 @@ const totalSelected = computed(
 );
 const hasGroupSelection = computed(() => totalSelected.value > 1);
 const hasCostGroupSelection = computed(() => selectedCostIds.value.size > 1);
-const hasIncomeGroupSelection = computed(() => selectedIncomeIds.value.size > 1);
+const hasIncomeGroupSelection = computed(
+    () => selectedIncomeIds.value.size > 1,
+);
 const selectionType = computed<TransactionType | null>(() => {
     if (selectedCostIds.value.size > 0 && selectedIncomeIds.value.size === 0) {
         return 'cost';
@@ -1231,7 +1322,9 @@ function selectionState(
         return false;
     }
 
-    return selectedVisibleCount === transactions.length ? true : 'indeterminate';
+    return selectedVisibleCount === transactions.length
+        ? true
+        : 'indeterminate';
 }
 function clearSelection(): void {
     selectedCostIds.value = new Set();
@@ -1248,10 +1341,7 @@ function requestBulkDelete(): void {
 }
 
 function confirmBulkDelete(): void {
-    const ids = [
-        ...selectedCostIds.value,
-        ...selectedIncomeIds.value,
-    ];
+    const ids = [...selectedCostIds.value, ...selectedIncomeIds.value];
     router.delete('/transactions/bulk', {
         data: { ids },
         preserveScroll: true,

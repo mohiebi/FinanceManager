@@ -45,13 +45,16 @@ class TransactionController extends Controller
         $user = $request->user();
         $selectedCurrency = CurrencyPreference::resolve($request);
         $features = $user->featureSet();
+        $vaultArmed = $user->vaultIsArmed();
 
         $moduleProps = [
-            'monthlyTrend' => $this->monthlyTrend($request, $currencyConverter, $selectedCurrency),
+            'monthlyTrend' => $vaultArmed ? [] : $this->monthlyTrend($request, $currencyConverter, $selectedCurrency),
         ];
 
         if ($features->enabled(Feature::Bills)) {
-            $moduleProps['upcomingBills'] = $this->upcomingBills($request, $currencyConverter, $selectedCurrency);
+            $moduleProps['upcomingBills'] = $vaultArmed
+                ? []
+                : $this->upcomingBills($request, $currencyConverter, $selectedCurrency);
         }
 
         // Deferred: these hit the price cache (and possibly tgju on a cold cache),
@@ -59,7 +62,7 @@ class TransactionController extends Controller
         // the Portfolio page. Omitting the key also drops it from Inertia's deferred
         // manifest, so no follow-up request fires for a module that is switched off.
         if ($features->enabled(Feature::Portfolio)) {
-            $moduleProps['portfolio'] = Inertia::defer(fn () => $breakdownBuilder->snapshot($user, $selectedCurrency));
+            $moduleProps['portfolio'] = Inertia::defer(fn () => $vaultArmed ? null : $breakdownBuilder->snapshot($user, $selectedCurrency));
         }
 
         if ($features->enabled(Feature::Investments)) {

@@ -239,6 +239,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useVault } from '@/composables/useVault';
+import type { Encrypted } from '@/types/vault';
 
 type TransactionType = 'cost' | 'income';
 type Currency = 'toman' | 'usd' | 'eur';
@@ -254,12 +255,12 @@ type Category = {
 type Transaction = {
     id: number;
     type: TransactionType;
-    amount: string;
+    amount: Encrypted<string>;
     currency: Currency;
-    display_amount: string;
+    display_amount: string | null;
     display_currency: Currency;
-    title: string;
-    description: string | null;
+    title: Encrypted<string>;
+    description: Encrypted<string> | null;
     occurred_at: string;
     category: Category | null;
     category_id: number | null;
@@ -283,7 +284,7 @@ const { t } = useI18n();
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-const { sealForSubmit } = useVault();
+const { revealAsync, sealForSubmit } = useVault();
 
 /** True while the browser is wrapping the payload, so the button stays disabled. */
 const sealing = ref(false);
@@ -413,20 +414,37 @@ function resetForm(type: TransactionType): void {
     form.occurred_at = today();
 }
 
-function fillForm(transaction: Transaction): void {
+async function fillForm(transaction: Transaction): Promise<void> {
     form.clearErrors();
     form.type = transaction.type;
     form.category_id = transaction.category_id?.toString() ?? '';
     form.currency = transaction.currency;
-    form.amount = normalizeMoneyInput(transaction.amount, transaction.currency);
-    form.title = transaction.title;
-    form.description = transaction.description ?? '';
+    form.amount = normalizeMoneyInput(
+        (await revealAsync<string>(
+            transaction.amount,
+            'transactions',
+            'decimal',
+        )) ?? '',
+        transaction.currency,
+    );
+    form.title =
+        (await revealAsync<string>(
+            transaction.title,
+            'transactions',
+            'string',
+        )) ?? '';
+    form.description =
+        (await revealAsync<string | null>(
+            transaction.description,
+            'transactions',
+            'string',
+        )) ?? '';
     form.occurred_at = transaction.occurred_at;
 }
 
 function initializeForm(): void {
     if (props.transaction) {
-        fillForm(props.transaction);
+        void fillForm(props.transaction);
 
         return;
     }

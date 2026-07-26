@@ -8,6 +8,7 @@ use App\Models\Investment;
 use App\Models\InvestmentAsset;
 use App\Models\User;
 use App\Services\AssetPriceService;
+use App\Support\Encryption\EncryptedValue;
 use Illuminate\Support\Collection;
 
 class BuildPortfolioBreakdown
@@ -56,6 +57,9 @@ class BuildPortfolioBreakdown
     public function handle(Collection $allEntries, Currency $selectedCurrency): array
     {
         $fmt = $this->formatter($selectedCurrency);
+        $allEntries = $allEntries
+            ->reject(fn (Investment $entry): bool => $entry->quantity instanceof EncryptedValue)
+            ->values();
         $grouped = $allEntries->groupBy('investment_asset_id');
 
         $assets = [];

@@ -13,7 +13,7 @@ import type { Encrypted } from '@/types/vault';
  */
 const props = withDefaults(
     defineProps<{
-        value: Encrypted<string> | null | undefined;
+        value: Encrypted<string | number> | null | undefined;
         /** Table the value came from — needed to rebuild the AAD. */
         table: string;
         type?: EncryptedFieldType;
@@ -25,10 +25,12 @@ const props = withDefaults(
 
 const { reveal, revealAsync } = useVault();
 
-const resolved = ref<string | undefined>(reveal<string>(props.value));
+const resolved = ref<string | number | undefined>(
+    reveal<string | number>(props.value),
+);
 
 watchEffect(async () => {
-    const immediate = reveal<string>(props.value);
+    const immediate = reveal<string | number>(props.value);
 
     if (immediate !== undefined) {
         resolved.value = immediate;
@@ -37,7 +39,7 @@ watchEffect(async () => {
     }
 
     resolved.value = undefined;
-    resolved.value = await revealAsync<string>(
+    resolved.value = await revealAsync<string | number>(
         props.value,
         props.table,
         props.type,

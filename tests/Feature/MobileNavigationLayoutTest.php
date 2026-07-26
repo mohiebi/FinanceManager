@@ -1,15 +1,17 @@
 <?php
 
-test('mobile navigation occupies its own row below the scrollable page content', function () {
+test('mobile navigation uses the sticky top header without a bottom nav', function () {
     $layout = file_get_contents(resource_path('js/layouts/app/AppSidebarLayout.vue'));
     $shell = file_get_contents(resource_path('js/components/AppShell.vue'));
-    $navigation = file_get_contents(resource_path('js/components/AppBottomNav.vue'));
+    $header = file_get_contents(resource_path('js/components/AppSidebarHeader.vue'));
     $styles = file_get_contents(resource_path('css/app.css'));
 
-    expect($layout)->toMatch('/<AppContent[\s\S]*<AppBottomNav \/>[\s\n]*<\/AppShell>/')
-        ->and($shell)->toContain('class="flex-col lg:flex-row"')
-        ->and($navigation)->toContain('app-mobile-bottom-nav')
-        ->and($navigation)->not->toContain('fixed inset-x-0 bottom-0')
-        ->and($styles)->toContain('--mobile-bottom-nav-height: 4rem;')
-        ->and($styles)->toContain('env(safe-area-inset-bottom, 0px)');
+    expect(resource_path('js/components/AppBottomNav.vue'))->not->toBeFile()
+        ->and($layout)->not->toContain('AppBottomNav')
+        ->and($layout)->toContain('class="h-svh min-h-0 overflow-x-hidden overflow-y-auto pb-4 lg:pb-0"')
+        ->and($shell)->toContain('class="h-svh min-h-svh flex-col overflow-hidden lg:flex-row"')
+        ->and($header)->toContain('class="sticky top-0')
+        ->and($header)->toContain('lg:static')
+        ->and($styles)->not->toContain('app-mobile-bottom-nav')
+        ->and($styles)->not->toContain('--mobile-bottom-nav-height');
 });

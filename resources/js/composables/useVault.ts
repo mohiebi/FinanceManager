@@ -2,8 +2,14 @@ import { usePage } from '@inertiajs/vue3';
 import type { Ref } from 'vue';
 import { readonly, ref } from 'vue';
 import type { EncryptedFieldType } from '@/lib/vault/codec';
-import { decode } from '@/lib/vault/codec';
-import { aadFor, base64ToBytes, decrypt, importDek } from '@/lib/vault/crypto';
+import { decode, encode } from '@/lib/vault/codec';
+import {
+    aadFor,
+    base64ToBytes,
+    decrypt,
+    encrypt,
+    importDek,
+} from '@/lib/vault/crypto';
 import { derivePassphraseKek, deriveRecoveryKek } from '@/lib/vault/kdf';
 import type { Ciphertext, Encrypted, VaultDescriptor } from '@/types/vault';
 import { isCiphertext } from '@/types/vault';
@@ -69,6 +75,11 @@ export type UseVaultReturn = {
         recoveryKey: Uint8Array<ArrayBuffer>,
     ) => Promise<void>;
     exportKeyWithPassphrase: (passphrase: string) => Promise<string>;
+    sealForSubmit: <T extends Record<string, unknown>>(
+        values: T,
+        table: string,
+        fields: Record<string, EncryptedFieldType>,
+    ) => Promise<T>;
     lock: () => void;
 };
 
@@ -205,6 +216,48 @@ export function useVault(): UseVaultReturn {
         return raw;
     }
 
+    /**
+     * Encrypt the named fields of a form payload before it is submitted.
+     *
+     * A no-op when the vault is not armed, so callers submit through this
+     * unconditionally rather than branching on vault state at every form.
+     *
+     * @param  fields  column name => how the server will decode it
+     */
+    async function sealForSubmit<T extends Record<string, unknown>>(
+        values: T,
+        table: string,
+        fields: Record<string, EncryptedFieldType>,
+    ): Promise<T> {
+        if (!isArmed()) {
+            return values;
+        }
+
+        if (dek === null) {
+            throw new Error('The vault is locked.');
+        }
+
+        const sealed: Record<string, unknown> = { ...values };
+
+        for (const [field, type] of Object.entries(fields)) {
+            const value = sealed[field];
+
+            // Empty optional fields stay empty — encrypting '' would store a blob
+            // the server then has to treat as present.
+            if (value === null || value === undefined || value === '') {
+                continue;
+            }
+
+            sealed[field] = await encrypt(
+                encode(value, type),
+                dek,
+                aadFor(table, field),
+            );
+        }
+
+        return sealed as T;
+    }
+
     function lock(): void {
         dek = null;
         unlocked.value = false;
@@ -219,6 +272,7 @@ export function useVault(): UseVaultReturn {
         unlockWithPassphrase,
         unlockWithRecoveryKey,
         exportKeyWithPassphrase,
+        sealForSubmit,
         lock,
     };
 }

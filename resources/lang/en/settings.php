@@ -108,6 +108,7 @@ return [
             'use_passphrase' => 'Use my passphrase instead',
             'recovery_key' => 'Recovery key',
             'reload_note' => 'You will be asked again after a reload or in a new tab — the key is never stored.',
+            'unavailable' => 'Not available while the private vault is on — this needs a server that can read your data.',
         ],
     ],
     'telegram' => [

@@ -98,7 +98,11 @@ enum Feature: string
             // Telegram, the AI assistant and portfolio all compute server-side over
             // plaintext, and a cron job or an MCP call has no browser to ask for a
             // passphrase. They are impossible under the vault, not merely expensive.
-            self::Vault => [self::TelegramBot, self::AiAssistant, self::Portfolio],
+            // Bills is here because marking one paid writes a Transaction on the
+            // server (MarkBillOccurrencePaid), and creating a bill writes an
+            // encrypted title and amount — none of which the server can do without
+            // a key. Giving bills a client-encrypted write path would lift this.
+            self::Vault => [self::TelegramBot, self::AiAssistant, self::Portfolio, self::Bills],
             default => [],
         };
     }

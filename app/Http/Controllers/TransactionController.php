@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Actions\Transactions\CurrencyConverter;
 use App\Actions\Transactions\SaveTransaction;
+use App\Enums\AssetType;
 use App\Enums\Currency;
 use App\Enums\Feature;
 use App\Enums\TransactionType;
@@ -70,6 +71,45 @@ class TransactionController extends Controller
     }
 
     /**
+     * A transaction row for the page.
+     *
+     * With the vault armed the amount is ciphertext, so no server-side conversion
+     * is possible — and a converted zero would read as "you spent nothing", which
+     * is worse than sending nothing at all. The browser converts instead, using
+     * the rates shipped alongside.
+     *
+     * @return array<string, mixed>
+     */
+    private function presentTransaction(
+        Transaction $transaction,
+        Request $request,
+        CurrencyConverter $currencyConverter,
+        Currency $selectedCurrency,
+        bool $vaultArmed,
+    ): array {
+        return [
+            ...(new TransactionResource($transaction))->resolve($request),
+            'display_amount' => $vaultArmed
+                ? null
+                : $currencyConverter->format($transaction->amount, $transaction->currency, $selectedCurrency),
+            'display_currency' => $selectedCurrency->value,
+        ];
+    }
+
+    /**
+     * @return array{tomanPerUsd: float, tomanPerEur: float}
+     */
+    private function displayRates(): array
+    {
+        $prices = app(AssetPriceService::class);
+
+        return [
+            'tomanPerUsd' => $prices->priceFor(AssetType::Usd),
+            'tomanPerEur' => $prices->priceFor(AssetType::Eur),
+        ];
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request, CurrencyConverter $currencyConverter): Response
@@ -90,6 +130,7 @@ class TransactionController extends Controller
         $user = $request->user();
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
         $selectedCurrency = CurrencyPreference::resolve($request);
+        $vaultArmed = $user->vaultIsArmed();
         $selectedType = $withFilters
             ? $this->resolveTransactionType((string) $request->query('type'))
             : null;
@@ -189,26 +230,12 @@ class TransactionController extends Controller
                 'to' => $toDate?->toDateString() ?? '',
             ],
             'transactions' => [
-                'costs' => $displayCosts
-                    ->map(fn (Transaction $transaction) => [
-                        ...(new TransactionResource($transaction))->resolve($request),
-                        'display_amount' => $currencyConverter->format(
-                            $transaction->amount,
-                            $transaction->currency,
-                            $selectedCurrency,
-                        ),
-                        'display_currency' => $selectedCurrency->value,
-                    ]),
-                'incomes' => $displayIncomes
-                    ->map(fn (Transaction $transaction) => [
-                        ...(new TransactionResource($transaction))->resolve($request),
-                        'display_amount' => $currencyConverter->format(
-                            $transaction->amount,
-                            $transaction->currency,
-                            $selectedCurrency,
-                        ),
-                        'display_currency' => $selectedCurrency->value,
-                    ]),
+                'costs' => $displayCosts->map(
+                    fn (Transaction $transaction) => $this->presentTransaction($transaction, $request, $currencyConverter, $selectedCurrency, $vaultArmed),
+                ),
+                'incomes' => $displayIncomes->map(
+                    fn (Transaction $transaction) => $this->presentTransaction($transaction, $request, $currencyConverter, $selectedCurrency, $vaultArmed),
+                ),
                 'meta' => $paginationMeta,
             ],
             'categories' => [
@@ -227,11 +254,16 @@ class TransactionController extends Controller
                     'value' => $currency->value,
                 ]),
             'selectedCurrency' => $selectedCurrency->value,
-            'summary' => [
+            // Rates rather than totals when the server cannot read the amounts.
+            // These are public market prices, not user data, so shipping them
+            // costs nothing — and a wrong total is worse than no total.
+            'rates' => $vaultArmed ? $this->displayRates() : null,
+            'summary' => $vaultArmed ? null : [
                 'cost' => $currencyConverter->sumFormatted($costs, $selectedCurrency),
                 'income' => $currencyConverter->sumFormatted($incomes, $selectedCurrency),
                 'count' => $allTransactions->count(),
             ],
+            'transactionCount' => $allTransactions->count(),
             'period' => $this->currentPeriod($calendar),
             ...$extraProps,
         ]);

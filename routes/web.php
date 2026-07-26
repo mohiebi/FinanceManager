@@ -21,6 +21,7 @@ use App\Http\Controllers\TransactionImportController;
 use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\EnsureProfileIsComplete;
 use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\RejectWhenVaultArmed;
 use App\Support\FrontendLocalization;
 use App\Support\SeoMetadata;
 use Illuminate\Http\Request;
@@ -100,9 +101,14 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
 
     Route::get('dashboard', [TransactionController::class, 'dashboard'])->name('dashboard');
     Route::get('transactions/import-template', [TransactionImportController::class, 'template'])->name('transactions.import-template');
-    Route::post('transactions/imports/preview', [TransactionImportController::class, 'preview'])->name('transactions.imports.preview');
-    Route::post('transactions/imports', [TransactionImportController::class, 'store'])->name('transactions.imports.store');
-    Route::get('transactions/export', TransactionExportController::class)->name('transactions.export');
+
+    // Spreadsheets are built and parsed server-side, so neither survives a server
+    // that cannot read the data.
+    Route::middleware(RejectWhenVaultArmed::class)->group(function () {
+        Route::post('transactions/imports/preview', [TransactionImportController::class, 'preview'])->name('transactions.imports.preview');
+        Route::post('transactions/imports', [TransactionImportController::class, 'store'])->name('transactions.imports.store');
+        Route::get('transactions/export', TransactionExportController::class)->name('transactions.export');
+    });
     Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::delete('transactions/bulk', [TransactionController::class, 'destroyBulk'])->name('transactions.destroy-bulk');
     Route::patch('transactions/bulk/category', [TransactionController::class, 'updateBulkCategory'])->name('transactions.update-bulk-category');
@@ -112,7 +118,9 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
 
     Route::middleware(EnsureFeatureEnabled::class.':investments')->group(function () {
         Route::post('investment-assets', [InvestmentAssetController::class, 'store'])->name('investment-assets.store');
-        Route::get('investments/export', InvestmentExportController::class)->name('investments.export');
+        Route::get('investments/export', InvestmentExportController::class)
+            ->middleware(RejectWhenVaultArmed::class)
+            ->name('investments.export');
         Route::resource('investments', InvestmentController::class)->only(['index', 'store', 'update', 'destroy']);
         // Forces a real outbound scrape against tgju.org when cache is cold, so this is
         // throttled stricter than the codebase's usual 10,1 / 5,1 write endpoints.

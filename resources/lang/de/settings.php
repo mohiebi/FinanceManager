@@ -108,6 +108,7 @@ return [
             'use_passphrase' => 'Stattdessen Passphrase nutzen',
             'recovery_key' => 'Wiederherstellungsschlüssel',
             'reload_note' => 'Nach einem Neuladen oder in einem neuen Tab wirst du erneut gefragt — der Schlüssel wird nie gespeichert.',
+            'unavailable' => 'Nicht verfügbar, solange der private Tresor an ist — dafür braucht es einen Server, der deine Daten lesen kann.',
         ],
     ],
     'telegram' => [

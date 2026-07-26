@@ -18,6 +18,13 @@ final readonly class UpdateUserFeature
     {
         $current = $user->featureSet()->toEnabledMap();
 
+        // Defence in depth: the form request rejects these too, but a self-managed
+        // feature reaching this action would mean a caller bypassed the crypto
+        // handshake that owns it.
+        if ($target->isSelfManaged()) {
+            return new FeatureToggleResult($current, [], FeatureToggleResult::REJECTED_SELF_MANAGED);
+        }
+
         if ($enable && ! $user->mayUse($target)) {
             return new FeatureToggleResult($current, [], FeatureToggleResult::REJECTED_ENTITLEMENT);
         }

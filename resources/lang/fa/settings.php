@@ -195,7 +195,7 @@ return [
         'assets' => 'دارایی‌ها',
         'profile' => 'پروفایل',
         'notifications' => 'اعلان‌ها',
-        'security' => 'امنیت',
+        'security' => 'حریم خصوصی و امنیت',
         'preferences' => 'ترجیحات',
         'modules' => 'ماژول‌ها',
         'categories' => 'دسته‌بندی‌ها',

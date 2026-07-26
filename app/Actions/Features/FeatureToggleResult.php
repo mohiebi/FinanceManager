@@ -11,6 +11,15 @@ final readonly class FeatureToggleResult
     public const REJECTED_ENTITLEMENT = 'entitlement';
 
     /**
+     * Blocked because it would have evicted a self-managed feature — one the
+     * server cannot switch off on its own.
+     */
+    public const REJECTED_CONFLICT_LOCKED = 'conflict_locked';
+
+    /** Blocked because the feature is owned by a dedicated controller. */
+    public const REJECTED_SELF_MANAGED = 'self_managed';
+
+    /**
      * @param  array<string, bool>  $state  the resolved enabled map
      * @param  array<int, FeatureChange>  $cascaded  everything flipped as a side effect
      * @param  string|null  $rejected  one of the REJECTED_* constants

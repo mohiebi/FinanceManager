@@ -192,7 +192,7 @@ return [
     'navigation' => [
         'profile' => 'Profil',
         'notifications' => 'Benachrichtigungen',
-        'security' => 'Sicherheit',
+        'security' => 'Datenschutz & Sicherheit',
         'preferences' => 'Einstellungen',
         'modules' => 'Module',
         'categories' => 'Kategorien',

@@ -18,6 +18,7 @@ enum Feature: string
     case Portfolio = 'portfolio';
     case AiAssistant = 'ai_assistant';
     case TelegramBot = 'telegram_bot';
+    case Vault = 'vault';
 
     public function label(): string
     {
@@ -36,6 +37,7 @@ enum Feature: string
             self::Portfolio => 'Portfolio',
             self::AiAssistant => 'AI Assistant',
             self::TelegramBot => 'Telegram Bot',
+            self::Vault => 'Private vault',
         };
     }
 
@@ -93,8 +95,33 @@ enum Feature: string
     public function conflictsWith(): array
     {
         return match ($this) {
+            // Telegram, the AI assistant and portfolio all compute server-side over
+            // plaintext, and a cron job or an MCP call has no browser to ask for a
+            // passphrase. They are impossible under the vault, not merely expensive.
+            self::Vault => [self::TelegramBot, self::AiAssistant, self::Portfolio],
             default => [],
         };
+    }
+
+    /**
+     * A settings route that owns this feature's on/off switch, if the generic
+     * modules endpoint must not touch it.
+     *
+     * The vault cannot be flipped by a plain PATCH: arming it requires the browser
+     * to wrap the data key first, and a server-side toggle would destroy the only
+     * copy of that key with nothing wrapped in its place.
+     */
+    public function managedRoute(): ?string
+    {
+        return match ($this) {
+            self::Vault => 'security.edit',
+            default => null,
+        };
+    }
+
+    public function isSelfManaged(): bool
+    {
+        return $this->managedRoute() !== null;
     }
 
     /**
@@ -138,6 +165,7 @@ enum Feature: string
             self::Portfolio => 'Wallet',
             self::AiAssistant => 'Sparkles',
             self::TelegramBot => 'Bot',
+            self::Vault => 'ShieldCheck',
         };
     }
 
@@ -151,6 +179,22 @@ enum Feature: string
         return array_values(array_filter(
             self::cases(),
             fn (self $feature): bool => ! $feature->isCore(),
+        ));
+    }
+
+    /**
+     * Modules the generic modules endpoint is allowed to switch.
+     *
+     * Self-managed features are listed on the modules page but only ever toggled
+     * by the controller that owns their crypto.
+     *
+     * @return array<int, self>
+     */
+    public static function directlyToggleable(): array
+    {
+        return array_values(array_filter(
+            self::toggleable(),
+            fn (self $feature): bool => ! $feature->isSelfManaged(),
         ));
     }
 }

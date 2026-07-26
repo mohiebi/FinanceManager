@@ -101,9 +101,66 @@ test('conflicts are symmetric even when declared in only one direction', functio
         ->and($result->state[Feature::Investments->value])->toBeFalse();
 });
 
+test('enabling the vault evicts everything that needs a server which can read', function () {
+    $state = FeatureSet::defaults()->toEnabledMap();
+    $state[Feature::Investments->value] = true;
+    $state[Feature::Portfolio->value] = true;
+    $state[Feature::TelegramBot->value] = true;
+    $state[Feature::AiAssistant->value] = true;
+
+    $result = (new ResolveFeatureToggle)($state, Feature::Vault, true);
+
+    expect($result->wasRejected())->toBeFalse()
+        ->and($result->state[Feature::Vault->value])->toBeTrue()
+        ->and($result->state[Feature::TelegramBot->value])->toBeFalse()
+        ->and($result->state[Feature::AiAssistant->value])->toBeFalse()
+        ->and($result->state[Feature::Portfolio->value])->toBeFalse()
+        // Investments is not itself in conflict, so it survives.
+        ->and($result->state[Feature::Investments->value])->toBeTrue()
+        ->and($result->disabledByCascade())
+        ->toEqualCanonicalizing([Feature::TelegramBot, Feature::AiAssistant, Feature::Portfolio]);
+});
+
+test('enabling a conflicting module while the vault is on is rejected, not applied', function () {
+    $state = FeatureSet::defaults()->toEnabledMap();
+    $state[Feature::Vault->value] = true;
+
+    // Turning the vault off needs the browser's data key, which a server-side
+    // toggle does not have — so this must refuse rather than evict and leave the
+    // user locked out of their own rows.
+    $result = (new ResolveFeatureToggle)($state, Feature::TelegramBot, true);
+
+    expect($result->rejected)->toBe(FeatureToggleResult::REJECTED_CONFLICT_LOCKED)
+        ->and($result->state)->toBe($state)
+        ->and($result->cascaded)->toBe([]);
+});
+
+test('a conflicting module is still free to be enabled while the vault is off', function () {
+    $state = FeatureSet::defaults()->toEnabledMap();
+
+    $result = (new ResolveFeatureToggle)($state, Feature::TelegramBot, true);
+
+    expect($result->wasRejected())->toBeFalse()
+        ->and($result->state[Feature::TelegramBot->value])->toBeTrue();
+});
+
+test('the vault is the only self-managed module', function () {
+    expect(Feature::Vault->isSelfManaged())->toBeTrue()
+        ->and(Feature::Vault->managedRoute())->toBe('security.edit');
+
+    foreach (Feature::directlyToggleable() as $feature) {
+        expect($feature->isSelfManaged())->toBeFalse();
+    }
+});
+
 test('no feature both requires and conflicts with the same feature', function () {
     foreach (Feature::cases() as $feature) {
-        expect(array_intersect($feature->requires(), $feature->conflictsWith()))->toBe([]);
+        // Compared by value: array_intersect stringifies its arguments, which
+        // throws on enum instances.
+        $requires = array_map(fn (Feature $dependency): string => $dependency->value, $feature->requires());
+        $conflicts = array_map(fn (Feature $conflict): string => $conflict->value, $feature->conflictsWith());
+
+        expect(array_intersect($requires, $conflicts))->toBe([]);
     }
 });
 

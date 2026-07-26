@@ -19,9 +19,11 @@ class ModulesUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Only toggleable features are accepted, so core modules are rejected here
-            // rather than needing a separate guard in the controller.
-            'feature' => ['required', 'string', Rule::in(array_column(Feature::toggleable(), 'value'))],
+            // Core modules and self-managed ones are both rejected here rather than
+            // needing a guard in the controller. The self-managed case matters most:
+            // a PATCH that armed the vault would null the server's copy of the data
+            // key with nothing wrapped in its place — permanent, total data loss.
+            'feature' => ['required', 'string', Rule::in(array_column(Feature::directlyToggleable(), 'value'))],
             'enabled' => ['required_without:show_promo', 'boolean'],
             'show_promo' => ['required_without:enabled', 'boolean'],
         ];

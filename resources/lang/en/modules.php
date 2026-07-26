@@ -19,9 +19,17 @@ return [
     'cancel' => 'Cancel',
     'requires' => 'Needs :features',
 
+    'manage' => 'Manage in Privacy & security',
+    'managed_elsewhere' => 'Switched on from its own page, because turning it on re-keys your data.',
+
     'tiers' => [
         'free' => 'Free',
         'pro' => 'Pro',
+    ],
+
+    'vault' => [
+        'label' => 'Private vault',
+        'description' => 'Hold the only key to your own data. CashPilot will not be able to read your amounts or titles — and neither will anyone who compels us.',
     ],
 
     'transactions' => [

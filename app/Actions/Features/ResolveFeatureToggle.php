@@ -43,6 +43,15 @@ final readonly class ResolveFeatureToggle
 
         if ($enable) {
             $enabled = $this->enableClosure($next, $target, $changes);
+
+            // Checked before anything is applied, so a rejection leaves the caller's
+            // state untouched rather than half-resolved.
+            $locked = $this->lockedConflict($current, $enabled);
+
+            if ($locked !== null) {
+                return new FeatureToggleResult($current, [], FeatureToggleResult::REJECTED_CONFLICT_LOCKED);
+            }
+
             $this->evictConflicts($next, $enabled, $changes);
         } else {
             $this->disableClosure($next, $target, $changes);
@@ -87,6 +96,29 @@ final readonly class ResolveFeatureToggle
         }
 
         return $seen;
+    }
+
+    /**
+     * The first enabled, self-managed feature this enable would have to evict.
+     *
+     * Some features cannot be switched off by the server alone — the vault needs
+     * the browser's data key to unwind. Evicting one would leave a user locked out
+     * of their own data, so the whole toggle is refused instead.
+     *
+     * @param  array<string, bool>  $state
+     * @param  array<string, Feature>  $enabled
+     */
+    private function lockedConflict(array $state, array $enabled): ?Feature
+    {
+        foreach ($enabled as $feature) {
+            foreach ($this->graph->conflictsWith($feature) as $conflict) {
+                if ($conflict->isSelfManaged() && $this->isEnabled($state, $conflict)) {
+                    return $conflict;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

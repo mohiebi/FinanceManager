@@ -2,15 +2,13 @@
 
 namespace App\Casts;
 
+use App\Concerns\OwnsEncryptedAttributes;
 use App\Contracts\HasEncryptionOwner;
-use App\Exceptions\EncryptionOwnerUnresolved;
-use App\Exceptions\VaultLocked;
 use App\Support\Encryption\EncryptedValue;
 use App\Support\Encryption\UserCrypto;
 use App\Support\Encryption\UserKeyRing;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
 
 /**
  * Encrypts an attribute under the owning user's data key.
@@ -20,10 +18,15 @@ use Illuminate\Support\Facades\Auth;
  *   'amount' => UserEncrypted::class.':decimal,2',
  *   'meta'   => UserEncrypted::class.':json',
  *
- * Reads degrade, writes refuse. When the owner's vault is armed the server has no
- * key: `get()` hands back an {@see EncryptedValue} so pages still render for
- * client-side decryption, while `set()` throws, because writing plaintext into a
- * column everything else treats as ciphertext is the worse failure.
+ * Setting only *encodes*; the actual encryption happens at save time via
+ * {@see OwnsEncryptedAttributes}. That is deliberate: Eloquent fills
+ * attributes before it sets a relation's foreign key, so during the idiomatic
+ * `$user->bills()->create([...])` the owning user is simply not known yet. Waiting
+ * until save is the only point where `user_id` is authoritative.
+ *
+ * Reads degrade rather than throw — when the owner's vault is armed the server has
+ * no key, so `get()` hands back an {@see EncryptedValue} and the page still renders
+ * for client-side decryption.
  *
  * @implements CastsAttributes<mixed, mixed>
  */
@@ -45,7 +48,17 @@ class UserEncrypted implements CastsAttributes
             return null;
         }
 
-        $dek = app(UserKeyRing::class)->for($this->ownerFor($model));
+        // Set but not yet saved, so still plaintext. Reading back an attribute you
+        // just assigned must return what you assigned.
+        if (! UserCrypto::looksEncrypted((string) $value)) {
+            return $this->decode((string) $value);
+        }
+
+        $ownerId = $model instanceof HasEncryptionOwner
+            ? $model->encryptionOwnerId()
+            : null;
+
+        $dek = $ownerId === null ? null : app(UserKeyRing::class)->for($ownerId);
 
         if ($dek === null) {
             return new EncryptedValue((string) $value, $key);
@@ -74,50 +87,10 @@ class UserEncrypted implements CastsAttributes
             return [$key => $value->ciphertext()];
         }
 
-        $ownerId = $this->ownerFor($model);
-        $dek = app(UserKeyRing::class)->for($ownerId);
-
-        if ($dek === null) {
-            throw new VaultLocked(sprintf(
-                'Cannot write [%s.%s]: the vault is armed for user [%d].',
-                $model->getTable(),
-                $key,
-                $ownerId,
-            ));
-        }
-
-        if (method_exists($model, 'recordEncryptionOwner')) {
-            $model->recordEncryptionOwner($ownerId);
-        }
-
-        return [$key => UserCrypto::encrypt(
-            $this->encode($value),
-            $dek,
-            UserCrypto::aadFor($model->getTable(), $key),
-        )];
+        return [$key => $this->encode($value)];
     }
 
-    private function ownerFor(Model $model): int
-    {
-        $ownerId = $model instanceof HasEncryptionOwner ? $model->encryptionOwnerId() : null;
-
-        // HasMany::create() calls newInstance($attributes) — which runs this cast —
-        // before setForeignAttributesForCreate() sets user_id, so the idiomatic
-        // $user->transactions()->create([...]) arrives here with no owner yet.
-        $ownerId ??= Auth::id();
-
-        if ($ownerId === null) {
-            throw new EncryptionOwnerUnresolved(sprintf(
-                'Cannot resolve the encryption owner for [%s]. Set user_id before the '
-                .'encrypted attribute, or run inside an authenticated context.',
-                $model::class,
-            ));
-        }
-
-        return (int) $ownerId;
-    }
-
-    private function encode(mixed $value): string
+    public function encode(mixed $value): string
     {
         return match ($this->type) {
             'decimal' => number_format((float) $value, (int) ($this->argument ?? 2), '.', ''),

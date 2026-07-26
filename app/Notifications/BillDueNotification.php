@@ -6,6 +6,7 @@ use App\Models\Bill;
 use App\Models\BillOccurrence;
 use App\Notifications\Channels\TelegramChannel;
 use App\Support\DateFormatter;
+use App\Support\Encryption\EncryptedValue;
 use App\Support\FrontendLocalization;
 use Illuminate\Notifications\Notification;
 
@@ -38,25 +39,35 @@ class BillDueNotification extends Notification
     {
         $locale = FrontendLocalization::normalizeLocale($notifiable->locale ?? null);
         $key = $this->typeKey();
-        $params = [
-            'title' => $this->bill->title,
-            'date' => $this->displayDate($notifiable),
-            'amount' => number_format((float) $this->bill->amount),
-            'currency' => strtoupper($this->bill->currency),
-        ];
 
         return [
             'type' => $key,
             'bill_id' => $this->bill->id,
             'title' => trans("notifications.{$key}.title", [], $locale),
-            'body' => trans("notifications.{$key}.body", $params, $locale),
+            // Deliberately the generic body. `notifications.data` is not encrypted,
+            // so repeating the bill's title or amount here would put in cleartext
+            // exactly what the bills table encrypts. The bill_id is enough for the
+            // UI to link through to the real figures.
+            'body' => trans("notifications.{$key}.body_generic", [
+                'date' => $this->displayDate($notifiable),
+            ], $locale),
             'due_date' => $this->occurrence->due_date->toDateString(),
         ];
     }
 
+    /**
+     * Rendered live and handed straight to Telegram — never stored by us, so it
+     * can carry the real title and amount.
+     */
     public function toTelegram(object $notifiable): ?string
     {
         if (! $this->bill->telegram_reminder_enabled) {
+            return null;
+        }
+
+        // Unreachable while the vault conflicts with the Telegram module, but a
+        // reminder that renders "•••" as an amount would be worse than none.
+        if ($this->bill->amount instanceof EncryptedValue || $this->bill->title instanceof EncryptedValue) {
             return null;
         }
 

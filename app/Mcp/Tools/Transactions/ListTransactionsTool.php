@@ -6,6 +6,7 @@ use App\Enums\TransactionType;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\CalendarDates;
+use App\Support\TransactionListing;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Validation\Rule;
 use Laravel\Mcp\Request;
@@ -41,22 +42,28 @@ class ListTransactionsTool extends Tool
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
 
-        $paginator = $user->transactions()
+        $query = $user->transactions()
             ->with('category')
             ->when($validated['from_date'] ?? null, fn ($query, $date) => $query->whereDate('occurred_at', '>=', $date))
             ->when($validated['to_date'] ?? null, fn ($query, $date) => $query->whereDate('occurred_at', '<=', $date))
             ->when($validated['type'] ?? null, fn ($query, $type) => $query->where('type', $type))
             ->when($validated['category_id'] ?? null, fn ($query, $categoryId) => $query->where('category_id', $categoryId))
-            ->when($validated['search'] ?? null, fn ($query, $search) => $query->where(
-                fn ($inner) => $inner
-                    ->where('title', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%"),
-            ))
             ->orderByDesc('occurred_at')
-            ->orderByDesc('id')
-            ->paginate(
-                perPage: (int) ($validated['per_page'] ?? 25),
-                page: (int) ($validated['page'] ?? 1),
+            ->orderByDesc('id');
+
+        $perPage = (int) ($validated['per_page'] ?? 25);
+        $page = (int) ($validated['page'] ?? 1);
+        $search = trim((string) ($validated['search'] ?? ''));
+
+        // Title and description are encrypted at rest, so searching has to happen
+        // after decryption — which means materialising the filtered range first.
+        // Without a search term the database can still do the paging.
+        $paginator = $search === ''
+            ? $query->paginate(perPage: $perPage, page: $page)
+            : TransactionListing::paginate(
+                TransactionListing::search($query->get(), $search),
+                $page,
+                $perPage,
             );
 
         $isJalali = CalendarDates::isJalaliUser($user);

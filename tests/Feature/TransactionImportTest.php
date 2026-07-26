@@ -41,7 +41,7 @@ test('users can preview and import valid english csv transactions', function () 
         ->post(route('transactions.imports.store'))
         ->assertRedirect(route('transactions.index'));
 
-    $this->assertDatabaseHas('transactions', [
+    assertTransactionExists([
         'user_id' => $user->id,
         'category_id' => $food->id,
         'type' => TransactionType::Cost->value,
@@ -51,7 +51,7 @@ test('users can preview and import valid english csv transactions', function () 
         'occurred_at' => '2026-06-15',
     ]);
 
-    $this->assertDatabaseHas('transactions', [
+    assertTransactionExists([
         'user_id' => $user->id,
         'category_id' => $salary->id,
         'type' => TransactionType::Income->value,
@@ -95,7 +95,7 @@ test('persian csv values normalize digits jalali dates aliases and rial amounts'
 
     $this->actingAs($user)->post(route('transactions.imports.store'));
 
-    $this->assertDatabaseHas('transactions', [
+    assertTransactionExists([
         'user_id' => $user->id,
         'category_id' => $salary->id,
         'type' => TransactionType::Income->value,
@@ -180,7 +180,8 @@ test('duplicate rows are shown in preview and skipped', function () {
         ->post(route('transactions.imports.store'))
         ->assertRedirect(route('transactions.index'));
 
-    expect(Transaction::query()->where('user_id', $user->id)->where('title', 'Lunch')->count())->toBe(1);
+    // Filtered after decryption — title is encrypted, so a SQL where would find nothing.
+    expect(Transaction::query()->where('user_id', $user->id)->get()->where('title', 'Lunch')->count())->toBe(1);
 });
 
 test('final import rechecks duplicates before saving', function () {
@@ -218,5 +219,6 @@ test('final import rechecks duplicates before saving', function () {
     expect($result['imported'])->toBe(0)
         ->and($result['skipped_duplicates'])->toBe(1);
 
-    expect(Transaction::query()->where('user_id', $user->id)->where('title', 'Lunch')->count())->toBe(1);
+    // Filtered after decryption — title is encrypted, so a SQL where would find nothing.
+    expect(Transaction::query()->where('user_id', $user->id)->get()->where('title', 'Lunch')->count())->toBe(1);
 });

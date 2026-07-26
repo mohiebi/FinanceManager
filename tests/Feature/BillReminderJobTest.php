@@ -98,9 +98,14 @@ test('it sends a due-day reminder and dispatches a telegram message when linked'
 
         $notification = $user->notifications()->sole();
         expect($notification->data['type'])->toBe('bill_due_today')
-            ->and($notification->data['body'])->toContain('Phone')
+            ->and($notification->data['bill_id'])->toBe($bill->id)
             ->and($notification->data['body'])->toContain('1405-04-24')
-            ->and($notification->data['body'])->not->toContain('2026-07-15');
+            ->and($notification->data['body'])->not->toContain('2026-07-15')
+            // notifications.data is not encrypted, so the stored body must not
+            // repeat what the bills table goes to the trouble of encrypting.
+            ->and($notification->data['body'])->not->toContain('Phone')
+            ->and($notification->data['body'])->not->toContain('250,000')
+            ->and($notification->data['body'])->not->toContain('250000');
 
         Queue::assertPushedOn('telegram', SendTelegramMessageJob::class, fn ($job) => $job->chatId === '12345');
     } finally {

@@ -12,6 +12,7 @@ use App\Models\Transaction;
 use App\Support\CurrencyPreference;
 use App\Support\DateFormatter;
 use App\Support\FrontendLocalization;
+use App\Support\TransactionListing;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
@@ -61,17 +62,12 @@ class ReportController extends Controller
                 $selectedCategoryId !== null,
                 fn (Builder $query) => $query->where('category_id', $selectedCategoryId),
             )
-            ->when(
-                $search !== '',
-                fn (Builder $query) => $query->where(function (Builder $query) use ($search): void {
-                    $query->where('title', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
-                }),
-            )
             ->latest('occurred_at')
             ->latest();
 
-        $transactions = $query->get();
+        // Searched in PHP: title and description are encrypted at rest, so a SQL
+        // LIKE against them matches nothing.
+        $transactions = TransactionListing::search($query->get(), $search);
 
         $costs = $transactions
             ->where('type', TransactionType::Cost)
@@ -83,12 +79,11 @@ class ReportController extends Controller
 
         $costPage = max(1, (int) $request->query('cost_page', 1));
         $incomePage = max(1, (int) $request->query('income_page', 1));
-        $costPaginator = (clone $query)
-            ->where('type', TransactionType::Cost)
-            ->paginate(15, ['*'], 'cost_page', $costPage);
-        $incomePaginator = (clone $query)
-            ->where('type', TransactionType::Income)
-            ->paginate(15, ['*'], 'income_page', $incomePage);
+
+        // Paged from the filtered collections rather than the builder, so search
+        // and paging agree on the same result set.
+        $costPaginator = TransactionListing::paginate($costs, $costPage);
+        $incomePaginator = TransactionListing::paginate($incomes, $incomePage);
 
         return Inertia::render('Report', [
             'filters' => [

@@ -599,16 +599,41 @@ class ImportTransactions
     /**
      * @param  array<string, mixed>  $data
      */
+    /**
+     * Narrow to candidates in SQL, then compare the encrypted fields in PHP.
+     *
+     * `amount` and `title` are encrypted with a fresh IV per write, so the same
+     * plaintext produces different ciphertext every time — a SQL equality check
+     * against them would never match and every import would look duplicate-free.
+     * The unencrypted columns cut the candidate set down to a handful first.
+     */
     private function isDuplicate(User $user, array $data): bool
     {
+        $amount = $this->amountKey($data['amount']);
+        $title = (string) $data['title'];
+
         return Transaction::query()
             ->where('user_id', $user->id)
             ->whereDate('occurred_at', (string) $data['occurred_at'])
             ->where('type', (string) $data['type'])
-            ->where('amount', (string) $data['amount'])
             ->where('currency', (string) $data['currency'])
-            ->where('title', (string) $data['title'])
-            ->exists();
+            // user_id is selected because the encryption cast resolves the owning
+            // key from it; without it the cast falls back to the authenticated
+            // user, which is wrong the moment an import runs from a queue.
+            ->get(['id', 'user_id', 'amount', 'title'])
+            ->contains(fn (Transaction $transaction): bool => $this->amountKey($transaction->amount) === $amount
+                && (string) $transaction->title === $title);
+    }
+
+    /**
+     * Render an amount at a fixed scale so two amounts can be compared in PHP.
+     *
+     * The old SQL check leaned on the database coercing "1250" and "1250.00" to
+     * the same decimal; a raw string comparison would not.
+     */
+    private function amountKey(mixed $amount): string
+    {
+        return number_format((float) $amount, 2, '.', '');
     }
 
     /**

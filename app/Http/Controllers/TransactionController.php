@@ -19,6 +19,7 @@ use App\Models\Transaction;
 use App\Services\AssetPriceService;
 use App\Support\CurrencyPreference;
 use App\Support\FrontendLocalization;
+use App\Support\TransactionListing;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -119,13 +120,6 @@ class TransactionController extends Controller
                 fn (Builder $query) => $query->where('category_id', $selectedCategoryId),
             )
             ->when(
-                $search !== '',
-                fn (Builder $query) => $query->where(function (Builder $query) use ($search): void {
-                    $query->where('title', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
-                }),
-            )
-            ->when(
                 $fromDate instanceof Carbon,
                 fn (Builder $query) => $query->whereDate('occurred_at', '>=', $fromDate->toDateString()),
             )
@@ -137,7 +131,8 @@ class TransactionController extends Controller
             ->latest();
 
         // Full collection is always needed for accurate multi-currency summary totals
-        $allTransactions = $query->get();
+        // — and, since title/description are encrypted, for search as well.
+        $allTransactions = TransactionListing::search($query->get(), $search);
 
         $categories = Category::query()
             ->availableFor($user)
@@ -162,8 +157,11 @@ class TransactionController extends Controller
             $costPage = max(1, (int) $request->query('cost_page', 1));
             $incomePage = max(1, (int) $request->query('income_page', 1));
 
-            $costPaginator = (clone $query)->where('type', TransactionType::Cost)->paginate(15, ['*'], 'cost_page', $costPage);
-            $incomePaginator = (clone $query)->where('type', TransactionType::Income)->paginate(15, ['*'], 'income_page', $incomePage);
+            // Paged from the already-filtered collection, not the builder: once the
+            // search runs in PHP, a database paginator would be paging a different
+            // (unfiltered) result set.
+            $costPaginator = TransactionListing::paginate($costs, $costPage);
+            $incomePaginator = TransactionListing::paginate($incomes, $incomePage);
 
             $displayCosts = collect($costPaginator->items());
             $displayIncomes = collect($incomePaginator->items());

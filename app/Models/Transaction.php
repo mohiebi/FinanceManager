@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Casts\UserEncrypted;
+use App\Concerns\OwnsEncryptedAttributes;
+use App\Contracts\HasEncryptionOwner;
 use App\Enums\Currency;
 use App\Enums\TransactionType;
 use Database\Factories\TransactionFactory;
@@ -21,10 +24,10 @@ use InvalidArgumentException;
     'description',
     'occurred_at',
 ])]
-class Transaction extends Model
+class Transaction extends Model implements HasEncryptionOwner
 {
     /** @use HasFactory<TransactionFactory> */
-    use HasFactory;
+    use HasFactory, OwnsEncryptedAttributes;
 
     protected static function booted(): void
     {
@@ -71,7 +74,12 @@ class Transaction extends Model
         return [
             'type' => TransactionType::class,
             'currency' => Currency::class,
-            'amount' => 'decimal:2',
+            // Encrypted under the owning user's key. `decimal,2` keeps the same
+            // two-decimal string shape the old 'decimal:2' cast returned, so
+            // nothing downstream sees a changed value type.
+            'amount' => UserEncrypted::class.':decimal,2',
+            'title' => UserEncrypted::class,
+            'description' => UserEncrypted::class,
             'occurred_at' => 'date:Y-m-d',
         ];
     }

@@ -2,8 +2,8 @@
 
 use App\Casts\UserEncrypted;
 use App\Concerns\OwnsEncryptedAttributes;
+use App\Contracts\HasEncryptionOwner;
 use App\Exceptions\DecryptionFailed;
-use App\Exceptions\EncryptionOwnerMismatch;
 use App\Exceptions\EncryptionOwnerUnresolved;
 use App\Exceptions\VaultLocked;
 use App\Models\User;
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
  * Exercises the cast against a real table before any production model is cast,
  * so Stage 0 stays a genuine no-op for application behaviour.
  */
-class EncryptionProbe extends Model
+class EncryptionProbe extends Model implements HasEncryptionOwner
 {
     use OwnsEncryptedAttributes;
 
@@ -150,22 +150,48 @@ test('a relation create encrypts under the owner even though the foreign key lan
     expect($probe->fresh()->description)->toBe('resolved via auth');
 });
 
-test('writing an encrypted attribute with no resolvable owner is refused', function () {
-    $probe = new EncryptionProbe;
+test('saving a row with no owner is refused', function () {
+    $probe = new EncryptionProbe([
+        'type' => 'cost',
+        'amount' => 100,
+        'currency' => 'toman',
+        'title' => 'Probe',
+        'occurred_at' => '2026-07-25',
+        'description' => 'orphan',
+    ]);
 
-    expect(fn () => $probe->description = 'orphan')->toThrow(EncryptionOwnerUnresolved::class);
+    // Assigning is fine — encryption is deferred to save, which is the first
+    // moment the owner is knowable.
+    expect(fn () => $probe->save())->toThrow(EncryptionOwnerUnresolved::class);
 });
 
-test('saving a row under a different user than it was encrypted for is refused', function () {
+test('a row is keyed to its final owner, not to whoever was authenticated', function () {
     $alice = User::factory()->create();
     $bob = User::factory()->create();
+
+    // Alice is the acting user, but the row ends up owned by Bob. Encrypting at
+    // save time means it is keyed to Bob — the only reading that is recoverable.
     $this->actingAs($alice);
 
     $probe = new EncryptionProbe(probeAttributes($alice));
-    $probe->description = 'encrypted for alice';
+    $probe->description = 'belongs to bob';
     $probe->user_id = $bob->id;
+    $probe->save();
 
-    expect(fn () => $probe->save())->toThrow(EncryptionOwnerMismatch::class);
+    $stored = DB::table('transactions')->where('id', $probe->id)->value('description');
+    $bobKey = app(UserKeyRing::class)->for($bob->id);
+
+    expect(UserCrypto::decrypt($stored, $bobKey, UserCrypto::aadFor('transactions', 'description')))
+        ->toBe('belongs to bob');
+});
+
+test('reading back an unsaved attribute returns what was assigned', function () {
+    $user = User::factory()->create();
+
+    $probe = new EncryptionProbe(probeAttributes($user));
+    $probe->description = 'not saved yet';
+
+    expect($probe->description)->toBe('not saved yet');
 });
 
 test('an armed vault yields ciphertext on read instead of throwing', function () {

@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Casts\UserEncrypted;
+use App\Concerns\OwnsEncryptedAttributes;
+use App\Contracts\HasEncryptionOwner;
 use App\Enums\BillRecurrenceType;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -22,8 +25,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'reminder_timezone',
     'is_active',
 ])]
-class Bill extends Model
+class Bill extends Model implements HasEncryptionOwner
 {
+    use OwnsEncryptedAttributes;
+
     /**
      * @return BelongsTo<User, Bill>
      */
@@ -59,6 +64,8 @@ class Bill extends Model
     protected function casts(): array
     {
         return [
+            'title' => UserEncrypted::class,
+            // Still APP_KEY-encrypted; moved onto the per-user key in Stage 3.
             'amount' => 'encrypted',
             'recurrence_type' => BillRecurrenceType::class,
             'due_date' => 'date:Y-m-d',

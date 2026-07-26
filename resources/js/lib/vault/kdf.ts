@@ -32,9 +32,15 @@ export async function derivePassphraseBits(
 ): Promise<Uint8Array<ArrayBuffer>> {
     const material = await crypto.subtle.importKey(
         'raw',
+        // Trimmed and NFKC-normalised, in that order, and identically on every
+        // path that derives this key.
+        //
         // NFKC is not optional: without it the same passphrase typed on iOS and
-        // on Windows can produce different bytes, and the vault refuses to open.
-        new TextEncoder().encode(passphrase.normalize('NFKC')),
+        // on Windows produces different bytes. Trimming matters just as much in
+        // practice — copying a passphrase out of an input routinely picks up a
+        // trailing space, and an untrimmed space derives a completely different
+        // key with no clue as to why.
+        new TextEncoder().encode(passphrase.trim().normalize('NFKC')),
         'PBKDF2',
         false,
         ['deriveBits'],

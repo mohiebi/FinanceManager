@@ -89,9 +89,9 @@ return [
             'passphrase_too_short' => 'Use at least 12 characters, or let us generate one.',
 
             'recovery_heading' => 'Save your recovery key',
-            'recovery_help' => 'The only way back if you forget your passphrase. Store it somewhere safe — a password manager, or on paper.',
-            'recovery_confirm' => 'Type group {position} to confirm you saved it',
-            'recovery_mismatch' => 'That does not match. Check your saved copy.',
+            'recovery_help' => 'This is different from your passphrase. It is the only way back if you forget it, so store it somewhere safe — a password manager, or on paper.',
+            'recovery_confirm' => 'Type the highlighted group above — that is from your recovery key, not your passphrase',
+            'recovery_mismatch' => 'That does not match the highlighted group. Check the key above.',
             'acknowledge' => 'I have saved my recovery key somewhere safe',
 
             'confirm_word' => 'Type {word} to confirm',
@@ -108,6 +108,8 @@ return [
             'use_passphrase' => 'Use my passphrase instead',
             'recovery_key' => 'Recovery key',
             'reload_note' => 'You will be asked again after a reload or in a new tab — the key is never stored.',
+            'trust_device' => 'Trust this device for {days} days',
+            'trust_device_note' => 'Stored on this device only, and cleared when you sign out. Anyone using this device can read your data until then.',
             'unavailable' => 'Not available while the private vault is on — this needs a server that can read your data.',
         ],
     ],

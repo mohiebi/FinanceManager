@@ -11,6 +11,7 @@ import {
     importDek,
 } from '@/lib/vault/crypto';
 import { derivePassphraseKek, deriveRecoveryKek } from '@/lib/vault/kdf';
+import { forgetKey, recallKey, rememberKey } from '@/lib/vault/keyStore';
 import type { Ciphertext, Encrypted, VaultDescriptor } from '@/types/vault';
 import { isCiphertext } from '@/types/vault';
 
@@ -48,6 +49,7 @@ async function adoptDek(
     kek: CryptoKey,
     wrapped: string,
     expectedFingerprint: string,
+    trustDevice = false,
 ): Promise<void> {
     const raw = base64ToBytes(await decrypt(wrapped, kek, DEK_AAD));
 
@@ -59,6 +61,35 @@ async function adoptDek(
 
     dek = await importDek(raw, false);
     unlocked.value = true;
+
+    if (trustDevice) {
+        await rememberKey(dek, expectedFingerprint);
+    }
+}
+
+/**
+ * Adopt a key this device was previously asked to remember.
+ *
+ * Called on load, before the unlock dialog decides whether to show itself, so a
+ * trusted device never sees a prompt it does not need.
+ */
+export async function restoreRememberedKey(
+    fingerprint: string,
+): Promise<boolean> {
+    if (dek !== null) {
+        return true;
+    }
+
+    const remembered = await recallKey(fingerprint);
+
+    if (remembered === null) {
+        return false;
+    }
+
+    dek = remembered;
+    unlocked.value = true;
+
+    return true;
 }
 
 export type UseVaultReturn = {
@@ -70,10 +101,15 @@ export type UseVaultReturn = {
         table: string,
         type?: EncryptedFieldType,
     ) => Promise<T | undefined>;
-    unlockWithPassphrase: (passphrase: string) => Promise<void>;
+    unlockWithPassphrase: (
+        passphrase: string,
+        trustDevice?: boolean,
+    ) => Promise<void>;
     unlockWithRecoveryKey: (
         recoveryKey: Uint8Array<ArrayBuffer>,
+        trustDevice?: boolean,
     ) => Promise<void>;
+    restore: () => Promise<boolean>;
     exportKeyWithPassphrase: (passphrase: string) => Promise<string>;
     sealForSubmit: <T extends Record<string, unknown>>(
         values: T,
@@ -146,7 +182,10 @@ export function useVault(): UseVaultReturn {
         return decoded;
     }
 
-    async function unlockWithPassphrase(passphrase: string): Promise<void> {
+    async function unlockWithPassphrase(
+        passphrase: string,
+        trustDevice = false,
+    ): Promise<void> {
         const vault = descriptor();
 
         if (vault === null || !vault.armed) {
@@ -161,11 +200,13 @@ export function useVault(): UseVaultReturn {
             ),
             vault.wrappedPassphrase,
             vault.fingerprint,
+            trustDevice,
         );
     }
 
     async function unlockWithRecoveryKey(
         recoveryKey: Uint8Array<ArrayBuffer>,
+        trustDevice = false,
     ): Promise<void> {
         const vault = descriptor();
 
@@ -180,7 +221,17 @@ export function useVault(): UseVaultReturn {
             ),
             vault.wrappedRecovery,
             vault.fingerprint,
+            trustDevice,
         );
+    }
+
+    /** Adopt a remembered key if this device was trusted. */
+    async function restore(): Promise<boolean> {
+        const vault = descriptor();
+
+        return vault !== null && vault.armed
+            ? restoreRememberedKey(vault.fingerprint)
+            : false;
     }
 
     /**
@@ -258,10 +309,17 @@ export function useVault(): UseVaultReturn {
         return sealed as T;
     }
 
+    /**
+     * Drop the key from memory, and from this device if it was remembered.
+     *
+     * Called on sign-out and when the vault is disarmed, so a trusted device does
+     * not keep a key it no longer has any right to.
+     */
     function lock(): void {
         dek = null;
         unlocked.value = false;
         cache.clear();
+        void forgetKey();
     }
 
     return {
@@ -271,6 +329,7 @@ export function useVault(): UseVaultReturn {
         revealAsync,
         unlockWithPassphrase,
         unlockWithRecoveryKey,
+        restore,
         exportKeyWithPassphrase,
         sealForSubmit,
         lock,

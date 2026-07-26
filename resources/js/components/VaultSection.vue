@@ -59,12 +59,19 @@ const confirmWord = computed(() =>
 
 const recoveryGroups = computed(() => recoveryDisplay.value.split('-'));
 
-const canFinish = computed(
-    () =>
-        acknowledged.value &&
-        recoveryEcho.value.trim().toUpperCase() ===
-            (recoveryGroups.value[recoveryGroupIndex.value] ?? ''),
-);
+const recoveryMatches = computed(() => {
+    const expected = recoveryGroups.value[recoveryGroupIndex.value];
+
+    // Guarded rather than compared against a fallback, so an empty box can never
+    // count as a match.
+    return (
+        expected !== undefined &&
+        expected !== '' &&
+        recoveryEcho.value.trim().toUpperCase() === expected
+    );
+});
+
+const canFinish = computed(() => acknowledged.value && recoveryMatches.value);
 
 const canDisable = computed(
     () =>
@@ -463,21 +470,30 @@ async function finishDisable(): Promise<void> {
                         {{ t('settings.security.vault.recovery_help') }}
                     </p>
 
-                    <p
-                        class="mt-4 rounded-xl bg-white/5 p-3 text-center font-mono text-sm tracking-wider text-white select-all"
+                    <!-- Rendered per group rather than as one string, so the group
+                         we ask for can be pointed at instead of counted. -->
+                    <div
+                        class="mt-4 flex flex-wrap justify-center gap-1.5 rounded-xl bg-white/5 p-3 select-all"
                     >
-                        {{ recoveryDisplay }}
-                    </p>
+                        <span
+                            v-for="(group, index) in recoveryGroups"
+                            :key="index"
+                            class="rounded-md px-1.5 py-0.5 font-mono text-sm tracking-wider"
+                            :class="
+                                index === recoveryGroupIndex
+                                    ? 'bg-[#02CD86]/20 text-[#02CD86] ring-1 ring-[#02CD86]/40'
+                                    : 'text-white'
+                            "
+                        >
+                            {{ group }}
+                        </span>
+                    </div>
 
                     <!-- Typing a group back is what makes "saved it" mean something.
                          This must clear before the server drops its copy — after
                          that there is no way back. -->
                     <label class="mt-4 block text-xs text-[#989898]">
-                        {{
-                            t('settings.security.vault.recovery_confirm', {
-                                position: recoveryGroupIndex + 1,
-                            })
-                        }}
+                        {{ t('settings.security.vault.recovery_confirm') }}
                     </label>
                     <input
                         v-model="recoveryEcho"
@@ -486,6 +502,15 @@ async function finishDisable(): Promise<void> {
                         spellcheck="false"
                         class="mt-1 w-full rounded-xl bg-white/5 px-3 py-2.5 font-mono text-sm tracking-wider text-white uppercase ring-1 ring-white/10 outline-none focus:ring-[#02CD86]"
                     />
+
+                    <!-- Silence used to be the only feedback here, which reads as
+                         "nothing I type works". -->
+                    <p
+                        v-if="recoveryEcho.trim() !== '' && !recoveryMatches"
+                        class="mt-1.5 text-xs text-[#E94E50]"
+                    >
+                        {{ t('settings.security.vault.recovery_mismatch') }}
+                    </p>
 
                     <label class="mt-3 flex cursor-pointer items-start gap-2">
                         <Checkbox

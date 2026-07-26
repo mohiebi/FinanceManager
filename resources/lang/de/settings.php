@@ -89,9 +89,9 @@ return [
             'passphrase_too_short' => 'Nutze mindestens 12 Zeichen, oder lass uns eine erzeugen.',
 
             'recovery_heading' => 'Sichere deinen Wiederherstellungsschlüssel',
-            'recovery_help' => 'Der einzige Weg zurück, wenn du deine Passphrase vergisst. Bewahre ihn sicher auf — im Passwortmanager oder auf Papier.',
-            'recovery_confirm' => 'Tippe Gruppe {position}, um die Sicherung zu bestätigen',
-            'recovery_mismatch' => 'Das stimmt nicht überein. Prüfe deine Kopie.',
+            'recovery_help' => 'Dieser unterscheidet sich von deiner Passphrase. Er ist der einzige Weg zurück, wenn du sie vergisst — bewahre ihn sicher auf, im Passwortmanager oder auf Papier.',
+            'recovery_confirm' => 'Tippe die hervorgehobene Gruppe oben — sie stammt aus deinem Wiederherstellungsschlüssel, nicht aus deiner Passphrase',
+            'recovery_mismatch' => 'Das stimmt nicht mit der hervorgehobenen Gruppe überein. Prüfe den Schlüssel oben.',
             'acknowledge' => 'Ich habe meinen Wiederherstellungsschlüssel sicher gespeichert',
 
             'confirm_word' => 'Tippe {word} zur Bestätigung',
@@ -108,6 +108,8 @@ return [
             'use_passphrase' => 'Stattdessen Passphrase nutzen',
             'recovery_key' => 'Wiederherstellungsschlüssel',
             'reload_note' => 'Nach einem Neuladen oder in einem neuen Tab wirst du erneut gefragt — der Schlüssel wird nie gespeichert.',
+            'trust_device' => 'Diesem Gerät {days} Tage vertrauen',
+            'trust_device_note' => 'Nur auf diesem Gerät gespeichert und beim Abmelden gelöscht. Bis dahin kann jede Person an diesem Gerät deine Daten lesen.',
             'unavailable' => 'Nicht verfügbar, solange der private Tresor an ist — dafür braucht es einen Server, der deine Daten lesen kann.',
         ],
     ],

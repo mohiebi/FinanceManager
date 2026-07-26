@@ -1,30 +1,73 @@
 <script setup lang="ts">
 import { usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { useIdle } from '@vueuse/core';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useVault } from '@/composables/useVault';
+import { TRUST_DAYS } from '@/lib/vault/keyStore';
 import { parseRecoveryKey } from '@/lib/vault/recoveryKey';
 
 /**
- * Blocks the app whenever the vault is armed and the key is not in memory.
+ * Blocks the app whenever the vault is armed, the key is not available, and the
+ * current page actually needs it.
  *
- * Mounted at the layout, not wired into the login controllers: a user resumes an
- * authenticated session through six different paths (password, emailed code,
- * signup completion, Google, remember-me, a plain reload) and only a layout-level
- * gate catches all of them.
+ * Mounted at the layout, not wired into the login controllers: a session resumes
+ * through six different paths (password, emailed code, signup completion, Google,
+ * remember-me, a plain reload) and only a layout-level gate catches all of them.
  */
 const { t } = useI18n();
 const page = usePage();
-const { unlocked, unlockWithPassphrase, unlockWithRecoveryKey } = useVault();
+const { unlocked, unlockWithPassphrase, unlockWithRecoveryKey, restore, lock } =
+    useVault();
 
 const passphrase = ref('');
 const recoveryKey = ref('');
 const usingRecovery = ref(false);
+const trustDevice = ref(false);
 const busy = ref(false);
+const restoring = ref(true);
 const error = ref('');
 
 const armed = computed(() => page.props.vault?.armed === true);
-const open = computed(() => armed.value && !unlocked.value);
+
+/**
+ * Pages that never render encrypted values, so there is nothing to unlock for.
+ *
+ * Asking for a key on the settings screens was the main reason the prompt felt
+ * relentless — most of them have no ciphertext on them at all.
+ */
+const PLAINTEXT_PATHS = ['/settings', '/modules'];
+
+const pageNeedsKey = computed(
+    () => !PLAINTEXT_PATHS.some((path) => page.url.startsWith(path)),
+);
+
+const open = computed(
+    () =>
+        armed.value &&
+        !unlocked.value &&
+        !restoring.value &&
+        pageNeedsKey.value,
+);
+
+// A trusted device should never flash the dialog on its way to being restored.
+onMounted(async () => {
+    try {
+        await restore();
+    } finally {
+        restoring.value = false;
+    }
+});
+
+// Locking on idle is what keeps "trust this device" from meaning "forever".
+const { idle } = useIdle(30 * 60 * 1000);
+
+watch(idle, (isIdle) => {
+    if (isIdle && unlocked.value) {
+        lock();
+    }
+});
 
 async function submit(): Promise<void> {
     busy.value = true;
@@ -40,9 +83,9 @@ async function submit(): Promise<void> {
                 return;
             }
 
-            await unlockWithRecoveryKey(parsed);
+            await unlockWithRecoveryKey(parsed, trustDevice.value);
         } else {
-            await unlockWithPassphrase(passphrase.value);
+            await unlockWithPassphrase(passphrase.value, trustDevice.value);
         }
 
         passphrase.value = '';
@@ -74,11 +117,16 @@ async function submit(): Promise<void> {
                 </p>
 
                 <form class="mt-5 space-y-3" @submit.prevent="submit">
+                    <!-- A real password field with a stable name, so a password
+                         manager can offer to save and autofill it. The passphrase
+                         belongs in one; refusing to let it be saved just pushed
+                         people towards weaker ones. -->
                     <input
                         v-if="!usingRecovery"
                         v-model="passphrase"
                         type="password"
-                        autocomplete="off"
+                        name="vault-passphrase"
+                        autocomplete="current-password"
                         :placeholder="t('settings.security.vault.passphrase')"
                         class="w-full rounded-xl bg-white/5 px-3 py-2.5 text-sm text-white ring-1 ring-white/10 outline-none focus:ring-[#02CD86]"
                     />
@@ -91,6 +139,21 @@ async function submit(): Promise<void> {
                         :placeholder="t('settings.security.vault.recovery_key')"
                         class="w-full rounded-xl bg-white/5 px-3 py-2.5 font-mono text-sm text-white ring-1 ring-white/10 outline-none focus:ring-[#02CD86]"
                     />
+
+                    <label class="flex cursor-pointer items-start gap-2">
+                        <Checkbox
+                            :checked="trustDevice"
+                            class="mt-0.5"
+                            @update:checked="trustDevice = $event === true"
+                        />
+                        <span class="text-xs text-[#989898]">
+                            {{
+                                t('settings.security.vault.trust_device', {
+                                    days: TRUST_DAYS,
+                                })
+                            }}
+                        </span>
+                    </label>
 
                     <p v-if="error" class="text-sm text-[#E94E50]">
                         {{ error }}
@@ -120,7 +183,11 @@ async function submit(): Promise<void> {
                 <p
                     class="mt-4 border-t border-white/5 pt-3 text-xs text-[#6f6f6f]"
                 >
-                    {{ t('settings.security.vault.reload_note') }}
+                    {{
+                        trustDevice
+                            ? t('settings.security.vault.trust_device_note')
+                            : t('settings.security.vault.reload_note')
+                    }}
                 </p>
             </div>
         </div>

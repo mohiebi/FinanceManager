@@ -17,6 +17,7 @@ return [
 
     'nav' => [
         'features' => 'Features',
+        'privacy' => 'Privacy',
         'telegram' => 'Telegram bot',
         'how_it_works' => 'How it works',
         'faq' => 'FAQ',
@@ -62,6 +63,59 @@ return [
         'telegram' => [
             'title' => 'Telegram built in',
             'text' => 'Add expenses and get bill reminders in chat',
+        ],
+    ],
+
+    'privacy' => [
+        'kicker' => 'Privacy first',
+        'title' => 'Your money is nobody else’s business.',
+        'subtitle' => 'Every amount, title and note is encrypted before it is written to disk — and if that is not enough for you, you can take the key away from us entirely.',
+
+        'levels' => [
+            'standard' => [
+                'badge' => 'Level 1 — default',
+                'title' => 'Encrypted at rest',
+                'text' => 'On by default, for every account, with nothing to configure. Your amounts, titles and notes are encrypted with a key that belongs to your account alone, so a stolen database is a pile of noise.',
+                'points' => [
+                    'encrypted' => 'AES-256-GCM on every amount, title and note before it reaches the database.',
+                    'per_user' => 'A separate data key per account — one leaked record does not unlock anyone else’s.',
+                    'readable' => 'We can still decrypt it, which is what lets the Telegram bot, reminders and the AI assistant work.',
+                ],
+            ],
+            'vault' => [
+                'badge' => 'Level 2 — optional',
+                'title' => 'Private vault (zero-knowledge)',
+                'text' => 'Switch it on and the key moves into your browser. We keep storing your data and we stop being able to read it — not our staff, not our servers, not under a court order.',
+                'points' => [
+                    'zero_knowledge' => 'We hold ciphertext and nothing else. There is no copy of your key on our side to hand over.',
+                    'browser_key' => 'Your passphrase never leaves your device; the key is derived and used in your browser.',
+                    'tradeoff' => 'The honest cost: Telegram and the AI assistant stop working, and losing both your passphrase and recovery key means the data is gone.',
+                ],
+            ],
+        ],
+
+        'how' => [
+            'title' => 'How the vault actually works',
+            'text' => 'Your data is encrypted with a single data key. Turning the vault on wraps that key under a passphrase only you know and a recovery key only you hold, then deletes our copy. Nothing is re-encrypted, so it is instant — and irreversible without one of your two secrets. Everything else keeps working, because your browser does the decrypting and the arithmetic.',
+        ],
+
+        'pledges' => [
+            'no_ads' => [
+                'title' => 'No ads, ever',
+                'text' => 'Nothing about your spending is used to sell you anything',
+            ],
+            'no_selling' => [
+                'title' => 'Never sold or shared',
+                'text' => 'Your financial data is not a product and never becomes one',
+            ],
+            'no_tracking' => [
+                'title' => 'No third-party trackers',
+                'text' => 'No advertising pixels or analytics profiles follow you here',
+            ],
+            'export' => [
+                'title' => 'Your data, exportable',
+                'text' => 'Take everything with you as a spreadsheet whenever you like',
+            ],
         ],
     ],
 

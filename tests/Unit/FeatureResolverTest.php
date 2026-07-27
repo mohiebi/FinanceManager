@@ -101,10 +101,11 @@ test('conflicts are symmetric even when declared in only one direction', functio
         ->and($result->state[Feature::Investments->value])->toBeFalse();
 });
 
-test('enabling the vault evicts everything that needs a server which can read', function () {
+test('enabling the vault evicts only the modules that run without a browser', function () {
     $state = FeatureSet::defaults()->toEnabledMap();
     $state[Feature::Investments->value] = true;
     $state[Feature::Portfolio->value] = true;
+    $state[Feature::Bills->value] = true;
     $state[Feature::TelegramBot->value] = true;
     $state[Feature::AiAssistant->value] = true;
 
@@ -114,11 +115,13 @@ test('enabling the vault evicts everything that needs a server which can read', 
         ->and($result->state[Feature::Vault->value])->toBeTrue()
         ->and($result->state[Feature::TelegramBot->value])->toBeFalse()
         ->and($result->state[Feature::AiAssistant->value])->toBeFalse()
-        ->and($result->state[Feature::Portfolio->value])->toBeFalse()
-        // Investments is not itself in conflict, so it survives.
+        // Bills, Portfolio and Investments all have a client-side path, so they
+        // survive — the browser decrypts and does the arithmetic.
+        ->and($result->state[Feature::Bills->value])->toBeTrue()
+        ->and($result->state[Feature::Portfolio->value])->toBeTrue()
         ->and($result->state[Feature::Investments->value])->toBeTrue()
         ->and($result->disabledByCascade())
-        ->toEqualCanonicalizing([Feature::TelegramBot, Feature::AiAssistant, Feature::Portfolio]);
+        ->toEqualCanonicalizing([Feature::TelegramBot, Feature::AiAssistant]);
 });
 
 test('enabling a conflicting module while the vault is on is rejected, not applied', function () {

@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Transaction;
 
-use App\Support\Encryption\EncryptedValue;
+use App\Support\Encryption\SealedField;
 use App\Support\TransactionRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -60,12 +60,6 @@ abstract class TransactionRequest extends FormRequest
 
         // Wrapped so the cast stores the browser's ciphertext verbatim instead of
         // trying to encrypt it again with a key the server no longer has.
-        foreach (['amount', 'title', 'description'] as $field) {
-            if (filled($data[$field] ?? null)) {
-                $data[$field] = new EncryptedValue($data[$field], $field);
-            }
-        }
-
-        return $data;
+        return SealedField::wrap($data, ['amount', 'title', 'description']);
     }
 }

@@ -5,13 +5,18 @@ import { format as formatMoney } from '@/lib/money';
 import type { CurrencyCode, Rates } from '@/lib/money';
 import type { Encrypted } from '@/types/vault';
 
-const props = defineProps<{
-    amount: Encrypted<string | number> | null | undefined;
-    displayAmount?: string | number | null;
-    currency: CurrencyCode;
-    displayCurrency: CurrencyCode;
-    rates: Rates | null;
-}>();
+const props = withDefaults(
+    defineProps<{
+        amount: Encrypted<string | number> | null | undefined;
+        displayAmount?: string | number | null;
+        currency: CurrencyCode;
+        displayCurrency: CurrencyCode;
+        rates: Rates | null;
+        /** Table the amount came from — needed to rebuild the AAD. */
+        table?: string;
+    }>(),
+    { table: 'transactions' },
+);
 
 const { reveal, revealAsync } = useVault();
 
@@ -29,7 +34,7 @@ watchEffect(async () => {
     resolved.value = undefined;
     resolved.value = await revealAsync<string | number>(
         props.amount,
-        'transactions',
+        props.table,
         'decimal',
     );
 });

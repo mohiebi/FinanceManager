@@ -6,8 +6,7 @@ use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Models\Category;
 use App\Models\User;
-use App\Support\Encryption\UserCrypto;
-use Closure;
+use App\Support\Encryption\SealedField;
 use Illuminate\Validation\Rule;
 
 /**
@@ -28,46 +27,16 @@ class TransactionRules
             'type' => ['required', Rule::enum(TransactionType::class)],
             'category_id' => ['required', 'integer', Rule::exists('categories', 'id')],
             'amount' => $vaultArmed
-                ? self::encryptedRules()
+                ? SealedField::rules()
                 : ['required', 'numeric', 'min:0.01', 'max:9999999999999.99'],
             'currency' => ['required', Rule::enum(Currency::class)],
             'title' => $vaultArmed
-                ? self::encryptedRules()
+                ? SealedField::rules()
                 : ['required', 'string', 'max:255'],
             'description' => $vaultArmed
-                ? self::encryptedRules(required: false)
+                ? SealedField::rules(required: false)
                 : ['nullable', 'string', 'max:5000'],
             'occurred_at' => ['required', 'date'],
-        ];
-    }
-
-    /**
-     * Rules for a field the server cannot read.
-     *
-     * `numeric` and `max:255` are gone — the server has no way to check a value it
-     * cannot decrypt, which is the honest cost of the vault. What it *can* still
-     * enforce is that the client sent real ciphertext rather than junk or, worse,
-     * plaintext that would sit unencrypted in an encrypted column.
-     *
-     * @return array<int, mixed>
-     */
-    private static function encryptedRules(bool $required = true): array
-    {
-        return [
-            $required ? 'required' : 'nullable',
-            'string',
-            'max:8192',
-            function (string $attribute, mixed $value, Closure $fail): void {
-                // `nullable` only short-circuits on null, so an empty optional
-                // field would otherwise be told to encrypt nothing.
-                if ($value === null || $value === '') {
-                    return;
-                }
-
-                if (! UserCrypto::looksEncrypted(is_string($value) ? $value : null)) {
-                    $fail('The :attribute must be encrypted by your browser before it is sent.');
-                }
-            },
         ];
     }
 

@@ -7,6 +7,7 @@ use App\Models\Bill;
 use App\Models\BillOccurrence;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Support\Encryption\SealedField;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -17,9 +18,18 @@ use Illuminate\Support\Facades\DB;
  */
 class MarkBillOccurrencePaid
 {
-    public function __invoke(Bill $bill, BillOccurrence $occurrence): ?Transaction
+    /**
+     * Title and amount the browser re-encrypted for the `transactions` table.
+     *
+     * Required when the owner's vault is armed: a ciphertext is bound to its table
+     * by the AAD, so the bill's own blobs cannot be copied across, and the server
+     * holds no key to re-seal them.
+     *
+     * @param  array{title: string, amount: string}|null  $sealed
+     */
+    public function __invoke(Bill $bill, BillOccurrence $occurrence, ?array $sealed = null): ?Transaction
     {
-        return DB::transaction(function () use ($bill, $occurrence) {
+        return DB::transaction(function () use ($bill, $occurrence, $sealed) {
             // Re-fetch under a row lock so two near-simultaneous "mark paid" calls
             // (double-click, or web + Telegram at once) can't both pass the
             // isPaid() check before either writes — the second caller blocks here
@@ -42,10 +52,11 @@ class MarkBillOccurrencePaid
             $transaction = $bill->user->transactions()->create([
                 'category_id' => $categoryId,
                 'type' => TransactionType::Cost,
-                'amount' => (float) $bill->amount,
                 'currency' => $bill->currency,
-                'title' => $bill->title,
                 'occurred_at' => Carbon::today()->toDateString(),
+                ...($sealed === null
+                    ? ['amount' => (float) $bill->amount, 'title' => $bill->title]
+                    : SealedField::wrap($sealed, ['amount', 'title'])),
             ]);
 
             $locked->forceFill([

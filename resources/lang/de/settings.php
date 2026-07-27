@@ -69,7 +69,7 @@ return [
 
             'on_heading' => 'Nur du hast den Schlüssel',
             'on_point_1' => 'Wir können deine Beträge und Titel nicht lesen. Weder unsere Mitarbeitenden noch auf gerichtliche Anordnung.',
-            'on_point_2' => 'Telegram, der KI-Assistent und das Portfolio sind aus, weil sie einen lesenden Server brauchen.',
+            'on_point_2' => 'Telegram und der KI-Assistent sind aus, weil sie ohne Browser laufen und nichts entschlüsseln können.',
             'on_point_3' => 'Verlierst du Passphrase und Wiederherstellungsschlüssel, sind deine Daten endgültig weg.',
 
             'enable' => 'Privaten Tresor einschalten',
@@ -77,11 +77,52 @@ return [
             'needs_password' => 'Lege zuerst ein Passwort für dein Konto fest — damit wird das Einschalten bestätigt.',
 
             'gain' => 'Was du gewinnst',
-            'lose' => 'Was du aufgibst',
             'enable_gain' => 'Niemand außer dir kann deine Beträge und Titel lesen, was auch immer mit unseren Servern passiert.',
-            'enable_lose' => 'Telegram, den KI-Assistenten, das Portfolio, Import und Export — und jeden Weg zurück, falls du beide Geheimnisse verlierst.',
-            'disable_gain' => 'Diese Funktionen kommen zurück, und du kannst dein Konto wieder per E-Mail wiederherstellen.',
-            'disable_lose' => 'CashPilot kann deine Beträge und Titel wieder lesen. Das ist der Rückschritt beim Datenschutz.',
+
+            'enable_intro' => 'Ab jetzt liegt dein Datenschlüssel nur noch in deinem Browser. Lies das, bevor du fortfährst.',
+            'enable_warning_title' => 'Telegram und der KI-Assistent werden abgeschaltet',
+            'enable_warning_body' => 'Sie werden nicht pausiert oder eingeschränkt — sie funktionieren gar nicht mehr und bleiben aus, auch wenn du den Tresor später wieder ausschaltest. Beide laufen auf unseren Servern ohne Browser, also gibt es dort nichts, womit sich deine Daten entschlüsseln ließen.',
+            'enable_loss' => [
+                'telegram' => [
+                    'title' => 'Telegram-Bot',
+                    'text' => 'keine Erinnerungen, keine Einträge aus dem Chat, keine Zusammenfassungen.',
+                ],
+                'ai' => [
+                    'title' => 'KI-Assistent',
+                    'text' => 'verbundene KI-Tools können deine Finanzen weder lesen noch Änderungen vorschlagen.',
+                ],
+                'spreadsheets' => [
+                    'title' => 'Import und Export von Tabellen',
+                    'text' => 'beides entsteht auf unseren Servern, die deine Beträge nicht mehr lesen oder schreiben können.',
+                ],
+                'recovery' => [
+                    'title' => 'Wiederherstellung per E-Mail',
+                    'text' => 'verlierst du Passphrase und Wiederherstellungsschlüssel, sind deine Daten unwiederbringlich — für dich und für uns.',
+                ],
+            ],
+            'enable_keeps' => 'Transaktionen, Berichte, Rechnungen, Investitionen und dein Portfolio funktionieren weiter — dein Browser übernimmt Entschlüsselung und Berechnung.',
+
+            'disable_intro' => 'Damit geht dein Datenschlüssel zurück an unsere Server. Stelle sicher, dass du verstehst, was sich ändert.',
+            'disable_warning_title' => 'CashPilot kann deine Daten wieder lesen',
+            'disable_warning_body' => 'Deine Beträge, Titel und Notizen bleiben in der Datenbank verschlüsselt, aber der Schlüssel liegt wieder bei uns — unsere Server können sie also entschlüsseln, und ebenso jede Stelle, die uns rechtlich dazu zwingt. Das ist ein Rückschritt beim Datenschutz und genau der Kern dieses Tauschs.',
+            'disable_effect' => [
+                'readable' => [
+                    'title' => 'Wir können deine Daten entschlüsseln',
+                    'text' => 'unsere Mitarbeitenden, unsere Server und jede gerichtliche Anordnung.',
+                ],
+                'telegram' => [
+                    'title' => 'Telegram wird wieder verfügbar',
+                    'text' => 'schalte es selbst unter Einstellungen > Module wieder ein.',
+                ],
+                'ai' => [
+                    'title' => 'KI-Assistent wird wieder verfügbar',
+                    'text' => 'schalte ihn selbst unter Einstellungen > Module wieder ein.',
+                ],
+                'spreadsheets' => [
+                    'title' => 'Import und Export kommen zurück',
+                    'text' => 'Tabellen funktionieren sofort wieder.',
+                ],
+            ],
 
             'passphrase' => 'Tresor-Passphrase',
             'passphrase_help' => 'Getrennt von deinem Login-Passwort und wird nie an uns gesendet. Mindestens zwölf Zeichen.',
@@ -104,6 +145,7 @@ return [
             'unlock_description' => 'Deine Daten sind mit einem Schlüssel verschlüsselt, den nur du hast. Gib deine Passphrase ein, um sie zu lesen.',
             'unlock' => 'Entsperren',
             'unlock_failed' => 'Mit dieser Passphrase ließ sich der Tresor nicht öffnen.',
+            'recovery_unlock_failed' => 'Mit diesem Wiederherstellungsschlüssel ließ sich der Tresor nicht öffnen.',
             'use_recovery' => 'Stattdessen Wiederherstellungsschlüssel nutzen',
             'use_passphrase' => 'Stattdessen Passphrase nutzen',
             'recovery_key' => 'Wiederherstellungsschlüssel',

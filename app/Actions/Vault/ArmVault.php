@@ -82,8 +82,8 @@ class ArmVault
             app(UserKeyRing::class)->forget($user->getKey());
             $user->forgetEncryptionKey();
 
-            // Evicts Telegram, the AI assistant and Portfolio — none of them have a
-            // browser in the loop, so none can work without a readable server.
+            // Evicts Telegram and the AI assistant — neither has a browser in the
+            // loop, so neither can work without a readable server.
             $this->updateUserFeature->force($user, Feature::Vault, true);
         });
     }
@@ -124,9 +124,9 @@ class ArmVault
             app(UserKeyRing::class)->forget($user->getKey());
             $user->forgetEncryptionKey();
 
-            // Telegram, the AI assistant and Portfolio stay off deliberately.
-            // Re-enabling an integration behind the user's back would be worse than
-            // making them click.
+            // Telegram and the AI assistant stay off deliberately. Re-enabling an
+            // integration behind the user's back would be worse than making them
+            // click.
             $this->updateUserFeature->force($user, Feature::Vault, false);
         });
     }

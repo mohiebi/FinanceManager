@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
-import { Check, Lock, ShieldCheck } from 'lucide-vue-next';
+import {
+    AlertTriangle,
+    Bot,
+    Check,
+    Eye,
+    FileSpreadsheet,
+    KeyRound,
+    Lock,
+    ShieldCheck,
+    Sparkles,
+} from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,6 +26,7 @@ import {
     formatRecoveryKey,
     generatePassphrase,
     generateRecoveryKey,
+    parseRecoveryKey,
 } from '@/lib/vault/recoveryKey';
 import { disable as disableVault, enable as enableVault } from '@/routes/vault';
 
@@ -23,7 +34,7 @@ const props = defineProps<{ hasPassword: boolean }>();
 
 const { t } = useI18n();
 const page = usePage();
-const { exportKeyWithPassphrase, lock } = useVault();
+const { exportKeyWithPassphrase, exportKeyWithRecoveryKey, lock } = useVault();
 
 const armed = computed(() => page.props.vault?.armed === true);
 
@@ -43,6 +54,15 @@ const acknowledged = ref(false);
 const disableWord = ref('');
 const disableUnderstood = ref(false);
 const disablePassphrase = ref('');
+const disableRecoveryKey = ref('');
+
+/**
+ * Which secret is being used to unwind the vault.
+ *
+ * Both open it for reading, so both have to be accepted here — offering only the
+ * passphrase left anyone who had lost theirs armed forever, recovery key in hand.
+ */
+const disableUsingRecovery = ref(false);
 
 /** Wrapped blobs, held between the passphrase and recovery steps. */
 const wrapped = ref<{
@@ -73,13 +93,35 @@ const recoveryMatches = computed(() => {
 
 const canFinish = computed(() => acknowledged.value && recoveryMatches.value);
 
+const disableSecretProvided = computed(() =>
+    disableUsingRecovery.value
+        ? disableRecoveryKey.value.trim().length > 0
+        : disablePassphrase.value.length > 0,
+);
+
 const canDisable = computed(
     () =>
         disableUnderstood.value &&
         disableWord.value.trim().toUpperCase() ===
             confirmWord.value.toUpperCase() &&
-        disablePassphrase.value.length > 0,
+        disableSecretProvided.value,
 );
+
+/** What actually stops working once the vault is armed. */
+const enableLosses = [
+    { key: 'telegram', icon: Bot },
+    { key: 'ai', icon: Sparkles },
+    { key: 'spreadsheets', icon: FileSpreadsheet },
+    { key: 'recovery', icon: KeyRound },
+] as const;
+
+/** What comes back — and what it costs — when it is switched off again. */
+const disableEffects = [
+    { key: 'readable', icon: Eye, tone: 'warn' },
+    { key: 'telegram', icon: Bot, tone: 'gain' },
+    { key: 'ai', icon: Sparkles, tone: 'gain' },
+    { key: 'spreadsheets', icon: FileSpreadsheet, tone: 'gain' },
+] as const;
 
 function reset(): void {
     step.value = 'idle';
@@ -93,6 +135,8 @@ function reset(): void {
     disableWord.value = '';
     disableUnderstood.value = false;
     disablePassphrase.value = '';
+    disableRecoveryKey.value = '';
+    disableUsingRecovery.value = false;
 }
 
 function csrfToken(): string {
@@ -185,12 +229,27 @@ function finishEnable(): void {
     );
 }
 
+/** Re-derive the raw data key from whichever secret the user still has. */
+async function exportKeyForDisable(): Promise<string> {
+    if (!disableUsingRecovery.value) {
+        return exportKeyWithPassphrase(disablePassphrase.value);
+    }
+
+    const parsed = parseRecoveryKey(disableRecoveryKey.value);
+
+    if (parsed === null) {
+        throw new Error('That is not a valid recovery key.');
+    }
+
+    return exportKeyWithRecoveryKey(parsed);
+}
+
 async function finishDisable(): Promise<void> {
     busy.value = true;
     error.value = '';
 
     try {
-        const dek = await exportKeyWithPassphrase(disablePassphrase.value);
+        const dek = await exportKeyForDisable();
 
         router.post(
             disableVault().url,
@@ -202,7 +261,9 @@ async function finishDisable(): Promise<void> {
             },
         );
     } catch {
-        error.value = t('settings.security.vault.unlock_failed');
+        error.value = disableUsingRecovery.value
+            ? t('settings.security.vault.recovery_unlock_failed')
+            : t('settings.security.vault.unlock_failed');
         busy.value = false;
     }
 }
@@ -285,104 +346,272 @@ async function finishDisable(): Promise<void> {
     <Teleport to="body">
         <div
             v-if="step !== 'idle'"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+            class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:items-center"
             @click.self="reset"
         >
+            <!-- Wide enough for the consequences to be read rather than skimmed:
+                 this is the only screen where the trade is spelled out, and the
+                 old max-w-md truncated it into two sentences of hedging. -->
             <div
-                class="w-full max-w-md rounded-[22px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
+                class="my-auto w-full max-w-2xl rounded-[22px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10 sm:p-8"
             >
-                <!-- Both directions are a trade, so both show two columns rather
-                     than a bare warning. -->
                 <template v-if="step === 'tradeoff' || step === 'disable'">
-                    <p class="text-[17px] font-medium text-white">
-                        {{
-                            step === 'tradeoff'
-                                ? t('settings.security.vault.enable')
-                                : t('settings.security.vault.disable')
-                        }}
-                    </p>
+                    <div class="flex items-start gap-3">
+                        <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-xl"
+                            :class="
+                                step === 'tradeoff'
+                                    ? 'bg-[#02CD86]/10 text-[#02CD86]'
+                                    : 'bg-[#E94E50]/10 text-[#E94E50]'
+                            "
+                        >
+                            <component
+                                :is="step === 'tradeoff' ? ShieldCheck : Eye"
+                                class="size-5"
+                            />
+                        </span>
+                        <div>
+                            <p class="text-[19px] font-medium text-white">
+                                {{
+                                    step === 'tradeoff'
+                                        ? t('settings.security.vault.enable')
+                                        : t('settings.security.vault.disable')
+                                }}
+                            </p>
+                            <p class="mt-1 text-sm text-[#989898]">
+                                {{
+                                    step === 'tradeoff'
+                                        ? t(
+                                              'settings.security.vault.enable_intro',
+                                          )
+                                        : t(
+                                              'settings.security.vault.disable_intro',
+                                          )
+                                }}
+                            </p>
+                        </div>
+                    </div>
 
-                    <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                        <div class="rounded-xl bg-[#02CD86]/10 p-3">
+                    <!-- ── Turning it on ───────────────────────────────── -->
+                    <template v-if="step === 'tradeoff'">
+                        <div
+                            class="mt-5 rounded-xl bg-[#02CD86]/10 p-4 ring-1 ring-[#02CD86]/20"
+                        >
                             <p class="text-xs font-medium text-[#02CD86]">
                                 {{ t('settings.security.vault.gain') }}
                             </p>
-                            <p class="mt-1 text-sm text-[#989898]">
-                                {{
-                                    step === 'tradeoff'
-                                        ? t(
-                                              'settings.security.vault.enable_gain',
-                                          )
-                                        : t(
-                                              'settings.security.vault.disable_gain',
-                                          )
-                                }}
+                            <p class="mt-1 text-sm text-white/80">
+                                {{ t('settings.security.vault.enable_gain') }}
                             </p>
                         </div>
-                        <div class="rounded-xl bg-[#E94E50]/10 p-3">
-                            <p class="text-xs font-medium text-[#E94E50]">
-                                {{ t('settings.security.vault.lose') }}
-                            </p>
-                            <p class="mt-1 text-sm text-[#989898]">
-                                {{
-                                    step === 'tradeoff'
-                                        ? t(
-                                              'settings.security.vault.enable_lose',
-                                          )
-                                        : t(
-                                              'settings.security.vault.disable_lose',
-                                          )
-                                }}
-                            </p>
-                        </div>
-                    </div>
 
-                    <!-- Leaving the vault is the direction people skim, so it
-                         carries the friction. -->
-                    <div v-if="step === 'disable'" class="mt-4 space-y-3">
-                        <input
-                            v-model="disableWord"
-                            type="text"
-                            autocomplete="off"
-                            :placeholder="
-                                t('settings.security.vault.confirm_word', {
-                                    word: confirmWord,
-                                })
-                            "
-                            class="w-full rounded-xl bg-white/5 px-3 py-2.5 text-sm text-white ring-1 ring-white/10 outline-none focus:ring-[#02CD86]"
-                        />
-                        <input
-                            v-model="disablePassphrase"
-                            type="password"
-                            autocomplete="off"
-                            :placeholder="
-                                t('settings.security.vault.passphrase')
-                            "
-                            class="w-full rounded-xl bg-white/5 px-3 py-2.5 text-sm text-white ring-1 ring-white/10 outline-none focus:ring-[#02CD86]"
-                        />
-                        <label class="flex cursor-pointer items-start gap-2">
-                            <Checkbox
-                                :checked="disableUnderstood"
-                                class="mt-0.5"
-                                @update:checked="
-                                    disableUnderstood = $event === true
+                        <!-- The headline warning. Telegram and the AI assistant do
+                             not degrade under the vault, they stop: both run without
+                             a browser, so there is nothing to decrypt with. -->
+                        <div
+                            class="mt-3 rounded-xl bg-[#E94E50]/10 p-4 ring-1 ring-[#E94E50]/25"
+                        >
+                            <div class="flex items-start gap-2.5">
+                                <AlertTriangle
+                                    class="mt-0.5 size-4 shrink-0 text-[#E94E50]"
+                                />
+                                <div>
+                                    <p
+                                        class="text-sm font-medium text-[#E94E50]"
+                                    >
+                                        {{
+                                            t(
+                                                'settings.security.vault.enable_warning_title',
+                                            )
+                                        }}
+                                    </p>
+                                    <p class="mt-1 text-sm text-white/80">
+                                        {{
+                                            t(
+                                                'settings.security.vault.enable_warning_body',
+                                            )
+                                        }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <ul class="mt-4 space-y-2.5">
+                                <li
+                                    v-for="loss in enableLosses"
+                                    :key="loss.key"
+                                    class="flex items-start gap-2.5"
+                                >
+                                    <component
+                                        :is="loss.icon"
+                                        class="mt-0.5 size-4 shrink-0 text-[#E94E50]/70"
+                                    />
+                                    <span class="text-sm text-[#989898]">
+                                        <span class="text-white/85">{{
+                                            t(
+                                                `settings.security.vault.enable_loss.${loss.key}.title`,
+                                            )
+                                        }}</span>
+                                        —
+                                        {{
+                                            t(
+                                                `settings.security.vault.enable_loss.${loss.key}.text`,
+                                            )
+                                        }}
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <p class="mt-3 text-xs text-[#6f6f6f]">
+                            {{ t('settings.security.vault.enable_keeps') }}
+                        </p>
+                    </template>
+
+                    <!-- ── Turning it off ──────────────────────────────── -->
+                    <template v-else>
+                        <div
+                            class="mt-5 rounded-xl bg-[#E94E50]/10 p-4 ring-1 ring-[#E94E50]/25"
+                        >
+                            <div class="flex items-start gap-2.5">
+                                <AlertTriangle
+                                    class="mt-0.5 size-4 shrink-0 text-[#E94E50]"
+                                />
+                                <div>
+                                    <p
+                                        class="text-sm font-medium text-[#E94E50]"
+                                    >
+                                        {{
+                                            t(
+                                                'settings.security.vault.disable_warning_title',
+                                            )
+                                        }}
+                                    </p>
+                                    <p class="mt-1 text-sm text-white/80">
+                                        {{
+                                            t(
+                                                'settings.security.vault.disable_warning_body',
+                                            )
+                                        }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <ul class="mt-3 space-y-2.5 rounded-xl bg-white/5 p-4">
+                            <li
+                                v-for="effect in disableEffects"
+                                :key="effect.key"
+                                class="flex items-start gap-2.5"
+                            >
+                                <component
+                                    :is="effect.icon"
+                                    class="mt-0.5 size-4 shrink-0"
+                                    :class="
+                                        effect.tone === 'warn'
+                                            ? 'text-[#E94E50]'
+                                            : 'text-[#02CD86]'
+                                    "
+                                />
+                                <span class="text-sm text-[#989898]">
+                                    <span class="text-white/85">{{
+                                        t(
+                                            `settings.security.vault.disable_effect.${effect.key}.title`,
+                                        )
+                                    }}</span>
+                                    —
+                                    {{
+                                        t(
+                                            `settings.security.vault.disable_effect.${effect.key}.text`,
+                                        )
+                                    }}
+                                </span>
+                            </li>
+                        </ul>
+
+                        <!-- Leaving the vault is the direction people skim, so it
+                             carries the friction. -->
+                        <div class="mt-5 space-y-3">
+                            <input
+                                v-model="disableWord"
+                                type="text"
+                                autocomplete="off"
+                                :placeholder="
+                                    t('settings.security.vault.confirm_word', {
+                                        word: confirmWord,
+                                    })
                                 "
+                                class="w-full rounded-xl bg-white/5 px-3 py-2.5 text-sm text-white ring-1 ring-white/10 outline-none focus:ring-[#02CD86]"
                             />
-                            <span class="text-xs text-[#989898]">
+
+                            <!-- Either secret unwraps the key, so either is accepted
+                                 for the downgrade. -->
+                            <input
+                                v-if="!disableUsingRecovery"
+                                v-model="disablePassphrase"
+                                type="password"
+                                name="vault-passphrase"
+                                autocomplete="current-password"
+                                :placeholder="
+                                    t('settings.security.vault.passphrase')
+                                "
+                                class="w-full rounded-xl bg-white/5 px-3 py-2.5 text-sm text-white ring-1 ring-white/10 outline-none focus:ring-[#02CD86]"
+                            />
+                            <input
+                                v-else
+                                v-model="disableRecoveryKey"
+                                type="text"
+                                autocomplete="off"
+                                spellcheck="false"
+                                :placeholder="
+                                    t('settings.security.vault.recovery_key')
+                                "
+                                class="w-full rounded-xl bg-white/5 px-3 py-2.5 font-mono text-sm text-white ring-1 ring-white/10 outline-none focus:ring-[#02CD86]"
+                            />
+
+                            <button
+                                type="button"
+                                class="cursor-pointer text-xs text-[#02CD86] underline-offset-2 hover:underline"
+                                @click="
+                                    disableUsingRecovery = !disableUsingRecovery
+                                "
+                            >
                                 {{
-                                    t(
-                                        'settings.security.vault.confirm_understood',
-                                    )
+                                    disableUsingRecovery
+                                        ? t(
+                                              'settings.security.vault.use_passphrase',
+                                          )
+                                        : t(
+                                              'settings.security.vault.use_recovery',
+                                          )
                                 }}
-                            </span>
-                        </label>
-                    </div>
+                            </button>
+
+                            <label
+                                class="flex cursor-pointer items-start gap-2"
+                            >
+                                <Checkbox
+                                    :checked="disableUnderstood"
+                                    class="mt-0.5"
+                                    @update:checked="
+                                        disableUnderstood = $event === true
+                                    "
+                                />
+                                <span class="text-xs text-[#989898]">
+                                    {{
+                                        t(
+                                            'settings.security.vault.confirm_understood',
+                                        )
+                                    }}
+                                </span>
+                            </label>
+                        </div>
+                    </template>
 
                     <p v-if="error" class="mt-3 text-sm text-[#E94E50]">
                         {{ error }}
                     </p>
 
-                    <div class="mt-6 flex gap-3">
+                    <div class="mt-6 flex flex-col gap-3 sm:flex-row">
                         <button
                             type="button"
                             class="flex-1 cursor-pointer rounded-xl bg-white/10 py-2.5 text-sm font-medium text-white transition hover:bg-white/15"
@@ -411,7 +640,7 @@ async function finishDisable(): Promise<void> {
                 </template>
 
                 <template v-else-if="step === 'passphrase'">
-                    <p class="text-[17px] font-medium text-white">
+                    <p class="text-[19px] font-medium text-white">
                         {{ t('settings.security.vault.passphrase') }}
                     </p>
                     <p class="mt-2 text-sm text-[#989898]">
@@ -443,7 +672,7 @@ async function finishDisable(): Promise<void> {
                         {{ t('settings.security.vault.passphrase_too_short') }}
                     </p>
 
-                    <div class="mt-6 flex gap-3">
+                    <div class="mt-6 flex flex-col gap-3 sm:flex-row">
                         <button
                             type="button"
                             class="flex-1 cursor-pointer rounded-xl bg-white/10 py-2.5 text-sm font-medium text-white transition hover:bg-white/15"
@@ -463,7 +692,7 @@ async function finishDisable(): Promise<void> {
                 </template>
 
                 <template v-else-if="step === 'recovery'">
-                    <p class="text-[17px] font-medium text-white">
+                    <p class="text-[19px] font-medium text-white">
                         {{ t('settings.security.vault.recovery_heading') }}
                     </p>
                     <p class="mt-2 text-sm text-[#989898]">
@@ -523,7 +752,7 @@ async function finishDisable(): Promise<void> {
                         </span>
                     </label>
 
-                    <div class="mt-6 flex gap-3">
+                    <div class="mt-6 flex flex-col gap-3 sm:flex-row">
                         <button
                             type="button"
                             class="flex-1 cursor-pointer rounded-xl bg-white/10 py-2.5 text-sm font-medium text-white transition hover:bg-white/15"

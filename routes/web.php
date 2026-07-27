@@ -130,7 +130,9 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     });
 
     Route::middleware(EnsureFeatureEnabled::class.':portfolio')->group(function () {
-        Route::get('portfolio/export', PortfolioExportController::class)->name('portfolio.export');
+        Route::get('portfolio/export', PortfolioExportController::class)
+            ->middleware(RejectWhenVaultArmed::class)
+            ->name('portfolio.export');
         Route::get('portfolio', PortfolioController::class)->name('portfolio');
     });
 

@@ -69,7 +69,7 @@ return [
 
             'on_heading' => 'Only you hold the key',
             'on_point_1' => 'We cannot read your amounts or titles. Not our staff, not under a court order.',
-            'on_point_2' => 'Telegram, the AI assistant and Portfolio are off, because they need a server that can read.',
+            'on_point_2' => 'Telegram and the AI assistant are off, because they run without a browser and cannot decrypt anything.',
             'on_point_3' => 'If you lose both your passphrase and your recovery key, your data is gone for good.',
 
             'enable' => 'Turn on private vault',
@@ -77,11 +77,52 @@ return [
             'needs_password' => 'Add a password to your account first — turning the vault on is confirmed with it.',
 
             'gain' => 'What you gain',
-            'lose' => 'What you give up',
             'enable_gain' => 'Nobody but you can read your amounts and titles, whatever happens to our servers.',
-            'enable_lose' => 'Telegram, the AI assistant, Portfolio, spreadsheet import and export — and any way back if you lose both secrets.',
-            'disable_gain' => 'Those features come back, and you can recover your account by email again.',
-            'disable_lose' => 'CashPilot can read your amounts and titles again. This is the privacy downgrade.',
+
+            'enable_intro' => 'From this point on, your data key lives in your browser and nowhere else. Read this before you continue.',
+            'enable_warning_title' => 'Telegram and the AI assistant will be switched off',
+            'enable_warning_body' => 'They are not paused or degraded — they stop working entirely, and they stay off if you turn the vault back off later. Both run on our servers with no browser in the loop, so there is nothing there to decrypt your data with.',
+            'enable_loss' => [
+                'telegram' => [
+                    'title' => 'Telegram bot',
+                    'text' => 'no reminders, no adding entries from chat, no summaries.',
+                ],
+                'ai' => [
+                    'title' => 'AI Assistant',
+                    'text' => 'connected AI tools can no longer read your finances or propose changes.',
+                ],
+                'spreadsheets' => [
+                    'title' => 'Spreadsheet import and export',
+                    'text' => 'both are built on our servers, which can no longer read or write your amounts.',
+                ],
+                'recovery' => [
+                    'title' => 'Recovery by email',
+                    'text' => 'lose both your passphrase and your recovery key and your data is unrecoverable — by you or by us.',
+                ],
+            ],
+            'enable_keeps' => 'Transactions, reports, bills, investments and your portfolio all keep working — your browser does the decrypting and the maths.',
+
+            'disable_intro' => 'This hands your data key back to our servers. Make sure you understand what changes.',
+            'disable_warning_title' => 'CashPilot will be able to read your data again',
+            'disable_warning_body' => 'Your amounts, titles and notes stay encrypted in the database, but the key goes back under our management — which means our servers can decrypt them, and so can anyone who legally compels us to. This is a privacy downgrade, and it is the whole point of the trade.',
+            'disable_effect' => [
+                'readable' => [
+                    'title' => 'We can decrypt your data',
+                    'text' => 'our staff, our servers, and anyone with a court order.',
+                ],
+                'telegram' => [
+                    'title' => 'Telegram becomes available',
+                    'text' => 'turn it back on yourself in Settings > Modules.',
+                ],
+                'ai' => [
+                    'title' => 'AI Assistant becomes available',
+                    'text' => 'turn it back on yourself in Settings > Modules.',
+                ],
+                'spreadsheets' => [
+                    'title' => 'Import and export come back',
+                    'text' => 'spreadsheets work again straight away.',
+                ],
+            ],
 
             'passphrase' => 'Vault passphrase',
             'passphrase_help' => 'Separate from your login password, and never sent to us. Twelve characters minimum.',
@@ -104,6 +145,7 @@ return [
             'unlock_description' => 'Your data is encrypted with a key only you hold. Enter your passphrase to read it.',
             'unlock' => 'Unlock',
             'unlock_failed' => 'That passphrase did not open the vault.',
+            'recovery_unlock_failed' => 'That recovery key did not open the vault.',
             'use_recovery' => 'Use my recovery key instead',
             'use_passphrase' => 'Use my passphrase instead',
             'recovery_key' => 'Recovery key',

@@ -2,8 +2,11 @@
 
 use App\Actions\Features\UpdateUserFeature;
 use App\Actions\Vault\ArmVault;
+use App\Enums\AssetType;
 use App\Enums\Feature;
+use App\Models\Bill;
 use App\Models\Category;
+use App\Models\InvestmentAsset;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\Encryption\UserCrypto;
@@ -36,13 +39,25 @@ function armDegradedVault(User $user): string
     return $dek;
 }
 
+/** A plaintext bill, written before the vault takes the server's key away. */
+function makePlaintextBill(User $user): Bill
+{
+    return $user->bills()->create([
+        'title' => 'Rent',
+        'amount' => 18500000,
+        'currency' => 'toman',
+        'recurrence_type' => 'monthly',
+        'due_day_of_month' => 5,
+    ]);
+}
+
 /** Encrypt as the browser would, under the user's own key. */
-function clientEncrypt(User $user, string $dek, string $field, string $value): string
+function clientEncrypt(User $user, string $dek, string $field, string $value, string $table = 'transactions'): string
 {
     return UserCrypto::encrypt(
         $value,
         base64_decode($dek, true),
-        UserCrypto::aadFor('transactions', $field),
+        UserCrypto::aadFor($table, $field),
     );
 }
 
@@ -205,15 +220,178 @@ test('import and export work normally without a vault', function () {
     $this->actingAs($user)->get(route('transactions.export'))->assertOk();
 });
 
-test('arming the vault also evicts bills', function () {
+test('bills and portfolio survive arming the vault', function () {
     $user = User::factory()->create();
     app(UpdateUserFeature::class)($user, Feature::Bills, true);
+    app(UpdateUserFeature::class)($user, Feature::Portfolio, true);
 
     armDegradedVault($user);
 
-    // Marking a bill paid writes a Transaction server-side, and creating one
-    // writes an encrypted title and amount — neither is possible without a key.
-    expect($user->fresh()->hasFeature(Feature::Bills))->toBeFalse();
+    // Both have a client-side path now: bills are sealed in the browser before
+    // they are submitted, and the portfolio breakdown is computed there.
+    $fresh = $user->fresh();
+
+    expect($fresh->hasFeature(Feature::Bills))->toBeTrue()
+        ->and($fresh->hasFeature(Feature::Portfolio))->toBeTrue();
+
+    $this->actingAs($fresh)->get(route('bills.index'))->assertOk();
+    $this->actingAs($fresh)->get(route('portfolio'))->assertOk();
+});
+
+test('the bills page ships ciphertext and rates instead of a total it cannot compute', function () {
+    $user = User::factory()->create();
+    app(UpdateUserFeature::class)($user, Feature::Bills, true);
+
+    $bill = makePlaintextBill($user);
+    $bill->occurrences()->create(['due_date' => now()->startOfMonth()->addDays(4)->toDateString()]);
+
+    $ciphertext = DB::table('bills')->where('id', $bill->id)->value('amount');
+
+    armDegradedVault($user);
+
+    $this->actingAs($user->fresh())
+        ->get(route('bills.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Bills')
+            ->where('bills.0.amount.c', $ciphertext)
+            // A converted zero would read as "this bill costs nothing".
+            ->where('bills.0.display_amount', null)
+            ->where('bills.0.month_occurrence_count', 1)
+            ->where('monthlyBillSummary.amount', null)
+            ->has('rates')
+            ->etc());
+});
+
+test('a client-encrypted bill is accepted and stored verbatim', function () {
+    $user = User::factory()->create();
+    app(UpdateUserFeature::class)($user, Feature::Bills, true);
+    $dek = armDegradedVault($user);
+
+    $title = clientEncrypt($user, $dek, 'title', 'Rent', 'bills');
+    $amount = clientEncrypt($user, $dek, 'amount', '18500000.00', 'bills');
+
+    $this->actingAs($user->fresh())
+        ->post(route('bills.store'), [
+            'title' => $title,
+            'amount' => $amount,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 5,
+        ])
+        ->assertRedirect();
+
+    $stored = DB::table('bills')->where('user_id', $user->id)->first();
+
+    expect($stored->title)->toBe($title)
+        ->and($stored->amount)->toBe($amount);
+});
+
+test('a plaintext bill is refused while the vault is armed', function () {
+    $user = User::factory()->create();
+    app(UpdateUserFeature::class)($user, Feature::Bills, true);
+    armDegradedVault($user);
+
+    $this->actingAs($user->fresh())
+        ->post(route('bills.store'), [
+            'title' => 'Rent',
+            'amount' => '18500000',
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 5,
+        ])
+        ->assertSessionHasErrors(['title', 'amount']);
+
+    expect(DB::table('bills')->where('user_id', $user->id)->count())->toBe(0);
+});
+
+test('marking a bill paid stores the transaction the browser sealed', function () {
+    $user = User::factory()->create();
+    app(UpdateUserFeature::class)($user, Feature::Bills, true);
+
+    // Created before the vault is armed — afterwards the server has no key to
+    // write one with, which is the whole point of the client path.
+    $bill = makePlaintextBill($user);
+    $occurrence = $bill->occurrences()->create(['due_date' => '2026-07-05']);
+
+    $dek = armDegradedVault($user);
+
+    // Re-sealed for `transactions`: a ciphertext is bound to its table by the AAD,
+    // so the bill's own blobs cannot be reused here.
+    $title = clientEncrypt($user, $dek, 'title', 'Rent', 'transactions');
+    $amount = clientEncrypt($user, $dek, 'amount', '18500000.00', 'transactions');
+
+    $this->actingAs($user->fresh())
+        ->post(route('bills.occurrences.pay', ['bill' => $bill, 'occurrence' => $occurrence]), [
+            'title' => $title,
+            'amount' => $amount,
+        ])
+        ->assertRedirect();
+
+    $stored = DB::table('transactions')->where('user_id', $user->id)->first();
+
+    expect($stored->title)->toBe($title)
+        ->and($stored->amount)->toBe($amount)
+        ->and(DB::table('bill_occurrences')->where('id', $occurrence->id)->value('paid_at'))
+        ->not->toBeNull();
+});
+
+test('marking a bill paid without a sealed transaction is refused', function () {
+    $user = User::factory()->create();
+    app(UpdateUserFeature::class)($user, Feature::Bills, true);
+
+    $bill = makePlaintextBill($user);
+    $occurrence = $bill->occurrences()->create(['due_date' => '2026-07-05']);
+
+    armDegradedVault($user);
+
+    // Without this the server would have to read the bill to build the
+    // transaction, and it would write a `•••` amount instead of failing.
+    $this->actingAs($user->fresh())
+        ->post(route('bills.occurrences.pay', ['bill' => $bill, 'occurrence' => $occurrence]))
+        ->assertSessionHasErrors(['title', 'amount']);
+
+    expect(DB::table('bill_occurrences')->where('id', $occurrence->id)->value('paid_at'))->toBeNull();
+});
+
+test('the portfolio page ships holdings for the browser to total', function () {
+    $user = User::factory()->create();
+    app(UpdateUserFeature::class)($user, Feature::Portfolio, true);
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+    $dek = armDegradedVault($user);
+
+    $quantity = clientEncrypt($user, $dek, 'quantity', '2.50000000', 'investments');
+
+    DB::table('investments')->insert([
+        'user_id' => $user->id,
+        'investment_asset_id' => $asset->id,
+        'asset_type' => $asset->slug,
+        'quantity' => $quantity,
+        'cost_basis' => null,
+        'cost_basis_currency' => null,
+        'occurred_at' => '2026-07-01',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $this->actingAs($user->fresh())
+        ->get(route('portfolio'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Portfolio')
+            // Ciphertext travels; the server never sees a quantity it could sum.
+            ->where('vaultPortfolio.entries.0.quantity.c', $quantity)
+            ->where('vaultPortfolio.assets.0.id', $asset->id)
+            ->has('vaultPortfolio.rates')
+            // Present but empty, so <Deferred> resolves instead of spinning forever.
+            ->where('assets', [])
+            ->where('summary', null));
+});
+
+test('portfolio export stays unavailable while the vault is armed', function () {
+    $user = User::factory()->create();
+    app(UpdateUserFeature::class)($user, Feature::Portfolio, true);
+    armDegradedVault($user);
+
+    $this->actingAs($user->fresh())->get(route('portfolio.export'))->assertRedirect();
 });
 
 test('leaving the vault restores plaintext validation', function () {

@@ -94,9 +94,10 @@ test('arming re-keys nothing — the rows are untouched', function () {
     expect(DB::table('transactions')->where('id', $transaction->id)->value('title'))->toBe($before);
 });
 
-test('arming evicts the modules that need a readable server', function () {
+test('arming evicts only the modules that run without a browser', function () {
     $user = User::factory()->create();
     app(UpdateUserFeature::class)($user, Feature::Portfolio, true);
+    app(UpdateUserFeature::class)($user, Feature::Bills, true);
     app(UpdateUserFeature::class)($user, Feature::TelegramBot, true);
     app(UpdateUserFeature::class)($user, Feature::AiAssistant, true);
 
@@ -107,8 +108,10 @@ test('arming evicts the modules that need a readable server', function () {
     expect($fresh->hasFeature(Feature::Vault))->toBeTrue()
         ->and($fresh->hasFeature(Feature::TelegramBot))->toBeFalse()
         ->and($fresh->hasFeature(Feature::AiAssistant))->toBeFalse()
-        ->and($fresh->hasFeature(Feature::Portfolio))->toBeFalse()
-        // Investments is not in conflict, so it survives.
+        // Bills, Portfolio and Investments all decrypt in the browser, so none of
+        // them needs a readable server.
+        ->and($fresh->hasFeature(Feature::Bills))->toBeTrue()
+        ->and($fresh->hasFeature(Feature::Portfolio))->toBeTrue()
         ->and($fresh->hasFeature(Feature::Investments))->toBeTrue();
 });
 

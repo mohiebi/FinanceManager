@@ -270,15 +270,14 @@
                                 </div>
                             </template>
 
-                            <template v-if="props.portfolio">
+                            <template v-if="portfolioSnapshot">
                                 <div class="mt-3 flex items-center gap-3">
                                     <p
                                         class="text-[24px] leading-none font-bold text-white"
                                     >
                                         {{
                                             formatAmount(
-                                                props.portfolio
-                                                    .net_worth_formatted,
+                                                portfolioSnapshot.net_worth_formatted,
                                             )
                                         }}
                                         <span
@@ -288,24 +287,24 @@
                                     </p>
                                     <span
                                         v-if="
-                                            props.portfolio
-                                                .has_cost_basis_data &&
-                                            props.portfolio.pnl_percent !== null
+                                            portfolioSnapshot.has_cost_basis_data &&
+                                            portfolioSnapshot.pnl_percent !==
+                                                null
                                         "
                                         class="rounded-md px-2 py-1 text-xs font-bold"
                                         :class="
-                                            props.portfolio.pnl_is_positive
+                                            portfolioSnapshot.pnl_is_positive
                                                 ? 'bg-[#0d2e22] text-[#02CD86]'
                                                 : 'bg-[#2e0d0d] text-[#E94E50]'
                                         "
                                     >
                                         {{
-                                            props.portfolio.pnl_is_positive
+                                            portfolioSnapshot.pnl_is_positive
                                                 ? '+'
                                                 : '−'
                                         }}{{
                                             Math.abs(
-                                                props.portfolio.pnl_percent,
+                                                portfolioSnapshot.pnl_percent,
                                             )
                                         }}%
                                     </span>
@@ -315,8 +314,7 @@
                                     class="mt-4 flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-white/10"
                                 >
                                     <div
-                                        v-for="asset in props.portfolio
-                                            .top_assets"
+                                        v-for="asset in portfolioSnapshot.top_assets"
                                         :key="asset.key"
                                         class="h-full rounded-full transition-all duration-700"
                                         :style="{
@@ -329,8 +327,7 @@
 
                                 <ul class="mt-4 flex flex-col gap-2.5">
                                     <li
-                                        v-for="asset in props.portfolio
-                                            .top_assets"
+                                        v-for="asset in portfolioSnapshot.top_assets"
                                         :key="asset.key"
                                         class="flex items-center gap-2.5"
                                     >
@@ -360,6 +357,22 @@
                                     </li>
                                 </ul>
                             </template>
+
+                            <!-- Still decrypting: an empty state here would claim
+                                 the user holds nothing, which is a worse lie than
+                                 a skeleton. -->
+                            <div
+                                v-else-if="props.vaultPortfolio"
+                                class="mt-4 animate-pulse"
+                            >
+                                <div class="h-7 w-40 rounded-lg bg-white/10" />
+                                <div
+                                    class="mt-3 h-2 w-full rounded-full bg-white/10"
+                                />
+                                <div
+                                    class="mt-3 h-4 w-24 rounded-lg bg-white/10"
+                                />
+                            </div>
 
                             <div v-else class="mt-4">
                                 <p class="text-sm text-[#989898]">
@@ -552,7 +565,10 @@
                                 <p
                                     class="truncate text-sm font-semibold text-white"
                                 >
-                                    {{ bill.title }}
+                                    <Ciphered
+                                        :value="bill.title"
+                                        table="bills"
+                                    />
                                 </p>
                                 <p
                                     class="mt-0.5 truncate text-xs"
@@ -563,7 +579,16 @@
                             </div>
                             <div class="shrink-0 text-end">
                                 <p class="text-sm font-bold text-white">
-                                    {{ formatAmount(bill.display_amount) }}
+                                    <CipheredMoney
+                                        :amount="bill.amount"
+                                        :display-amount="bill.display_amount"
+                                        :currency="bill.currency"
+                                        :display-currency="
+                                            bill.display_currency
+                                        "
+                                        :rates="props.rates"
+                                        table="bills"
+                                    />
                                 </p>
                                 <p class="text-[10px] text-[#989898]">
                                     {{ currencyLabel(bill.display_currency) }}
@@ -575,7 +600,7 @@
                                 :title="t('finance.bills.mark_paid')"
                                 :aria-label="t('finance.bills.mark_paid')"
                                 :disabled="payingOccurrenceId !== null"
-                                @click="markBillPaid(bill)"
+                                @click="void markBillPaid(bill)"
                             >
                                 <LoaderCircle
                                     v-if="
@@ -973,16 +998,19 @@ import {
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
-import Ciphered from '@/components/Ciphered.vue';
-import CipheredMoney from '@/components/CipheredMoney.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import PulseChart from '@/components/charts/PulseChart.vue';
+import Ciphered from '@/components/Ciphered.vue';
+import CipheredMoney from '@/components/CipheredMoney.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import TransactionDialog from '@/components/transactions/TransactionDialog.vue';
 import { useRelativeTime } from '@/composables/useRelativeTime';
+import { useVault } from '@/composables/useVault';
+import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
+import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
 import { formatAppDate } from '@/lib/date';
-import type { Rates } from '@/lib/money';
+import type { CurrencyCode, Rates } from '@/lib/money';
 import { dashboard, portfolio as portfolioRoute } from '@/routes';
 import { index as billsIndex } from '@/routes/bills';
 import { pay as payBill } from '@/routes/bills/occurrences';
@@ -1026,8 +1054,10 @@ type Period = {
 type UpcomingBill = {
     occurrence_id: number;
     bill_id: number;
-    title: string;
-    display_amount: string;
+    title: Encrypted<string>;
+    amount: Encrypted<string | number>;
+    currency: Currency;
+    display_amount: string | null;
     display_currency: Currency;
     category_name: string | null;
     due_date: string;
@@ -1082,6 +1112,8 @@ const props = defineProps<{
     // sent at all when their module is off.
     portfolio?: PortfolioSnapshot | null;
     assetPrices?: HeadlinePrice[];
+    /** Sent instead of `portfolio` when the vault is armed — see Portfolio.vue. */
+    vaultPortfolio?: VaultPortfolioPayload | null;
 }>();
 
 defineOptions({
@@ -1093,6 +1125,18 @@ defineOptions({
 const page = usePage();
 const features = computed(() => page.props.features);
 const { t } = useI18n();
+const { isArmed, revealAsync, sealForSubmit } = useVault();
+
+// Built here from decrypted holdings when the vault is armed, and handed straight
+// through from the server otherwise.
+const { snapshot: vaultSnapshot } = useVaultPortfolio(
+    () => props.vaultPortfolio,
+    () => props.selectedCurrency as CurrencyCode,
+);
+
+const portfolioSnapshot = computed(
+    () => vaultSnapshot.value ?? props.portfolio ?? null,
+);
 const user = computed(
     () => (page.props.auth as { user?: { name: string } } | undefined)?.user,
 );
@@ -1320,14 +1364,45 @@ const syncedAgo = computed(() =>
 
 const payingOccurrenceId = ref<number | null>(null);
 
-function markBillPaid(bill: UpcomingBill): void {
+/**
+ * Under the vault the browser has to seal the Cost transaction this generates:
+ * the bill's ciphertext is bound to the `bills` table by its AAD, so it cannot be
+ * copied across, and the server holds no key to re-seal it.
+ */
+async function markBillPaid(bill: UpcomingBill): Promise<void> {
     if (payingOccurrenceId.value !== null) {
         return;
     }
 
     payingOccurrenceId.value = bill.occurrence_id;
 
-    const payForm = useForm({});
+    const payload: { title?: string; amount?: string } = {};
+
+    if (isArmed()) {
+        const title = await revealAsync<string>(bill.title, 'bills');
+        const amount = await revealAsync<string | number>(
+            bill.amount,
+            'bills',
+            'decimal',
+        );
+
+        if (title === undefined || amount === undefined) {
+            payingOccurrenceId.value = null;
+
+            return;
+        }
+
+        const sealed = await sealForSubmit(
+            { title, amount: String(amount) },
+            'transactions',
+            { title: 'string', amount: 'decimal' },
+        );
+
+        payload.title = sealed.title;
+        payload.amount = sealed.amount;
+    }
+
+    const payForm = useForm(payload);
     payForm.post(
         payBill.url({ bill: bill.bill_id, occurrence: bill.occurrence_id }),
         {

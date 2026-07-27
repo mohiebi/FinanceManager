@@ -120,6 +120,74 @@ test('the unwrapped key is usable for real field decryption', async () => {
     );
 });
 
+/**
+ * What useVault does when leaving the vault: re-derive the raw key and hand it
+ * back. `exportKeyWith` accepts either wrapping, so this mirrors both branches.
+ */
+async function exportKeyWith(
+    kek: CryptoKey,
+    wrapped: string,
+    fingerprint: string,
+): Promise<string> {
+    const raw = await decrypt(wrapped, kek, DEK_AAD);
+
+    if ((await fingerprintOf(base64ToBytes(raw))) !== fingerprint) {
+        throw new Error('That secret did not open the vault.');
+    }
+
+    return raw;
+}
+
+test('either secret unwinds the vault, and both yield the same key', async () => {
+    const passphrase = 'garden planet harbor island violet willow';
+    const { dek, descriptor, recoveryDisplay } = await arm(passphrase);
+
+    const parsed = parseRecoveryKey(recoveryDisplay);
+    assert.ok(parsed !== null);
+
+    const viaPassphrase = await exportKeyWith(
+        await derivePassphraseKek(
+            passphrase,
+            base64ToBytes(descriptor.salt),
+            descriptor.iterations,
+        ),
+        descriptor.wrappedPassphrase,
+        descriptor.fingerprint,
+    );
+
+    // Forgetting the passphrase used to mean being stuck in the vault forever,
+    // even with the recovery key in hand.
+    const viaRecovery = await exportKeyWith(
+        await deriveRecoveryKek(parsed, base64ToBytes(descriptor.recoverySalt)),
+        descriptor.wrappedRecovery,
+        descriptor.fingerprint,
+    );
+
+    assert.equal(viaPassphrase, dek);
+    assert.equal(viaRecovery, dek);
+});
+
+test('a recovery key from another vault cannot unwind this one', async () => {
+    const { descriptor } = await arm('garden planet harbor island violet willow');
+    const other = await arm('almond bridge copper dragon engine forest');
+
+    const parsed = parseRecoveryKey(other.recoveryDisplay);
+    assert.ok(parsed !== null);
+
+    const kek = await deriveRecoveryKek(
+        parsed,
+        base64ToBytes(descriptor.recoverySalt),
+    );
+
+    await assert.rejects(() =>
+        exportKeyWith(
+            kek,
+            descriptor.wrappedRecovery,
+            descriptor.fingerprint,
+        ),
+    );
+});
+
 test('a wrong passphrase fails, rather than silently returning junk', async () => {
     const { descriptor } = await arm('correct horse battery staple');
 

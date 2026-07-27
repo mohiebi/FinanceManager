@@ -6,6 +6,7 @@ use App\Actions\Bills\MarkBillOccurrencePaid;
 use App\Actions\Bills\SaveBill;
 use App\Actions\Bills\SyncBillOccurrence;
 use App\Actions\Transactions\CurrencyConverter;
+use App\Enums\AssetType;
 use App\Enums\BillRecurrenceType;
 use App\Enums\Currency;
 use App\Enums\TransactionType;
@@ -14,7 +15,9 @@ use App\Models\Bill;
 use App\Models\BillOccurrence;
 use App\Models\Category;
 use App\Models\User;
+use App\Services\AssetPriceService;
 use App\Support\CurrencyPreference;
+use App\Support\Encryption\SealedField;
 use App\Support\FrontendLocalization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -31,6 +34,8 @@ class BillController extends Controller
         $user = $request->user();
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
         $selectedCurrency = CurrencyPreference::resolve($request);
+        $vaultArmed = $user->vaultIsArmed();
+        [$monthFrom, $monthTo] = $this->currentMonthRange($calendar);
 
         // Proactively generate 3-month lookahead occurrences for all active monthly bills.
         // withMax fetches the latest due_date per bill in the same query, avoiding N+1.
@@ -43,22 +48,28 @@ class BillController extends Controller
 
         $bills = $user->bills()
             ->with(['category', 'occurrences' => fn ($query) => $query->whereNull('paid_at')->orderBy('due_date')])
+            ->withCount(['occurrences as month_occurrence_count' => fn ($query) => $query
+                ->whereDate('due_date', '>=', $monthFrom->toDateString())
+                ->whereDate('due_date', '<=', $monthTo->toDateString())])
             ->get()
-            ->map(function (Bill $bill) use ($currencyConverter, $request, $selectedCurrency) {
+            ->map(function (Bill $bill) use ($currencyConverter, $request, $selectedCurrency, $vaultArmed) {
                 $next = $bill->occurrences->first();
                 $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
 
                 return [
                     'id' => $bill->id,
                     'title' => $bill->title,
-                    'amount' => (float) $bill->amount,
+                    'amount' => $vaultArmed ? $bill->amount : (float) $bill->amount,
                     'currency' => $bill->currency,
-                    'display_amount' => $currencyConverter->format(
+                    // Null under the vault: the server cannot convert what it cannot
+                    // read, and a converted zero reads as "this bill costs nothing".
+                    'display_amount' => $vaultArmed ? null : $currencyConverter->format(
                         $bill->amount,
                         $billCurrency,
                         $selectedCurrency,
                     ),
                     'display_currency' => $selectedCurrency->value,
+                    'month_occurrence_count' => (int) $bill->month_occurrence_count,
                     'recurrence_type' => $bill->recurrence_type->value,
                     'due_day_of_month' => $bill->due_day_of_month,
                     'due_date' => $bill->due_date?->toDateString(),
@@ -99,8 +110,11 @@ class BillController extends Controller
             ]),
             'timezones' => $this->timezoneOptions(),
             'selectedCurrency' => $selectedCurrency->value,
-            'monthlyBillSummary' => $this->monthlyBillSummary($user, $calendar, $currencyConverter, $selectedCurrency),
-            'upcomingOccurrences' => $this->upcomingOccurrences($user, $currencyConverter, $selectedCurrency),
+            // Rates rather than a total when the server cannot read the amounts —
+            // these are public market prices, so shipping them costs no privacy.
+            'rates' => $vaultArmed ? $this->displayRates() : null,
+            'monthlyBillSummary' => $this->monthlyBillSummary($user, $currencyConverter, $selectedCurrency, $vaultArmed, $monthFrom, $monthTo),
+            'upcomingOccurrences' => $this->upcomingOccurrences($user, $currencyConverter, $selectedCurrency, $vaultArmed),
             'userCalendar' => $calendar,
         ]);
     }
@@ -130,12 +144,28 @@ class BillController extends Controller
         return back();
     }
 
+    /**
+     * Mark an occurrence paid, generating the matching Cost transaction.
+     *
+     * Under the vault the browser sends the title and amount re-encrypted for the
+     * `transactions` table — the bill's own ciphertext is bound to the `bills` AAD
+     * and the server has no key to re-seal it.
+     */
     public function markPaid(Request $request, Bill $bill, BillOccurrence $occurrence, MarkBillOccurrencePaid $markBillOccurrencePaid): RedirectResponse
     {
         abort_unless((int) $bill->user_id === (int) $request->user()->id, 404);
         abort_unless((int) $occurrence->bill_id === (int) $bill->id, 404);
 
-        $markBillOccurrencePaid($bill, $occurrence);
+        $sealed = null;
+
+        if ($request->user()->vaultIsArmed()) {
+            $sealed = $request->validate([
+                'title' => SealedField::rules(),
+                'amount' => SealedField::rules(),
+            ]);
+        }
+
+        $markBillOccurrencePaid($bill, $occurrence, $sealed);
 
         return back();
     }
@@ -149,6 +179,7 @@ class BillController extends Controller
         User $user,
         CurrencyConverter $currencyConverter,
         Currency $selectedCurrency,
+        bool $vaultArmed,
     ): array {
         $today = Carbon::today();
         $horizon = $today->copy()->addMonths(1)->endOfMonth();
@@ -163,7 +194,7 @@ class BillController extends Controller
             ->orderBy('due_date')
             ->get()
             ->filter(fn (BillOccurrence $occurrence) => $occurrence->bill !== null)
-            ->map(function (BillOccurrence $occurrence) use ($currencyConverter, $selectedCurrency, $today): array {
+            ->map(function (BillOccurrence $occurrence) use ($currencyConverter, $selectedCurrency, $today, $vaultArmed): array {
                 $bill = $occurrence->bill;
                 $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
 
@@ -171,7 +202,11 @@ class BillController extends Controller
                     'occurrence_id' => $occurrence->id,
                     'bill_id' => $bill->id,
                     'title' => $bill->title,
-                    'display_amount' => $currencyConverter->format($bill->amount, $billCurrency, $selectedCurrency),
+                    'amount' => $vaultArmed ? $bill->amount : (float) $bill->amount,
+                    'currency' => $billCurrency->value,
+                    'display_amount' => $vaultArmed
+                        ? null
+                        : $currencyConverter->format($bill->amount, $billCurrency, $selectedCurrency),
                     'display_currency' => $selectedCurrency->value,
                     'due_date' => $occurrence->due_date->toDateString(),
                     'is_overdue' => $occurrence->due_date->lt($today),
@@ -196,26 +231,41 @@ class BillController extends Controller
      */
     private function validatedBillData(Request $request): array
     {
-        $validated = $request->validate(SaveBill::rules($request->user()));
+        $vaultArmed = $request->user()->vaultIsArmed();
+        $validated = $request->validate(SaveBill::rules($request->user(), $vaultArmed));
 
         return SaveBill::normalize(
             $validated,
             $request->filled('category_id'),
             $request->has('telegram_reminder_enabled') ? $request->boolean('telegram_reminder_enabled') : null,
+            $vaultArmed,
         );
     }
 
     /**
-     * @return array{amount: string, currency: string, count: int, from: string, to: string}
+     * @return array{tomanPerUsd: float, tomanPerEur: float}
+     */
+    private function displayRates(): array
+    {
+        $prices = app(AssetPriceService::class);
+
+        return [
+            'tomanPerUsd' => $prices->priceFor(AssetType::Usd),
+            'tomanPerEur' => $prices->priceFor(AssetType::Eur),
+        ];
+    }
+
+    /**
+     * @return array{amount: string|null, currency: string, count: int, from: string, to: string}
      */
     private function monthlyBillSummary(
         User $user,
-        string $calendar,
         CurrencyConverter $currencyConverter,
         Currency $selectedCurrency,
+        bool $vaultArmed,
+        Carbon $fromDate,
+        Carbon $toDate,
     ): array {
-        [$fromDate, $toDate] = $this->currentMonthRange($calendar);
-
         $bills = $user->bills()
             ->with(['occurrences' => fn ($query) => $query
                 ->whereDate('due_date', '>=', $fromDate->toDateString())
@@ -233,12 +283,19 @@ class BillController extends Controller
             }
 
             $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
-            $total += $currencyConverter->convert($bill->amount, $billCurrency, $selectedCurrency) * $occurrenceCount;
             $count += $occurrenceCount;
+
+            if ($vaultArmed) {
+                continue;
+            }
+
+            $total += $currencyConverter->convert($bill->amount, $billCurrency, $selectedCurrency) * $occurrenceCount;
         }
 
         return [
-            'amount' => number_format(round($total, 2), 2, '.', ''),
+            // The browser totals this from the decrypted amounts and each bill's
+            // month_occurrence_count when the vault is armed.
+            'amount' => $vaultArmed ? null : number_format(round($total, 2), 2, '.', ''),
             'currency' => $selectedCurrency->value,
             'count' => $count,
             'from' => $fromDate->toDateString(),

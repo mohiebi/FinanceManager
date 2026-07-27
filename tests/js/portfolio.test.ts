@@ -1,0 +1,138 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+
+import {
+    buildBreakdown,
+    buildSnapshot,
+} from '../../resources/js/lib/portfolio.ts';
+
+/**
+ * The same fixture is asserted by tests/Feature/BuildPortfolioBreakdownTest.php.
+ *
+ * With the vault armed the browser computes this breakdown instead of the server,
+ * so two implementations exist. If either drifts, both suites fail and name the
+ * exact asset.
+ */
+const vectors = JSON.parse(
+    readFileSync(
+        new URL('../fixtures/portfolio-vectors.json', import.meta.url),
+        'utf8',
+    ),
+);
+
+function breakdownFor(target: string) {
+    return buildBreakdown(
+        vectors.entries,
+        vectors.assets,
+        target as 'toman' | 'usd' | 'eur',
+        vectors.rates,
+    );
+}
+
+test('every breakdown matches the server', () => {
+    assert.ok(vectors.cases.length > 0);
+
+    for (const testCase of vectors.cases) {
+        const { assets, summary } = breakdownFor(testCase.target);
+
+        // Order is part of the contract — the server sorts by current value desc.
+        assert.deepEqual(
+            assets.map((asset) => asset.key),
+            testCase.assets.map((asset: { key: string }) => asset.key),
+            `${testCase.target}: asset order`,
+        );
+
+        for (const [index, expected] of testCase.assets.entries()) {
+            for (const [field, value] of Object.entries(expected)) {
+                assert.deepEqual(
+                    assets[index]![field as keyof (typeof assets)[number]],
+                    value,
+                    `${testCase.target}: ${expected.key}.${field}`,
+                );
+            }
+        }
+
+        for (const [field, value] of Object.entries(testCase.summary)) {
+            assert.deepEqual(
+                summary[field as keyof typeof summary],
+                value,
+                `${testCase.target}: summary.${field}`,
+            );
+        }
+    }
+});
+
+test('an unpriced holding still reports its quantity', () => {
+    const { assets, summary } = buildBreakdown(
+        [
+            {
+                investment_asset_id: 9,
+                quantity: 4,
+                cost_basis: null,
+                cost_basis_currency: null,
+            },
+        ],
+        [
+            {
+                id: 9,
+                key: 'unpriced',
+                label: 'Unpriced',
+                icon: null,
+                icon_svg: null,
+                color: '#fff',
+                unit: 'unit',
+                price: 0,
+                price_available: false,
+            },
+        ],
+        'toman',
+        vectors.rates,
+    );
+
+    assert.equal(assets[0]!.quantity, 4);
+    assert.equal(assets[0]!.pnl, null);
+    assert.equal(summary.has_cost_basis_data, false);
+    assert.equal(summary.total_pnl, null);
+});
+
+test('an entry whose asset is missing is skipped rather than counted as zero', () => {
+    const { assets, summary } = buildBreakdown(
+        [
+            {
+                investment_asset_id: 404,
+                quantity: 7,
+                cost_basis: null,
+                cost_basis_currency: null,
+            },
+        ],
+        [],
+        'toman',
+        vectors.rates,
+    );
+
+    assert.equal(assets.length, 0);
+    assert.equal(summary.asset_count, 0);
+});
+
+test('the dashboard snapshot takes the top three holdings by share', () => {
+    const snapshot = buildSnapshot(breakdownFor('toman'));
+
+    assert.ok(snapshot !== null);
+    assert.equal(snapshot.net_worth_formatted, '24,000,000');
+    assert.equal(snapshot.asset_count, 2);
+    assert.deepEqual(
+        snapshot.top_assets.map((asset) => [asset.key, asset.share]),
+        [
+            ['parity-gold', 63],
+            ['parity-dollar', 38],
+        ],
+    );
+});
+
+test('no holdings means no snapshot at all', () => {
+    assert.equal(
+        buildSnapshot(buildBreakdown([], [], 'toman', vectors.rates)),
+        null,
+    );
+});

@@ -95,14 +95,15 @@ enum Feature: string
     public function conflictsWith(): array
     {
         return match ($this) {
-            // Telegram, the AI assistant and portfolio all compute server-side over
-            // plaintext, and a cron job or an MCP call has no browser to ask for a
-            // passphrase. They are impossible under the vault, not merely expensive.
-            // Bills is here because marking one paid writes a Transaction on the
-            // server (MarkBillOccurrencePaid), and creating a bill writes an
-            // encrypted title and amount — none of which the server can do without
-            // a key. Giving bills a client-encrypted write path would lift this.
-            self::Vault => [self::TelegramBot, self::AiAssistant, self::Portfolio, self::Bills],
+            // Telegram and the AI assistant are the only two that cannot be rescued:
+            // a cron job or an MCP call has no browser in the loop, so there is
+            // nowhere to ask for a passphrase and nothing that can decrypt.
+            //
+            // Bills and Portfolio used to be here too. Both now have a client-side
+            // path — bills are sealed in the browser before they are submitted, and
+            // the portfolio breakdown is computed there from decrypted holdings — so
+            // neither needs a readable server any more.
+            self::Vault => [self::TelegramBot, self::AiAssistant],
             default => [],
         };
     }

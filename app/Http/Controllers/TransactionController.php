@@ -52,9 +52,7 @@ class TransactionController extends Controller
         ];
 
         if ($features->enabled(Feature::Bills)) {
-            $moduleProps['upcomingBills'] = $vaultArmed
-                ? []
-                : $this->upcomingBills($request, $currencyConverter, $selectedCurrency);
+            $moduleProps['upcomingBills'] = $this->upcomingBills($request, $currencyConverter, $selectedCurrency, $vaultArmed);
         }
 
         // Deferred: these hit the price cache (and possibly tgju on a cold cache),
@@ -62,7 +60,13 @@ class TransactionController extends Controller
         // the Portfolio page. Omitting the key also drops it from Inertia's deferred
         // manifest, so no follow-up request fires for a module that is switched off.
         if ($features->enabled(Feature::Portfolio)) {
+            // Under the vault the snapshot is assembled in the browser from the same
+            // payload the Portfolio page uses, so only the raw entries travel here.
             $moduleProps['portfolio'] = Inertia::defer(fn () => $vaultArmed ? null : $breakdownBuilder->snapshot($user, $selectedCurrency));
+
+            if ($vaultArmed) {
+                $moduleProps['vaultPortfolio'] = Inertia::defer(fn () => $breakdownBuilder->clientPayload($user, $selectedCurrency));
+            }
         }
 
         if ($features->enabled(Feature::Investments)) {
@@ -277,7 +281,7 @@ class TransactionController extends Controller
      *
      * @return array<int, array<string, mixed>>
      */
-    private function upcomingBills(Request $request, CurrencyConverter $currencyConverter, Currency $selectedCurrency): array
+    private function upcomingBills(Request $request, CurrencyConverter $currencyConverter, Currency $selectedCurrency, bool $vaultArmed): array
     {
         $today = Carbon::today();
 
@@ -291,7 +295,7 @@ class TransactionController extends Controller
             ->limit(3)
             ->get()
             ->filter(fn (BillOccurrence $occurrence) => $occurrence->bill !== null)
-            ->map(function (BillOccurrence $occurrence) use ($currencyConverter, $request, $selectedCurrency, $today): array {
+            ->map(function (BillOccurrence $occurrence) use ($currencyConverter, $request, $selectedCurrency, $today, $vaultArmed): array {
                 $bill = $occurrence->bill;
                 $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
 
@@ -299,7 +303,11 @@ class TransactionController extends Controller
                     'occurrence_id' => $occurrence->id,
                     'bill_id' => $bill->id,
                     'title' => $bill->title,
-                    'display_amount' => $currencyConverter->format($bill->amount, $billCurrency, $selectedCurrency),
+                    'amount' => $vaultArmed ? $bill->amount : (float) $bill->amount,
+                    'currency' => $billCurrency->value,
+                    'display_amount' => $vaultArmed
+                        ? null
+                        : $currencyConverter->format($bill->amount, $billCurrency, $selectedCurrency),
                     'display_currency' => $selectedCurrency->value,
                     'category_name' => $bill->category
                         ? (new CategoryResource($bill->category))->resolve($request)['name']

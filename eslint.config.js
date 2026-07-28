@@ -87,6 +87,10 @@ export default defineConfigWithVueTs(
             'resources/js/components/ui/*',
             'resources/js/routes/**',
             'resources/js/wayfinder/**',
+            // Run by `npm run test:js` under Node's own type stripping, and kept
+            // out of tsconfig's include so they can import with explicit .ts
+            // extensions. That puts them beyond the typed-lint project service.
+            'tests/js/**',
         ],
     },
     prettier, // Turn off all rules that might conflict with Prettier

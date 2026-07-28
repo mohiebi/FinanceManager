@@ -299,6 +299,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useVault } from '@/composables/useVault';
+import type { Encrypted } from '@/types/vault';
 
 type AssetKey = string;
 type Currency = 'toman' | 'usd' | 'eur' | string;
@@ -324,10 +326,10 @@ type Entry = {
     asset_icon_svg: string | null;
     asset_color: string;
     asset_unit: string;
-    quantity: number;
-    cost_basis: number | null;
+    quantity: Encrypted<string | number>;
+    cost_basis: Encrypted<string | number> | null;
     cost_basis_currency: string | null;
-    note: string | null;
+    note: Encrypted<string> | null;
     occurred_at: string;
 };
 
@@ -350,6 +352,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { isArmed, revealAsync, sealForSubmit } = useVault();
 const assetDropdownOpen = ref(false);
 const today = () => new Date().toISOString().slice(0, 10);
 const fieldClass =
@@ -468,23 +471,41 @@ function resetForm(defaultType?: AssetKey): void {
     assetDropdownOpen.value = false;
 }
 
-function fillForm(entry: Entry): void {
+async function fillForm(entry: Entry): Promise<void> {
     form.clearErrors();
     form.investment_asset_id =
         entry.investment_asset_id !== null
             ? String(entry.investment_asset_id)
             : '';
     form.asset_type = entry.asset_type;
-    form.quantity = String(entry.quantity);
-    form.note = entry.note ?? '';
+    const quantity =
+        (await revealAsync<string | number>(
+            entry.quantity,
+            'investments',
+            'decimal',
+        )) ?? '';
+    const costBasis =
+        (await revealAsync<string | number | null>(
+            entry.cost_basis,
+            'investments',
+            'decimal',
+        )) ?? null;
+
+    form.quantity = String(quantity);
+    form.note =
+        (await revealAsync<string | null>(
+            entry.note,
+            'investments',
+            'string',
+        )) ?? '';
     form.occurred_at = entry.occurred_at;
     form.cost_basis_currency =
         entry.cost_basis_currency ??
         (props.selectedCurrency || props.currencies[0]?.value || '');
     form.total_cost =
-        entry.cost_basis !== null
+        costBasis !== null && quantity !== ''
             ? normalizeMoneyInput(
-                  formatFormNumber(entry.cost_basis * entry.quantity),
+                  formatFormNumber(Number(costBasis) * Number(quantity)),
                   form.cost_basis_currency,
               )
             : '';
@@ -493,7 +514,7 @@ function fillForm(entry: Entry): void {
 
 function initializeForm(): void {
     if (props.entry) {
-        fillForm(props.entry);
+        void fillForm(props.entry);
 
         return;
     }
@@ -522,16 +543,40 @@ function selectAsset(assetType: AssetTypeOption): void {
     assetDropdownOpen.value = false;
 }
 
-function submitEntry(): void {
-    form.transform((data) => ({
-        ...data,
-        asset_type:
-            props.assetTypes.find(
-                (assetType) =>
-                    String(assetType.id) === data.investment_asset_id,
-            )?.key ?? data.asset_type,
-        total_cost: data.total_cost === '' ? null : data.total_cost,
-    }));
+async function submitEntry(): Promise<void> {
+    const quantity = Number(form.quantity);
+    const totalCost = form.total_cost === '' ? null : Number(form.total_cost);
+    const costBasis =
+        totalCost !== null && Number.isFinite(totalCost) && quantity > 0
+            ? String(totalCost / quantity)
+            : null;
+    const formData = form.data();
+    const assetType =
+        props.assetTypes.find(
+            (assetType) =>
+                String(assetType.id) === formData.investment_asset_id,
+        )?.key ?? formData.asset_type;
+    const data = {
+        ...formData,
+        asset_type: assetType,
+        cost_basis: costBasis,
+        total_cost: formData.total_cost === '' ? null : formData.total_cost,
+    };
+
+    form.transform(() => data);
+
+    if (isArmed()) {
+        const payload = await sealForSubmit(data, 'investments', {
+            quantity: 'decimal',
+            cost_basis: 'decimal',
+            note: 'string',
+        });
+
+        form.transform(() => ({
+            ...payload,
+            total_cost: null,
+        }));
+    }
 
     const options = {
         preserveScroll: true,

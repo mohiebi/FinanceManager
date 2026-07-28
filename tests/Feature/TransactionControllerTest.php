@@ -124,7 +124,7 @@ test('users can create transactions from an available category', function () {
 
     $response->assertRedirect(route('dashboard'));
 
-    $this->assertDatabaseHas('transactions', [
+    assertTransactionExists([
         'user_id' => $user->id,
         'category_id' => $category->id,
         'type' => TransactionType::Cost->value,

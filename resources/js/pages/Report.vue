@@ -241,12 +241,17 @@
                     {{ t('finance.metrics.income') }}
                 </p>
                 <p class="mt-3 text-2xl font-semibold text-white">
-                    {{
+                    <span v-if="incomeTotal !== null">{{
                         formatMoney(
-                            props.summary.income,
+                            incomeTotal.toFixed(2),
                             props.selectedCurrency,
                         )
-                    }}
+                    }}</span>
+                    <span
+                        v-else
+                        aria-hidden="true"
+                        class="inline-block h-[1em] w-32 animate-pulse rounded bg-white/10 align-middle"
+                    />
                 </p>
             </article>
 
@@ -259,9 +264,17 @@
                     {{ t('finance.metrics.costs') }}
                 </p>
                 <p class="mt-3 text-2xl font-semibold text-white">
-                    {{
-                        formatMoney(props.summary.cost, props.selectedCurrency)
-                    }}
+                    <span v-if="costTotal !== null">{{
+                        formatMoney(
+                            costTotal.toFixed(2),
+                            props.selectedCurrency,
+                        )
+                    }}</span>
+                    <span
+                        v-else
+                        aria-hidden="true"
+                        class="inline-block h-[1em] w-32 animate-pulse rounded bg-white/10 align-middle"
+                    />
                 </p>
             </article>
 
@@ -274,14 +287,19 @@
                     {{ t('finance.metrics.balance') }}
                 </p>
                 <p class="mt-3 text-2xl font-semibold text-white">
-                    {{ balanceLabel }}
+                    <span v-if="balanceLabel !== null">{{ balanceLabel }}</span>
+                    <span
+                        v-else
+                        aria-hidden="true"
+                        class="inline-block h-[1em] w-32 animate-pulse rounded bg-white/10 align-middle"
+                    />
                 </p>
             </article>
         </div>
 
         <!-- Charts row -->
         <div
-            v-if="props.summary.count > 0"
+            v-if="props.summary.count > 0 && chartsReady"
             class="grid items-stretch gap-[18px] px-[18px] pt-[18px] md:grid-cols-3"
         >
             <!-- Cash flow over time — income vs costs -->
@@ -421,12 +439,18 @@
                                 <td
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
-                                    {{ transaction.title }}
+                                    <Ciphered
+                                        :value="transaction.title"
+                                        table="transactions"
+                                    />
                                     <div
                                         v-if="transaction.description"
                                         class="mt-1 line-clamp-1 text-xs text-[#989898]"
                                     >
-                                        {{ transaction.description }}
+                                        <Ciphered
+                                            :value="transaction.description"
+                                            table="transactions"
+                                        />
                                     </div>
                                 </td>
                                 <td class="px-3 py-[17px] text-center sm:px-5">
@@ -444,12 +468,17 @@
                                 <td
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-semibold text-[#6C4EE9] sm:px-5"
                                 >
-                                    {{
-                                        formatMoney(
-                                            transaction.display_amount,
-                                            transaction.display_currency,
-                                        )
-                                    }}
+                                    <CipheredMoney
+                                        :amount="transaction.amount"
+                                        :display-amount="
+                                            transaction.display_amount
+                                        "
+                                        :currency="transaction.currency"
+                                        :display-currency="
+                                            transaction.display_currency
+                                        "
+                                        :rates="props.rates"
+                                    />
                                 </td>
                                 <td
                                     class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
@@ -576,12 +605,18 @@
                                 <td
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
                                 >
-                                    {{ transaction.title }}
+                                    <Ciphered
+                                        :value="transaction.title"
+                                        table="transactions"
+                                    />
                                     <div
                                         v-if="transaction.description"
                                         class="mt-1 line-clamp-1 text-xs text-[#989898]"
                                     >
-                                        {{ transaction.description }}
+                                        <Ciphered
+                                            :value="transaction.description"
+                                            table="transactions"
+                                        />
                                     </div>
                                 </td>
                                 <td class="px-3 py-[17px] text-center sm:px-5">
@@ -599,12 +634,17 @@
                                 <td
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-semibold text-[#02CD86] sm:px-5"
                                 >
-                                    {{
-                                        formatMoney(
-                                            transaction.display_amount,
-                                            transaction.display_currency,
-                                        )
-                                    }}
+                                    <CipheredMoney
+                                        :amount="transaction.amount"
+                                        :display-amount="
+                                            transaction.display_amount
+                                        "
+                                        :currency="transaction.currency"
+                                        :display-currency="
+                                            transaction.display_currency
+                                        "
+                                        :rates="props.rates"
+                                    />
                                 </td>
                                 <td
                                     class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
@@ -684,6 +724,8 @@ import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import PulseChart from '@/components/charts/PulseChart.vue';
 import RankedBarChart from '@/components/charts/RankedBarChart.vue';
+import Ciphered from '@/components/Ciphered.vue';
+import CipheredMoney from '@/components/CipheredMoney.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -694,6 +736,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
 import {
     dayBucketsBetween,
     formatAppDate,
@@ -701,7 +744,9 @@ import {
     monthBucketKeyFromIso,
     monthBucketsBetween,
 } from '@/lib/date';
+import type { Rates } from '@/lib/money';
 import { dashboard, report } from '@/routes';
+import type { Encrypted } from '@/types/vault';
 
 type ReportRange = 'this_month' | 'this_season' | 'yearly' | 'custom';
 type TransactionType = 'cost' | 'income';
@@ -719,12 +764,13 @@ type Category = {
 type Transaction = {
     id: number;
     type: TransactionType;
-    amount: string;
+    amount: Encrypted<string>;
     currency: Currency;
-    display_amount: string;
+    /** Null under the vault — the browser converts from `amount` instead. */
+    display_amount: string | null;
     display_currency: Currency;
-    title: string;
-    description: string | null;
+    title: Encrypted<string>;
+    description: Encrypted<string> | null;
     occurred_at: string;
     category: Category | null;
     category_id: number;
@@ -768,9 +814,12 @@ const props = defineProps<{
     categories: Record<TransactionType, Category[]>;
     currencies: CurrencyOption[];
     selectedCurrency: Currency;
+    /** Non-null only under the vault, where the browser does the converting. */
+    rates: Rates | null;
     summary: {
-        cost: string;
-        income: string;
+        /** Null under the vault — the server cannot sum what it cannot read. */
+        cost: string | null;
+        income: string | null;
         count: number;
     };
 }>();
@@ -813,11 +862,48 @@ const displayCalendar = computed(
     () => (page.props.calendar as string | undefined) ?? 'gregorian',
 );
 
-const balanceLabel = computed(() => {
-    const income = Number(props.summary.income);
-    const cost = Number(props.summary.cost);
+/**
+ * Every amount in the range, converted to the selected currency.
+ *
+ * Handed back untouched when the server could do the conversion; decrypted and
+ * converted here when the vault left it ciphertext. Every total and every chart
+ * on this page reads from this one map, so there is no path where half of them
+ * are computed one way and half the other.
+ */
+const analyticsRows = computed(() => [
+    ...props.analyticsTransactions.incomes,
+    ...props.analyticsTransactions.costs,
+]);
 
-    return formatMoney((income - cost).toFixed(2), props.selectedCurrency);
+const {
+    amounts: displayAmounts,
+    ready: chartsReady,
+    totalOf,
+} = useDisplayAmounts(
+    () => analyticsRows.value,
+    () => props.selectedCurrency,
+    () => props.rates,
+);
+
+/** The converted amount for one row, or 0 while the set is still resolving. */
+function amountOf(transaction: Transaction): number {
+    return displayAmounts.value?.get(transaction.id) ?? 0;
+}
+
+const incomeTotal = computed(() =>
+    totalOf(props.analyticsTransactions.incomes),
+);
+const costTotal = computed(() => totalOf(props.analyticsTransactions.costs));
+
+const balanceLabel = computed(() => {
+    if (incomeTotal.value === null || costTotal.value === null) {
+        return null;
+    }
+
+    return formatMoney(
+        (incomeTotal.value - costTotal.value).toFixed(2),
+        props.selectedCurrency,
+    );
 });
 
 const chartPalette = [
@@ -887,7 +973,7 @@ const flowByBucket = computed(() => {
         const entry = totals.get(bucketKeyFor(transaction.occurred_at));
 
         if (entry) {
-            entry.income += Number(transaction.display_amount);
+            entry.income += amountOf(transaction);
         }
     }
 
@@ -895,7 +981,7 @@ const flowByBucket = computed(() => {
         const entry = totals.get(bucketKeyFor(transaction.occurred_at));
 
         if (entry) {
-            entry.cost += Number(transaction.display_amount);
+            entry.cost += amountOf(transaction);
         }
     }
 
@@ -939,10 +1025,7 @@ const topSpending = computed(() => {
     for (const transaction of props.analyticsTransactions.costs) {
         const name =
             transaction.category?.name ?? t('finance.categories.uncategorized');
-        totals.set(
-            name,
-            (totals.get(name) ?? 0) + Number(transaction.display_amount),
-        );
+        totals.set(name, (totals.get(name) ?? 0) + amountOf(transaction));
     }
 
     const entries = [...totals.entries()]

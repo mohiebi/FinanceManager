@@ -3,11 +3,13 @@
 namespace App\Actions\Investments;
 
 use App\Actions\Transactions\CurrencyConverter;
+use App\Enums\AssetType;
 use App\Enums\Currency;
 use App\Models\Investment;
 use App\Models\InvestmentAsset;
 use App\Models\User;
 use App\Services\AssetPriceService;
+use App\Support\Encryption\EncryptedValue;
 use Illuminate\Support\Collection;
 
 class BuildPortfolioBreakdown
@@ -28,6 +30,57 @@ class BuildPortfolioBreakdown
             ->orderBy('created_at')
             ->get()
             ->filter(fn (Investment $investment) => $investment->asset !== null);
+    }
+
+    /**
+     * Everything the browser needs to build the breakdown itself.
+     *
+     * Used when the owner's vault is armed: quantities and cost bases are
+     * ciphertext, so the sums have to happen client-side. Prices and exchange
+     * rates are public market data, so shipping them costs nothing in privacy —
+     * see the mirrored implementation in resources/js/lib/portfolio.ts.
+     *
+     * @return array{entries: array<int, array<string, mixed>>, assets: array<int, array<string, mixed>>, rates: array{tomanPerUsd: float, tomanPerEur: float}}
+     */
+    public function clientPayload(User $user, Currency $selectedCurrency): array
+    {
+        $entries = $this->entriesFor($user);
+
+        $assets = $entries
+            ->map(fn (Investment $entry): ?InvestmentAsset => $entry->asset)
+            ->filter()
+            ->unique('id')
+            ->map(fn (InvestmentAsset $asset): array => [
+                'id' => $asset->id,
+                'key' => $asset->slug,
+                'label' => $asset->label(),
+                'icon' => $asset->icon,
+                'icon_svg' => $asset->icon_svg,
+                'color' => $asset->color,
+                'unit' => $asset->unit,
+                'price' => $this->priceService->priceFor($asset),
+                'price_available' => $this->priceService->priceAvailableFor($asset),
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'entries' => $entries
+                ->map(fn (Investment $entry): array => [
+                    'id' => $entry->id,
+                    'investment_asset_id' => $entry->investment_asset_id,
+                    'quantity' => $entry->quantity,
+                    'cost_basis' => $entry->cost_basis,
+                    'cost_basis_currency' => $entry->cost_basis_currency,
+                ])
+                ->values()
+                ->all(),
+            'assets' => $assets,
+            'rates' => [
+                'tomanPerUsd' => $this->priceService->priceFor(AssetType::Usd),
+                'tomanPerEur' => $this->priceService->priceFor(AssetType::Eur),
+            ],
+        ];
     }
 
     /**
@@ -56,6 +109,9 @@ class BuildPortfolioBreakdown
     public function handle(Collection $allEntries, Currency $selectedCurrency): array
     {
         $fmt = $this->formatter($selectedCurrency);
+        $allEntries = $allEntries
+            ->reject(fn (Investment $entry): bool => $entry->quantity instanceof EncryptedValue)
+            ->values();
         $grouped = $allEntries->groupBy('investment_asset_id');
 
         $assets = [];

@@ -5,20 +5,26 @@ namespace App\Models;
 use App\Enums\Feature;
 use App\Enums\FeatureTier;
 use App\Enums\TransactionType;
+use App\Observers\UserEncryptionKeyObserver;
+use App\Support\Encryption\UserKeyRing;
 use App\Support\FeatureSet;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Crypt;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
+#[ObservedBy([UserEncryptionKeyObserver::class])]
 #[Fillable(['name', 'email', 'birthdate', 'locale', 'calendar', 'default_currency', 'password', 'email_verified_at', 'last_active_at', 'signup_source', 'telegram_chat_id', 'telegram_connect_token'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'telegram_chat_id', 'telegram_connect_token'])]
 class User extends Authenticatable implements MustVerifyEmail
@@ -102,6 +108,89 @@ class User extends Authenticatable implements MustVerifyEmail
     public function features(): HasMany
     {
         return $this->hasMany(UserFeature::class);
+    }
+
+    /**
+     * @return HasOne<UserEncryptionKey, User>
+     */
+    public function encryptionKey(): HasOne
+    {
+        return $this->hasOne(UserEncryptionKey::class);
+    }
+
+    /**
+     * Get this user's key row, creating it if it is somehow missing.
+     *
+     * Normally the observer has already made one; this keeps records created
+     * outside the observer (raw inserts, older seeders) from exploding on first
+     * encrypted write.
+     */
+    public function ensureEncryptionKey(): UserEncryptionKey
+    {
+        $existing = $this->encryptionKey()->first();
+
+        if ($existing instanceof UserEncryptionKey) {
+            return $existing;
+        }
+
+        $dek = random_bytes(32);
+
+        $key = $this->encryptionKey()->create([
+            'version' => 1,
+            'wrapped_dek_server' => Crypt::encryptString(base64_encode($dek)),
+            'dek_fingerprint' => hash('sha256', $dek),
+        ]);
+
+        if (function_exists('sodium_memzero')) {
+            sodium_memzero($dek);
+        }
+
+        $this->unsetRelation('encryptionKey');
+
+        return $key;
+    }
+
+    /**
+     * Whether this user has switched on the zero-knowledge vault, leaving the
+     * server unable to read their encrypted columns.
+     */
+    public function vaultIsArmed(): bool
+    {
+        return app(UserKeyRing::class)->for($this->getKey()) === null;
+    }
+
+    public function forgetEncryptionKey(): void
+    {
+        $this->unsetRelation('encryptionKey');
+    }
+
+    /**
+     * What the browser needs to unlock, shared on every authenticated page.
+     *
+     * Everything here is public by design: two salts, an iteration count, a hash
+     * of a 256-bit random value, and two ciphertexts nobody without the passphrase
+     * or recovery key can open.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function vaultDescriptor(): ?array
+    {
+        $key = $this->encryptionKey;
+
+        if ($key === null || ! $key->vaultIsArmed()) {
+            return null;
+        }
+
+        return [
+            'armed' => true,
+            'kdf' => $key->kdf,
+            'iterations' => $key->kdf_iterations,
+            'salt' => $key->kdf_salt,
+            'recoverySalt' => $key->recovery_salt,
+            'fingerprint' => $key->dek_fingerprint,
+            'wrappedPassphrase' => $key->wrapped_dek_passphrase,
+            'wrappedRecovery' => $key->wrapped_dek_recovery,
+        ];
     }
 
     /**

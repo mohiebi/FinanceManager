@@ -130,13 +130,11 @@
 html[lang='fa'] body,
 html[dir='rtl'] body {
     font-family:
-        'Vazirmatn', ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
+        'Vazirmatn', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
 :root {
-    --mobile-bottom-nav-height: 4rem;
     --background: hsl(0 0% 100%);
     --foreground: hsl(0 0% 3.9%);
     --card: hsl(0 0% 100%);
@@ -249,13 +247,6 @@ html[dir='rtl'] body {
 }
 
 @layer components {
-    .app-mobile-bottom-nav {
-        height: calc(
-            var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom, 0px)
-        );
-        padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-
     .auth-theme {
         font-family: var(--font-sans);
     }

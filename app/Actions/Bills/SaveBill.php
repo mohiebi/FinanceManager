@@ -7,6 +7,7 @@ use App\Enums\TransactionType;
 use App\Models\Bill;
 use App\Models\Category;
 use App\Models\User;
+use App\Support\Encryption\SealedField;
 
 /**
  * Shared bill validation and persistence used by the web BillController and
@@ -18,13 +19,19 @@ class SaveBill
     public function __construct(private readonly SyncBillOccurrence $syncBillOccurrence) {}
 
     /**
+     * @param  bool  $vaultArmed  when true, title/amount arrive already encrypted by
+     *                            the browser and the server can no longer inspect them
      * @return array<string, mixed>
      */
-    public static function rules(User $user): array
+    public static function rules(User $user, bool $vaultArmed = false): array
     {
         return [
-            'title' => ['required', 'string', 'max:100'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'title' => $vaultArmed
+                ? SealedField::rules()
+                : ['required', 'string', 'max:100'],
+            'amount' => $vaultArmed
+                ? SealedField::rules()
+                : ['required', 'numeric', 'min:0.01'],
             'currency' => ['required', 'string', 'max:10'],
             'category_id' => [
                 'nullable',
@@ -58,7 +65,7 @@ class SaveBill
      * @param  array<string, mixed>  $validated
      * @return array<string, mixed>
      */
-    public static function normalize(array $validated, bool $categoryProvided, ?bool $reminderEnabled): array
+    public static function normalize(array $validated, bool $categoryProvided, ?bool $reminderEnabled, bool $vaultArmed = false): array
     {
         $validated['category_id'] = $categoryProvided && $validated['category_id'] !== null
             ? (int) $validated['category_id']
@@ -71,7 +78,11 @@ class SaveBill
             $validated['due_day_of_month'] = null;
         }
 
-        return $validated;
+        // Wrapped so the cast stores the browser's ciphertext verbatim instead of
+        // trying to encrypt it again with a key the server no longer has.
+        return $vaultArmed
+            ? SealedField::wrap($validated, ['title', 'amount'])
+            : $validated;
     }
 
     /**

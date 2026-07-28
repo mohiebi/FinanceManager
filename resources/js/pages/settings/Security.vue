@@ -16,6 +16,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import VaultSection from '@/components/VaultSection.vue';
 import { useTwoFactorAuth } from '@/composables/useTwoFactorAuth';
 import { edit } from '@/routes/security';
 import { disable, enable } from '@/routes/two-factor';
@@ -247,6 +248,10 @@ onUnmounted(() => clearTwoFactorAuthData());
                 :requiresConfirmation="requiresConfirmation"
                 :twoFactorEnabled="twoFactorEnabled"
             />
+        </div>
+
+        <div class="border-t border-white/10 pt-6">
+            <VaultSection :has-password="hasPassword" />
         </div>
     </div>
 

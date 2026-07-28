@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import AppBottomNav from '@/components/AppBottomNav.vue';
 import AppContent from '@/components/AppContent.vue';
 import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
@@ -22,12 +21,10 @@ withDefaults(defineProps<Props>(), {
         </div>
         <AppContent
             variant="sidebar"
-            class="min-h-0 overflow-x-hidden overflow-y-auto pb-4 lg:pb-0"
+            class="h-svh min-h-0 overflow-x-hidden overflow-y-auto pb-4 lg:pb-0"
         >
             <AppSidebarHeader :breadcrumbs="breadcrumbs" />
             <slot />
         </AppContent>
-
-        <AppBottomNav />
     </AppShell>
 </template>

@@ -57,6 +57,103 @@ return [
         'hide_recovery_codes' => 'Hide recovery codes',
         'regenerate_recovery_codes' => 'Regenerate codes',
         'recovery_codes_notice' => 'Each recovery code can be used once to access your account and will be removed after use. If you need more, click {action} above.',
+        'vault' => [
+            'title' => 'Private vault',
+            'armed_status' => 'Private vault is on. Only you hold the key now.',
+            'disarmed_status' => 'Private vault is off. CashPilot can read your amounts and titles again.',
+
+            'off_heading' => 'Your data is encrypted with a key that is yours alone',
+            'off_point_1' => 'Every amount, title and note is encrypted before it is stored. A stolen database is unreadable.',
+            'off_point_2' => 'CashPilot can still read your data to build reports, run the Telegram bot and answer the AI assistant.',
+            'off_point_3' => 'Forgotten your password? You can always get back in by email.',
+
+            'on_heading' => 'Only you hold the key',
+            'on_point_1' => 'We cannot read your amounts or titles. Not our staff, not under a court order.',
+            'on_point_2' => 'Telegram and the AI assistant are off, because they run without a browser and cannot decrypt anything.',
+            'on_point_3' => 'If you lose both your passphrase and your recovery key, your data is gone for good.',
+
+            'enable' => 'Turn on private vault',
+            'disable' => 'Turn off private vault',
+            'needs_password' => 'Add a password to your account first — turning the vault on is confirmed with it.',
+
+            'gain' => 'What you gain',
+            'enable_gain' => 'Nobody but you can read your amounts and titles, whatever happens to our servers.',
+
+            'enable_intro' => 'From this point on, your data key lives in your browser and nowhere else. Read this before you continue.',
+            'enable_warning_title' => 'Telegram and the AI assistant will be switched off',
+            'enable_warning_body' => 'They are not paused or degraded — they stop working entirely, and they stay off if you turn the vault back off later. Both run on our servers with no browser in the loop, so there is nothing there to decrypt your data with.',
+            'enable_loss' => [
+                'telegram' => [
+                    'title' => 'Telegram bot',
+                    'text' => 'no reminders, no adding entries from chat, no summaries.',
+                ],
+                'ai' => [
+                    'title' => 'AI Assistant',
+                    'text' => 'connected AI tools can no longer read your finances or propose changes.',
+                ],
+                'spreadsheets' => [
+                    'title' => 'Spreadsheet import and export',
+                    'text' => 'both are built on our servers, which can no longer read or write your amounts.',
+                ],
+                'recovery' => [
+                    'title' => 'Recovery by email',
+                    'text' => 'lose both your passphrase and your recovery key and your data is unrecoverable — by you or by us.',
+                ],
+            ],
+            'enable_keeps' => 'Transactions, reports, bills, investments and your portfolio all keep working — your browser does the decrypting and the maths.',
+
+            'disable_intro' => 'This hands your data key back to our servers. Make sure you understand what changes.',
+            'disable_warning_title' => 'CashPilot will be able to read your data again',
+            'disable_warning_body' => 'Your amounts, titles and notes stay encrypted in the database, but the key goes back under our management — which means our servers can decrypt them, and so can anyone who legally compels us to. This is a privacy downgrade, and it is the whole point of the trade.',
+            'disable_effect' => [
+                'readable' => [
+                    'title' => 'We can decrypt your data',
+                    'text' => 'our staff, our servers, and anyone with a court order.',
+                ],
+                'telegram' => [
+                    'title' => 'Telegram becomes available',
+                    'text' => 'turn it back on yourself in Settings > Modules.',
+                ],
+                'ai' => [
+                    'title' => 'AI Assistant becomes available',
+                    'text' => 'turn it back on yourself in Settings > Modules.',
+                ],
+                'spreadsheets' => [
+                    'title' => 'Import and export come back',
+                    'text' => 'spreadsheets work again straight away.',
+                ],
+            ],
+
+            'passphrase' => 'Vault passphrase',
+            'passphrase_help' => 'Separate from your login password, and never sent to us. Twelve characters minimum.',
+            'generate' => 'Generate one for me',
+            'passphrase_too_short' => 'Use at least 12 characters, or let us generate one.',
+
+            'recovery_heading' => 'Save your recovery key',
+            'recovery_help' => 'This is different from your passphrase. It is the only way back if you forget it, so store it somewhere safe — a password manager, or on paper.',
+            'recovery_confirm' => 'Type the highlighted group above — that is from your recovery key, not your passphrase',
+            'recovery_mismatch' => 'That does not match the highlighted group. Check the key above.',
+            'acknowledge' => 'I have saved my recovery key somewhere safe',
+
+            'confirm_word' => 'Type {word} to confirm',
+            'confirm_word_value' => 'TURN OFF',
+            'confirm_understood' => 'I understand CashPilot will be able to read my amounts and titles again',
+            'cancel' => 'Cancel',
+            'continue' => 'Continue',
+
+            'unlock_title' => 'Unlock your vault',
+            'unlock_description' => 'Your data is encrypted with a key only you hold. Enter your passphrase to read it.',
+            'unlock' => 'Unlock',
+            'unlock_failed' => 'That passphrase did not open the vault.',
+            'recovery_unlock_failed' => 'That recovery key did not open the vault.',
+            'use_recovery' => 'Use my recovery key instead',
+            'use_passphrase' => 'Use my passphrase instead',
+            'recovery_key' => 'Recovery key',
+            'reload_note' => 'You will be asked again after a reload or in a new tab — the key is never stored.',
+            'trust_device' => 'Trust this device for {days} days',
+            'trust_device_note' => 'Stored on this device only, and cleared when you sign out. Anyone using this device can read your data until then.',
+            'unavailable' => 'Not available while the private vault is on — this needs a server that can read your data.',
+        ],
     ],
     'telegram' => [
         'title' => 'Telegram settings',
@@ -192,7 +289,7 @@ return [
     'navigation' => [
         'profile' => 'Profile',
         'notifications' => 'Notifications',
-        'security' => 'Security',
+        'security' => 'Privacy & security',
         'preferences' => 'Preferences',
         'modules' => 'Modules',
         'categories' => 'Categories',

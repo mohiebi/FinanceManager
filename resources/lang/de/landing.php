@@ -17,6 +17,7 @@ return [
 
     'nav' => [
         'features' => 'Funktionen',
+        'privacy' => 'Datenschutz',
         'telegram' => 'Telegram-Bot',
         'how_it_works' => 'So funktioniert’s',
         'faq' => 'FAQ',
@@ -62,6 +63,59 @@ return [
         'telegram' => [
             'title' => 'Telegram integriert',
             'text' => 'Ausgaben erfassen und Erinnerungen im Chat erhalten',
+        ],
+    ],
+
+    'privacy' => [
+        'kicker' => 'Datenschutz zuerst',
+        'title' => 'Dein Geld geht niemanden sonst etwas an.',
+        'subtitle' => 'Jeder Betrag, Titel und jede Notiz wird verschlüsselt, bevor sie auf die Festplatte geschrieben wird — und wenn dir das nicht reicht, kannst du uns den Schlüssel ganz entziehen.',
+
+        'levels' => [
+            'standard' => [
+                'badge' => 'Stufe 1 — Standard',
+                'title' => 'Verschlüsselt gespeichert',
+                'text' => 'Standardmäßig aktiv, für jedes Konto, ohne etwas einzustellen. Deine Beträge, Titel und Notizen werden mit einem Schlüssel verschlüsselt, der allein zu deinem Konto gehört — eine gestohlene Datenbank ist nur Rauschen.',
+                'points' => [
+                    'encrypted' => 'AES-256-GCM für jeden Betrag, Titel und jede Notiz, bevor sie die Datenbank erreichen.',
+                    'per_user' => 'Ein eigener Datenschlüssel pro Konto — ein geleakter Datensatz öffnet niemand anderen.',
+                    'readable' => 'Wir können sie weiterhin entschlüsseln, und genau das lässt Telegram-Bot, Erinnerungen und KI-Assistent funktionieren.',
+                ],
+            ],
+            'vault' => [
+                'badge' => 'Stufe 2 — optional',
+                'title' => 'Privater Tresor (Zero-Knowledge)',
+                'text' => 'Schalte ihn ein und der Schlüssel wandert in deinen Browser. Wir speichern deine Daten weiter und können sie nicht mehr lesen — weder unsere Mitarbeitenden noch unsere Server, auch nicht auf gerichtliche Anordnung.',
+                'points' => [
+                    'zero_knowledge' => 'Bei uns liegt nur Chiffretext. Es gibt keine Kopie deines Schlüssels, die wir herausgeben könnten.',
+                    'browser_key' => 'Deine Passphrase verlässt nie dein Gerät; der Schlüssel entsteht und arbeitet im Browser.',
+                    'tradeoff' => 'Der ehrliche Preis: Telegram und der KI-Assistent hören auf zu funktionieren, und wer Passphrase und Wiederherstellungsschlüssel verliert, verliert die Daten.',
+                ],
+            ],
+        ],
+
+        'how' => [
+            'title' => 'Wie der Tresor wirklich funktioniert',
+            'text' => 'Deine Daten sind mit einem einzigen Datenschlüssel verschlüsselt. Beim Einschalten wird dieser Schlüssel unter einer Passphrase, die nur du kennst, und einem Wiederherstellungsschlüssel, den nur du hast, verpackt — danach löschen wir unsere Kopie. Nichts wird neu verschlüsselt, es geht also sofort und ist ohne eines deiner beiden Geheimnisse unumkehrbar. Alles andere läuft weiter, weil dein Browser Entschlüsselung und Rechnerei übernimmt.',
+        ],
+
+        'pledges' => [
+            'no_ads' => [
+                'title' => 'Niemals Werbung',
+                'text' => 'Nichts an deinen Ausgaben wird genutzt, um dir etwas zu verkaufen',
+            ],
+            'no_selling' => [
+                'title' => 'Nie verkauft oder geteilt',
+                'text' => 'Deine Finanzdaten sind kein Produkt und werden auch keins',
+            ],
+            'no_tracking' => [
+                'title' => 'Keine Drittanbieter-Tracker',
+                'text' => 'Keine Werbepixel oder Analyseprofile verfolgen dich hier',
+            ],
+            'export' => [
+                'title' => 'Deine Daten, exportierbar',
+                'text' => 'Nimm jederzeit alles als Tabelle mit',
+            ],
         ],
     ],
 

@@ -57,6 +57,103 @@ return [
         'hide_recovery_codes' => 'Wiederherstellungscodes ausblenden',
         'regenerate_recovery_codes' => 'Codes neu generieren',
         'recovery_codes_notice' => 'Jeder Wiederherstellungscode kann einmal für den Kontozugriff verwendet werden und wird danach entfernt. Wenn du mehr benötigst, klicke oben auf {action}.',
+        'vault' => [
+            'title' => 'Privater Tresor',
+            'armed_status' => 'Der private Tresor ist an. Nur du hast jetzt den Schlüssel.',
+            'disarmed_status' => 'Der private Tresor ist aus. CashPilot kann deine Beträge und Titel wieder lesen.',
+
+            'off_heading' => 'Deine Daten sind mit einem Schlüssel verschlüsselt, der nur dir gehört',
+            'off_point_1' => 'Jeder Betrag, Titel und jede Notiz wird vor dem Speichern verschlüsselt. Eine gestohlene Datenbank ist unlesbar.',
+            'off_point_2' => 'CashPilot kann deine Daten weiterhin lesen, um Berichte zu erstellen, den Telegram-Bot zu betreiben und den KI-Assistenten zu beantworten.',
+            'off_point_3' => 'Passwort vergessen? Du kommst jederzeit per E-Mail wieder hinein.',
+
+            'on_heading' => 'Nur du hast den Schlüssel',
+            'on_point_1' => 'Wir können deine Beträge und Titel nicht lesen. Weder unsere Mitarbeitenden noch auf gerichtliche Anordnung.',
+            'on_point_2' => 'Telegram und der KI-Assistent sind aus, weil sie ohne Browser laufen und nichts entschlüsseln können.',
+            'on_point_3' => 'Verlierst du Passphrase und Wiederherstellungsschlüssel, sind deine Daten endgültig weg.',
+
+            'enable' => 'Privaten Tresor einschalten',
+            'disable' => 'Privaten Tresor ausschalten',
+            'needs_password' => 'Lege zuerst ein Passwort für dein Konto fest — damit wird das Einschalten bestätigt.',
+
+            'gain' => 'Was du gewinnst',
+            'enable_gain' => 'Niemand außer dir kann deine Beträge und Titel lesen, was auch immer mit unseren Servern passiert.',
+
+            'enable_intro' => 'Ab jetzt liegt dein Datenschlüssel nur noch in deinem Browser. Lies das, bevor du fortfährst.',
+            'enable_warning_title' => 'Telegram und der KI-Assistent werden abgeschaltet',
+            'enable_warning_body' => 'Sie werden nicht pausiert oder eingeschränkt — sie funktionieren gar nicht mehr und bleiben aus, auch wenn du den Tresor später wieder ausschaltest. Beide laufen auf unseren Servern ohne Browser, also gibt es dort nichts, womit sich deine Daten entschlüsseln ließen.',
+            'enable_loss' => [
+                'telegram' => [
+                    'title' => 'Telegram-Bot',
+                    'text' => 'keine Erinnerungen, keine Einträge aus dem Chat, keine Zusammenfassungen.',
+                ],
+                'ai' => [
+                    'title' => 'KI-Assistent',
+                    'text' => 'verbundene KI-Tools können deine Finanzen weder lesen noch Änderungen vorschlagen.',
+                ],
+                'spreadsheets' => [
+                    'title' => 'Import und Export von Tabellen',
+                    'text' => 'beides entsteht auf unseren Servern, die deine Beträge nicht mehr lesen oder schreiben können.',
+                ],
+                'recovery' => [
+                    'title' => 'Wiederherstellung per E-Mail',
+                    'text' => 'verlierst du Passphrase und Wiederherstellungsschlüssel, sind deine Daten unwiederbringlich — für dich und für uns.',
+                ],
+            ],
+            'enable_keeps' => 'Transaktionen, Berichte, Rechnungen, Investitionen und dein Portfolio funktionieren weiter — dein Browser übernimmt Entschlüsselung und Berechnung.',
+
+            'disable_intro' => 'Damit geht dein Datenschlüssel zurück an unsere Server. Stelle sicher, dass du verstehst, was sich ändert.',
+            'disable_warning_title' => 'CashPilot kann deine Daten wieder lesen',
+            'disable_warning_body' => 'Deine Beträge, Titel und Notizen bleiben in der Datenbank verschlüsselt, aber der Schlüssel liegt wieder bei uns — unsere Server können sie also entschlüsseln, und ebenso jede Stelle, die uns rechtlich dazu zwingt. Das ist ein Rückschritt beim Datenschutz und genau der Kern dieses Tauschs.',
+            'disable_effect' => [
+                'readable' => [
+                    'title' => 'Wir können deine Daten entschlüsseln',
+                    'text' => 'unsere Mitarbeitenden, unsere Server und jede gerichtliche Anordnung.',
+                ],
+                'telegram' => [
+                    'title' => 'Telegram wird wieder verfügbar',
+                    'text' => 'schalte es selbst unter Einstellungen > Module wieder ein.',
+                ],
+                'ai' => [
+                    'title' => 'KI-Assistent wird wieder verfügbar',
+                    'text' => 'schalte ihn selbst unter Einstellungen > Module wieder ein.',
+                ],
+                'spreadsheets' => [
+                    'title' => 'Import und Export kommen zurück',
+                    'text' => 'Tabellen funktionieren sofort wieder.',
+                ],
+            ],
+
+            'passphrase' => 'Tresor-Passphrase',
+            'passphrase_help' => 'Getrennt von deinem Login-Passwort und wird nie an uns gesendet. Mindestens zwölf Zeichen.',
+            'generate' => 'Erzeuge eine für mich',
+            'passphrase_too_short' => 'Nutze mindestens 12 Zeichen, oder lass uns eine erzeugen.',
+
+            'recovery_heading' => 'Sichere deinen Wiederherstellungsschlüssel',
+            'recovery_help' => 'Dieser unterscheidet sich von deiner Passphrase. Er ist der einzige Weg zurück, wenn du sie vergisst — bewahre ihn sicher auf, im Passwortmanager oder auf Papier.',
+            'recovery_confirm' => 'Tippe die hervorgehobene Gruppe oben — sie stammt aus deinem Wiederherstellungsschlüssel, nicht aus deiner Passphrase',
+            'recovery_mismatch' => 'Das stimmt nicht mit der hervorgehobenen Gruppe überein. Prüfe den Schlüssel oben.',
+            'acknowledge' => 'Ich habe meinen Wiederherstellungsschlüssel sicher gespeichert',
+
+            'confirm_word' => 'Tippe {word} zur Bestätigung',
+            'confirm_word_value' => 'AUSSCHALTEN',
+            'confirm_understood' => 'Mir ist klar, dass CashPilot meine Beträge und Titel wieder lesen kann',
+            'cancel' => 'Abbrechen',
+            'continue' => 'Weiter',
+
+            'unlock_title' => 'Tresor entsperren',
+            'unlock_description' => 'Deine Daten sind mit einem Schlüssel verschlüsselt, den nur du hast. Gib deine Passphrase ein, um sie zu lesen.',
+            'unlock' => 'Entsperren',
+            'unlock_failed' => 'Mit dieser Passphrase ließ sich der Tresor nicht öffnen.',
+            'recovery_unlock_failed' => 'Mit diesem Wiederherstellungsschlüssel ließ sich der Tresor nicht öffnen.',
+            'use_recovery' => 'Stattdessen Wiederherstellungsschlüssel nutzen',
+            'use_passphrase' => 'Stattdessen Passphrase nutzen',
+            'recovery_key' => 'Wiederherstellungsschlüssel',
+            'reload_note' => 'Nach einem Neuladen oder in einem neuen Tab wirst du erneut gefragt — der Schlüssel wird nie gespeichert.',
+            'trust_device' => 'Diesem Gerät {days} Tage vertrauen',
+            'trust_device_note' => 'Nur auf diesem Gerät gespeichert und beim Abmelden gelöscht. Bis dahin kann jede Person an diesem Gerät deine Daten lesen.',
+            'unavailable' => 'Nicht verfügbar, solange der private Tresor an ist — dafür braucht es einen Server, der deine Daten lesen kann.',
+        ],
     ],
     'telegram' => [
         'title' => 'Telegram-Einstellungen',
@@ -192,7 +289,7 @@ return [
     'navigation' => [
         'profile' => 'Profil',
         'notifications' => 'Benachrichtigungen',
-        'security' => 'Sicherheit',
+        'security' => 'Datenschutz & Sicherheit',
         'preferences' => 'Einstellungen',
         'modules' => 'Module',
         'categories' => 'Kategorien',

@@ -2,6 +2,7 @@
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     ArrowRight,
+    Ban,
     BarChart3,
     Bell,
     CalendarDays,
@@ -10,7 +11,11 @@ import {
     CheckCheck,
     ChevronDown,
     DollarSign,
+    Download,
+    EyeOff,
+    Fingerprint,
     Globe,
+    KeyRound,
     LayoutDashboard,
     Lock,
     Menu,
@@ -90,9 +95,39 @@ const mockAmounts = computed(() => ({
 
 const navLinks = [
     { key: 'features', href: '#features' },
+    { key: 'privacy', href: '#privacy' },
     { key: 'telegram', href: '#telegram' },
     { key: 'how_it_works', href: '#how-it-works' },
     { key: 'faq', href: '#faq' },
+] as const;
+
+/**
+ * The two levels of protection, side by side.
+ *
+ * Deliberately honest about the default: at level one we *can* read the data, and
+ * saying otherwise would be the kind of claim this section exists to avoid.
+ */
+const privacyLevels = [
+    {
+        key: 'standard',
+        icon: Lock,
+        color: '#02CD86',
+        points: ['encrypted', 'per_user', 'readable'],
+    },
+    {
+        key: 'vault',
+        icon: ShieldCheck,
+        color: '#6C4EE9',
+        points: ['zero_knowledge', 'browser_key', 'tradeoff'],
+    },
+] as const;
+
+/** Commitments that hold at both levels. */
+const privacyPledges = [
+    { key: 'no_ads', icon: EyeOff },
+    { key: 'no_selling', icon: Ban },
+    { key: 'no_tracking', icon: Fingerprint },
+    { key: 'export', icon: Download },
 ] as const;
 
 const trustItems = [
@@ -907,6 +942,162 @@ onUnmounted(() => {
                         <p class="max-w-2xl leading-relaxed text-white/50">
                             {{ t('landing.features.security.text') }}
                         </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════════════
+             PRIVACY
+        ═════════════════════════════════════════════════════════ -->
+        <section
+            id="privacy"
+            class="scroll-mt-24 border-y border-white/[0.06] bg-white/[0.02] px-4 py-24"
+            aria-labelledby="privacy-heading"
+        >
+            <div class="mx-auto max-w-6xl">
+                <div class="mb-16 text-center">
+                    <p
+                        class="mb-3 text-sm font-semibold tracking-[0.3em] text-[#02CD86] uppercase rtl:tracking-normal"
+                    >
+                        {{ t('landing.privacy.kicker') }}
+                    </p>
+                    <h2
+                        id="privacy-heading"
+                        class="text-4xl font-bold text-white sm:text-5xl"
+                    >
+                        {{ t('landing.privacy.title') }}
+                    </h2>
+                    <p
+                        class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-white/50"
+                    >
+                        {{ t('landing.privacy.subtitle') }}
+                    </p>
+                </div>
+
+                <!-- The two levels, side by side. Level one is stated plainly
+                     rather than dressed up — the honesty is the selling point. -->
+                <div class="grid gap-6 lg:grid-cols-2">
+                    <div
+                        v-for="level in privacyLevels"
+                        :key="level.key"
+                        class="rounded-3xl border border-white/10 bg-white/[0.03] p-8"
+                        :style="{ borderTopColor: level.color }"
+                    >
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+                                :style="{
+                                    backgroundColor: level.color + '1a',
+                                }"
+                            >
+                                <component
+                                    :is="level.icon"
+                                    class="size-5"
+                                    :style="{ color: level.color }"
+                                />
+                            </div>
+                            <div>
+                                <p
+                                    class="text-xs font-semibold tracking-[0.2em] uppercase rtl:tracking-normal"
+                                    :style="{ color: level.color }"
+                                >
+                                    {{
+                                        t(
+                                            `landing.privacy.levels.${level.key}.badge`,
+                                        )
+                                    }}
+                                </p>
+                                <h3 class="text-xl font-bold text-white">
+                                    {{
+                                        t(
+                                            `landing.privacy.levels.${level.key}.title`,
+                                        )
+                                    }}
+                                </h3>
+                            </div>
+                        </div>
+
+                        <p class="mt-5 leading-relaxed text-white/50">
+                            {{ t(`landing.privacy.levels.${level.key}.text`) }}
+                        </p>
+
+                        <ul class="mt-6 flex flex-col gap-3">
+                            <li
+                                v-for="point in level.points"
+                                :key="point"
+                                class="flex items-start gap-2.5"
+                            >
+                                <Check
+                                    class="mt-0.5 size-4 shrink-0"
+                                    :style="{ color: level.color }"
+                                />
+                                <span class="text-sm text-white/60">
+                                    {{
+                                        t(
+                                            `landing.privacy.levels.${level.key}.points.${point}`,
+                                        )
+                                    }}
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- How the vault actually works, in three steps. Concrete enough
+                     to be checked, which is the only kind of privacy claim worth
+                     making. -->
+                <div
+                    class="mt-6 grid gap-6 rounded-3xl border border-white/10 bg-white/[0.03] p-8 md:grid-cols-[auto_1fr] md:items-center"
+                >
+                    <div
+                        class="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#6C4EE9]/10"
+                    >
+                        <KeyRound class="size-6 text-[#9478FF]" />
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">
+                            {{ t('landing.privacy.how.title') }}
+                        </h3>
+                        <p class="mt-2 leading-relaxed text-white/50">
+                            {{ t('landing.privacy.how.text') }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- What holds regardless of which level you pick. -->
+                <div
+                    class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
+                >
+                    <div
+                        v-for="pledge in privacyPledges"
+                        :key="pledge.key"
+                        class="flex items-start gap-3"
+                    >
+                        <div
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#02CD86]/10"
+                        >
+                            <component
+                                :is="pledge.icon"
+                                class="size-5 text-[#02CD86]"
+                            />
+                        </div>
+                        <div>
+                            <div class="text-sm font-bold text-white">
+                                {{
+                                    t(
+                                        `landing.privacy.pledges.${pledge.key}.title`,
+                                    )
+                                }}
+                            </div>
+                            <div class="mt-0.5 text-sm text-white/40">
+                                {{
+                                    t(
+                                        `landing.privacy.pledges.${pledge.key}.text`,
+                                    )
+                                }}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

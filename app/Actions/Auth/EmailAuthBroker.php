@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use SensitiveParameter;
 
 class EmailAuthBroker
 {
@@ -78,10 +79,33 @@ class EmailAuthBroker
             'ip_address' => $ipAddress,
         ]);
 
+        $this->logChallengeCode($email, $purpose, $code);
+
         Notification::route('mail', $email)
             ->notify(new AuthChallengeCodeNotification($code, $purpose, $locale));
 
         return $challenge;
+    }
+
+    /**
+     * Write the code to the log so local development does not need real email.
+     *
+     * This is the only moment the plaintext code exists — it is hashed the line
+     * above and never recoverable afterwards. Which is also why this is fenced
+     * twice: an opt-in flag, and a hard refusal in production. A log line here is
+     * a working credential for any account whose address the reader knows.
+     */
+    protected function logChallengeCode(string $email, string $purpose, #[SensitiveParameter] string $code): void
+    {
+        if (! config('auth.log_challenge_codes') || app()->isProduction()) {
+            return;
+        }
+
+        logger()->warning('Auth challenge code issued', [
+            'email' => $email,
+            'purpose' => $purpose,
+            'code' => $code,
+        ]);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\Encryption\UserKeyRing;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -20,7 +21,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Scoped, never singleton: a singleton survives across jobs in a
+        // long-running queue worker, so one user's data key could leak into
+        // another user's job.
+        $this->app->scoped(UserKeyRing::class);
     }
 
     /**

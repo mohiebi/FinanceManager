@@ -14,7 +14,10 @@
                 >
                     {{ t('finance.portfolio.overview') }}
                 </p>
+                <!-- Built server-side from plaintext, so it has nowhere to go while
+                     the vault is armed. -->
                 <a
+                    v-if="!props.vaultPortfolio"
                     :href="`/portfolio/export?currency=${selectedCurrency}`"
                     class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-xs whitespace-nowrap text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white"
                 >
@@ -60,7 +63,26 @@
                         </div>
                     </template>
 
+                    <!-- The same tiles again while the browser unwraps the
+                         holdings: a zeroed net worth reads as a real figure. -->
                     <div
+                        v-if="decrypting"
+                        class="grid w-full min-w-0 gap-3 sm:grid-cols-3 xl:w-[42rem] xl:max-w-[48vw]"
+                    >
+                        <div
+                            v-for="i in 3"
+                            :key="i"
+                            class="flex items-center justify-center rounded-[14px] border border-white/10 bg-[#252525] p-4"
+                        >
+                            <Spinner class="size-5 text-[#989898]" />
+                            <span class="ml-2 text-sm text-[#989898]">{{
+                                t('finance.calculating')
+                            }}</span>
+                        </div>
+                    </div>
+
+                    <div
+                        v-else
                         class="grid w-full min-w-0 gap-3 sm:grid-cols-3 xl:w-[42rem] xl:max-w-[48vw]"
                     >
                         <!-- Current value -->
@@ -555,9 +577,21 @@
                 </p>
             </div>
 
+            <!-- Still decrypting: "you hold nothing" is a worse answer than a
+                 spinner, so the empty state waits for the real one. -->
+            <div
+                v-if="decrypting"
+                class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+            >
+                <Spinner class="size-8 text-[#02CD86]" />
+                <p class="mt-4 text-sm text-[#989898]">
+                    {{ t('finance.calculating') }}
+                </p>
+            </div>
+
             <!-- ── Empty state ───────────────────────────────────────── -->
             <div
-                v-if="assets.length === 0"
+                v-else-if="assets.length === 0"
                 class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
             >
                 <span
@@ -585,63 +619,43 @@ import AssetIcon from '@/components/AssetIcon.vue';
 import PulseChart from '@/components/charts/PulseChart.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { useRelativeTime } from '@/composables/useRelativeTime';
+import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
+import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
+import type { CurrencyCode } from '@/lib/money';
+import type { PortfolioAsset, PortfolioSummary } from '@/lib/portfolio';
 import { dashboard, portfolio } from '@/routes';
-
-type AssetKey = string;
 
 type CurrencyOption = {
     label: string;
     value: string;
 };
 
-type PortfolioAsset = {
-    id: number;
-    key: AssetKey;
-    label: string;
-    icon: string | null;
-    icon_svg: string | null;
-    color: string;
-    unit: string;
-    quantity: number;
-    current_price: number;
-    current_price_formatted: string;
-    current_value: number;
-    current_value_formatted: string;
-    price_available: boolean;
-    avg_cost_basis: number | null;
-    avg_cost_basis_formatted: string | null;
-    total_cost: number | null;
-    total_cost_formatted: string | null;
-    pnl: number | null;
-    pnl_formatted: string | null;
-    pnl_percent: number | null;
-    pnl_is_positive: boolean | null;
-    entries_count: number;
-};
-
 const props = defineProps<{
     assets?: PortfolioAsset[];
-    summary?: {
-        total_current_value: number;
-        total_current_value_formatted: string;
-        total_cost_basis: number;
-        total_cost_basis_formatted: string;
-        total_pnl: number | null;
-        total_pnl_formatted: string | null;
-        total_pnl_percent: number | null;
-        total_pnl_is_positive: boolean | null;
-        has_cost_basis_data: boolean;
-        asset_count: number;
-    };
+    summary?: PortfolioSummary | null;
     currencies: CurrencyOption[];
     selectedCurrency: string;
     pricesAvailable?: boolean;
     pricesSyncedAt?: string | null;
+    /**
+     * Sent instead of a server-built breakdown when the vault is armed: the raw
+     * holdings, still encrypted, plus the public prices needed to value them.
+     */
+    vaultPortfolio?: VaultPortfolioPayload | null;
 }>();
 
-const assets = computed(() => props.assets ?? []);
+const selectedCurrency = ref(props.selectedCurrency);
+const { t } = useI18n();
+
+const { breakdown, decrypting } = useVaultPortfolio(
+    () => props.vaultPortfolio,
+    () => selectedCurrency.value as CurrencyCode,
+);
+
+const assets = computed(() => breakdown.value?.assets ?? props.assets ?? []);
 const summary = computed(
     () =>
+        breakdown.value?.summary ??
         props.summary ?? {
             total_current_value: 0,
             total_current_value_formatted: '0',
@@ -655,9 +669,6 @@ const summary = computed(
             asset_count: 0,
         },
 );
-
-const selectedCurrency = ref(props.selectedCurrency);
-const { t } = useI18n();
 
 const { formatRelativeTime } = useRelativeTime();
 const lastSyncedLabel = computed(() =>

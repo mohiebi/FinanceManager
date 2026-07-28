@@ -206,10 +206,12 @@
                         type="submit"
                         :class="confirmButtonClass"
                         :disabled="
-                            form.processing || selectedCategories.length === 0
+                            form.processing ||
+                            sealing ||
+                            selectedCategories.length === 0
                         "
                     >
-                        <Spinner v-if="form.processing" />
+                        <Spinner v-if="form.processing || sealing" />
                         {{ t('common.confirm') }}
                     </Button>
                 </div>
@@ -220,7 +222,7 @@
 
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import CategoryCreator from '@/components/CategoryCreator.vue';
@@ -236,6 +238,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useVault } from '@/composables/useVault';
+import type { Encrypted } from '@/types/vault';
 
 type TransactionType = 'cost' | 'income';
 type Currency = 'toman' | 'usd' | 'eur';
@@ -251,12 +255,12 @@ type Category = {
 type Transaction = {
     id: number;
     type: TransactionType;
-    amount: string;
+    amount: Encrypted<string>;
     currency: Currency;
-    display_amount: string;
+    display_amount: string | null;
     display_currency: Currency;
-    title: string;
-    description: string | null;
+    title: Encrypted<string>;
+    description: Encrypted<string> | null;
     occurred_at: string;
     category: Category | null;
     category_id: number | null;
@@ -279,6 +283,11 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+const { revealAsync, sealForSubmit } = useVault();
+
+/** True while the browser is wrapping the payload, so the button stays disabled. */
+const sealing = ref(false);
 
 const form = useForm({
     type: 'cost' as TransactionType,
@@ -405,20 +414,37 @@ function resetForm(type: TransactionType): void {
     form.occurred_at = today();
 }
 
-function fillForm(transaction: Transaction): void {
+async function fillForm(transaction: Transaction): Promise<void> {
     form.clearErrors();
     form.type = transaction.type;
     form.category_id = transaction.category_id?.toString() ?? '';
     form.currency = transaction.currency;
-    form.amount = normalizeMoneyInput(transaction.amount, transaction.currency);
-    form.title = transaction.title;
-    form.description = transaction.description ?? '';
+    form.amount = normalizeMoneyInput(
+        (await revealAsync<string>(
+            transaction.amount,
+            'transactions',
+            'decimal',
+        )) ?? '',
+        transaction.currency,
+    );
+    form.title =
+        (await revealAsync<string>(
+            transaction.title,
+            'transactions',
+            'string',
+        )) ?? '';
+    form.description =
+        (await revealAsync<string | null>(
+            transaction.description,
+            'transactions',
+            'string',
+        )) ?? '';
     form.occurred_at = transaction.occurred_at;
 }
 
 function initializeForm(): void {
     if (props.transaction) {
-        fillForm(props.transaction);
+        void fillForm(props.transaction);
 
         return;
     }
@@ -443,11 +469,41 @@ function handleDialogOpenChange(open: boolean): void {
     closeDialog();
 }
 
-function submitTransaction(): void {
+/**
+ * Encrypts the money and free-text fields before they leave the browser when the
+ * vault is armed, and is a no-op otherwise.
+ *
+ * `transform` rather than mutating the form: the inputs stay bound to plaintext,
+ * so the dialog still shows what the user typed if the request comes back with
+ * validation errors.
+ */
+async function submitTransaction(): Promise<void> {
     const options = {
         preserveScroll: true,
         onSuccess: closeDialog,
     };
+
+    sealing.value = true;
+
+    try {
+        const payload = await sealForSubmit(
+            { ...form.data() },
+            'transactions',
+            {
+                amount: 'decimal',
+                title: 'string',
+                description: 'string',
+            },
+        );
+
+        form.transform(() => payload);
+    } catch {
+        sealing.value = false;
+
+        return;
+    }
+
+    sealing.value = false;
 
     if (props.transaction) {
         form.patch(`/transactions/${props.transaction.id}`, options);

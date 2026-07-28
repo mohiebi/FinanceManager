@@ -3,15 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Transactions\CurrencyConverter;
+use App\Enums\AssetType;
 use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Http\Resources\CategoryResource;
 use App\Http\Resources\TransactionResource;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Services\AssetPriceService;
 use App\Support\CurrencyPreference;
 use App\Support\DateFormatter;
 use App\Support\FrontendLocalization;
+use App\Support\TransactionListing;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
@@ -31,6 +34,7 @@ class ReportController extends Controller
     {
         $selectedRange = $this->resolveRange((string) $request->query('range'));
         $selectedCurrency = CurrencyPreference::resolve($request);
+        $vaultArmed = $request->user()->vaultIsArmed();
         $calendar = FrontendLocalization::normalizeCalendar($request->user()?->calendar);
         $selectedType = $this->resolveTransactionType((string) $request->query('type'));
         $selectedCategoryId = $this->resolveCategoryId($request);
@@ -61,17 +65,12 @@ class ReportController extends Controller
                 $selectedCategoryId !== null,
                 fn (Builder $query) => $query->where('category_id', $selectedCategoryId),
             )
-            ->when(
-                $search !== '',
-                fn (Builder $query) => $query->where(function (Builder $query) use ($search): void {
-                    $query->where('title', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
-                }),
-            )
             ->latest('occurred_at')
             ->latest();
 
-        $transactions = $query->get();
+        // Searched in PHP: title and description are encrypted at rest, so a SQL
+        // LIKE against them matches nothing.
+        $transactions = TransactionListing::search($query->get(), $search);
 
         $costs = $transactions
             ->where('type', TransactionType::Cost)
@@ -83,12 +82,11 @@ class ReportController extends Controller
 
         $costPage = max(1, (int) $request->query('cost_page', 1));
         $incomePage = max(1, (int) $request->query('income_page', 1));
-        $costPaginator = (clone $query)
-            ->where('type', TransactionType::Cost)
-            ->paginate(15, ['*'], 'cost_page', $costPage);
-        $incomePaginator = (clone $query)
-            ->where('type', TransactionType::Income)
-            ->paginate(15, ['*'], 'income_page', $incomePage);
+
+        // Paged from the filtered collections rather than the builder, so search
+        // and paging agree on the same result set.
+        $costPaginator = TransactionListing::paginate($costs, $costPage);
+        $incomePaginator = TransactionListing::paginate($incomes, $incomePage);
 
         return Inertia::render('Report', [
             'filters' => [
@@ -108,12 +106,14 @@ class ReportController extends Controller
                     $request,
                     $currencyConverter,
                     $selectedCurrency,
+                    $vaultArmed,
                 ),
                 'incomes' => $this->transformTransactions(
                     $incomePaginator->getCollection(),
                     $request,
                     $currencyConverter,
                     $selectedCurrency,
+                    $vaultArmed,
                 ),
                 'meta' => [
                     'costs' => [
@@ -134,12 +134,14 @@ class ReportController extends Controller
                     $request,
                     $currencyConverter,
                     $selectedCurrency,
+                    $vaultArmed,
                 ),
                 'incomes' => $this->transformTransactions(
                     $incomes,
                     $request,
                     $currencyConverter,
                     $selectedCurrency,
+                    $vaultArmed,
                 ),
             ],
             'categories' => [
@@ -158,9 +160,14 @@ class ReportController extends Controller
                     'value' => $currency->value,
                 ]),
             'selectedCurrency' => $selectedCurrency->value,
+            // Rates rather than totals when the server cannot read the amounts.
+            // Public market prices, so shipping them costs nothing in privacy —
+            // and a total of zero is a far worse answer than none.
+            'rates' => $vaultArmed ? $this->displayRates() : null,
             'summary' => [
-                'cost' => $currencyConverter->sumFormatted($costs, $selectedCurrency),
-                'income' => $currencyConverter->sumFormatted($incomes, $selectedCurrency),
+                'cost' => $vaultArmed ? null : $currencyConverter->sumFormatted($costs, $selectedCurrency),
+                'income' => $vaultArmed ? null : $currencyConverter->sumFormatted($incomes, $selectedCurrency),
+                // The row count is not a secret — only the money is.
                 'count' => $transactions->count(),
             ],
         ]);
@@ -294,15 +301,31 @@ class ReportController extends Controller
         Request $request,
         CurrencyConverter $currencyConverter,
         Currency $selectedCurrency,
+        bool $vaultArmed,
     ): SupportCollection {
         return $transactions->map(fn (Transaction $transaction) => [
             ...(new TransactionResource($transaction))->resolve($request),
-            'display_amount' => $currencyConverter->format(
+            // Null under the vault: the amount is ciphertext, and casting it would
+            // silently produce a converted zero. The browser converts instead.
+            'display_amount' => $vaultArmed ? null : $currencyConverter->format(
                 $transaction->amount,
                 $transaction->currency,
                 $selectedCurrency,
             ),
             'display_currency' => $selectedCurrency->value,
         ]);
+    }
+
+    /**
+     * @return array{tomanPerUsd: float, tomanPerEur: float}
+     */
+    private function displayRates(): array
+    {
+        $prices = app(AssetPriceService::class);
+
+        return [
+            'tomanPerUsd' => $prices->priceFor(AssetType::Usd),
+            'tomanPerEur' => $prices->priceFor(AssetType::Eur),
+        ];
     }
 }

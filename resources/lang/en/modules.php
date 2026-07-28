@@ -13,15 +13,23 @@ return [
     'saved' => 'Modules updated.',
     'cascade_enabled' => 'Also turned on: :features.',
     'cascade_disabled' => 'Also turned off: :features.',
-    'confirm_disable_title' => 'Turn off :module?',
-    'confirm_disable_body' => 'This will also turn off :features. Your data is kept and comes back if you turn it on again.',
+    'confirm_disable_title' => 'Turn off {module}?',
+    'confirm_disable_body' => 'This will also turn off {features}. Your data is kept and comes back if you turn it on again.',
     'confirm_disable_action' => 'Turn off',
     'cancel' => 'Cancel',
-    'requires' => 'Needs :features',
+    'requires' => 'Needs {features}',
+
+    'manage' => 'Manage in Privacy & security',
+    'managed_elsewhere' => 'Switched on from its own page, because turning it on re-keys your data.',
 
     'tiers' => [
         'free' => 'Free',
         'pro' => 'Pro',
+    ],
+
+    'vault' => [
+        'label' => 'Private vault',
+        'description' => 'Hold the only key to your own data. CashPilot will not be able to read your amounts or titles — and neither will anyone who compels us.',
     ],
 
     'transactions' => [

@@ -1,0 +1,125 @@
+<?php
+
+use App\Models\Transaction;
+use App\Models\User;
+use App\Support\TransactionListing;
+use Illuminate\Support\Carbon;
+use Inertia\Testing\AssertableInertia as Assert;
+
+/**
+ * Guards the agreement between searching and paging.
+ *
+ * Both used to happen in SQL, so they were trivially consistent. Now that search
+ * runs in PHP over decrypted values, a paginator built from the query builder
+ * would page an unfiltered result set — right count, wrong rows. These tests fail
+ * the moment anyone reintroduces builder-based paging.
+ */
+function seedSearchableTransactions(User $user, int $matching, int $other): void
+{
+    $today = Carbon::today()->toDateString();
+
+    Transaction::factory()->cost()->count($matching)->create([
+        'user_id' => $user->id,
+        'title' => 'Coffee run',
+        'occurred_at' => $today,
+    ]);
+
+    Transaction::factory()->cost()->count($other)->create([
+        'user_id' => $user->id,
+        'title' => 'Rent payment',
+        'occurred_at' => $today,
+    ]);
+}
+
+test('the transactions page pages a searched result set, not the unfiltered one', function () {
+    $user = User::factory()->create();
+    seedSearchableTransactions($user, matching: 18, other: 7);
+
+    $this->actingAs($user)
+        ->get(route('transactions.index', ['search' => 'coffee', 'cost_page' => 2]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('transactions.meta.costs.total', 18)
+            ->where('transactions.meta.costs.last_page', 2)
+            ->where('transactions.meta.costs.current_page', 2)
+            // 18 matches at 15 a page leaves 3 on page two.
+            ->has('transactions.costs', 3)
+        );
+});
+
+test('a searched page never leaks a non-matching row', function () {
+    $user = User::factory()->create();
+    seedSearchableTransactions($user, matching: 18, other: 7);
+
+    $response = $this->actingAs($user)
+        ->get(route('transactions.index', ['search' => 'coffee', 'cost_page' => 2]))
+        ->assertOk();
+
+    $titles = collect($response->viewData('page')['props']['transactions']['costs'])
+        ->pluck('title');
+
+    expect($titles)->each->toBe('Coffee run');
+});
+
+test('the report page pages a searched result set too', function () {
+    $user = User::factory()->create();
+    seedSearchableTransactions($user, matching: 18, other: 7);
+
+    $this->actingAs($user)
+        ->get(route('report', ['search' => 'coffee', 'cost_page' => 2]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('transactions.meta.costs.total', 18)
+            ->where('transactions.meta.costs.last_page', 2)
+            ->has('transactions.costs', 3)
+            // Analytics stay unpaginated — the charts need the whole set.
+            ->has('analyticsTransactions.costs', 18)
+            ->where('summary.count', 18)
+        );
+});
+
+test('search matches the description as well as the title', function () {
+    $user = User::factory()->create();
+
+    Transaction::factory()->cost()->create([
+        'user_id' => $user->id,
+        'title' => 'Unrelated',
+        'description' => 'paid for parking',
+        'occurred_at' => Carbon::today()->toDateString(),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('transactions.index', ['search' => 'parking']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('transactions.costs', 1));
+});
+
+test('search ignores case', function () {
+    $user = User::factory()->create();
+    seedSearchableTransactions($user, matching: 2, other: 3);
+
+    $this->actingAs($user)
+        ->get(route('transactions.index', ['search' => 'COFFEE']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('transactions.meta.costs.total', 2));
+});
+
+test('a page past the end reports the true last page and no rows', function () {
+    $items = collect(range(1, 20));
+
+    $paginator = TransactionListing::paginate($items, page: 9);
+
+    // Matches how a database paginator behaves for an out-of-range page.
+    expect($paginator->items())->toBe([])
+        ->and($paginator->lastPage())->toBe(2)
+        ->and($paginator->total())->toBe(20)
+        ->and($paginator->currentPage())->toBe(9);
+});
+
+test('an empty collection still reports one page', function () {
+    $paginator = TransactionListing::paginate(collect(), page: 1);
+
+    expect($paginator->lastPage())->toBe(1)
+        ->and($paginator->total())->toBe(0)
+        ->and($paginator->items())->toBe([]);
+});

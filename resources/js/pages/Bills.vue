@@ -34,7 +34,14 @@
                             {{ t('finance.reports.this_month') }}
                         </p>
                         <p class="text-2xl leading-none font-bold text-white">
-                            {{ formatAmount(props.monthlyBillSummary.amount) }}
+                            <span v-if="monthlyTotal !== null">{{
+                                formatAmount(monthlyTotal)
+                            }}</span>
+                            <span
+                                v-else
+                                aria-hidden="true"
+                                class="inline-block h-[1em] w-24 animate-pulse rounded bg-white/10 align-middle"
+                            />
                             <span
                                 class="ml-1 text-xs font-normal text-[#989898]"
                                 >{{
@@ -87,7 +94,9 @@
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <p class="truncate text-base font-semibold text-white">
-                            {{ bill.title }}
+                            <!-- Passes plaintext straight through today; the same
+                                 markup handles ciphertext once a vault is armed. -->
+                            <Ciphered :value="bill.title" table="bills" />
                         </p>
                         <p
                             v-if="bill.category_name"
@@ -102,14 +111,14 @@
                         <button
                             type="button"
                             class="rounded-md bg-white/5 px-2 py-1 text-xs text-[#6C4EE9] ring-1 ring-white/10 hover:bg-white/10"
-                            @click="openEditDialog(bill)"
+                            @click="void openEditDialog(bill)"
                         >
                             {{ t('common.edit') }}
                         </button>
                         <button
                             type="button"
                             class="rounded-md p-1.5 hover:bg-[#fff0f0]"
-                            @click="requestDelete(bill)"
+                            @click="void requestDelete(bill)"
                         >
                             <Trash2 class="size-3.5 text-[#E94E50]" />
                         </button>
@@ -117,7 +126,16 @@
                 </div>
 
                 <p class="text-2xl font-bold text-white">
-                    {{ formatAmount(bill.display_amount) }}
+                    <CipheredMoney
+                        :amount="bill.amount"
+                        :display-amount="bill.display_amount"
+                        :currency="bill.currency as CurrencyCode"
+                        :display-currency="
+                            bill.display_currency as CurrencyCode
+                        "
+                        :rates="props.rates"
+                        table="bills"
+                    />
                     <span class="text-sm font-normal text-[#989898]">{{
                         currencyLabel(bill.display_currency)
                     }}</span>
@@ -160,7 +178,7 @@
                         type="button"
                         :disabled="payingId === bill.next_occurrence.id"
                         class="shrink-0 cursor-pointer rounded-full bg-[#02CD86]/10 px-3 py-1.5 text-xs font-medium text-[#02CD86] ring-1 ring-[#02CD86]/25 transition-colors hover:bg-[#02CD86]/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        @click="markPaid(bill)"
+                        @click="void markPaid(bill)"
                     >
                         {{ t('finance.bills.mark_paid') }}
                     </button>
@@ -217,7 +235,7 @@
                         <p
                             class="min-w-0 flex-1 truncate text-sm font-medium text-white"
                         >
-                            {{ occ.title }}
+                            <Ciphered :value="occ.title" table="bills" />
                         </p>
 
                         <!-- Status chip + amount -->
@@ -241,7 +259,16 @@
                             <span
                                 class="min-w-[110px] text-right text-sm font-bold text-white tabular-nums"
                             >
-                                {{ formatAmount(occ.display_amount) }}
+                                <CipheredMoney
+                                    :amount="occ.amount"
+                                    :display-amount="occ.display_amount"
+                                    :currency="occ.currency as CurrencyCode"
+                                    :display-currency="
+                                        occ.display_currency as CurrencyCode
+                                    "
+                                    :rates="props.rates"
+                                    table="bills"
+                                />
                                 <span
                                     class="text-[10px] font-normal text-[#6b6b6b]"
                                     >{{
@@ -564,10 +591,10 @@
                         </Button>
                         <Button
                             type="submit"
-                            :disabled="form.processing"
+                            :disabled="form.processing || sealing"
                             class="h-11 flex-1 rounded-xl bg-[#02CD86] text-[#101010] shadow-none hover:bg-[#08dd93]"
                         >
-                            <Spinner v-if="form.processing" />
+                            <Spinner v-if="form.processing || sealing" />
                             {{ t('common.save') }}
                         </Button>
                     </div>
@@ -581,7 +608,7 @@
             :title="
                 deleteTarget
                     ? t('finance.delete.bill_title', {
-                          title: deleteTarget.title,
+                          title: deleteTargetTitle,
                       })
                     : undefined
             "
@@ -595,9 +622,12 @@
 
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
+import { toJalaali } from 'jalaali-js';
 import { CalendarClock, Plus, Receipt, Trash2 } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
+import Ciphered from '@/components/Ciphered.vue';
+import CipheredMoney from '@/components/CipheredMoney.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -618,12 +648,14 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import { toJalaali } from 'jalaali-js';
+import { useVault } from '@/composables/useVault';
 import {
     formatAppDate,
     jalaliMonthAbbreviations,
     monthBucketKeyFromIso,
 } from '@/lib/date';
+import { convert as convertMoney } from '@/lib/money';
+import type { CurrencyCode, Rates } from '@/lib/money';
 import { dashboard } from '@/routes';
 import {
     index as billsIndex,
@@ -632,15 +664,18 @@ import {
     update as updateBill,
 } from '@/routes/bills';
 import { pay as payBill } from '@/routes/bills/occurrences';
+import type { Encrypted } from '@/types/vault';
 
 type BillOccurrence = { id: number; due_date: string };
 type Bill = {
     id: number;
-    title: string;
-    amount: number;
+    title: Encrypted<string>;
+    amount: Encrypted<string | number>;
     currency: string;
-    display_amount: string;
+    display_amount: string | null;
     display_currency: string;
+    /** Occurrences falling in the current calendar month, for the header total. */
+    month_occurrence_count: number;
     recurrence_type: 'one_time' | 'monthly';
     due_day_of_month: number | null;
     due_date: string | null;
@@ -653,7 +688,8 @@ type Bill = {
     next_occurrence: BillOccurrence | null;
 };
 type MonthlyBillSummary = {
-    amount: string;
+    /** Null under the vault — the server cannot total what it cannot read. */
+    amount: string | null;
     currency: string;
     count: number;
     from: string;
@@ -663,8 +699,10 @@ type MonthlyBillSummary = {
 type UpcomingOccurrence = {
     occurrence_id: number;
     bill_id: number;
-    title: string;
-    display_amount: string;
+    title: Encrypted<string>;
+    amount: Encrypted<string | number>;
+    currency: string;
+    display_amount: string | null;
     display_currency: string;
     due_date: string;
     is_overdue: boolean;
@@ -677,24 +715,84 @@ const props = defineProps<{
     currencies: { label: string; value: string }[];
     timezones: { value: string; label: string }[];
     selectedCurrency: string;
+    rates: Rates | null;
     monthlyBillSummary: MonthlyBillSummary;
     upcomingOccurrences: UpcomingOccurrence[];
     userCalendar: string;
 }>();
 
 const { t } = useI18n();
+const { revealAsync, sealForSubmit, isArmed, trackKey } = useVault();
 const bills = computed(() => props.bills);
+
+/**
+ * The month's bill total.
+ *
+ * Comes straight off the server unless the vault is armed, in which case the
+ * amounts are ciphertext and the sum has to be rebuilt here from the decrypted
+ * values and each bill's occurrence count for the month.
+ */
+const clientMonthlyTotal = ref<number | null>(null);
+
+const monthlyTotal = computed<number | string | null>(
+    () => props.monthlyBillSummary.amount ?? clientMonthlyTotal.value,
+);
+
+watchEffect(async () => {
+    // Tracked before any await, so unlocking fills the header total in place.
+    trackKey();
+
+    if (props.monthlyBillSummary.amount !== null || props.rates === null) {
+        clientMonthlyTotal.value = null;
+
+        return;
+    }
+
+    const target = props.monthlyBillSummary.currency as CurrencyCode;
+    let total = 0;
+
+    for (const bill of props.bills) {
+        if (bill.month_occurrence_count === 0) {
+            continue;
+        }
+
+        const amount = await revealAsync<string | number>(
+            bill.amount,
+            'bills',
+            'decimal',
+        );
+
+        if (amount === undefined) {
+            clientMonthlyTotal.value = null;
+
+            return;
+        }
+
+        total +=
+            convertMoney(
+                amount,
+                bill.currency as CurrencyCode,
+                target,
+                props.rates,
+            ) * bill.month_occurrence_count;
+    }
+
+    clientMonthlyTotal.value = Math.round(total * 100) / 100;
+});
 
 const groupedUpcoming = computed(() => {
     const groups = new Map<
         string,
         { month: string; label: string; occurrences: UpcomingOccurrence[] }
     >();
+
     for (const occ of props.upcomingOccurrences) {
         const key = monthBucketKeyFromIso(occ.due_date, props.userCalendar);
+
         if (!groups.has(key)) {
             const [gy, gm, gd] = occ.due_date.split('-').map(Number);
             let label: string;
+
             if (props.userCalendar === 'jalali') {
                 const j = toJalaali(gy, gm, gd);
                 label = `${jalaliMonthAbbreviations[j.jm - 1]} ${j.jy}`;
@@ -704,10 +802,13 @@ const groupedUpcoming = computed(() => {
                     year: 'numeric',
                 });
             }
+
             groups.set(key, { month: key, label, occurrences: [] });
         }
+
         groups.get(key)!.occurrences.push(occ);
     }
+
     return [...groups.values()].slice(0, 2);
 });
 
@@ -730,6 +831,9 @@ const fieldClass =
 
 const isDialogOpen = ref(false);
 const editingId = ref<number | null>(null);
+
+/** True while the browser is wrapping a payload, so the button stays disabled. */
+const sealing = ref(false);
 
 const form = useForm({
     title: '',
@@ -775,9 +879,11 @@ function normalizeMoneyInput(value: string, currency: string): string {
             normalized += character;
             continue;
         }
+
         if (currency === 'toman' && character === '.') {
             break;
         }
+
         if (currency !== 'toman' && character === '.' && !hasDecimal) {
             normalized += character;
             hasDecimal = true;
@@ -839,11 +945,20 @@ function openCreateDialog(): void {
     isDialogOpen.value = true;
 }
 
-function openEditDialog(bill: Bill): void {
+async function openEditDialog(bill: Bill): Promise<void> {
     editingId.value = bill.id;
     form.clearErrors();
-    form.title = bill.title;
-    form.amount = normalizeMoneyInput(String(bill.amount), bill.currency);
+    form.title = (await revealAsync<string>(bill.title, 'bills')) ?? '';
+    form.amount = normalizeMoneyInput(
+        String(
+            (await revealAsync<string | number>(
+                bill.amount,
+                'bills',
+                'decimal',
+            )) ?? '',
+        ),
+        bill.currency,
+    );
     form.currency = bill.currency;
     form.category_id = bill.category_id ? String(bill.category_id) : '';
     form.recurrence_type = bill.recurrence_type;
@@ -871,11 +986,33 @@ function handleDialogOpenChange(value: boolean): void {
     }
 }
 
-function submitBill(): void {
+/**
+ * Encrypts the title and amount before they leave the browser when the vault is
+ * armed, and is a no-op otherwise.
+ *
+ * `transform` rather than mutating the form: the inputs stay bound to plaintext,
+ * so the dialog still shows what the user typed if validation comes back failing.
+ */
+async function submitBill(): Promise<void> {
     const options = {
         preserveScroll: true,
         onSuccess: () => closeDialog(),
     };
+
+    sealing.value = true;
+
+    try {
+        const payload = await sealForSubmit({ ...form.data() }, 'bills', {
+            title: 'string',
+            amount: 'decimal',
+        });
+
+        form.transform(() => payload);
+    } catch {
+        return;
+    } finally {
+        sealing.value = false;
+    }
 
     if (editingId.value !== null) {
         form.put(updateBill.url(editingId.value), options);
@@ -885,10 +1022,15 @@ function submitBill(): void {
 }
 
 const deleteTarget = ref<Bill | null>(null);
+const deleteTargetTitle = ref('');
 const deleteForm = useForm({});
 
-function requestDelete(bill: Bill): void {
+async function requestDelete(bill: Bill): Promise<void> {
     deleteTarget.value = bill;
+    // Resolved rather than interpolated straight in: under the vault `bill.title`
+    // is a ciphertext object, which would render as [object Object].
+    deleteTargetTitle.value =
+        (await revealAsync<string>(bill.title, 'bills')) ?? '';
 }
 
 function confirmDelete(): void {
@@ -906,14 +1048,47 @@ function confirmDelete(): void {
 
 const payingId = ref<number | null>(null);
 
-function markPaid(bill: Bill): void {
+/**
+ * Marking a bill paid writes a Cost transaction.
+ *
+ * Under the vault the browser has to build that transaction's title and amount
+ * itself: a ciphertext is bound to its table by the AAD, so the bill's blobs
+ * cannot simply be copied across, and the server holds no key to re-seal them.
+ */
+async function markPaid(bill: Bill): Promise<void> {
     if (!bill.next_occurrence) {
         return;
     }
 
     payingId.value = bill.next_occurrence.id;
 
-    const payForm = useForm({});
+    const payload: { title?: string; amount?: string } = {};
+
+    if (isArmed()) {
+        const title = await revealAsync<string>(bill.title, 'bills');
+        const amount = await revealAsync<string | number>(
+            bill.amount,
+            'bills',
+            'decimal',
+        );
+
+        if (title === undefined || amount === undefined) {
+            payingId.value = null;
+
+            return;
+        }
+
+        const sealed = await sealForSubmit(
+            { title, amount: String(amount) },
+            'transactions',
+            { title: 'string', amount: 'decimal' },
+        );
+
+        payload.title = sealed.title;
+        payload.amount = sealed.amount;
+    }
+
+    const payForm = useForm(payload);
     payForm.post(
         payBill.url({ bill: bill.id, occurrence: bill.next_occurrence.id }),
         {

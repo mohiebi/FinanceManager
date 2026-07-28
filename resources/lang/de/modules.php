@@ -13,15 +13,23 @@ return [
     'saved' => 'Module aktualisiert.',
     'cascade_enabled' => 'Ebenfalls eingeschaltet: :features.',
     'cascade_disabled' => 'Ebenfalls ausgeschaltet: :features.',
-    'confirm_disable_title' => ':module ausschalten?',
-    'confirm_disable_body' => 'Damit wird auch :features ausgeschaltet. Deine Daten bleiben erhalten und sind wieder da, sobald du es erneut einschaltest.',
+    'confirm_disable_title' => '{module} ausschalten?',
+    'confirm_disable_body' => 'Damit wird auch {features} ausgeschaltet. Deine Daten bleiben erhalten und sind wieder da, sobald du es erneut einschaltest.',
     'confirm_disable_action' => 'Ausschalten',
     'cancel' => 'Abbrechen',
-    'requires' => 'Benötigt :features',
+    'requires' => 'Benötigt {features}',
+
+    'manage' => 'In Datenschutz & Sicherheit verwalten',
+    'managed_elsewhere' => 'Wird auf einer eigenen Seite eingeschaltet, weil dabei der Schlüssel zu deinen Daten gewechselt wird.',
 
     'tiers' => [
         'free' => 'Kostenlos',
         'pro' => 'Pro',
+    ],
+
+    'vault' => [
+        'label' => 'Privater Tresor',
+        'description' => 'Halte den einzigen Schlüssel zu deinen Daten. CashPilot kann deine Beträge und Titel dann nicht mehr lesen — und niemand kann uns dazu zwingen.',
     ],
 
     'transactions' => [

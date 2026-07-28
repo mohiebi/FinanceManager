@@ -64,7 +64,7 @@ test('api users can create transactions', function () {
         ->assertJsonPath('data.title', 'Coffee beans')
         ->assertJsonPath('data.category.id', $category->id);
 
-    $this->assertDatabaseHas('transactions', [
+    assertTransactionExists([
         'user_id' => $user->id,
         'category_id' => $category->id,
         'title' => 'Coffee beans',

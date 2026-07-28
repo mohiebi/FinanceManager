@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Features\FeatureToggleResult;
 use App\Actions\Features\UpdateUserFeature;
 use App\Enums\Feature;
 use App\Models\User;
@@ -13,10 +14,11 @@ test('the modules page lists every toggleable module at its default state', func
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/Modules')
-            ->has('modules', 5)
+            ->has('modules', 6)
             ->has('coreModules', 2)
             ->where('modules.0.key', Feature::Bills->value)
             ->where('modules.0.enabled', false)
+            ->where('modules.0.manage_url', null)
             ->where('modules.1.key', Feature::Investments->value)
             ->where('modules.1.enabled', false)
             ->where('modules.2.key', Feature::Portfolio->value)
@@ -26,7 +28,35 @@ test('the modules page lists every toggleable module at its default state', func
             ->where('modules.3.enabled', false)
             ->where('modules.4.key', Feature::TelegramBot->value)
             ->where('modules.4.enabled', false)
+            // Advertised on the page, but switched from its own — the card is a
+            // link rather than a toggle.
+            ->where('modules.5.key', Feature::Vault->value)
+            ->where('modules.5.enabled', false)
+            ->where('modules.5.manage_url', route('security.edit'))
         );
+});
+
+test('the vault cannot be armed through the generic modules endpoint', function () {
+    $user = User::factory()->create();
+
+    // Arming the vault requires the browser to wrap the data key first. A plain
+    // PATCH would null the server's copy with nothing wrapped in its place, which
+    // is unrecoverable — so the endpoint must refuse outright.
+    $this->actingAs($user)
+        ->patch(route('modules.update'), ['feature' => 'vault', 'enabled' => true])
+        ->assertSessionHasErrors('feature');
+
+    expect($user->fresh()->hasFeature(Feature::Vault))->toBeFalse()
+        ->and($user->fresh()->features()->count())->toBe(0);
+});
+
+test('the update action refuses a self-managed feature even if validation is bypassed', function () {
+    $user = User::factory()->create();
+
+    $result = app(UpdateUserFeature::class)($user, Feature::Vault, true);
+
+    expect($result->rejected)->toBe(FeatureToggleResult::REJECTED_SELF_MANAGED)
+        ->and($user->fresh()->hasFeature(Feature::Vault))->toBeFalse();
 });
 
 test('enabling portfolio also enables investments and says so', function () {

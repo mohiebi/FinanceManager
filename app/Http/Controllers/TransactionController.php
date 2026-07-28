@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Actions\Transactions\CurrencyConverter;
 use App\Actions\Transactions\SaveTransaction;
+use App\Enums\AssetType;
 use App\Enums\Currency;
 use App\Enums\Feature;
 use App\Enums\TransactionType;
@@ -19,10 +20,12 @@ use App\Models\Transaction;
 use App\Services\AssetPriceService;
 use App\Support\CurrencyPreference;
 use App\Support\FrontendLocalization;
+use App\Support\TransactionListing;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -43,13 +46,39 @@ class TransactionController extends Controller
         $user = $request->user();
         $selectedCurrency = CurrencyPreference::resolve($request);
         $features = $user->featureSet();
+        $vaultArmed = $user->vaultIsArmed();
+
+        $trendMonths = $this->trendMonths($request);
+        $trendTransactions = $this->trendTransactions($request, $trendMonths);
 
         $moduleProps = [
-            'monthlyTrend' => $this->monthlyTrend($request, $currencyConverter, $selectedCurrency),
+            'monthlyTrend' => $this->monthlyTrend(
+                $trendMonths,
+                $trendTransactions,
+                $currencyConverter,
+                $selectedCurrency,
+                $vaultArmed,
+            ),
         ];
 
+        // The trend covers three months while the workspace loads only the current
+        // one, so under the vault the extra rows have to travel for the browser to
+        // bucket them itself.
+        if ($vaultArmed) {
+            $moduleProps['trendTransactions'] = $trendTransactions
+                ->map(fn (Transaction $transaction): array => [
+                    'id' => $transaction->id,
+                    'type' => $transaction->type->value,
+                    'amount' => $transaction->amount,
+                    'currency' => $transaction->currency->value,
+                    'occurred_at' => $transaction->occurred_at->toDateString(),
+                ])
+                ->values()
+                ->all();
+        }
+
         if ($features->enabled(Feature::Bills)) {
-            $moduleProps['upcomingBills'] = $this->upcomingBills($request, $currencyConverter, $selectedCurrency);
+            $moduleProps['upcomingBills'] = $this->upcomingBills($request, $currencyConverter, $selectedCurrency, $vaultArmed);
         }
 
         // Deferred: these hit the price cache (and possibly tgju on a cold cache),
@@ -57,7 +86,13 @@ class TransactionController extends Controller
         // the Portfolio page. Omitting the key also drops it from Inertia's deferred
         // manifest, so no follow-up request fires for a module that is switched off.
         if ($features->enabled(Feature::Portfolio)) {
-            $moduleProps['portfolio'] = Inertia::defer(fn () => $breakdownBuilder->snapshot($user, $selectedCurrency));
+            // Under the vault the snapshot is assembled in the browser from the same
+            // payload the Portfolio page uses, so only the raw entries travel here.
+            $moduleProps['portfolio'] = Inertia::defer(fn () => $vaultArmed ? null : $breakdownBuilder->snapshot($user, $selectedCurrency));
+
+            if ($vaultArmed) {
+                $moduleProps['vaultPortfolio'] = Inertia::defer(fn () => $breakdownBuilder->clientPayload($user, $selectedCurrency));
+            }
         }
 
         if ($features->enabled(Feature::Investments)) {
@@ -66,6 +101,45 @@ class TransactionController extends Controller
         }
 
         return $this->renderTransactionWorkspace($request, $currencyConverter, 'Dashboard', false, $moduleProps);
+    }
+
+    /**
+     * A transaction row for the page.
+     *
+     * With the vault armed the amount is ciphertext, so no server-side conversion
+     * is possible — and a converted zero would read as "you spent nothing", which
+     * is worse than sending nothing at all. The browser converts instead, using
+     * the rates shipped alongside.
+     *
+     * @return array<string, mixed>
+     */
+    private function presentTransaction(
+        Transaction $transaction,
+        Request $request,
+        CurrencyConverter $currencyConverter,
+        Currency $selectedCurrency,
+        bool $vaultArmed,
+    ): array {
+        return [
+            ...(new TransactionResource($transaction))->resolve($request),
+            'display_amount' => $vaultArmed
+                ? null
+                : $currencyConverter->format($transaction->amount, $transaction->currency, $selectedCurrency),
+            'display_currency' => $selectedCurrency->value,
+        ];
+    }
+
+    /**
+     * @return array{tomanPerUsd: float, tomanPerEur: float}
+     */
+    private function displayRates(): array
+    {
+        $prices = app(AssetPriceService::class);
+
+        return [
+            'tomanPerUsd' => $prices->priceFor(AssetType::Usd),
+            'tomanPerEur' => $prices->priceFor(AssetType::Eur),
+        ];
     }
 
     /**
@@ -89,6 +163,7 @@ class TransactionController extends Controller
         $user = $request->user();
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
         $selectedCurrency = CurrencyPreference::resolve($request);
+        $vaultArmed = $user->vaultIsArmed();
         $selectedType = $withFilters
             ? $this->resolveTransactionType((string) $request->query('type'))
             : null;
@@ -119,13 +194,6 @@ class TransactionController extends Controller
                 fn (Builder $query) => $query->where('category_id', $selectedCategoryId),
             )
             ->when(
-                $search !== '',
-                fn (Builder $query) => $query->where(function (Builder $query) use ($search): void {
-                    $query->where('title', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
-                }),
-            )
-            ->when(
                 $fromDate instanceof Carbon,
                 fn (Builder $query) => $query->whereDate('occurred_at', '>=', $fromDate->toDateString()),
             )
@@ -137,7 +205,8 @@ class TransactionController extends Controller
             ->latest();
 
         // Full collection is always needed for accurate multi-currency summary totals
-        $allTransactions = $query->get();
+        // — and, since title/description are encrypted, for search as well.
+        $allTransactions = TransactionListing::search($query->get(), $search);
 
         $categories = Category::query()
             ->availableFor($user)
@@ -162,8 +231,11 @@ class TransactionController extends Controller
             $costPage = max(1, (int) $request->query('cost_page', 1));
             $incomePage = max(1, (int) $request->query('income_page', 1));
 
-            $costPaginator = (clone $query)->where('type', TransactionType::Cost)->paginate(15, ['*'], 'cost_page', $costPage);
-            $incomePaginator = (clone $query)->where('type', TransactionType::Income)->paginate(15, ['*'], 'income_page', $incomePage);
+            // Paged from the already-filtered collection, not the builder: once the
+            // search runs in PHP, a database paginator would be paging a different
+            // (unfiltered) result set.
+            $costPaginator = TransactionListing::paginate($costs, $costPage);
+            $incomePaginator = TransactionListing::paginate($incomes, $incomePage);
 
             $displayCosts = collect($costPaginator->items());
             $displayIncomes = collect($incomePaginator->items());
@@ -191,26 +263,12 @@ class TransactionController extends Controller
                 'to' => $toDate?->toDateString() ?? '',
             ],
             'transactions' => [
-                'costs' => $displayCosts
-                    ->map(fn (Transaction $transaction) => [
-                        ...(new TransactionResource($transaction))->resolve($request),
-                        'display_amount' => $currencyConverter->format(
-                            $transaction->amount,
-                            $transaction->currency,
-                            $selectedCurrency,
-                        ),
-                        'display_currency' => $selectedCurrency->value,
-                    ]),
-                'incomes' => $displayIncomes
-                    ->map(fn (Transaction $transaction) => [
-                        ...(new TransactionResource($transaction))->resolve($request),
-                        'display_amount' => $currencyConverter->format(
-                            $transaction->amount,
-                            $transaction->currency,
-                            $selectedCurrency,
-                        ),
-                        'display_currency' => $selectedCurrency->value,
-                    ]),
+                'costs' => $displayCosts->map(
+                    fn (Transaction $transaction) => $this->presentTransaction($transaction, $request, $currencyConverter, $selectedCurrency, $vaultArmed),
+                ),
+                'incomes' => $displayIncomes->map(
+                    fn (Transaction $transaction) => $this->presentTransaction($transaction, $request, $currencyConverter, $selectedCurrency, $vaultArmed),
+                ),
                 'meta' => $paginationMeta,
             ],
             'categories' => [
@@ -229,11 +287,16 @@ class TransactionController extends Controller
                     'value' => $currency->value,
                 ]),
             'selectedCurrency' => $selectedCurrency->value,
-            'summary' => [
+            // Rates rather than totals when the server cannot read the amounts.
+            // These are public market prices, not user data, so shipping them
+            // costs nothing — and a wrong total is worse than no total.
+            'rates' => $vaultArmed ? $this->displayRates() : null,
+            'summary' => $vaultArmed ? null : [
                 'cost' => $currencyConverter->sumFormatted($costs, $selectedCurrency),
                 'income' => $currencyConverter->sumFormatted($incomes, $selectedCurrency),
                 'count' => $allTransactions->count(),
             ],
+            'transactionCount' => $allTransactions->count(),
             'period' => $this->currentPeriod($calendar),
             ...$extraProps,
         ]);
@@ -244,7 +307,7 @@ class TransactionController extends Controller
      *
      * @return array<int, array<string, mixed>>
      */
-    private function upcomingBills(Request $request, CurrencyConverter $currencyConverter, Currency $selectedCurrency): array
+    private function upcomingBills(Request $request, CurrencyConverter $currencyConverter, Currency $selectedCurrency, bool $vaultArmed): array
     {
         $today = Carbon::today();
 
@@ -258,7 +321,7 @@ class TransactionController extends Controller
             ->limit(3)
             ->get()
             ->filter(fn (BillOccurrence $occurrence) => $occurrence->bill !== null)
-            ->map(function (BillOccurrence $occurrence) use ($currencyConverter, $request, $selectedCurrency, $today): array {
+            ->map(function (BillOccurrence $occurrence) use ($currencyConverter, $request, $selectedCurrency, $today, $vaultArmed): array {
                 $bill = $occurrence->bill;
                 $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
 
@@ -266,7 +329,11 @@ class TransactionController extends Controller
                     'occurrence_id' => $occurrence->id,
                     'bill_id' => $bill->id,
                     'title' => $bill->title,
-                    'display_amount' => $currencyConverter->format($bill->amount, $billCurrency, $selectedCurrency),
+                    'amount' => $vaultArmed ? $bill->amount : (float) $bill->amount,
+                    'currency' => $billCurrency->value,
+                    'display_amount' => $vaultArmed
+                        ? null
+                        : $currencyConverter->format($bill->amount, $billCurrency, $selectedCurrency),
                     'display_currency' => $selectedCurrency->value,
                     'category_name' => $bill->category
                         ? (new CategoryResource($bill->category))->resolve($request)['name']
@@ -281,13 +348,11 @@ class TransactionController extends Controller
     }
 
     /**
-     * Income and cost totals for the last three calendar months (calendar-aware),
-     * in the selected currency. The workspace itself only loads the current
-     * month's transactions, so the trend needs its own aggregate.
+     * The last three calendar months (calendar-aware) as label + date window.
      *
-     * @return array<int, array{label: string, income: float, cost: float}>
+     * @return array<int, array{label: string, from: Carbon, to: Carbon}>
      */
-    private function monthlyTrend(Request $request, CurrencyConverter $currencyConverter, Currency $selectedCurrency): array
+    private function trendMonths(Request $request): array
     {
         $calendar = FrontendLocalization::normalizeCalendar($request->user()->calendar);
         $now = Carbon::now();
@@ -325,13 +390,57 @@ class TransactionController extends Controller
             }
         }
 
-        $transactions = $request->user()->transactions()
+        return $months;
+    }
+
+    /**
+     * The transactions behind the trend chart.
+     *
+     * `user_id` is in the select on purpose: the encryption cast resolves the
+     * owning user from it, and a partial select without it leaves every amount
+     * undecryptable — which silently summed to a flat zero line.
+     *
+     * @param  array<int, array{label: string, from: Carbon, to: Carbon}>  $months
+     * @return SupportCollection<int, Transaction>
+     */
+    private function trendTransactions(Request $request, array $months): SupportCollection
+    {
+        return $request->user()->transactions()
             ->whereDate('occurred_at', '>=', $months[0]['from']->toDateString())
             ->whereDate('occurred_at', '<=', $months[2]['to']->toDateString())
-            ->get(['type', 'amount', 'currency', 'occurred_at']);
+            ->get(['id', 'user_id', 'type', 'amount', 'currency', 'occurred_at'])
+            ->toBase();
+    }
 
+    /**
+     * Income and cost totals per month, in the selected currency.
+     *
+     * Under the vault the totals come back null and the raw rows travel instead —
+     * the browser buckets and sums them from the decrypted amounts.
+     *
+     * @param  array<int, array{label: string, from: Carbon, to: Carbon}>  $months
+     * @param  SupportCollection<int, Transaction>  $transactions
+     * @return array<int, array{label: string, from: string, to: string, income: float|null, cost: float|null}>
+     */
+    private function monthlyTrend(
+        array $months,
+        SupportCollection $transactions,
+        CurrencyConverter $currencyConverter,
+        Currency $selectedCurrency,
+        bool $vaultArmed,
+    ): array {
         return collect($months)
-            ->map(function (array $month) use ($transactions, $currencyConverter, $selectedCurrency): array {
+            ->map(function (array $month) use ($transactions, $currencyConverter, $selectedCurrency, $vaultArmed): array {
+                $window = [
+                    'label' => $month['label'],
+                    'from' => $month['from']->toDateString(),
+                    'to' => $month['to']->toDateString(),
+                ];
+
+                if ($vaultArmed) {
+                    return [...$window, 'income' => null, 'cost' => null];
+                }
+
                 $inMonth = $transactions->filter(fn (Transaction $transaction) => Carbon::parse($transaction->occurred_at)
                     ->between($month['from'], $month['to']));
 
@@ -347,7 +456,7 @@ class TransactionController extends Controller
                 );
 
                 return [
-                    'label' => $month['label'],
+                    ...$window,
                     'income' => $sumFor(TransactionType::Income),
                     'cost' => $sumFor(TransactionType::Cost),
                 ];

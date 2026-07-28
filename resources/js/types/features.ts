@@ -5,7 +5,8 @@ export type FeatureKey =
     | 'investments'
     | 'portfolio'
     | 'ai_assistant'
-    | 'telegram_bot';
+    | 'telegram_bot'
+    | 'vault';
 
 /** A feature's resolved state, as shared on every authenticated page. */
 export type ModuleState = {
@@ -30,6 +31,11 @@ export type ModuleCard = {
     requires: string[];
     /** Currently-enabled modules that switching this off would also switch off. */
     disables: string[];
+    /**
+     * Set when the module is switched somewhere else — it renders as a link card
+     * rather than a toggle, because turning it on re-keys the user's data.
+     */
+    manage_url: string | null;
 };
 
 export type CoreModuleCard = {

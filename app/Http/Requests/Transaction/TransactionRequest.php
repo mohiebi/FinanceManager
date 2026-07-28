@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Transaction;
 
+use App\Support\Encryption\SealedField;
 use App\Support\TransactionRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -23,7 +24,7 @@ abstract class TransactionRequest extends FormRequest
      */
     public function rules(): array
     {
-        return TransactionRules::rules();
+        return TransactionRules::rules($this->user()->vaultIsArmed());
     }
 
     public function after(): array
@@ -48,9 +49,17 @@ abstract class TransactionRequest extends FormRequest
      */
     public function transactionData(): array
     {
-        return [
+        $data = [
             ...$this->validated(),
             'description' => $this->validated('description') ?? null,
         ];
+
+        if (! $this->user()->vaultIsArmed()) {
+            return $data;
+        }
+
+        // Wrapped so the cast stores the browser's ciphertext verbatim instead of
+        // trying to encrypt it again with a key the server no longer has.
+        return SealedField::wrap($data, ['amount', 'title', 'description']);
     }
 }

@@ -9,8 +9,10 @@ use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\TelegramController;
+use App\Http\Controllers\Settings\VaultController;
 use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\EnsureProfileIsComplete;
+use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
@@ -44,6 +46,21 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
 
     Route::get('settings/modules', [ModuleController::class, 'edit'])->name('modules.edit');
     Route::patch('settings/modules', [ModuleController::class, 'update'])->name('modules.update');
+
+    // The vault's own endpoints. Enrolling hands over the raw data key, so it sits
+    // behind a fresh password confirmation; the other two carry client-produced
+    // material and verify it against the fingerprint on record.
+    Route::post('settings/vault/enroll', [VaultController::class, 'enroll'])
+        ->middleware([RequirePassword::class, 'throttle:6,1'])
+        ->name('vault.enroll');
+
+    Route::post('settings/vault/enable', [VaultController::class, 'enable'])
+        ->middleware('throttle:6,1')
+        ->name('vault.enable');
+
+    Route::post('settings/vault/disable', [VaultController::class, 'disable'])
+        ->middleware('throttle:6,1')
+        ->name('vault.disable');
 
     Route::get('settings/categories', [CategoryController::class, 'edit'])->name('categories.edit');
     Route::patch('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');

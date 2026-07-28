@@ -216,7 +216,8 @@
                             :center-label="t('finance.investments.portfolio')"
                             :center-value="
                                 props.pricesAvailable
-                                    ? props.summary?.total_value_formatted + ' T'
+                                    ? props.summary?.total_value_formatted +
+                                      ' T'
                                     : t('finance.price_unavailable')
                             "
                             @slice-click="onSliceClick"
@@ -474,15 +475,25 @@
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-white sm:px-5"
                             >
-                                {{ entry.quantity }} {{ entry.asset_unit }}
+                                <Ciphered
+                                    :value="entry.quantity"
+                                    table="investments"
+                                    type="decimal"
+                                />
+                                {{ entry.asset_unit }}
                             </td>
                             <td
                                 class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-white sm:px-5"
                             >
-                                <template v-if="props.pricesAvailable">
+                                <template
+                                    v-if="
+                                        props.pricesAvailable &&
+                                        !isCiphertext(entry.quantity)
+                                    "
+                                >
                                     {{
                                         formatEntryValue(
-                                            entry.quantity,
+                                            Number(entry.quantity),
                                             entry.asset_type,
                                         )
                                     }}
@@ -557,6 +568,7 @@ import { Download, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
+import Ciphered from '@/components/Ciphered.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import type { ChartSeries } from '@/components/charts/LineChart.vue';
@@ -568,6 +580,8 @@ import { useRelativeTime } from '@/composables/useRelativeTime';
 import { formatAppDate } from '@/lib/date';
 import { dashboard } from '@/routes';
 import { index as investmentsIndex } from '@/routes/investments';
+import type { Encrypted } from '@/types/vault';
+import { isCiphertext } from '@/types/vault';
 
 type AssetKey = string;
 
@@ -610,8 +624,8 @@ type Entry = {
     asset_icon_svg: string | null;
     asset_color: string;
     asset_unit: string;
-    quantity: number;
-    cost_basis: number | null;
+    quantity: Encrypted<string | number>;
+    cost_basis: Encrypted<string | number> | null;
     cost_basis_currency: string | null;
     note: string | null;
     occurred_at: string;

@@ -1,0 +1,128 @@
+{
+    "_comment": "Shared by BuildPortfolioBreakdownTest (PHP) and tests/js/portfolio.test.ts. The vault forces the same breakdown to be computed on both sides; this fixture is what stops the two drifting apart.",
+    "rates": {
+        "tomanPerUsd": 900000,
+        "tomanPerEur": 1000000
+    },
+    "assets": [
+        {
+            "id": 1,
+            "key": "parity-gold",
+            "label": "Parity gold",
+            "icon": null,
+            "icon_svg": null,
+            "color": "#02CD86",
+            "unit": "gram",
+            "price": 5000000,
+            "price_available": true
+        },
+        {
+            "id": 2,
+            "key": "parity-dollar",
+            "label": "Parity dollar",
+            "icon": null,
+            "icon_svg": null,
+            "color": "#6C4EE9",
+            "unit": "unit",
+            "price": 900000,
+            "price_available": true
+        }
+    ],
+    "entries": [
+        {
+            "investment_asset_id": 1,
+            "quantity": 2,
+            "cost_basis": 4000000,
+            "cost_basis_currency": "toman"
+        },
+        {
+            "investment_asset_id": 1,
+            "quantity": 1,
+            "cost_basis": null,
+            "cost_basis_currency": null
+        },
+        {
+            "investment_asset_id": 2,
+            "quantity": 10,
+            "cost_basis": 5,
+            "cost_basis_currency": "usd"
+        }
+    ],
+    "cases": [
+        {
+            "target": "toman",
+            "assets": [
+                {
+                    "key": "parity-gold",
+                    "quantity": 3,
+                    "current_value": 15000000,
+                    "current_value_formatted": "15,000,000",
+                    "current_price_formatted": "5,000,000",
+                    "avg_cost_basis": 4000000,
+                    "avg_cost_basis_formatted": "4,000,000",
+                    "total_cost": 8000000,
+                    "total_cost_formatted": "8,000,000",
+                    "pnl": 2000000,
+                    "pnl_formatted": "2,000,000",
+                    "pnl_percent": 25,
+                    "pnl_is_positive": true,
+                    "entries_count": 2
+                },
+                {
+                    "key": "parity-dollar",
+                    "quantity": 10,
+                    "current_value": 9000000,
+                    "current_value_formatted": "9,000,000",
+                    "current_price_formatted": "900,000",
+                    "avg_cost_basis": 4500000,
+                    "avg_cost_basis_formatted": "4,500,000",
+                    "total_cost": 45000000,
+                    "total_cost_formatted": "45,000,000",
+                    "pnl": -36000000,
+                    "pnl_formatted": "36,000,000",
+                    "pnl_percent": -80,
+                    "pnl_is_positive": false,
+                    "entries_count": 1
+                }
+            ],
+            "summary": {
+                "total_current_value": 24000000,
+                "total_current_value_formatted": "24,000,000",
+                "total_cost_basis": 53000000,
+                "total_cost_basis_formatted": "53,000,000",
+                "total_pnl": -34000000,
+                "total_pnl_formatted": "34,000,000",
+                "total_pnl_percent": -64.15,
+                "total_pnl_is_positive": false,
+                "has_cost_basis_data": true,
+                "asset_count": 2
+            }
+        },
+        {
+            "target": "usd",
+            "assets": [
+                {
+                    "key": "parity-gold",
+                    "current_value_formatted": "16.67",
+                    "total_cost_formatted": "8.89",
+                    "pnl_formatted": "2.22"
+                },
+                {
+                    "key": "parity-dollar",
+                    "current_value_formatted": "10.00",
+                    "total_cost_formatted": "50.00",
+                    "pnl_formatted": "40.00"
+                }
+            ],
+            "summary": {
+                "total_current_value_formatted": "26.67",
+                "total_cost_basis_formatted": "58.89",
+                "total_pnl_formatted": "37.78",
+                "total_pnl_percent": -64.15,
+                "total_pnl_is_positive": false,
+                "has_cost_basis_data": true,
+                "asset_count": 2
+            }
+        }
+    ]
+}

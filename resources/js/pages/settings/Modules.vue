@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import {
     Bot,
     ChartPie,
     Lock,
     Receipt,
     ReceiptText,
+    ShieldCheck,
     Sparkles,
     TrendingUp,
     Wallet,
@@ -37,6 +38,7 @@ const icons: Record<string, Component> = {
     ChartPie,
     Receipt,
     ReceiptText,
+    ShieldCheck,
     Sparkles,
     TrendingUp,
     Wallet,
@@ -162,7 +164,18 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                         </p>
                     </div>
 
+                    <!-- Self-managed modules are advertised here but switched on
+                         their own page, because arming one re-keys the user's data
+                         and cannot be done by a plain toggle. -->
+                    <Link
+                        v-if="module.manage_url"
+                        :href="module.manage_url"
+                        class="shrink-0 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/15"
+                    >
+                        {{ t('modules.manage') }}
+                    </Link>
                     <Switch
+                        v-else
                         :checked="module.enabled"
                         :disabled="processing === module.key || !module.may_use"
                         :aria-label="module.label"
@@ -170,8 +183,15 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                     />
                 </div>
 
+                <p
+                    v-if="module.manage_url"
+                    class="mt-3 border-t border-white/5 pt-3 text-xs text-[#6f6f6f]"
+                >
+                    {{ t('modules.managed_elsewhere') }}
+                </p>
+
                 <label
-                    v-if="!module.enabled"
+                    v-else-if="!module.enabled"
                     class="mt-3 flex cursor-pointer items-center gap-2 border-t border-white/5 pt-3"
                 >
                     <Checkbox

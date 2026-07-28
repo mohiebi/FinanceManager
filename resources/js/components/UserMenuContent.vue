@@ -10,6 +10,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
+import { useVault } from '@/composables/useVault';
 import { logout } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { edit } from '@/routes/profile';
@@ -19,8 +20,15 @@ type Props = {
     user: User;
 };
 
+const { lock } = useVault();
+
 const handleLogout = () => {
     router.flushAll();
+
+    // Drops the data key from memory and from this device, so signing out on a
+    // trusted device genuinely revokes it rather than leaving it for whoever
+    // signs in next.
+    lock();
 };
 
 const { t } = useI18n();

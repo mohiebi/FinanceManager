@@ -1,0 +1,443 @@
+{
+    "_comment": "Ground truth from App\\Actions\\Transactions\\CurrencyConverter, asserted by both tests/Feature/CurrencyConverterTest.php and tests/js/money.test.ts. Two implementations of money maths is a drift risk; a shared fixture makes it a checked invariant.",
+    "rates": {
+        "tomanPerUsd": 172100,
+        "tomanPerEur": 186468.31
+    },
+    "conversions": [
+        {
+            "amount": "0",
+            "from": "toman",
+            "to": "toman",
+            "expected": "0.00"
+        },
+        {
+            "amount": "0",
+            "from": "toman",
+            "to": "usd",
+            "expected": "0.00"
+        },
+        {
+            "amount": "0",
+            "from": "toman",
+            "to": "eur",
+            "expected": "0.00"
+        },
+        {
+            "amount": "0",
+            "from": "usd",
+            "to": "toman",
+            "expected": "0.00"
+        },
+        {
+            "amount": "0",
+            "from": "usd",
+            "to": "usd",
+            "expected": "0.00"
+        },
+        {
+            "amount": "0",
+            "from": "usd",
+            "to": "eur",
+            "expected": "0.00"
+        },
+        {
+            "amount": "0",
+            "from": "eur",
+            "to": "toman",
+            "expected": "0.00"
+        },
+        {
+            "amount": "0",
+            "from": "eur",
+            "to": "usd",
+            "expected": "0.00"
+        },
+        {
+            "amount": "0",
+            "from": "eur",
+            "to": "eur",
+            "expected": "0.00"
+        },
+        {
+            "amount": "1",
+            "from": "toman",
+            "to": "toman",
+            "expected": "1.00"
+        },
+        {
+            "amount": "1",
+            "from": "toman",
+            "to": "usd",
+            "expected": "0.00"
+        },
+        {
+            "amount": "1",
+            "from": "toman",
+            "to": "eur",
+            "expected": "0.00"
+        },
+        {
+            "amount": "1",
+            "from": "usd",
+            "to": "toman",
+            "expected": "172100.00"
+        },
+        {
+            "amount": "1",
+            "from": "usd",
+            "to": "usd",
+            "expected": "1.00"
+        },
+        {
+            "amount": "1",
+            "from": "usd",
+            "to": "eur",
+            "expected": "0.92"
+        },
+        {
+            "amount": "1",
+            "from": "eur",
+            "to": "toman",
+            "expected": "186468.31"
+        },
+        {
+            "amount": "1",
+            "from": "eur",
+            "to": "usd",
+            "expected": "1.08"
+        },
+        {
+            "amount": "1",
+            "from": "eur",
+            "to": "eur",
+            "expected": "1.00"
+        },
+        {
+            "amount": "42.50",
+            "from": "toman",
+            "to": "toman",
+            "expected": "42.50"
+        },
+        {
+            "amount": "42.50",
+            "from": "toman",
+            "to": "usd",
+            "expected": "0.00"
+        },
+        {
+            "amount": "42.50",
+            "from": "toman",
+            "to": "eur",
+            "expected": "0.00"
+        },
+        {
+            "amount": "42.50",
+            "from": "usd",
+            "to": "toman",
+            "expected": "7314250.00"
+        },
+        {
+            "amount": "42.50",
+            "from": "usd",
+            "to": "usd",
+            "expected": "42.50"
+        },
+        {
+            "amount": "42.50",
+            "from": "usd",
+            "to": "eur",
+            "expected": "39.23"
+        },
+        {
+            "amount": "42.50",
+            "from": "eur",
+            "to": "toman",
+            "expected": "7924903.18"
+        },
+        {
+            "amount": "42.50",
+            "from": "eur",
+            "to": "usd",
+            "expected": "46.05"
+        },
+        {
+            "amount": "42.50",
+            "from": "eur",
+            "to": "eur",
+            "expected": "42.50"
+        },
+        {
+            "amount": "1250.00",
+            "from": "toman",
+            "to": "toman",
+            "expected": "1250.00"
+        },
+        {
+            "amount": "1250.00",
+            "from": "toman",
+            "to": "usd",
+            "expected": "0.01"
+        },
+        {
+            "amount": "1250.00",
+            "from": "toman",
+            "to": "eur",
+            "expected": "0.01"
+        },
+        {
+            "amount": "1250.00",
+            "from": "usd",
+            "to": "toman",
+            "expected": "215125000.00"
+        },
+        {
+            "amount": "1250.00",
+            "from": "usd",
+            "to": "usd",
+            "expected": "1250.00"
+        },
+        {
+            "amount": "1250.00",
+            "from": "usd",
+            "to": "eur",
+            "expected": "1153.68"
+        },
+        {
+            "amount": "1250.00",
+            "from": "eur",
+            "to": "toman",
+            "expected": "233085387.50"
+        },
+        {
+            "amount": "1250.00",
+            "from": "eur",
+            "to": "usd",
+            "expected": "1354.36"
+        },
+        {
+            "amount": "1250.00",
+            "from": "eur",
+            "to": "eur",
+            "expected": "1250.00"
+        },
+        {
+            "amount": "999999.99",
+            "from": "toman",
+            "to": "toman",
+            "expected": "999999.99"
+        },
+        {
+            "amount": "999999.99",
+            "from": "toman",
+            "to": "usd",
+            "expected": "5.81"
+        },
+        {
+            "amount": "999999.99",
+            "from": "toman",
+            "to": "eur",
+            "expected": "5.36"
+        },
+        {
+            "amount": "999999.99",
+            "from": "usd",
+            "to": "toman",
+            "expected": "172099998279.00"
+        },
+        {
+            "amount": "999999.99",
+            "from": "usd",
+            "to": "usd",
+            "expected": "999999.99"
+        },
+        {
+            "amount": "999999.99",
+            "from": "usd",
+            "to": "eur",
+            "expected": "922945.02"
+        },
+        {
+            "amount": "999999.99",
+            "from": "eur",
+            "to": "toman",
+            "expected": "186468308135.32"
+        },
+        {
+            "amount": "999999.99",
+            "from": "eur",
+            "to": "usd",
+            "expected": "1083488.14"
+        },
+        {
+            "amount": "999999.99",
+            "from": "eur",
+            "to": "eur",
+            "expected": "999999.99"
+        },
+        {
+            "amount": "1500000",
+            "from": "toman",
+            "to": "toman",
+            "expected": "1500000.00"
+        },
+        {
+            "amount": "1500000",
+            "from": "toman",
+            "to": "usd",
+            "expected": "8.72"
+        },
+        {
+            "amount": "1500000",
+            "from": "toman",
+            "to": "eur",
+            "expected": "8.04"
+        },
+        {
+            "amount": "1500000",
+            "from": "usd",
+            "to": "toman",
+            "expected": "258150000000.00"
+        },
+        {
+            "amount": "1500000",
+            "from": "usd",
+            "to": "usd",
+            "expected": "1500000.00"
+        },
+        {
+            "amount": "1500000",
+            "from": "usd",
+            "to": "eur",
+            "expected": "1384417.55"
+        },
+        {
+            "amount": "1500000",
+            "from": "eur",
+            "to": "toman",
+            "expected": "279702465000.00"
+        },
+        {
+            "amount": "1500000",
+            "from": "eur",
+            "to": "usd",
+            "expected": "1625232.22"
+        },
+        {
+            "amount": "1500000",
+            "from": "eur",
+            "to": "eur",
+            "expected": "1500000.00"
+        },
+        {
+            "amount": "0.01",
+            "from": "toman",
+            "to": "toman",
+            "expected": "0.01"
+        },
+        {
+            "amount": "0.01",
+            "from": "toman",
+            "to": "usd",
+            "expected": "0.00"
+        },
+        {
+            "amount": "0.01",
+            "from": "toman",
+            "to": "eur",
+            "expected": "0.00"
+        },
+        {
+            "amount": "0.01",
+            "from": "usd",
+            "to": "toman",
+            "expected": "1721.00"
+        },
+        {
+            "amount": "0.01",
+            "from": "usd",
+            "to": "usd",
+            "expected": "0.01"
+        },
+        {
+            "amount": "0.01",
+            "from": "usd",
+            "to": "eur",
+            "expected": "0.01"
+        },
+        {
+            "amount": "0.01",
+            "from": "eur",
+            "to": "toman",
+            "expected": "1864.68"
+        },
+        {
+            "amount": "0.01",
+            "from": "eur",
+            "to": "usd",
+            "expected": "0.01"
+        },
+        {
+            "amount": "0.01",
+            "from": "eur",
+            "to": "eur",
+            "expected": "0.01"
+        }
+    ],
+    "sums": [
+        {
+            "items": [
+                {
+                    "amount": "1250.00",
+                    "currency": "toman"
+                },
+                {
+                    "amount": "10.00",
+                    "currency": "usd"
+                },
+                {
+                    "amount": "5.50",
+                    "currency": "eur"
+                }
+            ],
+            "target": "toman",
+            "expected": "2747825.71"
+        },
+        {
+            "items": [
+                {
+                    "amount": "1250.00",
+                    "currency": "toman"
+                },
+                {
+                    "amount": "10.00",
+                    "currency": "usd"
+                },
+                {
+                    "amount": "5.50",
+                    "currency": "eur"
+                }
+            ],
+            "target": "usd",
+            "expected": "15.97"
+        },
+        {
+            "items": [
+                {
+                    "amount": "1250.00",
+                    "currency": "toman"
+                },
+                {
+                    "amount": "10.00",
+                    "currency": "usd"
+                },
+                {
+                    "amount": "5.50",
+                    "currency": "eur"
+                }
+            ],
+            "target": "eur",
+            "expected": "14.74"
+        }
+    ]
+}

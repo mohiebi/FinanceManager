@@ -1,0 +1,97 @@
+{
+    "_comment": "Known-answer vectors shared by tests/Unit/UserCryptoTest.php (PHP) and resources/js/lib/vault/*.test.mjs (Node). If either implementation drifts, both suites fail. Regenerate only when the wire format itself changes.",
+    "format": "cp1",
+    "encryption": [
+        {
+            "name": "decimal amount",
+            "dek_hex": "0101010101010101010101010101010101010101010101010101010101010101",
+            "table": "transactions",
+            "column": "amount",
+            "aad": "cp1:transactions:amount",
+            "plaintext": "1250.00",
+            "blob": "Y3AxzpqfOLkc+6Ibd0thTycY0+BXPl8AhJ+yMWPjlVJDpD+VHLo="
+        },
+        {
+            "name": "ascii title",
+            "dek_hex": "0101010101010101010101010101010101010101010101010101010101010101",
+            "table": "transactions",
+            "column": "title",
+            "aad": "cp1:transactions:title",
+            "plaintext": "Weekly groceries",
+            "blob": "Y3AxZ0CEu/6Hz26suAJX1Km9hvi9Pd2dTDDFDzQME3xWWT+cv5df2CR8dd6olOM="
+        },
+        {
+            "name": "persian title",
+            "dek_hex": "02030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021",
+            "table": "transactions",
+            "column": "title",
+            "aad": "cp1:transactions:title",
+            "plaintext": "خرید هفتگی",
+            "blob": "Y3Ax2U2kXxt6LPMFRFnd47BX3qh4TvTDjCwbV4GzWVKMu6q2x4OSTLnpBYGHsKYHnqE="
+        },
+        {
+            "name": "emoji and newlines",
+            "dek_hex": "02030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021",
+            "table": "transactions",
+            "column": "description",
+            "aad": "cp1:transactions:description",
+            "plaintext": "line one\nline two 🎉",
+            "blob": "Y3Ax7MX2hMfhty1YBYUwFdYpDUa0yTytZLJ5O3JWx8ig2dEoPK1SaMyJQT9O+nzHdGlelb0="
+        },
+        {
+            "name": "empty-ish single space",
+            "dek_hex": "0101010101010101010101010101010101010101010101010101010101010101",
+            "table": "bills",
+            "column": "title",
+            "aad": "cp1:bills:title",
+            "plaintext": " ",
+            "blob": "Y3AxTK84GUEuU2UVtDdQyxYnafSUyWu/yayVw5ysjxI="
+        },
+        {
+            "name": "long text",
+            "dek_hex": "02030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021",
+            "table": "bills",
+            "column": "title",
+            "aad": "cp1:bills:title",
+            "plaintext": "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij",
+            "blob": "Y3AxehoqxQUqyMg/apQsJTwuthwu1JahhqFO9pi8AcjdnB9zTi6PpWYQwJyyLiTgDjynbEcMr5tgvpv2emijYqTvyuqcTPr3Mfv/fKTjiqCaNeNH58gTeIqKACOODXfZqaHfu9LNQmIJ0cLOmu6hhsK1c51/PcVrG29ZuhZwD5vfO/Fw5XU1hHCJnjkLdg47y87g41rdobnG+7Ov99YhqrhLH3BSIa57EBnrVfzRTIEPENHYrK3Gql7lqFxZbRbqxxY8D/hsSS0WzrLVvbEG+Vy8zDsoQurWdK6MYLkuL2ToQ5EZ3UbCYimKQh2/GGBEKIv7Yx4BQPXpb819Gr4xectAqU4CCNZ52COksSRSK+FTxR+rZY0vQiv0sVQ+CR7MkkdnKdH8uhwKUjlkQP2jaPCjlDjMj5/ufJ4r2eYzU6uVEx+3UVXV6CaLUSOCd3Jmky/7laoz2e5ccj1Jgpk4qWd6RZe5SOCdxudBYd5dodrEDZvbS/xPdsgPPrViQALYm77NjDndTSMEIOfFZKaHJjxfCW+rUMTwjQpt64mlw41vbNZeaGmE46oFVHZYvjo="
+        },
+        {
+            "name": "negative decimal",
+            "dek_hex": "0101010101010101010101010101010101010101010101010101010101010101",
+            "table": "transactions",
+            "column": "amount",
+            "aad": "cp1:transactions:amount",
+            "plaintext": "-42.50",
+            "blob": "Y3AxBYuAiH4rwFWwuepZktIHAut5dcrxTJLXozLZY5klxrfjmw=="
+        }
+    ],
+    "pbkdf2_sha256": [
+        {
+            "passphrase": "correct horse battery staple",
+            "salt_hex": "000102030405060708090a0b0c0d0e0f",
+            "iterations": 1000,
+            "derived_hex": "a69b179e3add3c1e0aaf227a0eb3aa2aa8645ab86fecf6ca00c17512697c719e"
+        },
+        {
+            "passphrase": "رمز عبور طولانی",
+            "salt_hex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeaf",
+            "iterations": 2048,
+            "derived_hex": "63db04a44a4acaa8263c8fa56e6237e014b0001af9397f4de81f39ceba165813"
+        }
+    ],
+    "hkdf_sha256": [
+        {
+            "ikm_hex": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+            "salt_hex": "000102030405060708090a0b0c0d0e0f",
+            "info": "cashpilot-vault-recovery-v1",
+            "derived_hex": "6ad4f144ad8a9e8ddcb748abc5fa118bbebc58eb77704b3156c438d227a9699c"
+        },
+        {
+            "ikm_hex": "4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a",
+            "salt_hex": "ffeeddccbbaa99887766554433221100",
+            "info": "cashpilot-vault-recovery-v1",
+            "derived_hex": "ccdafd9870309f34711924cc10c0da3760aeb25a464f54c779a17ed26d30a061"
+        }
+    ]
+}

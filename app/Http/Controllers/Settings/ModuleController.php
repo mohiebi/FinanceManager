@@ -111,6 +111,11 @@ class ModuleController extends Controller
             'may_use' => $user->mayUse($feature),
             'requires' => array_map(fn (Feature $dependency): string => $dependency->label(), $needs),
             'disables' => array_map(fn (Feature $dependent): string => $dependent->label(), $wouldDisable),
+            // Non-null for modules the page advertises but does not switch — they
+            // render as a link card instead of a toggle.
+            'manage_url' => $feature->managedRoute() === null
+                ? null
+                : route($feature->managedRoute()),
         ];
     }
 

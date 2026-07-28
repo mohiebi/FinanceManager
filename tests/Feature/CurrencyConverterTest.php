@@ -4,6 +4,33 @@ use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\Currency;
 use Illuminate\Support\Facades\Cache;
 
+test('it agrees with the shared money vectors the browser also asserts', function () {
+    Cache::flush();
+    config(['services.tgju.enabled' => true]);
+
+    $vectors = json_decode(
+        file_get_contents(base_path('tests/fixtures/money-vectors.json')),
+        true,
+    );
+
+    Cache::put('asset-prices.tgju', [
+        'usd' => $vectors['rates']['tomanPerUsd'],
+        'eur' => $vectors['rates']['tomanPerEur'],
+    ], now()->addMinutes(5));
+
+    $converter = app(CurrencyConverter::class);
+
+    // The same file is asserted by tests/js/money.test.ts. Two implementations of
+    // money maths is a drift risk; a shared fixture makes it a checked invariant.
+    foreach ($vectors['conversions'] as $vector) {
+        expect($converter->format(
+            $vector['amount'],
+            Currency::from($vector['from']),
+            Currency::from($vector['to']),
+        ))->toBe($vector['expected'], "{$vector['amount']} {$vector['from']} -> {$vector['to']}");
+    }
+});
+
 test('it returns zero when live prices are unavailable', function () {
     Cache::flush();
     config(['services.tgju.enabled' => false]);

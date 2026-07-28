@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Transaction;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,4 +49,46 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Assert a transaction exists whose *decrypted* values match.
+ *
+ * assertDatabaseHas cannot be used for amount, title or description any more:
+ * those columns hold ciphertext with a fresh IV per row, so no literal will ever
+ * match. Comparison has to happen after the model decrypts.
+ *
+ * @param  array<string, mixed>  $expected
+ */
+function assertTransactionExists(array $expected): void
+{
+    $match = Transaction::query()
+        ->when(
+            isset($expected['user_id']),
+            fn ($query) => $query->where('user_id', $expected['user_id']),
+        )
+        ->get()
+        ->first(function (Transaction $transaction) use ($expected): bool {
+            foreach ($expected as $attribute => $value) {
+                $actual = $transaction->{$attribute};
+
+                if ($actual instanceof BackedEnum) {
+                    $actual = $actual->value;
+                }
+
+                if ($actual instanceof CarbonInterface) {
+                    $actual = $actual->toDateString();
+                }
+
+                if ((string) $actual !== (string) $value) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+    expect($match)->not->toBeNull(
+        'No transaction matched '.json_encode($expected, JSON_UNESCAPED_UNICODE),
+    );
 }

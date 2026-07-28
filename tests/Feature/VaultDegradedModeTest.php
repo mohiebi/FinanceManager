@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\Encryption\UserCrypto;
 use App\Support\Encryption\UserKeyRing;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -414,4 +415,99 @@ test('leaving the vault restores plaintext validation', function () {
         ->assertRedirect();
 
     expect(Transaction::query()->where('user_id', $user->id)->get()->first()->amount)->toBe('42.50');
+});
+
+test('the dashboard ships the trend rows for the browser to bucket', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-15 12:00:00'));
+
+    try {
+        $user = User::factory()->create();
+
+        $user->transactions()->create([
+            'type' => 'cost',
+            'amount' => 250.50,
+            'currency' => 'toman',
+            'title' => 'Therapy',
+            'occurred_at' => '2026-06-10',
+        ]);
+
+        $ciphertext = DB::table('transactions')->where('user_id', $user->id)->value('amount');
+
+        armDegradedVault($user);
+
+        $this->actingAs($user->fresh())
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                // Totals the server cannot compute come back null rather than as a
+                // zero the chart would draw as a real, flat month.
+                ->where('monthlyTrend.1.cost', null)
+                ->where('monthlyTrend.1.income', null)
+                ->where('monthlyTrend.1.from', '2026-06-01')
+                // The three months the workspace does not load travel as ciphertext.
+                ->where('trendTransactions.0.amount.c', $ciphertext)
+                ->has('rates.tomanPerUsd')
+                ->etc());
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('the report page ships ciphertext and rates instead of totals it cannot compute', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->cost()->create();
+
+    $user->transactions()->create([
+        'category_id' => $category->id,
+        'type' => 'cost',
+        'amount' => 1250.75,
+        'currency' => 'toman',
+        'title' => 'Therapy',
+        'occurred_at' => now()->toDateString(),
+    ]);
+
+    $ciphertext = DB::table('transactions')->where('user_id', $user->id)->value('amount');
+
+    armDegradedVault($user);
+
+    $this->actingAs($user->fresh())
+        ->get(route('report'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Report')
+            ->where('transactions.costs.0.amount.c', $ciphertext)
+            ->where('transactions.costs.0.display_amount', null)
+            ->where('analyticsTransactions.costs.0.display_amount', null)
+            ->where('summary.cost', null)
+            ->where('summary.income', null)
+            // The row count is not a secret, only the money is.
+            ->where('summary.count', 1)
+            ->has('rates.tomanPerUsd')
+            ->has('rates.tomanPerEur')
+            ->etc());
+});
+
+test('the report page still totals server-side without a vault', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->cost()->create();
+
+    $user->transactions()->create([
+        'category_id' => $category->id,
+        'type' => 'cost',
+        'amount' => 1250.75,
+        'currency' => 'toman',
+        'title' => 'Therapy',
+        'occurred_at' => now()->toDateString(),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('report'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Report')
+            ->where('summary.cost', '1250.75')
+            ->where('transactions.costs.0.display_amount', '1250.75')
+            ->where('rates', null)
+            ->etc());
 });

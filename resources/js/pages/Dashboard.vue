@@ -56,7 +56,14 @@
                         <p
                             class="mt-3 text-[20px] leading-none font-bold text-white"
                         >
-                            {{ formatAmount(summaryIncome) }}
+                            <span v-if="summaryIncome !== null">{{
+                                formatAmount(summaryIncome)
+                            }}</span>
+                            <span
+                                v-else
+                                aria-hidden="true"
+                                class="inline-block h-[0.8em] w-24 animate-pulse rounded bg-white/10 align-middle"
+                            />
                             <span class="text-xs font-normal text-[#989898]">{{
                                 selectedCurrencyLabel
                             }}</span>
@@ -87,7 +94,14 @@
                         <p
                             class="mt-3 text-[20px] leading-none font-bold text-white"
                         >
-                            {{ formatAmount(summaryCost) }}
+                            <span v-if="summaryCost !== null">{{
+                                formatAmount(summaryCost)
+                            }}</span>
+                            <span
+                                v-else
+                                aria-hidden="true"
+                                class="inline-block h-[0.8em] w-24 animate-pulse rounded bg-white/10 align-middle"
+                            />
                             <span class="text-xs font-normal text-[#989898]">{{
                                 selectedCurrencyLabel
                             }}</span>
@@ -136,8 +150,15 @@
                                     : 'text-[#E94E50]'
                             "
                         >
-                            {{ balance >= 0 ? '+' : '−'
-                            }}{{ formatAmount(Math.abs(balance)) }}
+                            <template v-if="totalsReady">
+                                {{ balance >= 0 ? '+' : '−'
+                                }}{{ formatAmount(Math.abs(balance)) }}
+                            </template>
+                            <span
+                                v-else
+                                aria-hidden="true"
+                                class="inline-block h-[0.8em] w-24 animate-pulse rounded bg-white/10 align-middle"
+                            />
                             <span class="text-xs font-normal text-[#989898]">{{
                                 selectedCurrencyLabel
                             }}</span>
@@ -178,6 +199,11 @@
                                     selectedCurrencyLabel
                             "
                         />
+                        <div
+                            v-else-if="!totalsReady"
+                            aria-hidden="true"
+                            class="mt-8 h-[180px] animate-pulse rounded-xl bg-white/5"
+                        />
                         <p
                             v-else
                             class="mt-8 text-center text-sm text-[#989898]"
@@ -194,11 +220,17 @@
                             {{ t('finance.dashboard.monthly_overview') }}
                         </h2>
                         <LineChart
+                            v-if="totalsReady"
                             class="mt-2"
                             :series="trendSeries"
                             :categories="trendLabels"
                             raw-labels
                             :height="220"
+                        />
+                        <div
+                            v-else
+                            aria-hidden="true"
+                            class="mt-8 h-[180px] animate-pulse rounded-xl bg-white/5"
                         />
                     </div>
 
@@ -210,11 +242,17 @@
                             {{ t('finance.dashboard.daily_spending') }}
                         </h2>
                         <PulseChart
+                            v-if="totalsReady"
                             class="mt-2"
                             :data="dailySpending.data"
                             :categories="dailySpending.categories"
                             :series-name="t('finance.metrics.costs')"
                             :height="220"
+                        />
+                        <div
+                            v-else
+                            aria-hidden="true"
+                            class="mt-8 h-[180px] animate-pulse rounded-xl bg-white/5"
                         />
                     </div>
                 </div>
@@ -360,9 +398,12 @@
 
                             <!-- Still decrypting: an empty state here would claim
                                  the user holds nothing, which is a worse lie than
-                                 a skeleton. -->
+                                 a skeleton. Keyed off the decrypting flag, not off
+                                 the payload — an account with no investments
+                                 resolves to no snapshot and must fall through to
+                                 the empty state rather than pulse forever. -->
                             <div
-                                v-else-if="props.vaultPortfolio"
+                                v-else-if="portfolioDecrypting"
                                 class="mt-4 animate-pulse"
                             >
                                 <div class="h-7 w-40 rounded-lg bg-white/10" />
@@ -1005,6 +1046,7 @@ import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import TransactionDialog from '@/components/transactions/TransactionDialog.vue';
+import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
 import { useRelativeTime } from '@/composables/useRelativeTime';
 import { useVault } from '@/composables/useVault';
 import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
@@ -1104,7 +1146,22 @@ const props = defineProps<{
     rates: Rates | null;
     summary: { cost: string; income: string } | null;
     period: Period;
-    monthlyTrend: { label: string; income: number; cost: number }[];
+    monthlyTrend: {
+        label: string;
+        from: string;
+        to: string;
+        /** Null under the vault — the browser buckets `trendTransactions` instead. */
+        income: number | null;
+        cost: number | null;
+    }[];
+    /** Only sent under the vault: the three months behind the trend chart. */
+    trendTransactions?: {
+        id: number;
+        type: TransactionType;
+        amount: Encrypted<string>;
+        currency: Currency;
+        occurred_at: string;
+    }[];
     // Module props — absent entirely when the owning module is switched off.
     upcomingBills?: UpcomingBill[];
     pricesSyncedAt?: string | null;
@@ -1129,10 +1186,11 @@ const { isArmed, revealAsync, sealForSubmit } = useVault();
 
 // Built here from decrypted holdings when the vault is armed, and handed straight
 // through from the server otherwise.
-const { snapshot: vaultSnapshot } = useVaultPortfolio(
-    () => props.vaultPortfolio,
-    () => props.selectedCurrency as CurrencyCode,
-);
+const { snapshot: vaultSnapshot, decrypting: portfolioDecrypting } =
+    useVaultPortfolio(
+        () => props.vaultPortfolio,
+        () => props.selectedCurrency as CurrencyCode,
+    );
 
 const portfolioSnapshot = computed(
     () => vaultSnapshot.value ?? props.portfolio ?? null,
@@ -1201,16 +1259,56 @@ const availablePrices = computed(() =>
     (props.assetPrices ?? []).filter((price) => price.available),
 );
 
-const summaryIncome = computed(() => props.summary?.income ?? '0');
-const summaryCost = computed(() => props.summary?.cost ?? '0');
-
 function parseNum(value: string | number): number {
     return parseFloat(String(value).replace(/,/g, '')) || 0;
 }
 
-const incomeNum = computed(() => parseNum(summaryIncome.value));
-const costNum = computed(() => parseNum(summaryCost.value));
+/**
+ * Every amount on this page, converted to the selected currency.
+ *
+ * Passed through from the server when it could read them, decrypted and
+ * converted here when it could not. Both KPI cards and all three charts read
+ * from this one map, so there is no arrangement where some of them are right.
+ */
+const monthRows = computed(() => [
+    ...props.transactions.costs,
+    ...props.transactions.incomes,
+    // Keyed by id, so the overlap with the current month costs nothing and the
+    // trend chart reads from the same resolved map as everything else.
+    ...(props.trendTransactions ?? []),
+]);
+
+const { amounts: displayAmounts, totalOf } = useDisplayAmounts(
+    () => monthRows.value,
+    () => props.selectedCurrency,
+    () => props.rates,
+);
+
+function amountOf(transaction: { id: number }): number {
+    return displayAmounts.value?.get(transaction.id) ?? 0;
+}
+
+const incomeTotal = computed(() => totalOf(props.transactions.incomes));
+const costTotal = computed(() => totalOf(props.transactions.costs));
+
+/** Null while amounts are still sealed, so the cards show a skeleton not a zero. */
+const summaryIncome = computed(() =>
+    props.summary
+        ? props.summary.income
+        : (incomeTotal.value?.toFixed(2) ?? null),
+);
+const summaryCost = computed(() =>
+    props.summary ? props.summary.cost : (costTotal.value?.toFixed(2) ?? null),
+);
+
+const incomeNum = computed(() => parseNum(summaryIncome.value ?? 0));
+const costNum = computed(() => parseNum(summaryCost.value ?? 0));
 const balance = computed(() => incomeNum.value - costNum.value);
+
+/** True once every figure on the page has a real number behind it. */
+const totalsReady = computed(
+    () => summaryIncome.value !== null && summaryCost.value !== null,
+);
 
 const costOptimize = computed(() => {
     if (incomeNum.value <= 0) {
@@ -1237,10 +1335,7 @@ const categoryBreakdown = computed(() => {
 
     for (const transaction of props.transactions.costs) {
         const name = categoryName(transaction);
-        totals.set(
-            name,
-            (totals.get(name) ?? 0) + parseNum(transaction.display_amount ?? 0),
-        );
+        totals.set(name, (totals.get(name) ?? 0) + amountOf(transaction));
     }
 
     const sorted = [...totals.entries()].sort(
@@ -1265,18 +1360,55 @@ const categoryBreakdown = computed(() => {
     };
 });
 
+/**
+ * Income and cost per month for the trend chart.
+ *
+ * Taken straight from the server unless the vault left the totals null, in which
+ * case the rows are bucketed here by the same date windows the server used — so
+ * both paths agree on where a month starts, calendar and all.
+ */
+const trendTotals = computed(() =>
+    props.monthlyTrend.map((month) => {
+        if (month.income !== null && month.cost !== null) {
+            return { income: month.income, cost: month.cost };
+        }
+
+        let income = 0;
+        let cost = 0;
+
+        for (const transaction of props.trendTransactions ?? []) {
+            const day = transaction.occurred_at.slice(0, 10);
+
+            if (day < month.from || day > month.to) {
+                continue;
+            }
+
+            if (transaction.type === 'income') {
+                income += amountOf(transaction);
+            } else {
+                cost += amountOf(transaction);
+            }
+        }
+
+        return {
+            income: Math.round(income * 100) / 100,
+            cost: Math.round(cost * 100) / 100,
+        };
+    }),
+);
+
 const trendSeries = computed(() => [
     {
         name: t('finance.metrics.income'),
         key: 'income',
         color: '#02CD86',
-        data: props.monthlyTrend.map((month) => month.income),
+        data: trendTotals.value.map((month) => month.income),
     },
     {
         name: t('finance.metrics.costs'),
         key: 'cost',
         color: '#6C4EE9',
-        data: props.monthlyTrend.map((month) => month.cost),
+        data: trendTotals.value.map((month) => month.cost),
     },
 ]);
 
@@ -1306,7 +1438,7 @@ const dailySpending = computed(() => {
         const day = dayOfMonth(transaction.occurred_at);
 
         if (day >= 1 && day <= perDay.length) {
-            perDay[day - 1] += parseNum(transaction.display_amount ?? 0);
+            perDay[day - 1] += amountOf(transaction);
         }
     }
 

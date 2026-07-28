@@ -18,11 +18,15 @@ const props = withDefaults(
     { table: 'transactions' },
 );
 
-const { reveal, revealAsync } = useVault();
+const { reveal, revealAsync, trackKey } = useVault();
 
 const resolved = ref<string | number | undefined>(reveal(props.amount));
 
 watchEffect(async () => {
+    // Re-runs when the vault is unlocked, so an amount sealed at mount resolves
+    // in place instead of waiting for a navigation to remount this.
+    trackKey();
+
     const immediate = reveal(props.amount);
 
     if (immediate !== undefined) {

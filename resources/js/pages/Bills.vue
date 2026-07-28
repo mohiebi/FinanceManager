@@ -722,7 +722,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const { revealAsync, sealForSubmit, isArmed } = useVault();
+const { revealAsync, sealForSubmit, isArmed, trackKey } = useVault();
 const bills = computed(() => props.bills);
 
 /**
@@ -739,6 +739,9 @@ const monthlyTotal = computed<number | string | null>(
 );
 
 watchEffect(async () => {
+    // Tracked before any await, so unlocking fills the header total in place.
+    trackKey();
+
     if (props.monthlyBillSummary.amount !== null || props.rates === null) {
         clientMonthlyTotal.value = null;
 

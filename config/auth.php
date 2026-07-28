@@ -119,4 +119,20 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Log Sign-in Codes
+    |--------------------------------------------------------------------------
+    |
+    | Writes the six-digit signup and recovery codes to the log as they are
+    | issued, so local development does not depend on real email delivery.
+    |
+    | These codes are credentials: anyone who can read the log can take over any
+    | account they can name. Never switch this on anywhere real — the broker
+    | refuses to honour it in production regardless of what is set here.
+    |
+    */
+
+    'log_challenge_codes' => env('AUTH_LOG_CHALLENGE_CODES', false),
+
 ];

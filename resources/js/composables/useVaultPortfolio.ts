@@ -30,6 +30,14 @@ export type VaultPortfolioPayload = {
 export type UseVaultPortfolioReturn = {
     breakdown: ComputedRef<PortfolioBreakdown | null>;
     snapshot: ComputedRef<PortfolioSnapshot | null>;
+    /**
+     * True while holdings are still sealed.
+     *
+     * Distinct from `snapshot === null`, which is also what an account with no
+     * investments at all produces — telling those two apart is the difference
+     * between a spinner that resolves and one that never does.
+     */
+    decrypting: ComputedRef<boolean>;
 };
 
 /**
@@ -44,11 +52,15 @@ export function useVaultPortfolio(
     payload: () => VaultPortfolioPayload | null | undefined,
     target: () => CurrencyCode,
 ): UseVaultPortfolioReturn {
-    const { revealAsync } = useVault();
+    const { revealAsync, trackKey } = useVault();
 
     const decrypted = ref<PortfolioEntry[] | null>(null);
 
     watchEffect(async () => {
+        // Tracked before any await, so unlocking fills the net worth card in
+        // place rather than leaving it pulsing until the next navigation.
+        trackKey();
+
         const current = payload();
 
         if (current === null || current === undefined) {
@@ -118,5 +130,14 @@ export function useVaultPortfolio(
         snapshot: computed(() =>
             breakdown.value === null ? null : buildSnapshot(breakdown.value),
         ),
+        decrypting: computed(() => {
+            const current = payload();
+
+            return (
+                current !== null &&
+                current !== undefined &&
+                breakdown.value === null
+            );
+        }),
     };
 }

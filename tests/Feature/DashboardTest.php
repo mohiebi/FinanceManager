@@ -228,3 +228,50 @@ test('dashboard current period follows the preferred calendar', function () {
         Carbon::setTestNow();
     }
 });
+
+test('the monthly trend sums real amounts rather than a flat zero line', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-15 12:00:00'));
+
+    try {
+        $user = User::factory()->create();
+        $category = Category::factory()->cost()->create();
+
+        $user->transactions()->create([
+            'category_id' => $category->id,
+            'type' => 'cost',
+            'amount' => 250.50,
+            'currency' => Currency::Toman->value,
+            'title' => 'This month',
+            'occurred_at' => '2026-07-10',
+        ]);
+
+        $user->transactions()->create([
+            'category_id' => $category->id,
+            'type' => 'cost',
+            'amount' => 100,
+            'currency' => Currency::Toman->value,
+            'title' => 'Last month',
+            'occurred_at' => '2026-06-10',
+        ]);
+
+        // Regression: the trend query used a partial select without `user_id`, so
+        // the encryption cast could not resolve an owner and every amount came
+        // back sealed — which cast to zero and drew a flat line for everyone.
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->has('monthlyTrend', 3)
+                ->where('monthlyTrend.1.cost', 100)
+                ->where('monthlyTrend.2.cost', 250.5)
+                ->where('monthlyTrend.2.income', 0)
+                // Windows travel too, so the browser buckets by the same edges.
+                ->where('monthlyTrend.2.from', '2026-07-01')
+                ->where('monthlyTrend.2.to', '2026-07-31')
+                ->missing('trendTransactions')
+            );
+    } finally {
+        Carbon::setTestNow();
+    }
+});

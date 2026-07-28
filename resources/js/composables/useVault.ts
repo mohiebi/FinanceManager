@@ -31,6 +31,17 @@ let dek: CryptoKey | null = null;
 
 const unlocked = ref(false);
 
+/**
+ * Bumped whenever the key changes — adopted, restored, or dropped.
+ *
+ * `dek` above is a plain module variable on purpose (a ref would put a CryptoKey
+ * into Vue's reactivity graph for no benefit), but that leaves every effect that
+ * decrypts on mount with no dependency to re-run on. Without this, unlocking
+ * repainted nothing: the first page after arming the vault stayed sealed until a
+ * navigation happened to remount its components.
+ */
+const keyEpoch = ref(0);
+
 /** Decrypted values keyed by blob, so a list re-render never re-decrypts. */
 const cache = new Map<string, unknown>();
 
@@ -61,6 +72,7 @@ async function adoptDek(
 
     dek = await importDek(raw, false);
     unlocked.value = true;
+    keyEpoch.value += 1;
 
     if (trustDevice) {
         await rememberKey(dek, expectedFingerprint);
@@ -88,6 +100,7 @@ export async function restoreRememberedKey(
 
     dek = remembered;
     unlocked.value = true;
+    keyEpoch.value += 1;
 
     return true;
 }
@@ -95,6 +108,7 @@ export async function restoreRememberedKey(
 export type UseVaultReturn = {
     unlocked: Readonly<Ref<boolean>>;
     isArmed: () => boolean;
+    trackKey: () => void;
     reveal: <T>(value: Encrypted<T> | null | undefined) => T | undefined;
     revealAsync: <T>(
         value: Encrypted<T> | null | undefined,
@@ -129,6 +143,18 @@ export function useVault(): UseVaultReturn {
         (page.props.vault as VaultDescriptor | null | undefined) ?? null;
 
     const isArmed = (): boolean => descriptor()?.armed === true;
+
+    /**
+     * Register the key as a reactive dependency of the calling effect.
+     *
+     * Must be called synchronously, before the first `await` — Vue only tracks
+     * what an async effect touches up to that point. Every effect that decrypts
+     * has to call this, or it will resolve once against whatever key state
+     * happened to exist at mount and never look again.
+     */
+    function trackKey(): void {
+        void keyEpoch.value;
+    }
 
     /**
      * Synchronous read. Returns the value straight through when it is not
@@ -357,6 +383,7 @@ export function useVault(): UseVaultReturn {
     function lock(): void {
         dek = null;
         unlocked.value = false;
+        keyEpoch.value += 1;
         cache.clear();
         void forgetKey();
     }
@@ -364,6 +391,7 @@ export function useVault(): UseVaultReturn {
     return {
         unlocked: readonly(unlocked),
         isArmed,
+        trackKey,
         reveal,
         revealAsync,
         unlockWithPassphrase,

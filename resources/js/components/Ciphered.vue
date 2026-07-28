@@ -23,13 +23,17 @@ const props = withDefaults(
     { type: 'string', fallback: '' },
 );
 
-const { reveal, revealAsync } = useVault();
+const { reveal, revealAsync, trackKey } = useVault();
 
 const resolved = ref<string | number | undefined>(
     reveal<string | number>(props.value),
 );
 
 watchEffect(async () => {
+    // Re-runs when the vault is unlocked, which is what repaints the page the
+    // user is already looking at rather than only the next one they visit.
+    trackKey();
+
     const immediate = reveal<string | number>(props.value);
 
     if (immediate !== undefined) {

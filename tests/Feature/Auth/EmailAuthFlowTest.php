@@ -4,6 +4,7 @@ use App\Models\AuthChallenge;
 use App\Models\User;
 use App\Notifications\AuthChallengeCodeNotification;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 test('new email starts signup and sends a verification code', function () {
@@ -464,4 +465,45 @@ test('api recovery code logs in existing users directly', function () {
         ->assertJsonPath('user.email', 'api-recover@example.com');
 
     expect($response->json('token'))->toBeString()->not->toBeEmpty();
+});
+
+test('the signup code is logged when the local escape hatch is on', function () {
+    Notification::fake();
+    config(['auth.log_challenge_codes' => true]);
+
+    Log::shouldReceive('warning')
+        ->once()
+        ->withArgs(function (string $message, array $context): bool {
+            // The plaintext code only exists for this one moment — it is hashed
+            // before it is stored and unrecoverable afterwards.
+            return $message === 'Auth challenge code issued'
+                && $context['email'] === 'logged.signup@example.com'
+                && $context['purpose'] === AuthChallenge::PurposeSignup
+                && preg_match('/^\d{6}$/', $context['code']) === 1;
+        });
+
+    $this->post(route('auth.email.start'), ['email' => 'logged.signup@example.com']);
+});
+
+test('the code is never logged by default', function () {
+    Notification::fake();
+    // Pinned rather than assumed: a developer with the escape hatch on in their
+    // own .env would otherwise see this fail for the wrong reason.
+    config(['auth.log_challenge_codes' => false]);
+
+    Log::shouldReceive('warning')->never();
+
+    $this->post(route('auth.email.start'), ['email' => 'quiet.signup@example.com']);
+});
+
+test('production refuses to log the code however the flag is set', function () {
+    Notification::fake();
+    config(['auth.log_challenge_codes' => true]);
+    app()->detectEnvironment(fn (): string => 'production');
+
+    // A stray env var must not be able to turn the log into a list of working
+    // credentials, so the flag alone is not enough.
+    Log::shouldReceive('warning')->never();
+
+    $this->post(route('auth.email.start'), ['email' => 'prod.signup@example.com']);
 });

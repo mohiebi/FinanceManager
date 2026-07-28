@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -47,9 +48,34 @@ class TransactionController extends Controller
         $features = $user->featureSet();
         $vaultArmed = $user->vaultIsArmed();
 
+        $trendMonths = $this->trendMonths($request);
+        $trendTransactions = $this->trendTransactions($request, $trendMonths);
+
         $moduleProps = [
-            'monthlyTrend' => $vaultArmed ? [] : $this->monthlyTrend($request, $currencyConverter, $selectedCurrency),
+            'monthlyTrend' => $this->monthlyTrend(
+                $trendMonths,
+                $trendTransactions,
+                $currencyConverter,
+                $selectedCurrency,
+                $vaultArmed,
+            ),
         ];
+
+        // The trend covers three months while the workspace loads only the current
+        // one, so under the vault the extra rows have to travel for the browser to
+        // bucket them itself.
+        if ($vaultArmed) {
+            $moduleProps['trendTransactions'] = $trendTransactions
+                ->map(fn (Transaction $transaction): array => [
+                    'id' => $transaction->id,
+                    'type' => $transaction->type->value,
+                    'amount' => $transaction->amount,
+                    'currency' => $transaction->currency->value,
+                    'occurred_at' => $transaction->occurred_at->toDateString(),
+                ])
+                ->values()
+                ->all();
+        }
 
         if ($features->enabled(Feature::Bills)) {
             $moduleProps['upcomingBills'] = $this->upcomingBills($request, $currencyConverter, $selectedCurrency, $vaultArmed);
@@ -322,13 +348,11 @@ class TransactionController extends Controller
     }
 
     /**
-     * Income and cost totals for the last three calendar months (calendar-aware),
-     * in the selected currency. The workspace itself only loads the current
-     * month's transactions, so the trend needs its own aggregate.
+     * The last three calendar months (calendar-aware) as label + date window.
      *
-     * @return array<int, array{label: string, income: float, cost: float}>
+     * @return array<int, array{label: string, from: Carbon, to: Carbon}>
      */
-    private function monthlyTrend(Request $request, CurrencyConverter $currencyConverter, Currency $selectedCurrency): array
+    private function trendMonths(Request $request): array
     {
         $calendar = FrontendLocalization::normalizeCalendar($request->user()->calendar);
         $now = Carbon::now();
@@ -366,13 +390,57 @@ class TransactionController extends Controller
             }
         }
 
-        $transactions = $request->user()->transactions()
+        return $months;
+    }
+
+    /**
+     * The transactions behind the trend chart.
+     *
+     * `user_id` is in the select on purpose: the encryption cast resolves the
+     * owning user from it, and a partial select without it leaves every amount
+     * undecryptable — which silently summed to a flat zero line.
+     *
+     * @param  array<int, array{label: string, from: Carbon, to: Carbon}>  $months
+     * @return SupportCollection<int, Transaction>
+     */
+    private function trendTransactions(Request $request, array $months): SupportCollection
+    {
+        return $request->user()->transactions()
             ->whereDate('occurred_at', '>=', $months[0]['from']->toDateString())
             ->whereDate('occurred_at', '<=', $months[2]['to']->toDateString())
-            ->get(['type', 'amount', 'currency', 'occurred_at']);
+            ->get(['id', 'user_id', 'type', 'amount', 'currency', 'occurred_at'])
+            ->toBase();
+    }
 
+    /**
+     * Income and cost totals per month, in the selected currency.
+     *
+     * Under the vault the totals come back null and the raw rows travel instead —
+     * the browser buckets and sums them from the decrypted amounts.
+     *
+     * @param  array<int, array{label: string, from: Carbon, to: Carbon}>  $months
+     * @param  SupportCollection<int, Transaction>  $transactions
+     * @return array<int, array{label: string, from: string, to: string, income: float|null, cost: float|null}>
+     */
+    private function monthlyTrend(
+        array $months,
+        SupportCollection $transactions,
+        CurrencyConverter $currencyConverter,
+        Currency $selectedCurrency,
+        bool $vaultArmed,
+    ): array {
         return collect($months)
-            ->map(function (array $month) use ($transactions, $currencyConverter, $selectedCurrency): array {
+            ->map(function (array $month) use ($transactions, $currencyConverter, $selectedCurrency, $vaultArmed): array {
+                $window = [
+                    'label' => $month['label'],
+                    'from' => $month['from']->toDateString(),
+                    'to' => $month['to']->toDateString(),
+                ];
+
+                if ($vaultArmed) {
+                    return [...$window, 'income' => null, 'cost' => null];
+                }
+
                 $inMonth = $transactions->filter(fn (Transaction $transaction) => Carbon::parse($transaction->occurred_at)
                     ->between($month['from'], $month['to']));
 
@@ -388,7 +456,7 @@ class TransactionController extends Controller
                 );
 
                 return [
-                    'label' => $month['label'],
+                    ...$window,
                     'income' => $sumFor(TransactionType::Income),
                     'cost' => $sumFor(TransactionType::Cost),
                 ];

@@ -647,14 +647,9 @@ const props = defineProps<{
 const selectedCurrency = ref(props.selectedCurrency);
 const { t } = useI18n();
 
-const { breakdown } = useVaultPortfolio(
+const { breakdown, decrypting } = useVaultPortfolio(
     () => props.vaultPortfolio,
     () => selectedCurrency.value as CurrencyCode,
-);
-
-/** Armed vault, holdings not yet unwrapped — see the guard on the empty state. */
-const decrypting = computed(
-    () => Boolean(props.vaultPortfolio) && breakdown.value === null,
 );
 
 const assets = computed(() => breakdown.value?.assets ?? props.assets ?? []);

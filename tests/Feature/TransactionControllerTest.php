@@ -45,7 +45,8 @@ test('dashboard shows separated cost and income transactions', function () {
                 ->has('transactions.incomes', 1)
                 ->where('transactions.incomes.0.title', 'Salary')
                 ->where('transactions.incomes.0.category.name', $incomeCategory->name)
-                ->has('categories.cost', 1)
+                // The user's own, plus the seeded default `investment` cost category.
+                ->has('categories.cost', 2)
                 ->has('categories.income', 1)
                 ->has('currencies', 3)
             );

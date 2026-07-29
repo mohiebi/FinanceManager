@@ -19,9 +19,13 @@ export type VaultPortfolioPayload = {
     entries: {
         id: number;
         investment_asset_id: number;
+        /** Plaintext — the sign that marks a disposal is inside the ciphertext. */
+        kind: 'buy' | 'sell';
         quantity: Encrypted<string | number>;
         cost_basis: Encrypted<string | number> | null;
         cost_basis_currency: string | null;
+        sale_price: Encrypted<string | number> | null;
+        sale_price_currency: string | null;
     }[];
     assets: PortfolioAssetMeta[];
     rates: Rates;
@@ -81,13 +85,22 @@ export function useVaultPortfolio(
                     'investments',
                     'decimal',
                 );
+                const salePrice = await revealAsync<string | number>(
+                    entry.sale_price,
+                    'investments',
+                    'decimal',
+                );
 
                 return {
                     investment_asset_id: entry.investment_asset_id,
+                    kind: entry.kind,
                     quantity,
                     cost_basis:
                         costBasis === undefined ? null : Number(costBasis) || 0,
                     cost_basis_currency: entry.cost_basis_currency,
+                    sale_price:
+                        salePrice === undefined ? null : Number(salePrice) || 0,
+                    sale_price_currency: entry.sale_price_currency,
                 };
             }),
         );

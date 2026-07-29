@@ -31,21 +31,30 @@
     "entries": [
         {
             "investment_asset_id": 1,
+            "kind": "buy",
             "quantity": 2,
             "cost_basis": 4000000,
-            "cost_basis_currency": "toman"
+            "cost_basis_currency": "toman",
+            "sale_price": null,
+            "sale_price_currency": null
         },
         {
             "investment_asset_id": 1,
+            "kind": "buy",
             "quantity": 1,
             "cost_basis": null,
-            "cost_basis_currency": null
+            "cost_basis_currency": null,
+            "sale_price": null,
+            "sale_price_currency": null
         },
         {
             "investment_asset_id": 2,
+            "kind": "buy",
             "quantity": 10,
             "cost_basis": 5,
-            "cost_basis_currency": "usd"
+            "cost_basis_currency": "usd",
+            "sale_price": null,
+            "sale_price_currency": null
         }
     ],
     "cases": [
@@ -62,6 +71,9 @@
                     "avg_cost_basis_formatted": "4,000,000",
                     "total_cost": 8000000,
                     "total_cost_formatted": "8,000,000",
+                    "realised_pnl": null,
+                    "realised_pnl_formatted": null,
+                    "realised_pnl_is_positive": null,
                     "pnl": 2000000,
                     "pnl_formatted": "2,000,000",
                     "pnl_percent": 25,
@@ -78,6 +90,7 @@
                     "avg_cost_basis_formatted": "4,500,000",
                     "total_cost": 45000000,
                     "total_cost_formatted": "45,000,000",
+                    "realised_pnl": null,
                     "pnl": -36000000,
                     "pnl_formatted": "36,000,000",
                     "pnl_percent": -80,
@@ -95,6 +108,10 @@
                 "total_pnl_percent": -64.15,
                 "total_pnl_is_positive": false,
                 "has_cost_basis_data": true,
+                "total_realised_pnl": null,
+                "total_realised_pnl_formatted": null,
+                "total_realised_pnl_is_positive": null,
+                "has_realised_data": false,
                 "asset_count": 2
             }
         },
@@ -124,5 +141,58 @@
                 "asset_count": 2
             }
         }
-    ]
+    ],
+    "_disposal_comment": "A partial sale. The property that matters: selling 2 of 5 units leaves the remaining per-unit cost basis exactly where it was, because the disposal carries the average basis with a negative quantity.",
+    "disposal": {
+        "entries": [
+            {
+                "investment_asset_id": 1,
+                "kind": "buy",
+                "quantity": 5,
+                "cost_basis": 4000000,
+                "cost_basis_currency": "toman",
+                "sale_price": null,
+                "sale_price_currency": null
+            },
+            {
+                "investment_asset_id": 1,
+                "kind": "sell",
+                "quantity": -2,
+                "cost_basis": 4000000,
+                "cost_basis_currency": "toman",
+                "sale_price": 6000000,
+                "sale_price_currency": "toman"
+            }
+        ],
+        "target": "toman",
+        "asset": {
+            "key": "parity-gold",
+            "quantity": 3,
+            "current_value": 15000000,
+            "avg_cost_basis": 4000000,
+            "avg_cost_basis_formatted": "4,000,000",
+            "total_cost": 12000000,
+            "total_cost_formatted": "12,000,000",
+            "realised_pnl": 4000000,
+            "realised_pnl_formatted": "4,000,000",
+            "realised_pnl_is_positive": true,
+            "pnl": 3000000,
+            "pnl_formatted": "3,000,000",
+            "pnl_percent": 25,
+            "pnl_is_positive": true,
+            "entries_count": 2
+        },
+        "summary": {
+            "total_current_value": 15000000,
+            "total_cost_basis": 12000000,
+            "total_pnl": 3000000,
+            "total_pnl_formatted": "3,000,000",
+            "total_pnl_percent": 25,
+            "total_realised_pnl": 4000000,
+            "total_realised_pnl_formatted": "4,000,000",
+            "total_realised_pnl_is_positive": true,
+            "has_realised_data": true,
+            "asset_count": 1
+        }
+    }
 }

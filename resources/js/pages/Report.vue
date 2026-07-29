@@ -2,7 +2,7 @@
     <Head :title="t('finance.reports.title')" />
 
     <div
-        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-hidden bg-[#111111]"
+        class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
     >
         <!-- Hero / period summary -->
         <section
@@ -185,6 +185,24 @@
                     </div>
                 </div>
 
+                <!-- Hidden entirely when there is no investment category to
+                     exclude, so the toggle is never a no-op. -->
+                <label
+                    v-if="props.hasInvestmentCategory"
+                    class="flex w-fit cursor-pointer items-center gap-2.5"
+                >
+                    <Checkbox
+                        :checked="excludeInvestments"
+                        @update:checked="applyExcludeInvestments"
+                    />
+                    <span class="text-sm text-white/85">
+                        {{ t('finance.filters.exclude_investments') }}
+                    </span>
+                    <span class="text-xs text-[#6b6b6b]">
+                        {{ t('finance.filters.exclude_investments_hint') }}
+                    </span>
+                </label>
+
                 <!-- Custom date range -->
                 <div
                     v-if="selectedRange === 'custom'"
@@ -261,7 +279,7 @@
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#6C4EE9] uppercase"
                 >
-                    {{ t('finance.metrics.costs') }}
+                    {{ costsLabel }}
                 </p>
                 <p class="mt-3 text-2xl font-semibold text-white">
                     <span v-if="costTotal !== null">{{
@@ -727,6 +745,7 @@ import RankedBarChart from '@/components/charts/RankedBarChart.vue';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -795,7 +814,10 @@ const props = defineProps<{
         search: string;
         type: FilterType;
         category: number | null;
+        exclude_investments: boolean;
     };
+    /** False when the account has no investment cost category to exclude. */
+    hasInvestmentCategory: boolean;
     period: {
         label: string;
     };
@@ -857,6 +879,20 @@ const toDate = ref(props.filters.to);
 const search = ref(props.filters.search);
 const selectedType = ref<FilterType>(props.filters.type);
 const selectedCategory = ref(props.filters.category?.toString() ?? 'all');
+const excludeInvestments = ref(props.filters.exclude_investments);
+
+/**
+ * Names what the figure below it actually is.
+ *
+ * Without this the card reads "COSTS" over a number that is deliberately not all
+ * of them — which is the kind of quiet mismatch someone reconciles against their
+ * bank statement and cannot explain.
+ */
+const costsLabel = computed(() =>
+    excludeInvestments.value
+        ? t('finance.metrics.costs_excluding_investments')
+        : t('finance.metrics.costs'),
+);
 const page = usePage();
 const displayCalendar = computed(
     () => (page.props.calendar as string | undefined) ?? 'gregorian',
@@ -1058,6 +1094,7 @@ watch(
         search.value = filters.search;
         selectedType.value = filters.type;
         selectedCategory.value = filters.category?.toString() ?? 'all';
+        excludeInvestments.value = filters.exclude_investments;
     },
     { deep: true },
 );
@@ -1101,6 +1138,7 @@ function applyFilters(
                     ? null
                     : selectedCategory.value,
             currency: props.selectedCurrency,
+            exclude_investments: excludeInvestments.value ? 1 : null,
             cost_page: costPage && costPage > 1 ? costPage : null,
             income_page: incomePage && incomePage > 1 ? incomePage : null,
         },
@@ -1137,10 +1175,18 @@ function applyTypeFilter(): void {
     applyFilters();
 }
 
+/** Ticking it re-queries straight away — a filter you have to confirm is a trap. */
+function applyExcludeInvestments(checked: boolean | 'indeterminate'): void {
+    excludeInvestments.value = checked === true;
+
+    applyFilters();
+}
+
 function clearTransactionFilters(): void {
     search.value = '';
     selectedType.value = 'all';
     selectedCategory.value = 'all';
+    excludeInvestments.value = false;
     applyFilters();
 }
 

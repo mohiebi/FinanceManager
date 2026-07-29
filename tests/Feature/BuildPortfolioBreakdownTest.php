@@ -35,7 +35,7 @@ function portfolioExpectation(mixed $actual, mixed $expected): mixed
 /**
  * @return array{0: User, 1: array<int, InvestmentAsset>}
  */
-function seedPortfolioFixture(): array
+function seedPortfolioFixture(bool $seedEntries = true): array
 {
     $vectors = portfolioVectors();
 
@@ -61,19 +61,33 @@ function seedPortfolioFixture(): array
         ]);
     }
 
-    foreach ($vectors['entries'] as $entry) {
+    if ($seedEntries) {
+        seedPortfolioEntries($user, $assets, $vectors['entries']);
+    }
+
+    return [$user, $assets];
+}
+
+/**
+ * @param  array<int, InvestmentAsset>  $assets
+ * @param  array<int, array<string, mixed>>  $entries
+ */
+function seedPortfolioEntries(User $user, array $assets, array $entries): void
+{
+    foreach ($entries as $entry) {
         Investment::query()->create([
             'user_id' => $user->id,
             'investment_asset_id' => $assets[$entry['investment_asset_id']]->id,
             'asset_type' => $assets[$entry['investment_asset_id']]->slug,
+            'kind' => $entry['kind'],
             'quantity' => $entry['quantity'],
             'cost_basis' => $entry['cost_basis'],
             'cost_basis_currency' => $entry['cost_basis_currency'],
+            'sale_price' => $entry['sale_price'],
+            'sale_price_currency' => $entry['sale_price_currency'],
             'occurred_at' => '2026-07-01',
         ]);
     }
-
-    return [$user, $assets];
 }
 
 test('the breakdown matches the browser port', function () {
@@ -146,9 +160,82 @@ test('the client payload carries the holdings and the public prices, and nothing
     // The prices are market data, so they travel; the holdings are the user's, so
     // only what the browser cannot recompute is sent.
     expect(array_keys($payload['entries'][0]))
-        ->toBe(['id', 'investment_asset_id', 'quantity', 'cost_basis', 'cost_basis_currency']);
+        ->toBe([
+            'id',
+            'investment_asset_id',
+            // Plaintext, and the only thing telling the browser which rows are
+            // disposals — the sign is inside the ciphertext.
+            'kind',
+            'quantity',
+            'cost_basis',
+            'cost_basis_currency',
+            'sale_price',
+            'sale_price_currency',
+        ]);
 
     expect($payload['assets'][0]['id'])->toBe($assets[1]->id)
         ->and($payload['assets'][0]['price'])->toBe(5000000.0)
         ->and($payload['assets'][0]['price_available'])->toBeTrue();
+});
+
+test('a partial sale leaves the remaining cost basis untouched', function () {
+    $vectors = portfolioVectors();
+    $disposal = $vectors['disposal'];
+
+    // Same fixture the browser port asserts — see tests/js/portfolio.test.ts.
+    [$user, $assets] = seedPortfolioFixture(seedEntries: false);
+    seedPortfolioEntries($user, $assets, $disposal['entries']);
+
+    $builder = app(BuildPortfolioBreakdown::class);
+    $result = $builder->handle($builder->entriesFor($user), Currency::from($disposal['target']));
+
+    expect($result['assets'])->toHaveCount(1);
+
+    foreach ($disposal['asset'] as $field => $value) {
+        $actual = $result['assets'][0][$field];
+
+        expect($actual)->toBe(portfolioExpectation($actual, $value), "disposal: {$field}");
+    }
+
+    foreach ($disposal['summary'] as $field => $value) {
+        $actual = $result['summary'][$field];
+
+        expect($actual)->toBe(portfolioExpectation($actual, $value), "disposal: summary.{$field}");
+    }
+});
+
+test('selling everything closes the position without inventing a profit', function () {
+    [$user, $assets] = seedPortfolioFixture(seedEntries: false);
+
+    seedPortfolioEntries($user, $assets, [
+        [
+            'investment_asset_id' => 1,
+            'kind' => 'buy',
+            'quantity' => 2,
+            'cost_basis' => 4000000,
+            'cost_basis_currency' => 'toman',
+            'sale_price' => null,
+            'sale_price_currency' => null,
+        ],
+        [
+            'investment_asset_id' => 1,
+            'kind' => 'sell',
+            'quantity' => -2,
+            'cost_basis' => 4000000,
+            'cost_basis_currency' => 'toman',
+            'sale_price' => 5000000,
+            'sale_price_currency' => 'toman',
+        ],
+    ]);
+
+    $builder = app(BuildPortfolioBreakdown::class);
+    $result = $builder->handle($builder->entriesFor($user), Currency::Toman);
+
+    // Nothing held, so there is no unrealised figure to report — but the gain that
+    // was actually banked has to survive.
+    expect($result['assets'][0]['quantity'])->toBe(0.0)
+        ->and($result['assets'][0]['pnl'])->toBeNull()
+        ->and($result['summary']['total_pnl'])->toBeNull()
+        ->and($result['summary']['total_realised_pnl'])->toBe(2000000.0)
+        ->and($result['summary']['has_realised_data'])->toBeTrue();
 });

@@ -115,7 +115,7 @@ test('category seeder creates the default category set', function () {
 
     expect(Category::query()->whereNull('user_id')->where('is_default', true)->count())->toBe(12);
 
-    foreach (['food', 'transport', 'housing', 'health', 'shopping', 'bills', 'other'] as $slug) {
+    foreach (['food', 'transport', 'housing', 'health', 'shopping', 'bills', 'investment', 'other'] as $slug) {
         $this->assertDatabaseHas('categories', [
             'type' => TransactionType::Cost->value,
             'slug' => $slug,
@@ -124,7 +124,7 @@ test('category seeder creates the default category set', function () {
         ]);
     }
 
-    foreach (['salary', 'freelance', 'gift', 'investment', 'other'] as $slug) {
+    foreach (['salary', 'freelance', 'gift', 'other'] as $slug) {
         $this->assertDatabaseHas('categories', [
             'type' => TransactionType::Income->value,
             'slug' => $slug,

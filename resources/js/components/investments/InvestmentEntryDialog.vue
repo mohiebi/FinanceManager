@@ -252,6 +252,34 @@
                             />
                             <InputError :message="form.errors.note" />
                         </div>
+
+                        <!-- Only once there is a price to build the amount from,
+                             and never while editing — the transaction was already
+                             written the first time round. -->
+                        <label
+                            v-if="canRecordTransaction"
+                            class="flex cursor-pointer items-start gap-2.5"
+                        >
+                            <Checkbox
+                                :checked="form.record_transaction"
+                                class="mt-0.5"
+                                @update:checked="
+                                    form.record_transaction = $event === true
+                                "
+                            />
+                            <span class="min-w-0">
+                                <span class="block text-sm text-white/85">
+                                    {{ t('finance.investments.record_cost') }}
+                                </span>
+                                <span class="block text-xs text-[#6b6b6b]">
+                                    {{
+                                        t(
+                                            'finance.investments.record_cost_hint',
+                                        )
+                                    }}
+                                </span>
+                            </span>
+                        </label>
                     </div>
                 </div>
 
@@ -289,6 +317,7 @@ import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import InputError from '@/components/InputError.vue';
 import InvestmentAssetCreator from '@/components/InvestmentAssetCreator.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -368,7 +397,20 @@ const form = useForm({
     occurred_at: today(),
     total_cost: '',
     cost_basis_currency: '',
+    record_transaction: false,
 });
+
+/**
+ * Only offered when there is a price to build the transaction from, and never
+ * when editing — the transaction was already written (or not) the first time, and
+ * silently writing a second one on every edit would quietly duplicate spending.
+ */
+const canRecordTransaction = computed(
+    () =>
+        props.entry === null &&
+        form.total_cost !== '' &&
+        Number(form.total_cost) > 0,
+);
 
 const isEditing = computed(() => props.entry !== null);
 const selectedAsset = computed(
@@ -543,6 +585,23 @@ function selectAsset(assetType: AssetTypeOption): void {
     assetDropdownOpen.value = false;
 }
 
+/**
+ * The title the server would have written, mirrored here.
+ *
+ * Only needed with the vault armed, where the server cannot read the quantity it
+ * would otherwise build this from. Kept in step with
+ * RecordInvestmentTransaction::forPurchase by sharing the same translation key.
+ */
+function purchaseTitle(): string {
+    const asset = selectedAsset.value;
+
+    return t('finance.investments.bought_title', {
+        quantity: form.quantity,
+        unit: asset?.unit ?? '',
+        asset: asset?.label ?? '',
+    });
+}
+
 async function submitEntry(): Promise<void> {
     const quantity = Number(form.quantity);
     const totalCost = form.total_cost === '' ? null : Number(form.total_cost);
@@ -572,8 +631,37 @@ async function submitEntry(): Promise<void> {
             note: 'string',
         });
 
+        // The mirrored transaction has to be sealed separately: a ciphertext is
+        // bound to its table *and column* by the AAD, so the investment's own blobs
+        // cannot be reused. Sealed under the destination column names for that
+        // reason, then renamed for the request.
+        let mirrored: Record<string, string | null> = {};
+
+        if (data.record_transaction && canRecordTransaction.value) {
+            const sealed = await sealForSubmit(
+                {
+                    title: purchaseTitle(),
+                    amount: String(totalCost),
+                    description: formData.note,
+                },
+                'transactions',
+                {
+                    title: 'string',
+                    amount: 'decimal',
+                    description: 'string',
+                },
+            );
+
+            mirrored = {
+                transaction_title: sealed.title,
+                transaction_amount: sealed.amount,
+                transaction_description: sealed.description || null,
+            };
+        }
+
         form.transform(() => ({
             ...payload,
+            ...mirrored,
             total_cost: null,
         }));
     }

@@ -39,6 +39,8 @@ class ReportController extends Controller
         $selectedType = $this->resolveTransactionType((string) $request->query('type'));
         $selectedCategoryId = $this->resolveCategoryId($request);
         $search = trim((string) $request->query('search'));
+        $excludeInvestments = $request->boolean('exclude_investments');
+        $investmentCategoryIds = $this->investmentCostCategoryIds($request);
         [$fromDate, $toDate] = $this->resolveDateRange(
             $selectedRange,
             (string) $request->query('from'),
@@ -64,6 +66,13 @@ class ReportController extends Controller
             ->when(
                 $selectedCategoryId !== null,
                 fn (Builder $query) => $query->where('category_id', $selectedCategoryId),
+            )
+            // Money moved into assets is not spending. Excluded from the query
+            // rather than subtracted from the total, so the tables, the charts and
+            // the KPI cards cannot disagree about what is in the period.
+            ->when(
+                $excludeInvestments && $investmentCategoryIds !== [],
+                fn (Builder $query) => $query->whereNotIn('category_id', $investmentCategoryIds),
             )
             ->latest('occurred_at')
             ->latest();
@@ -96,7 +105,11 @@ class ReportController extends Controller
                 'search' => $search,
                 'type' => $selectedType?->value ?? 'all',
                 'category' => $selectedCategoryId,
+                'exclude_investments' => $excludeInvestments,
             ],
+            // Drives the label on the costs card, and hides the toggle entirely
+            // for anyone with no investment category to exclude.
+            'hasInvestmentCategory' => $investmentCategoryIds !== [],
             'period' => [
                 'label' => $this->makePeriodLabel($selectedRange, $fromDate, $toDate, $calendar),
             ],
@@ -183,6 +196,29 @@ class ReportController extends Controller
     private function resolveTransactionType(string $type): ?TransactionType
     {
         return TransactionType::tryFrom($type);
+    }
+
+    /**
+     * Cost categories that count as an investment rather than as spending.
+     *
+     * Both the seeded default and any of the user's own carrying the same slug —
+     * someone who made their own "Investment" category before this shipped should
+     * not have to recategorise to use the filter.
+     *
+     * Scoped to cost categories on purpose. The seeded income `investment` category
+     * is gone, but nothing stops a user creating their own with the same slug, and
+     * dropping income rows is not what a filter about spending should do.
+     *
+     * @return array<int, int>
+     */
+    private function investmentCostCategoryIds(Request $request): array
+    {
+        return Category::query()
+            ->availableFor($request->user())
+            ->where('type', TransactionType::Cost)
+            ->where('slug', 'investment')
+            ->pluck('id')
+            ->all();
     }
 
     private function resolveCategoryId(Request $request): ?int

@@ -2,7 +2,7 @@
     <Head :title="t('finance.bills.title')" />
 
     <div
-        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-auto bg-[#111111]"
+        class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-auto bg-[#111111]"
     >
         <!-- ── Header ─────────────────────────────────────────────── -->
         <section

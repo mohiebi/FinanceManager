@@ -22,13 +22,21 @@ class DefaultCategorySeeder extends Seeder
                 'Health',
                 'Shopping',
                 'Bills',
+                // Money moved into assets rather than spent. Reports can exclude
+                // this category so a large purchase does not read as overspending.
+                'Investment',
                 'Other',
             ],
+            // No "Investment" on this side, deliberately. Money coming back out of
+            // an asset is either a sale — which is portfolio profit and loss, and
+            // already tracked with cost basis by the Investments module — or a
+            // recurring payout, which is just income and belongs under whatever it
+            // actually is. Naming a category after the source rather than the kind
+            // of money made it ambiguous which of the two it meant.
             TransactionType::Income->value => [
                 'Salary',
                 'Freelance',
                 'Gift',
-                'Investment',
                 'Other',
             ],
         ];

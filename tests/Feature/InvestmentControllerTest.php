@@ -3,8 +3,10 @@
 use App\Enums\AssetType;
 use App\Enums\Currency;
 use App\Models\AssetPriceSnapshot;
+use App\Models\Category;
 use App\Models\Investment;
 use App\Models\InvestmentAsset;
+use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -188,4 +190,155 @@ test('the value-over-time chart prices past dates from snapshots and today from 
     } finally {
         Carbon::setTestNow();
     }
+});
+
+test('selling records a disposal without touching the purchase', function () {
+    $user = User::factory()->withModules()->create();
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    $purchase = Investment::query()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => $asset->id,
+        'asset_type' => $asset->slug,
+        'kind' => 'buy',
+        'quantity' => 5,
+        'cost_basis' => 4000000,
+        'cost_basis_currency' => Currency::Toman->value,
+        'occurred_at' => '2026-07-01',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('investments.sell'), [
+            'investment_asset_id' => $asset->id,
+            'quantity' => '2',
+            'total_sale' => '12000000',
+            'sale_price_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-10',
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $disposal = Investment::query()->where('kind', 'sell')->sole();
+
+    // Quantity arrives positive and is stored negative, so holdings stay a sum.
+    expect((float) $disposal->quantity)->toBe(-2.0)
+        // The user enters the total; the per-unit price is derived from it.
+        ->and((float) $disposal->sale_price)->toBe(6000000.0)
+        // Frozen at the average basis, which is what keeps the remainder honest.
+        ->and((float) $disposal->cost_basis)->toBe(4000000.0)
+        // The purchase is untouched.
+        ->and((float) $purchase->fresh()->quantity)->toBe(5.0);
+});
+
+test('you cannot sell more than you hold', function () {
+    $user = User::factory()->withModules()->create();
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    Investment::query()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => $asset->id,
+        'asset_type' => $asset->slug,
+        'kind' => 'buy',
+        'quantity' => 1,
+        'cost_basis' => 4000000,
+        'cost_basis_currency' => Currency::Toman->value,
+        'occurred_at' => '2026-07-01',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('investments.sell'), [
+            'investment_asset_id' => $asset->id,
+            'quantity' => '3',
+            'total_sale' => '18000000',
+            'sale_price_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-10',
+        ])
+        ->assertSessionHasErrors('quantity');
+
+    expect(Investment::query()->where('kind', 'sell')->count())->toBe(0);
+});
+
+test('buying can mirror itself into a cost transaction', function () {
+    $user = User::factory()->withModules()->create();
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    $this->actingAs($user)
+        ->post(route('investments.store'), [
+            'investment_asset_id' => $asset->id,
+            'quantity' => '1',
+            'cost_basis' => '17000000',
+            'cost_basis_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-10',
+            'record_transaction' => true,
+        ])
+        ->assertRedirect();
+
+    $transaction = Transaction::query()->sole();
+    $investmentCategory = Category::query()
+        ->whereNull('user_id')
+        ->where('type', 'cost')
+        ->where('slug', 'investment')
+        ->sole();
+
+    // Quantity x price, on the investment's own date, under Investment — which is
+    // exactly what the report's "exclude investments" filter keys off.
+    expect($transaction->type->value)->toBe('cost')
+        ->and((float) $transaction->amount)->toBe(17000000.0)
+        ->and($transaction->occurred_at->toDateString())->toBe('2026-07-10')
+        ->and($transaction->category_id)->toBe($investmentCategory->id)
+        // The title is shared with the Vue dialogs, so it uses vue-i18n's {param}
+        // syntax and this side fills it in by hand. Asserting the finished string
+        // is what catches a placeholder shipping unreplaced.
+        ->and((string) $transaction->title)->toContain('Gold')
+        ->and((string) $transaction->title)->toContain('1')
+        ->and((string) $transaction->title)->not->toContain('{')
+        ->and((string) $transaction->title)->not->toContain(':quantity');
+});
+
+test('buying records no transaction unless asked', function () {
+    $user = User::factory()->withModules()->create();
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    $this->actingAs($user)
+        ->post(route('investments.store'), [
+            'investment_asset_id' => $asset->id,
+            'quantity' => '1',
+            'cost_basis' => '17000000',
+            'cost_basis_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-10',
+        ])
+        ->assertRedirect();
+
+    expect(Transaction::query()->count())->toBe(0);
+});
+
+test('selling can mirror the full proceeds into income, not just the profit', function () {
+    $user = User::factory()->withModules()->create();
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    Investment::query()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => $asset->id,
+        'asset_type' => $asset->slug,
+        'kind' => 'buy',
+        'quantity' => 2,
+        'cost_basis' => 4000000,
+        'cost_basis_currency' => Currency::Toman->value,
+        'occurred_at' => '2026-07-01',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('investments.sell'), [
+            'investment_asset_id' => $asset->id,
+            'quantity' => '2',
+            'total_sale' => '12000000',
+            'sale_price_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-10',
+            'record_transaction' => true,
+        ])
+        ->assertRedirect();
+
+    // 2 x 6,000,000 = the money that actually arrived. Recording only the
+    // 4,000,000 profit would describe a payment that never happened.
+    expect((float) Transaction::query()->sole()->amount)->toBe(12000000.0);
 });

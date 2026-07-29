@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import {
     buildBreakdown,
     buildSnapshot,
+    type PortfolioAsset,
 } from '../../resources/js/lib/portfolio.ts';
 
 /**
@@ -63,14 +64,97 @@ test('every breakdown matches the server', () => {
     }
 });
 
+test('a partial sale leaves the remaining cost basis untouched', () => {
+    const { entries, target, asset, summary } = vectors.disposal;
+
+    const breakdown = buildBreakdown(
+        entries,
+        vectors.assets,
+        target,
+        vectors.rates,
+    );
+
+    assert.equal(breakdown.assets.length, 1);
+
+    for (const [field, value] of Object.entries(asset)) {
+        assert.deepEqual(
+            breakdown.assets[0]![field as keyof PortfolioAsset],
+            value,
+            `disposal: ${field}`,
+        );
+    }
+
+    for (const [field, value] of Object.entries(summary)) {
+        assert.deepEqual(
+            breakdown.summary[field as keyof typeof breakdown.summary],
+            value,
+            `disposal: summary.${field}`,
+        );
+    }
+});
+
+test('realised and unrealised profit are never mixed together', () => {
+    const { entries, target } = vectors.disposal;
+    const { summary } = buildBreakdown(
+        entries,
+        vectors.assets,
+        target,
+        vectors.rates,
+    );
+
+    // Banked money and a paper figure that moves with the market. Adding them
+    // would produce a number that means nothing.
+    assert.equal(summary.total_realised_pnl, 4_000_000);
+    assert.equal(summary.total_pnl, 3_000_000);
+});
+
+test('selling everything closes the position without inventing a profit', () => {
+    const { summary, assets } = buildBreakdown(
+        [
+            {
+                investment_asset_id: 1,
+                kind: 'buy',
+                quantity: 2,
+                cost_basis: 4_000_000,
+                cost_basis_currency: 'toman',
+                sale_price: null,
+                sale_price_currency: null,
+            },
+            {
+                investment_asset_id: 1,
+                kind: 'sell',
+                quantity: -2,
+                cost_basis: 4_000_000,
+                cost_basis_currency: 'toman',
+                sale_price: 5_000_000,
+                sale_price_currency: 'toman',
+            },
+        ],
+        vectors.assets,
+        'toman',
+        vectors.rates,
+    );
+
+    // Nothing held, so there is no unrealised figure to report — but the gain
+    // that was actually banked has to survive.
+    assert.equal(assets[0]!.quantity, 0);
+    assert.equal(assets[0]!.pnl, null);
+    assert.equal(summary.total_pnl, null);
+    assert.equal(summary.total_realised_pnl, 2_000_000);
+    assert.equal(summary.has_realised_data, true);
+});
+
 test('an unpriced holding still reports its quantity', () => {
     const { assets, summary } = buildBreakdown(
         [
             {
                 investment_asset_id: 9,
+                kind: 'buy' as const,
                 quantity: 4,
                 cost_basis: null,
                 cost_basis_currency: null,
+                sale_price: null,
+                sale_price_currency: null,
             },
         ],
         [
@@ -101,9 +185,12 @@ test('an entry whose asset is missing is skipped rather than counted as zero', (
         [
             {
                 investment_asset_id: 404,
+                kind: 'buy' as const,
                 quantity: 7,
                 cost_basis: null,
                 cost_basis_currency: null,
+                sale_price: null,
+                sale_price_currency: null,
             },
         ],
         [],

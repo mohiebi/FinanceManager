@@ -121,6 +121,7 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
         Route::get('investments/export', InvestmentExportController::class)
             ->middleware(RejectWhenVaultArmed::class)
             ->name('investments.export');
+        Route::post('investments/sell', [InvestmentController::class, 'sell'])->name('investments.sell');
         Route::resource('investments', InvestmentController::class)->only(['index', 'store', 'update', 'destroy']);
         // Forces a real outbound scrape against tgju.org when cache is cold, so this is
         // throttled stricter than the codebase's usual 10,1 / 5,1 write endpoints.

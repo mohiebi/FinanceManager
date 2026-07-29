@@ -69,9 +69,14 @@ class BuildPortfolioBreakdown
                 ->map(fn (Investment $entry): array => [
                     'id' => $entry->id,
                     'investment_asset_id' => $entry->investment_asset_id,
+                    // Plaintext, and the only thing telling the browser which rows
+                    // are disposals — the sign is inside the ciphertext.
+                    'kind' => $entry->kind->value,
                     'quantity' => $entry->quantity,
                     'cost_basis' => $entry->cost_basis,
                     'cost_basis_currency' => $entry->cost_basis_currency,
+                    'sale_price' => $entry->sale_price,
+                    'sale_price_currency' => $entry->sale_price_currency,
                 ])
                 ->values()
                 ->all(),
@@ -118,7 +123,9 @@ class BuildPortfolioBreakdown
         $totalCurrentValue = 0.0;
         $totalCurrentValueForCostUnits = 0.0;
         $totalCostBasis = 0.0;
+        $totalRealised = 0.0;
         $hasCostBasisData = false;
+        $hasRealisedData = false;
 
         foreach ($grouped as $typeEntries) {
             $asset = $typeEntries->first()?->asset;
@@ -166,6 +173,19 @@ class BuildPortfolioBreakdown
                 $totalCostBasis += $totalCostBasisInToman;
             }
 
+            // Locked in at the moment of sale, from what the row already stores, so
+            // a later price move can never rewrite a gain the user has banked.
+            $disposals = $typeEntries->filter(
+                fn (Investment $entry): bool => $entry->isSell() && $entry->sale_price !== null,
+            );
+
+            $realised = $disposals->sum(fn (Investment $entry): float => $this->realisedGain($entry));
+
+            if ($disposals->isNotEmpty()) {
+                $hasRealisedData = true;
+                $totalRealised += $realised;
+            }
+
             $assets[] = [
                 'key' => $asset->slug,
                 'id' => $asset->id,
@@ -184,6 +204,9 @@ class BuildPortfolioBreakdown
                 'avg_cost_basis_formatted' => $averageCostBasisInToman !== null ? $fmt($averageCostBasisInToman) : null,
                 'total_cost' => $totalCostBasisQuantity > 0 ? $totalCostBasisInToman : null,
                 'total_cost_formatted' => $totalCostBasisQuantity > 0 ? $fmt($totalCostBasisInToman) : null,
+                'realised_pnl' => $disposals->isNotEmpty() ? $realised : null,
+                'realised_pnl_formatted' => $disposals->isNotEmpty() ? $fmt(abs($realised)) : null,
+                'realised_pnl_is_positive' => $disposals->isNotEmpty() ? $realised >= 0 : null,
                 'pnl' => $profitAndLoss,
                 'pnl_formatted' => $profitAndLoss !== null ? $fmt(abs($profitAndLoss)) : null,
                 'pnl_percent' => $profitAndLossPercent,
@@ -215,9 +238,47 @@ class BuildPortfolioBreakdown
                 'total_pnl_percent' => $totalProfitAndLossPercent,
                 'total_pnl_is_positive' => $totalProfitAndLoss !== null ? $totalProfitAndLoss >= 0 : null,
                 'has_cost_basis_data' => $hasCostBasisData,
+                // Kept apart from total_pnl on purpose: one is money already banked,
+                // the other is a paper figure that moves with the market. Adding
+                // them together would be a number that means nothing.
+                'total_realised_pnl' => $hasRealisedData ? $totalRealised : null,
+                'total_realised_pnl_formatted' => $hasRealisedData ? $fmt(abs($totalRealised)) : null,
+                'total_realised_pnl_is_positive' => $hasRealisedData ? $totalRealised >= 0 : null,
+                'has_realised_data' => $hasRealisedData,
                 'asset_count' => count($assets),
             ],
         ];
+    }
+
+    /**
+     * What a disposal actually made, in toman.
+     *
+     * Derived rather than stored: both operands are frozen on the row at sale time,
+     * so this cannot drift, and there is no second copy to disagree with.
+     */
+    private function realisedGain(Investment $entry): float
+    {
+        $units = abs((float) $entry->quantity);
+
+        $soldFor = $this->toToman((float) $entry->sale_price, $entry->sale_price_currency);
+        $paid = $entry->cost_basis === null
+            ? 0.0
+            : $this->toToman((float) $entry->cost_basis, $entry->cost_basis_currency);
+
+        return ($soldFor - $paid) * $units;
+    }
+
+    private function toToman(float $amount, ?string $currency): float
+    {
+        if ($currency === null || $currency === Currency::Toman->value) {
+            return $amount;
+        }
+
+        $from = Currency::tryFrom($currency);
+
+        return $from === null
+            ? $amount
+            : $this->currencyConverter->convert($amount, $from, Currency::Toman);
     }
 
     /**

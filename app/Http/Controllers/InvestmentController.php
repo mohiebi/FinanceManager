@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Investments\RecordInvestmentTransaction;
 use App\Actions\Investments\SaveInvestment;
 use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\Currency;
@@ -11,6 +12,7 @@ use App\Models\Investment;
 use App\Models\InvestmentAsset;
 use App\Services\AssetPriceService;
 use App\Support\CurrencyPreference;
+use App\Support\Encryption\SealedField;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -151,13 +153,81 @@ class InvestmentController extends Controller
         ]);
     }
 
-    public function store(Request $request, SaveInvestment $saveInvestment): RedirectResponse
-    {
+    public function store(
+        Request $request,
+        SaveInvestment $saveInvestment,
+        RecordInvestmentTransaction $recordTransaction,
+    ): RedirectResponse {
         $validated = $this->validatedInvestmentData($request);
 
-        $saveInvestment->create($request->user(), $validated);
+        $investment = $saveInvestment->create($request->user(), $validated);
+
+        if ($request->boolean('record_transaction')) {
+            $recordTransaction->forPurchase(
+                $request->user(),
+                $investment,
+                $investment->asset()->first(),
+                $this->sealedTransaction($request),
+            );
+        }
 
         return redirect()->back();
+    }
+
+    /**
+     * Record a disposal: a second row with a negative quantity, never an edit of
+     * the purchase it came from.
+     */
+    public function sell(
+        Request $request,
+        SaveInvestment $saveInvestment,
+        RecordInvestmentTransaction $recordTransaction,
+    ): RedirectResponse {
+        $user = $request->user();
+        $vaultArmed = $user->vaultIsArmed();
+
+        $validated = $request->validate(SaveInvestment::sellRules($vaultArmed));
+        $data = SaveInvestment::normalizeSell($user, $validated, $vaultArmed);
+
+        $investment = $saveInvestment->create($user, $data);
+
+        if ($request->boolean('record_transaction')) {
+            $recordTransaction->forSale(
+                $user,
+                $investment,
+                $investment->asset()->first(),
+                $this->sealedTransaction($request),
+            );
+        }
+
+        return redirect()->back();
+    }
+
+    /**
+     * The transaction fields the browser sealed, when it had to.
+     *
+     * Null unless the vault is armed — the server builds its own title and amount
+     * whenever it can still read the investment it is mirroring.
+     *
+     * @return array{title: string, amount: string, description: string|null}|null
+     */
+    private function sealedTransaction(Request $request): ?array
+    {
+        if (! $request->user()->vaultIsArmed()) {
+            return null;
+        }
+
+        $validated = $request->validate([
+            'transaction_title' => SealedField::rules(),
+            'transaction_amount' => SealedField::rules(),
+            'transaction_description' => SealedField::rules(required: false),
+        ]);
+
+        return [
+            'title' => $validated['transaction_title'],
+            'amount' => $validated['transaction_amount'],
+            'description' => $validated['transaction_description'] ?? null,
+        ];
     }
 
     public function update(Request $request, Investment $investment, SaveInvestment $saveInvestment): RedirectResponse
@@ -193,7 +263,7 @@ class InvestmentController extends Controller
 
     /**
      * @param  Collection<int, Investment>  $entries
-     * @return array<int, array{asset: InvestmentAsset, quantity: float}>
+     * @return array<int, array{asset: InvestmentAsset, quantity: float, cost_quantity: float, cost_total: float}>
      */
     private function computeHoldings(Collection $entries): array
     {
@@ -207,15 +277,25 @@ class InvestmentController extends Controller
             $holdings[$assetId] ??= [
                 'asset' => $entry->asset,
                 'quantity' => 0.0,
+                'cost_quantity' => 0.0,
+                'cost_total' => 0.0,
             ];
             $holdings[$assetId]['quantity'] += (float) $entry->quantity;
+
+            // A disposal carries the average basis with a negative quantity, so
+            // both sums stay correct and the per-unit average is unchanged by a
+            // partial sale — the same arithmetic BuildPortfolioBreakdown relies on.
+            if ($entry->cost_basis !== null) {
+                $holdings[$assetId]['cost_quantity'] += (float) $entry->quantity;
+                $holdings[$assetId]['cost_total'] += (float) $entry->cost_basis * (float) $entry->quantity;
+            }
         }
 
         return $holdings;
     }
 
     /**
-     * @param  array<int, array{asset: InvestmentAsset, quantity: float}>  $holdings
+     * @param  array<int, array{asset: InvestmentAsset, quantity: float, cost_quantity: float, cost_total: float}>  $holdings
      * @return array<int, array<string, mixed>>
      */
     private function buildAssets(array $holdings, AssetPriceService $priceService): array
@@ -242,6 +322,10 @@ class InvestmentController extends Controller
                 'price_formatted' => $this->formatMoney($price),
                 'value' => $value,
                 'value_formatted' => $this->formatMoney($value),
+                // Travels so a disposal can freeze the basis at sale time.
+                'avg_cost_basis' => $holding['cost_quantity'] > 0
+                    ? $holding['cost_total'] / $holding['cost_quantity']
+                    : null,
             ];
         }
 

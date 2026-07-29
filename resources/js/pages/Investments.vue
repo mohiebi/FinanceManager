@@ -1,8 +1,14 @@
 <template>
     <Head :title="t('finance.investments.title')" />
 
+    <!-- `shrink-0` with no `h-full`/`flex-1` is load-bearing. Pinned to the
+         viewport, this flex column squeezed its own sections below their content
+         height and the `overflow-hidden` that rounds their corners clipped them in
+         half. Letting it grow to its content instead also keeps SidebarInset the
+         single scroll container — `overflow-x-hidden` computes `overflow-y: auto`,
+         so a root that overflows quietly becomes a second scrollbar. -->
     <div
-        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-hidden bg-[#111111]"
+        class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
     >
         <!-- ── Page actions ──────────────────────────────────────── -->
         <div
@@ -409,6 +415,24 @@
                         <Download class="size-4" />
                         Export
                     </a>
+                    <!-- Selling never deletes the purchase — it writes a disposal
+                         row, so history and cost basis both survive.
+
+                         Sized like Add Entry beside it, but in the cost gradient
+                         Add Cost uses on the dashboard and transactions pages —
+                         money leaving is the same kind of action either way. -->
+                    <Button
+                        v-if="sellableAssets.length > 0"
+                        class="h-12 w-max justify-between rounded-md bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-3.5 text-lg font-bold text-white shadow-[0_10px_20px_rgba(108,78,233,0.22)] transition hover:brightness-105"
+                        @click="isSellDialogOpen = true"
+                    >
+                        <span>{{ t('finance.investments.sell') }}</span>
+                        <span
+                            class="ml-2 grid h-[1.55em] w-[1.55em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
+                        >
+                            <Minus class="size-4" />
+                        </span>
+                    </Button>
                     <Button
                         class="h-12 w-max justify-between rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-3.5 text-lg font-bold text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
                         @click="openCreateDialog()"
@@ -516,8 +540,10 @@
                                 {{ displayDate(entry.occurred_at) }}
                             </td>
                             <td class="px-3 py-[14px] text-center sm:px-5">
+                                <!-- Always visible: hover-only actions are invisible
+                                     on touch, and undiscoverable everywhere else. -->
                                 <div
-                                    class="flex items-center justify-center gap-2 opacity-0 transition group-hover:opacity-100"
+                                    class="flex items-center justify-center gap-2"
                                 >
                                     <button
                                         type="button"
@@ -543,6 +569,13 @@
             </div>
         </div>
 
+        <InvestmentSellDialog
+            v-model:open="isSellDialogOpen"
+            :assets="sellableAssets"
+            :currencies="props.currencies"
+            :selected-currency="props.selectedCurrency"
+        />
+
         <!-- ── Add / Edit dialog ─────────────────────────────────── -->
         <InvestmentEntryDialog
             v-model:open="isDialogOpen"
@@ -564,16 +597,17 @@
 
 <script setup lang="ts">
 import { Deferred, Head, router, usePage } from '@inertiajs/vue3';
-import { Download, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
+import { Download, Minus, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
-import Ciphered from '@/components/Ciphered.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import type { ChartSeries } from '@/components/charts/LineChart.vue';
+import Ciphered from '@/components/Ciphered.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InvestmentEntryDialog from '@/components/investments/InvestmentEntryDialog.vue';
+import InvestmentSellDialog from '@/components/investments/InvestmentSellDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useRelativeTime } from '@/composables/useRelativeTime';
@@ -601,6 +635,8 @@ type AssetSummary = {
     value: number;
     value_formatted: string;
     allocation: number;
+    /** Average cost per unit, in toman. Null when nothing was ever priced. */
+    avg_cost_basis: number | null;
 };
 
 type AssetTypeOption = {
@@ -846,6 +882,28 @@ watch(
 );
 
 const isDialogOpen = ref(false);
+const isSellDialogOpen = ref(false);
+
+/**
+ * What can actually be sold, with the average cost each unit carries.
+ *
+ * The basis travels so the disposal can freeze it at sale time — under the vault
+ * the server cannot read a single holding, so it has no way to work it out.
+ */
+const sellableAssets = computed(() =>
+    (props.assets ?? [])
+        .filter((asset) => asset.quantity > 0)
+        .map((asset) => ({
+            id: asset.id,
+            label: asset.label,
+            unit: asset.unit,
+            icon: asset.icon,
+            icon_svg: asset.icon_svg,
+            color: asset.color,
+            quantity: asset.quantity,
+            avgCostBasis: asset.avg_cost_basis ?? null,
+        })),
+);
 const editingEntry = ref<Entry | null>(null);
 const dialogDefaultAssetKey = ref<AssetKey | undefined>();
 

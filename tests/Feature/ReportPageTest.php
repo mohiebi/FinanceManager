@@ -327,3 +327,107 @@ test('report paginates cost and income tables independently without changing ana
 
     Carbon::setTestNow();
 });
+
+test('excluding investments drops them from the totals, the charts and the table', function () {
+    Carbon::setTestNow('2026-04-28');
+
+    $user = User::factory()->create();
+    // Seeded by the migration rather than created here — this also pins that the
+    // migration actually shipped the category the filter depends on.
+    $investments = Category::query()
+        ->whereNull('user_id')
+        ->where('type', 'cost')
+        ->where('slug', 'investment')
+        ->sole();
+    $bills = Category::factory()->cost()->create(['name' => 'Bills', 'slug' => 'bills']);
+
+    Transaction::factory()->cost()->for($user)->for($bills)->create([
+        'amount' => 250,
+        'currency' => Currency::Toman->value,
+        'occurred_at' => '2026-04-10',
+    ]);
+
+    Transaction::factory()->cost()->for($user)->for($investments)->create([
+        'amount' => 1000,
+        'currency' => Currency::Toman->value,
+        'occurred_at' => '2026-04-11',
+    ]);
+
+    // Off by default: the report still shows everything you spent.
+    $this->actingAs($user)
+        ->get(route('report'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('summary.cost', '1250.00')
+            ->where('summary.count', 2)
+            ->where('filters.exclude_investments', false)
+            ->where('hasInvestmentCategory', true)
+            ->etc());
+
+    // On: excluded from the query, so the table and the analytics rows behind the
+    // charts cannot disagree with the headline figure.
+    $this->actingAs($user)
+        ->get(route('report', ['exclude_investments' => 1]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('summary.cost', '250.00')
+            ->where('summary.count', 1)
+            ->where('filters.exclude_investments', true)
+            ->has('transactions.costs', 1)
+            ->has('analyticsTransactions.costs', 1)
+            ->etc());
+
+    Carbon::setTestNow();
+});
+
+test('excluding investments leaves investment income alone', function () {
+    Carbon::setTestNow('2026-04-28');
+
+    $user = User::factory()->create();
+    // Nothing seeds an income `investment` category any more, but a user can still
+    // create one. A filter about spending must never touch the income side.
+    $incomeInvestment = Category::factory()->income()->forUser($user)->create([
+        'name' => 'Investment',
+        'slug' => 'investment',
+    ]);
+
+    Transaction::factory()->income()->for($user)->for($incomeInvestment)->create([
+        'amount' => 500,
+        'currency' => Currency::Toman->value,
+        'occurred_at' => '2026-04-10',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('report', ['exclude_investments' => 1]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('summary.income', '500.00')
+            ->where('summary.count', 1)
+            ->etc());
+
+    Carbon::setTestNow();
+});
+
+test('a user with their own investment cost category can use the filter too', function () {
+    Carbon::setTestNow('2026-04-28');
+
+    $user = User::factory()->create();
+    // Predates the seeded default, so it must still be honoured — nobody should
+    // have to recategorise to use a filter that shipped after their data.
+    $own = Category::factory()->cost()->forUser($user)->create([
+        'name' => 'Investment',
+        'slug' => 'investment',
+    ]);
+
+    Transaction::factory()->cost()->for($user)->for($own)->create([
+        'amount' => 900,
+        'currency' => Currency::Toman->value,
+        'occurred_at' => '2026-04-10',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('report', ['exclude_investments' => 1]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('summary.cost', '0.00')
+            ->where('summary.count', 0)
+            ->etc());
+
+    Carbon::setTestNow();
+});

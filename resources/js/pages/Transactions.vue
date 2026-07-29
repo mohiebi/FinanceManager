@@ -2,7 +2,7 @@
     <Head :title="t('finance.transactions.title')" />
 
     <div
-        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-hidden bg-[#111111]"
+        class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
     >
         <section
             class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
@@ -160,14 +160,6 @@
                         </h2>
                     </div>
                     <div class="flex flex-wrap items-center justify-end gap-2">
-                        <Button
-                            v-if="hasCostGroupSelection"
-                            class="h-12 rounded-md bg-[#E94E50] px-3.5 text-sm font-semibold text-white shadow-none hover:bg-[#d43e40]"
-                            @click="requestBulkDelete"
-                        >
-                            <Trash2 class="size-4" />
-                            {{ t('finance.actions.bulk_delete') }}
-                        </Button>
                         <Button
                             class="h-14 w-max justify-between rounded-md bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-3.5 text-[22px] leading-none font-bold text-white shadow-[0_10px_20px_rgba(108,78,233,0.22)] transition hover:brightness-105"
                             @click="openCreateForm('cost')"
@@ -397,14 +389,6 @@
                         </h2>
                     </div>
                     <div class="flex flex-wrap items-center justify-end gap-2">
-                        <Button
-                            v-if="hasIncomeGroupSelection"
-                            class="h-12 rounded-md bg-[#E94E50] px-3.5 text-sm font-semibold text-white shadow-none hover:bg-[#d43e40]"
-                            @click="requestBulkDelete"
-                        >
-                            <Trash2 class="size-4" />
-                            {{ t('finance.actions.bulk_delete') }}
-                        </Button>
                         <Button
                             class="h-14 w-max justify-between rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00A96F_100%)] px-3.5 text-[22px] leading-none font-bold text-white shadow-[0_10px_20px_rgba(2,205,134,0.22)] transition hover:brightness-105"
                             @click="openCreateForm('income')"
@@ -1256,10 +1240,6 @@ const totalSelected = computed(
     () => selectedCostIds.value.size + selectedIncomeIds.value.size,
 );
 const hasGroupSelection = computed(() => totalSelected.value > 1);
-const hasCostGroupSelection = computed(() => selectedCostIds.value.size > 1);
-const hasIncomeGroupSelection = computed(
-    () => selectedIncomeIds.value.size > 1,
-);
 const selectionType = computed<TransactionType | null>(() => {
     if (selectedCostIds.value.size > 0 && selectedIncomeIds.value.size === 0) {
         return 'cost';

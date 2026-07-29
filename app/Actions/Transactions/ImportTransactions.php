@@ -482,13 +482,17 @@ class ImportTransactions
                 'health' => ['health', "\u{0633}\u{0644}\u{0627}\u{0645}\u{062A}", "\u{062F}\u{0631}\u{0645}\u{0627}\u{0646}", "\u{067E}\u{0632}\u{0634}\u{06A9}\u{06CC}"],
                 'shopping' => ['shopping', "\u{062E}\u{0631}\u{06CC}\u{062F}", "\u{062E}\u{0631}\u{064A}\u{062F}"],
                 'bills' => ['bills', "\u{0642}\u{0628}\u{0636}", "\u{0642}\u{0628}\u{0648}\u{0636}", "\u{0622}\u{0628}", "\u{0628}\u{0631}\u{0642}", "\u{06AF}\u{0627}\u{0632}", "\u{0627}\u{06CC}\u{0646}\u{062A}\u{0631}\u{0646}\u{062A}"],
+                'investment' => ['investment', "\u{0633}\u{0631}\u{0645}\u{0627}\u{06CC}\u{0647} \u{06AF}\u{0630}\u{0627}\u{0631}\u{06CC}"],
                 'other' => ['other', "\u{0633}\u{0627}\u{06CC}\u{0631}", "\u{0633}\u{0627}\u{064A}\u{0631}", "\u{0645}\u{062A}\u{0641}\u{0631}\u{0642}\u{0647}"],
             ],
+            // Nothing maps to "investment" here: buying an asset is a cost, and the
+            // interest keywords that used to live on this line (سود, سود سپرده) are
+            // a recurring payout — ordinary income, not an investment. They fall
+            // through unmatched rather than being filed under a guess.
             TransactionType::Income->value => [
                 'salary' => ['salary', "\u{062D}\u{0642}\u{0648}\u{0642}", "\u{062F}\u{0633}\u{062A}\u{0645}\u{0632}\u{062F}", "\u{06A9}\u{0627}\u{0631}\u{0645}\u{0632}\u{062F}"],
                 'freelance' => ['freelance', "\u{0641}\u{0631}\u{06CC}\u{0644}\u{0646}\u{0633}", "\u{0641}\u{0631}\u{064A}\u{0644}\u{0646}\u{0633}", "\u{067E}\u{0631}\u{0648}\u{0698}\u{0647}"],
                 'gift' => ['gift', "\u{0647}\u{062F}\u{06CC}\u{0647}", "\u{0647}\u{062F}\u{064A}\u{0647}"],
-                'investment' => ['investment', "\u{0633}\u{0631}\u{0645}\u{0627}\u{06CC}\u{0647} \u{06AF}\u{0630}\u{0627}\u{0631}\u{06CC}", "\u{0633}\u{0648}\u{062F}", "\u{0633}\u{0648}\u{062F} \u{0633}\u{067E}\u{0631}\u{062F}\u{0647}"],
                 'other' => ['other', "\u{0633}\u{0627}\u{06CC}\u{0631}", "\u{0633}\u{0627}\u{064A}\u{0631}", "\u{0645}\u{062A}\u{0641}\u{0631}\u{0642}\u{0647}"],
             ],
         ];

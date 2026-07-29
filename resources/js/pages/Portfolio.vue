@@ -2,7 +2,7 @@
     <Head :title="t('finance.portfolio.title')" />
 
     <div
-        class="flex h-full min-h-[calc(100vh-92px)] flex-1 flex-col overflow-x-hidden bg-[#111111]"
+        class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
     >
         <!-- ── Hero / Summary ────────────────────────────────────── -->
         <section
@@ -209,6 +209,55 @@
                                     class="text-sm font-normal text-[#989898]"
                                     >—</span
                                 >
+                            </p>
+                        </div>
+
+                        <!-- Realised — money already banked by selling. Shown only
+                             once something has actually been sold, and never added
+                             to the P&L above: one is settled, the other moves with
+                             the market, and a sum of the two means nothing. -->
+                        <div
+                            v-if="summary.has_realised_data"
+                            class="rounded-[14px] border border-white/10 bg-[#252525] p-4 sm:col-span-3"
+                            :style="{
+                                borderTop:
+                                    summary.total_realised_pnl_is_positive
+                                        ? '2.5px solid #02CD86'
+                                        : '2.5px solid #E94E50',
+                            }"
+                        >
+                            <p
+                                class="text-xs font-medium tracking-[0.2em] uppercase"
+                                :class="
+                                    summary.total_realised_pnl_is_positive
+                                        ? 'text-[#02CD86]'
+                                        : 'text-[#E94E50]'
+                                "
+                            >
+                                {{ t('finance.investments.realised') }}
+                            </p>
+                            <p
+                                class="mt-2 text-base font-bold"
+                                :class="
+                                    summary.total_realised_pnl_is_positive
+                                        ? 'text-[#02CD86]'
+                                        : 'text-[#E94E50]'
+                                "
+                            >
+                                <span>{{
+                                    summary.total_realised_pnl_is_positive
+                                        ? '+'
+                                        : '−'
+                                }}</span>
+                                {{ summary.total_realised_pnl_formatted }}
+                                <span
+                                    class="text-xs font-normal text-[#989898]"
+                                >
+                                    {{ currencySymbol }}
+                                </span>
+                            </p>
+                            <p class="mt-1 text-xs text-[#6b6b6b]">
+                                {{ t('finance.investments.realised_hint') }}
                             </p>
                         </div>
                     </div>
@@ -666,6 +715,10 @@ const summary = computed(
             total_pnl_percent: null,
             total_pnl_is_positive: null,
             has_cost_basis_data: false,
+            total_realised_pnl: null,
+            total_realised_pnl_formatted: null,
+            total_realised_pnl_is_positive: null,
+            has_realised_data: false,
             asset_count: 0,
         },
 );

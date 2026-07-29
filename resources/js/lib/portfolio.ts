@@ -27,12 +27,15 @@ export type PortfolioAssetMeta = {
     price_available: boolean;
 };
 
-/** One holding, already decrypted. */
+/** One holding, already decrypted. A disposal carries a negative quantity. */
 export type PortfolioEntry = {
     investment_asset_id: number;
+    kind: 'buy' | 'sell';
     quantity: number;
     cost_basis: number | null;
     cost_basis_currency: string | null;
+    sale_price: number | null;
+    sale_price_currency: string | null;
 };
 
 export type PortfolioAsset = {
@@ -53,6 +56,9 @@ export type PortfolioAsset = {
     avg_cost_basis_formatted: string | null;
     total_cost: number | null;
     total_cost_formatted: string | null;
+    realised_pnl: number | null;
+    realised_pnl_formatted: string | null;
+    realised_pnl_is_positive: boolean | null;
     pnl: number | null;
     pnl_formatted: string | null;
     pnl_percent: number | null;
@@ -70,6 +76,10 @@ export type PortfolioSummary = {
     total_pnl_percent: number | null;
     total_pnl_is_positive: boolean | null;
     has_cost_basis_data: boolean;
+    total_realised_pnl: number | null;
+    total_realised_pnl_formatted: string | null;
+    total_realised_pnl_is_positive: boolean | null;
+    has_realised_data: boolean;
     asset_count: number;
 };
 
@@ -103,6 +113,40 @@ function round(value: number, decimals: number): number {
     return Math.round(value * factor) / factor;
 }
 
+function toToman(
+    amount: number,
+    currency: string | null,
+    rates: Rates,
+): number {
+    if (currency === null || currency === '' || currency === 'toman') {
+        return amount;
+    }
+
+    return convert(amount, currency as CurrencyCode, 'toman', rates);
+}
+
+/**
+ * What a disposal actually made, in toman.
+ *
+ * Derived rather than stored, mirroring BuildPortfolioBreakdown::realisedGain:
+ * both operands are frozen on the row at sale time, so a later price move cannot
+ * rewrite a gain the user has already banked.
+ */
+function realisedGain(entry: PortfolioEntry, rates: Rates): number {
+    const units = Math.abs(entry.quantity);
+    const soldFor = toToman(
+        entry.sale_price ?? 0,
+        entry.sale_price_currency,
+        rates,
+    );
+    const paid =
+        entry.cost_basis === null
+            ? 0
+            : toToman(entry.cost_basis, entry.cost_basis_currency, rates);
+
+    return (soldFor - paid) * units;
+}
+
 export function buildBreakdown(
     entries: readonly PortfolioEntry[],
     assetMeta: readonly PortfolioAssetMeta[],
@@ -128,7 +172,9 @@ export function buildBreakdown(
     let totalCurrentValue = 0;
     let totalCurrentValueForCostUnits = 0;
     let totalCostBasis = 0;
+    let totalRealised = 0;
     let hasCostBasisData = false;
+    let hasRealisedData = false;
 
     for (const [assetId, assetEntries] of grouped) {
         const meta = metaById.get(assetId);
@@ -190,6 +236,20 @@ export function buildBreakdown(
             totalCostBasis += totalCostBasisInToman;
         }
 
+        const disposals = assetEntries.filter(
+            (entry) => entry.kind === 'sell' && entry.sale_price !== null,
+        );
+
+        const realised = disposals.reduce(
+            (carry, entry) => carry + realisedGain(entry, rates),
+            0,
+        );
+
+        if (disposals.length > 0) {
+            hasRealisedData = true;
+            totalRealised += realised;
+        }
+
         assets.push({
             id: meta.id,
             key: meta.key,
@@ -210,6 +270,11 @@ export function buildBreakdown(
             total_cost: costBasisQuantity > 0 ? totalCostBasisInToman : null,
             total_cost_formatted:
                 costBasisQuantity > 0 ? fmt(totalCostBasisInToman) : null,
+            realised_pnl: disposals.length > 0 ? realised : null,
+            realised_pnl_formatted:
+                disposals.length > 0 ? fmt(Math.abs(realised)) : null,
+            realised_pnl_is_positive:
+                disposals.length > 0 ? realised >= 0 : null,
             pnl,
             pnl_formatted: pnl !== null ? fmt(Math.abs(pnl)) : null,
             pnl_percent: pnlPercent,
@@ -243,6 +308,16 @@ export function buildBreakdown(
             total_pnl_percent: totalPnlPercent,
             total_pnl_is_positive: totalPnl !== null ? totalPnl >= 0 : null,
             has_cost_basis_data: hasCostBasisData,
+            // Kept apart from total_pnl on purpose: one is money already banked,
+            // the other moves with the market. Summing them means nothing.
+            total_realised_pnl: hasRealisedData ? totalRealised : null,
+            total_realised_pnl_formatted: hasRealisedData
+                ? fmt(Math.abs(totalRealised))
+                : null,
+            total_realised_pnl_is_positive: hasRealisedData
+                ? totalRealised >= 0
+                : null,
+            has_realised_data: hasRealisedData,
             asset_count: assets.length,
         },
     };

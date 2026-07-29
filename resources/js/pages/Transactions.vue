@@ -52,27 +52,31 @@
                         </Select>
                     </div>
 
-                    <div class="grid w-48 shrink-0 gap-2">
+                    <div class="grid w-72 shrink-0 gap-2">
                         <Label for="transaction_from">{{
                             t('finance.fields.from')
                         }}</Label>
-                        <Input
-                            id="transaction_from"
+                        <BirthdatePicker
                             v-model="filterFrom"
-                            type="date"
-                            :class="filterFieldClass"
+                            name="transaction_from"
+                            :required="false"
+                            :years-back="16"
+                            :years-forward="1"
+                            :trigger-class="filterFieldClass"
                         />
                     </div>
 
-                    <div class="grid w-48 shrink-0 gap-2">
+                    <div class="grid w-72 shrink-0 gap-2">
                         <Label for="transaction_to">{{
                             t('finance.fields.to')
                         }}</Label>
-                        <Input
-                            id="transaction_to"
+                        <BirthdatePicker
                             v-model="filterTo"
-                            type="date"
-                            :class="filterFieldClass"
+                            name="transaction_to"
+                            :required="false"
+                            :years-back="16"
+                            :years-forward="1"
+                            :trigger-class="filterFieldClass"
                         />
                     </div>
 
@@ -1029,6 +1033,7 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';

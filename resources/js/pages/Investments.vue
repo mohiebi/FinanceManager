@@ -404,10 +404,10 @@
             <div
                 class="flex flex-wrap items-center justify-between gap-4 px-5 py-[29px]"
             >
-                <h2 class="text-[22px] leading-none font-normal text-white">
-                    {{ t('finance.investments.investment_entries') }}
-                </h2>
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="flex flex-wrap items-center gap-3">
+                    <h2 class="text-[22px] leading-none font-normal text-white">
+                        {{ t('finance.investments.investment_entries') }}
+                    </h2>
                     <a
                         :href="`/investments/export?currency=${props.selectedCurrency}`"
                         class="inline-flex shrink-0 items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm whitespace-nowrap text-white ring-1 ring-white/20 transition-colors hover:bg-white/15"
@@ -415,6 +415,8 @@
                         <Download class="size-4" />
                         Export
                     </a>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
                     <!-- Selling never deletes the purchase — it writes a disposal
                          row, so history and cost basis both survive.
 

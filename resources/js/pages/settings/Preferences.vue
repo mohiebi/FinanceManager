@@ -7,7 +7,9 @@ import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -18,10 +20,16 @@ type Option = {
     value: string;
 };
 
+type TimezoneGroup = {
+    label: string;
+    options: Option[];
+};
+
 const props = defineProps<{
     locales: Option[];
     calendars: Option[];
     currencies: Option[];
+    timezoneGroups: TimezoneGroup[];
     defaultCurrency: string | null;
 }>();
 
@@ -31,6 +39,7 @@ const { t } = useI18n();
 const form = useForm({
     locale: (page.props.locale as string | undefined) ?? 'en',
     calendar: (page.props.calendar as string | undefined) ?? 'gregorian',
+    timezone: (page.props.timezone as string | undefined) ?? 'UTC',
     default_currency: props.defaultCurrency ?? null,
 });
 
@@ -111,6 +120,40 @@ function submit(): void {
                     </Select>
                 </div>
                 <InputError :message="form.errors.calendar" />
+            </div>
+
+            <div class="space-y-2">
+                <div class="flex flex-wrap items-center gap-3">
+                    <Label class="min-w-24 text-white" for="timezone">
+                        {{ t('settings.preferences.timezone') }}:
+                    </Label>
+                    <Select id="timezone" v-model="form.timezone">
+                        <SelectTrigger
+                            class="finance-dialog-field finance-dialog-field-income w-[240px]"
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent class="finance-dialog-select-content">
+                            <SelectGroup
+                                v-for="group in props.timezoneGroups"
+                                :key="group.label"
+                            >
+                                <SelectLabel>{{ group.label }}</SelectLabel>
+                                <SelectItem
+                                    v-for="zone in group.options"
+                                    :key="zone.value"
+                                    :value="zone.value"
+                                >
+                                    {{ zone.label }}
+                                </SelectItem>
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <p class="text-xs text-[#989898]">
+                    {{ t('settings.preferences.timezone_hint') }}
+                </p>
+                <InputError :message="form.errors.timezone" />
             </div>
 
             <div class="space-y-2">

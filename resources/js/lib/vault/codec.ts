@@ -2,7 +2,7 @@
  * Decodes a decrypted plaintext back into the shape the server would have
  * returned, mirroring App\Casts\UserEncrypted::decode().
  */
-export type EncryptedFieldType = 'string' | 'decimal' | 'json';
+export type EncryptedFieldType = 'string' | 'decimal' | 'quantity' | 'json';
 
 export function decode(
     plaintext: string,
@@ -30,6 +30,12 @@ export function encode(
 
     if (type === 'decimal') {
         return Number(value).toFixed(2);
+    }
+
+    // Money rounds to 2, holdings do not: 0.00012345 BTC sealed at 2dp becomes
+    // "0.00", and a goal whose target is zero cannot show progress at all.
+    if (type === 'quantity') {
+        return Number(value).toFixed(8);
     }
 
     return String(value);

@@ -145,6 +145,7 @@ return [
     ],
     'filters' => [
         'all_categories' => 'All categories',
+        'uncategorised' => 'Uncategorised only',
         'exclude_investments' => 'Exclude investments',
         'exclude_investments_hint' => 'Money moved into assets is not counted as spending',
         'all_types' => 'All types',

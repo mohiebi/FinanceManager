@@ -4,6 +4,7 @@ export type FeatureKey =
     | 'bills'
     | 'investments'
     | 'portfolio'
+    | 'gamification'
     | 'ai_assistant'
     | 'telegram_bot'
     | 'vault';
@@ -26,6 +27,8 @@ export type ModuleCard = {
     tier: 'free' | 'pro';
     enabled: boolean;
     show_promo: boolean;
+    /** False for modules with no sidebar entry, which cannot advertise themselves. */
+    in_nav: boolean;
     may_use: boolean;
     /** Non-core modules that must be on for this one to work. */
     requires: string[];

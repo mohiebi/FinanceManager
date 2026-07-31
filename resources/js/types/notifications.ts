@@ -1,4 +1,8 @@
-export type NotificationDataType = 'bill_due_today' | 'bill_due_tomorrow';
+export type NotificationDataType =
+    | 'bill_due_today'
+    | 'bill_due_tomorrow'
+    | 'streak_open'
+    | 'milestone';
 
 export interface NotificationData {
     type: NotificationDataType;

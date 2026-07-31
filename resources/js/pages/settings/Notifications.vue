@@ -3,9 +3,11 @@ import { Head, router } from '@inertiajs/vue3';
 import { Bell } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Switch } from '@/components/ui/switch';
 import { useRelativeTime } from '@/composables/useRelativeTime';
 import {
     edit,
+    preferences as notificationPreferences,
     read as readNotification,
     readAll as readAllNotifications,
 } from '@/routes/notifications';
@@ -13,10 +15,26 @@ import type { NotificationItem } from '@/types/notifications';
 
 const props = defineProps<{
     notifications: NotificationItem[];
+    streakNudge: { enabled: boolean; available: boolean; hour: number };
 }>();
 
 const { t } = useI18n();
 const { formatRelativeTime } = useRelativeTime();
+const savingNudge = ref(false);
+
+const setStreakNudge = (enabled: boolean) => {
+    savingNudge.value = true;
+    router.patch(
+        notificationPreferences.url(),
+        { streak_nudge_enabled: enabled },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                savingNudge.value = false;
+            },
+        },
+    );
+};
 
 const unreadCount = computed(
     () => props.notifications.filter((n) => !n.read_at).length,
@@ -75,6 +93,30 @@ defineOptions({
             >
                 {{ t('notifications.mark_all_read') }}
             </button>
+        </div>
+
+        <div class="rounded-2xl border border-white/10 px-5 py-4">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm font-medium text-white">
+                        {{ t('notifications.streak_nudge_label') }}
+                    </p>
+                    <p class="mt-1 max-w-prose text-xs text-[#989898]">
+                        {{
+                            props.streakNudge.available
+                                ? t('notifications.streak_nudge_hint', {
+                                      hour: props.streakNudge.hour,
+                                  })
+                                : t('notifications.streak_nudge_unavailable')
+                        }}
+                    </p>
+                </div>
+                <Switch
+                    :model-value="props.streakNudge.enabled"
+                    :disabled="!props.streakNudge.available || savingNudge"
+                    @update:model-value="setStreakNudge"
+                />
+            </div>
         </div>
 
         <div

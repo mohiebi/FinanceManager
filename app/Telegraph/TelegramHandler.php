@@ -4,6 +4,7 @@ namespace App\Telegraph;
 
 use App\Actions\Bills\MarkBillOccurrencePaid;
 use App\Actions\Bills\SyncBillOccurrence;
+use App\Actions\Gamification\RecordNoSpendDay;
 use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Enums\BillRecurrenceType;
 use App\Enums\Currency;
@@ -17,6 +18,7 @@ use App\Models\User;
 use App\Services\TelegramReportService;
 use App\Support\DateFormatter;
 use App\Support\FrontendLocalization;
+use App\Support\StreakCalculator;
 use Carbon\Carbon;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
@@ -314,6 +316,39 @@ class TelegramHandler extends WebhookHandler
         ]);
 
         $this->chat->message(implode("\n", $lines))->keyboard($keyboard)->send();
+    }
+
+    /**
+     * Mark today as spend-free, keeping the run alive without inventing a
+     * transaction that would then pollute every report.
+     */
+    public function no_spend(): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user) {
+            $this->sendNotLinked();
+
+            return;
+        }
+
+        if ($this->featureLocked($user, Feature::Gamification)) {
+            return;
+        }
+
+        $marked = app(RecordNoSpendDay::class)->handle($user);
+        $streak = app(StreakCalculator::class)->for($user);
+
+        $message = $marked === null
+            ? 'You have already recorded something today, so the day counts anyway.'
+            : 'Marked today as spend-free.';
+
+        $this->chat
+            ->message($message." Run: *{$streak->currentRun}* days.")
+            ->keyboard($this->mainKeyboard())
+            ->send();
     }
 
     public function report_today(): void
@@ -1325,6 +1360,10 @@ class TelegramHandler extends WebhookHandler
 
         if ($user?->hasFeature(Feature::Portfolio)) {
             $buttons[] = Button::make('Portfolio')->action('portfolio')->width(0.5);
+        }
+
+        if ($user?->hasFeature(Feature::Gamification)) {
+            $buttons[] = Button::make('Nothing spent today')->action('no_spend')->width(0.5);
         }
 
         // Reports are core — always offered.

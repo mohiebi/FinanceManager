@@ -52,6 +52,10 @@ return [
         'label' => 'Portfolio',
         'description' => 'See your net worth and profit or loss across every asset you hold.',
     ],
+    'gamification' => [
+        'label' => 'Flight log',
+        'description' => 'Keep a logging streak, mark days you spent nothing, and see how complete each month is. Never about how much you spend — only about keeping the record straight.',
+    ],
     'ai_assistant' => [
         'label' => 'AI Assistant',
         'description' => 'Connect AI tools that can read your finance data and propose changes for your approval.',

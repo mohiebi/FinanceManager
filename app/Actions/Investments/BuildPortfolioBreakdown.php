@@ -72,6 +72,10 @@ class BuildPortfolioBreakdown
                     // Plaintext, and the only thing telling the browser which rows
                     // are disposals — the sign is inside the ciphertext.
                     'kind' => $entry->kind->value,
+                    // Plaintext on the row, and already sent to the investments
+                    // page. Savings goals need it to tell holdings bought before
+                    // a goal started from progress made toward it.
+                    'occurred_at' => $entry->occurred_at->toDateString(),
                     'quantity' => $entry->quantity,
                     'cost_basis' => $entry->cost_basis,
                     'cost_basis_currency' => $entry->cost_basis_currency,

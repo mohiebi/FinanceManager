@@ -283,6 +283,8 @@ return [
             'gregorian' => 'Gregorianisch',
             'jalali' => 'Jalali',
         ],
+        'timezone' => 'Zeitzone',
+        'timezone_hint' => 'Bestimmt, wann dein Tag beginnt und endet und wann dich Erinnerungen erreichen.',
         'default_currency' => 'Währung',
         'no_default_currency' => 'Nicht festgelegt',
     ],

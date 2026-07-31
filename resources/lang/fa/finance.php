@@ -145,6 +145,7 @@ return [
     ],
     'filters' => [
         'all_categories' => 'همه دسته‌ها',
+        'uncategorised' => 'فقط بدون دسته‌بندی',
         'exclude_investments' => 'بدون سرمایه‌گذاری‌ها',
         'exclude_investments_hint' => 'پولی که به دارایی تبدیل شده، هزینه حساب نمی‌شود',
         'all_types' => 'همه نوع‌ها',

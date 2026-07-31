@@ -41,6 +41,12 @@
                                 <SelectItem value="all">{{
                                     t('finance.filters.all_categories')
                                 }}</SelectItem>
+                                <!-- Where the logbook's uncategorised count links
+                                     to; without the option the filter would be
+                                     active but invisible in the control. -->
+                                <SelectItem value="none">{{
+                                    t('finance.filters.uncategorised')
+                                }}</SelectItem>
                                 <SelectItem
                                     v-for="category in filterCategories"
                                     :key="category.id"
@@ -1138,7 +1144,8 @@ const props = defineProps<{
     filters: {
         search: string;
         type: FilterType;
-        category: number | null;
+        /** A category id, `'none'` for uncategorised-only, or null for all. */
+        category: number | 'none' | null;
         from: string;
         to: string;
     };
@@ -1249,14 +1256,22 @@ const selectionType = computed<TransactionType | null>(() => {
     if (selectedCostIds.value.size > 0 && selectedIncomeIds.value.size === 0) {
         return 'cost';
     }
+
     if (selectedIncomeIds.value.size > 0 && selectedCostIds.value.size === 0) {
         return 'income';
     }
+
     return null;
 });
 const bulkCategories = computed(() => {
-    if (selectionType.value === 'cost') return props.categories.cost ?? [];
-    if (selectionType.value === 'income') return props.categories.income ?? [];
+    if (selectionType.value === 'cost') {
+return props.categories.cost ?? [];
+}
+
+    if (selectionType.value === 'income') {
+return props.categories.income ?? [];
+}
+
     return [];
 });
 const costsSelectionState = computed(() =>
@@ -1268,14 +1283,24 @@ const incomesSelectionState = computed(() =>
 
 function toggleCost(id: number, selected: boolean): void {
     const next = new Set(selectedCostIds.value);
-    if (selected) next.add(id);
-    else next.delete(id);
+
+    if (selected) {
+next.add(id);
+} else {
+next.delete(id);
+}
+
     selectedCostIds.value = next;
 }
 function toggleIncome(id: number, selected: boolean): void {
     const next = new Set(selectedIncomeIds.value);
-    if (selected) next.add(id);
-    else next.delete(id);
+
+    if (selected) {
+next.add(id);
+} else {
+next.delete(id);
+}
+
     selectedIncomeIds.value = next;
 }
 function toggleAllCosts(checked: boolean | 'indeterminate'): void {
@@ -1338,7 +1363,11 @@ function confirmBulkDelete(): void {
 }
 function bulkAssignCategory(): void {
     const type = selectionType.value;
-    if (!type || !bulkCategoryId.value) return;
+
+    if (!type || !bulkCategoryId.value) {
+return;
+}
+
     const ids =
         type === 'cost'
             ? [...selectedCostIds.value]

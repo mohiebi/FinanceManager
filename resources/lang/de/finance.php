@@ -136,6 +136,7 @@ return [
     ],
     'filters' => [
         'all_categories' => 'Alle Kategorien',
+        'uncategorised' => 'Nur ohne Kategorie',
         'exclude_investments' => 'Investitionen ausschließen',
         'exclude_investments_hint' => 'Geld, das in Anlagen fließt, zählt nicht als Ausgabe',
         'all_types' => 'Alle Typen',

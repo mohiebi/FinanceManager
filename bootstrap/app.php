@@ -8,6 +8,7 @@ use App\Http\Middleware\TrackUserActivity;
 use App\Jobs\BillReminderJob;
 use App\Jobs\CaptureDailyStatsJob;
 use App\Jobs\RefreshAssetPricesJob;
+use App\Jobs\StreakReminderJob;
 use App\Models\McpProposal;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -45,6 +46,14 @@ return Application::configure(basePath: dirname(__DIR__))
         // withoutOverlapping guards against a stuck/delayed queue worker letting
         // two runs stack and double-send reminders.
         $schedule->job(new BillReminderJob)->dailyAt('09:00')->withoutOverlapping();
+
+        // Nudges users whose logging streak is still open at 21:00 in their own
+        // timezone. Runs every 15 minutes because "their own 21:00" lands at a
+        // different UTC moment for every zone; the job matches the bucket and
+        // returns immediately for everyone else. Registered only here, not in
+        // routes/console.php — Laravel merges both sources, so a second entry
+        // would be a second independent schedule.
+        $schedule->job(new StreakReminderJob)->everyFifteenMinutes()->withoutOverlapping();
 
         // Captures one row of customer metrics per day so the admin dashboard
         // can chart engagement trends and period-over-period deltas from real

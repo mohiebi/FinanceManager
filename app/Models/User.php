@@ -8,6 +8,8 @@ use App\Enums\TransactionType;
 use App\Observers\UserEncryptionKeyObserver;
 use App\Support\Encryption\UserKeyRing;
 use App\Support\FeatureSet;
+use App\Support\FrontendLocalization;
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -25,7 +27,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
 #[ObservedBy([UserEncryptionKeyObserver::class])]
-#[Fillable(['name', 'email', 'birthdate', 'locale', 'calendar', 'default_currency', 'password', 'email_verified_at', 'last_active_at', 'signup_source', 'telegram_chat_id', 'telegram_connect_token'])]
+#[Fillable(['name', 'email', 'birthdate', 'locale', 'calendar', 'timezone', 'streak_nudge_enabled', 'default_currency', 'password', 'email_verified_at', 'last_active_at', 'signup_source', 'telegram_chat_id', 'telegram_connect_token'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'telegram_chat_id', 'telegram_connect_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -108,6 +110,38 @@ class User extends Authenticatable implements MustVerifyEmail
     public function features(): HasMany
     {
         return $this->hasMany(UserFeature::class);
+    }
+
+    /**
+     * @return HasMany<UserMilestone, User>
+     */
+    public function milestones(): HasMany
+    {
+        return $this->hasMany(UserMilestone::class);
+    }
+
+    /**
+     * @return HasMany<SavingsGoal, User>
+     */
+    public function savingsGoals(): HasMany
+    {
+        return $this->hasMany(SavingsGoal::class);
+    }
+
+    /**
+     * @return HasMany<NoSpendDay, User>
+     */
+    public function noSpendDays(): HasMany
+    {
+        return $this->hasMany(NoSpendDay::class);
+    }
+
+    /**
+     * @return HasOne<UserStreak, User>
+     */
+    public function streak(): HasOne
+    {
+        return $this->hasOne(UserStreak::class);
     }
 
     /**
@@ -246,6 +280,26 @@ class User extends Authenticatable implements MustVerifyEmail
         return filled($this->telegram_chat_id);
     }
 
+    /**
+     * The user's own timezone, falling back to UTC for a null or unrecognised one.
+     */
+    public function resolvedTimezone(): string
+    {
+        return FrontendLocalization::normalizeTimezone($this->timezone);
+    }
+
+    /**
+     * Today, as the user experiences it.
+     *
+     * Every day-boundary decision goes through here rather than `Carbon::today()`,
+     * which is UTC — the difference is what makes a Tehran user's streak roll over
+     * at midnight instead of 03:30.
+     */
+    public function localToday(): CarbonImmutable
+    {
+        return CarbonImmutable::now($this->resolvedTimezone())->startOfDay();
+    }
+
     public function isAdmin(): bool
     {
         $adminEmail = trim((string) config('app.admin_email'));
@@ -304,6 +358,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'birthdate' => 'date:Y-m-d',
             'email_verified_at' => 'datetime',
             'last_active_at' => 'datetime',
+            'streak_nudge_enabled' => 'boolean',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];

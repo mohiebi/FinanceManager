@@ -56,6 +56,10 @@ return [
         'label' => 'Portfolio',
         'description' => 'Sieh dein Nettovermögen sowie Gewinn und Verlust über alle Anlagen hinweg.',
     ],
+    'gamification' => [
+        'label' => 'Flugbuch',
+        'description' => 'Halte eine Serie an Eintragungen, markiere Tage ohne Ausgaben und sieh, wie vollstaendig jeder Monat erfasst ist. Nie darum, wie viel du ausgibst — nur darum, die Aufzeichnungen lueckenlos zu halten.',
+    ],
     'ai_assistant' => [
         'label' => 'KI-Assistent',
         'description' => 'Verbinde KI-Tools, die deine Finanzdaten lesen und Aenderungen zur Freigabe vorschlagen koennen.',

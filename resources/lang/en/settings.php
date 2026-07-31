@@ -283,6 +283,8 @@ return [
             'gregorian' => 'Gregorian',
             'jalali' => 'Jalali',
         ],
+        'timezone' => 'Time zone',
+        'timezone_hint' => 'Decides when your day starts and ends, and when reminders reach you.',
         'default_currency' => 'Currency',
         'no_default_currency' => 'Not set',
     ],

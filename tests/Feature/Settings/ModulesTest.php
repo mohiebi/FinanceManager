@@ -14,7 +14,7 @@ test('the modules page lists every toggleable module at its default state', func
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/Modules')
-            ->has('modules', 6)
+            ->has('modules', 7)
             ->has('coreModules', 2)
             ->where('modules.0.key', Feature::Bills->value)
             ->where('modules.0.enabled', false)
@@ -24,15 +24,24 @@ test('the modules page lists every toggleable module at its default state', func
             ->where('modules.2.key', Feature::Portfolio->value)
             ->where('modules.2.enabled', false)
             ->where('modules.2.requires', ['Investments'])
-            ->where('modules.3.key', Feature::AiAssistant->value)
-            ->where('modules.3.enabled', false)
-            ->where('modules.4.key', Feature::TelegramBot->value)
+            // The one optional module that ships on: it has no page of its own,
+            // so shipping it off would mean nobody ever finds it. It also has no
+            // sidebar entry, so the hide-from-menu control must not be offered.
+            ->where('modules.3.key', Feature::Gamification->value)
+            ->where('modules.3.enabled', true)
+            ->where('modules.3.in_nav', false)
+            // Depends only on Transactions, which is core — so it advertises no
+            // requirement even though it has one.
+            ->where('modules.3.requires', [])
+            ->where('modules.4.key', Feature::AiAssistant->value)
             ->where('modules.4.enabled', false)
+            ->where('modules.5.key', Feature::TelegramBot->value)
+            ->where('modules.5.enabled', false)
             // Advertised on the page, but switched from its own — the card is a
             // link rather than a toggle.
-            ->where('modules.5.key', Feature::Vault->value)
-            ->where('modules.5.enabled', false)
-            ->where('modules.5.manage_url', route('security.edit'))
+            ->where('modules.6.key', Feature::Vault->value)
+            ->where('modules.6.enabled', false)
+            ->where('modules.6.manage_url', route('security.edit'))
         );
 });
 

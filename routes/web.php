@@ -12,9 +12,11 @@ use App\Http\Controllers\InvestmentAssetController;
 use App\Http\Controllers\InvestmentController;
 use App\Http\Controllers\InvestmentExportController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\NoSpendDayController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\PortfolioExportController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SavingsGoalController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionExportController;
 use App\Http\Controllers\TransactionImportController;
@@ -116,6 +118,12 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
 
     Route::get('reports', ReportController::class)->name('report');
 
+    Route::middleware(EnsureFeatureEnabled::class.':gamification')->group(function () {
+        Route::post('no-spend-days', [NoSpendDayController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('no-spend-days.store');
+    });
+
     Route::middleware(EnsureFeatureEnabled::class.':investments')->group(function () {
         Route::post('investment-assets', [InvestmentAssetController::class, 'store'])->name('investment-assets.store');
         Route::get('investments/export', InvestmentExportController::class)
@@ -135,6 +143,12 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
             ->middleware(RejectWhenVaultArmed::class)
             ->name('portfolio.export');
         Route::get('portfolio', PortfolioController::class)->name('portfolio');
+
+        // Deliberately not behind RejectWhenVaultArmed: goals are sealed in the
+        // browser and their progress is computed there, so working with the
+        // vault armed is the point rather than an edge case.
+        Route::resource('savings-goals', SavingsGoalController::class)
+            ->only(['store', 'update', 'destroy']);
     });
 
     Route::middleware(EnsureFeatureEnabled::class.':bills')->group(function () {

@@ -25,8 +25,14 @@ const { t } = useI18n();
 const locale = computed(() => (page.props.locale as string | undefined) ?? 'en');
 
 const illustration = computed(() => {
-    if (locale.value === 'fa') return AuthIllustrationFa;
-    if (locale.value === 'de') return AuthIllustrationDe;
+    if (locale.value === 'fa') {
+return AuthIllustrationFa;
+}
+
+    if (locale.value === 'de') {
+return AuthIllustrationDe;
+}
+
     return AuthIllustration;
 });
 </script>

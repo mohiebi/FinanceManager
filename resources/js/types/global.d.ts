@@ -24,6 +24,7 @@ declare module '@inertiajs/core' {
             locale: 'en' | 'fa' | 'de';
             dir: 'ltr' | 'rtl';
             calendar: 'gregorian' | 'jalali';
+            timezone: string;
             translations: Record<string, unknown>;
             features: FeatureMap | null;
             /** Null until a vault exists for this user; see Stage 6. */

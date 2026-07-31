@@ -4,6 +4,7 @@ import {
     Bot,
     ChartPie,
     Lock,
+    Plane,
     Receipt,
     ReceiptText,
     ShieldCheck,
@@ -36,6 +37,7 @@ defineOptions({
 const icons: Record<string, Component> = {
     Bot,
     ChartPie,
+    Plane,
     Receipt,
     ReceiptText,
     ShieldCheck,
@@ -191,7 +193,7 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                 </p>
 
                 <label
-                    v-else-if="!module.enabled"
+                    v-else-if="!module.enabled && module.in_nav"
                     class="mt-3 flex cursor-pointer items-center gap-2 border-t border-white/5 pt-3"
                 >
                     <Checkbox

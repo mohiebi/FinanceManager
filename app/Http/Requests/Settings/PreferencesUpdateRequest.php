@@ -22,6 +22,7 @@ class PreferencesUpdateRequest extends FormRequest
         return [
             'locale' => ['required', 'string', Rule::in(FrontendLocalization::locales())],
             'calendar' => ['required', 'string', Rule::in(FrontendLocalization::calendars())],
+            'timezone' => ['required', 'string', Rule::in(FrontendLocalization::timezones())],
             'default_currency' => ['nullable', 'string', Rule::in(array_column(Currency::cases(), 'value'))],
         ];
     }

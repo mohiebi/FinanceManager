@@ -5,6 +5,7 @@ namespace App\Actions\Auth;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Support\AcquisitionSource;
+use App\Support\FrontendLocalization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -73,6 +74,7 @@ class GoogleAuthBroker
                     'email' => $email,
                     'password' => null,
                     'email_verified_at' => now(),
+                    'timezone' => FrontendLocalization::DEFAULT_TIMEZONE,
                     'signup_source' => AcquisitionSource::pull(),
                 ]);
             } else {

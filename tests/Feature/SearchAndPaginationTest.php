@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\TransactionListing;
@@ -122,4 +123,28 @@ test('an empty collection still reports one page', function () {
     expect($paginator->lastPage())->toBe(1)
         ->and($paginator->total())->toBe(0)
         ->and($paginator->items())->toBe([]);
+});
+
+test('category=none filters to uncategorised transactions', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->cost()->forUser($user)->create();
+    $today = Carbon::today()->toDateString();
+
+    Transaction::factory()->cost()->for($user)->create([
+        'occurred_at' => $today,
+        'category_id' => null,
+    ]);
+    Transaction::factory()->cost()->for($user)->for($category)->create([
+        'occurred_at' => $today,
+    ]);
+
+    // The logbook's uncategorised count links here; without the sentinel the
+    // number would be a dead end.
+    $this->actingAs($user)
+        ->get(route('transactions.index', ['category' => 'none']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.category', 'none')
+            ->has('transactions.costs', 1)
+            ->etc());
 });

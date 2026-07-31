@@ -33,6 +33,13 @@ class UserFactory extends Factory
             'birthdate' => fake()->dateTimeBetween('-70 years', '-18 years')->format('Y-m-d'),
             'locale' => 'en',
             'calendar' => 'gregorian',
+            'timezone' => 'UTC',
+            'streak_nudge_enabled' => false,
+            // Declared even though it is null: a DB default is not present on a
+            // freshly-created instance, so strict mode throws the moment
+            // anything reads it in the same request — which the notifications
+            // page now does via hasTelegram().
+            'telegram_chat_id' => null,
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,
@@ -56,6 +63,23 @@ class UserFactory extends Factory
         return $this->afterCreating(function (User $user) use ($features): void {
             foreach ($features as $feature) {
                 app(UpdateUserFeature::class)($user, $feature, true);
+            }
+        });
+    }
+
+    /**
+     * Switch feature modules off for the user.
+     *
+     * Most modules ship off, so tests get that for free by omitting
+     * {@see self::withModules()}. The flight log does not — it has no page to be
+     * discovered from, so it defaults on — and anything asserting how the app
+     * behaves without it has to say so.
+     */
+    public function withoutModules(Feature ...$features): static
+    {
+        return $this->afterCreating(function (User $user) use ($features): void {
+            foreach ($features as $feature) {
+                app(UpdateUserFeature::class)($user, $feature, false);
             }
         });
     }

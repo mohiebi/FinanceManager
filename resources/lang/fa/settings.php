@@ -285,6 +285,8 @@ return [
             'gregorian' => 'میلادی',
             'jalali' => 'شمسی',
         ],
+        'timezone' => 'منطقه‌ی زمانی',
+        'timezone_hint' => 'تعیین می‌کند روز شما کی شروع و کی تمام می‌شود و یادآوری‌ها کی به دستتان می‌رسد.',
         'default_currency' => 'ارز',
         'no_default_currency' => 'تنظیم نشده',
     ],

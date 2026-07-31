@@ -166,6 +166,8 @@ test('the client payload carries the holdings and the public prices, and nothing
             // Plaintext, and the only thing telling the browser which rows are
             // disposals — the sign is inside the ciphertext.
             'kind',
+            // Also plaintext, and what savings goals use to date the baseline.
+            'occurred_at',
             'quantity',
             'cost_basis',
             'cost_basis_currency',

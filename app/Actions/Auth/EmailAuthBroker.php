@@ -156,6 +156,7 @@ class EmailAuthBroker
             'birthdate' => $attributes['birthdate'],
             'password' => $attributes['password'],
             'email_verified_at' => now(),
+            'timezone' => FrontendLocalization::DEFAULT_TIMEZONE,
             'signup_source' => AcquisitionSource::pull(),
         ]);
 

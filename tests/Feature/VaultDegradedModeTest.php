@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Features\UpdateUserFeature;
+use App\Actions\Goals\BuildGoalProgress;
 use App\Actions\Vault\ArmVault;
 use App\Enums\AssetType;
 use App\Enums\Feature;
@@ -9,8 +10,12 @@ use App\Models\Category;
 use App\Models\InvestmentAsset;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Support\Encryption\EncryptedValue;
+use App\Support\Encryption\SealedField;
 use App\Support\Encryption\UserCrypto;
 use App\Support\Encryption\UserKeyRing;
+use App\Support\StreakCalculator;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -509,5 +514,142 @@ test('the report page still totals server-side without a vault', function () {
             ->where('summary.cost', '1250.75')
             ->where('transactions.costs.0.display_amount', '1250.75')
             ->where('rates', null)
+            ->etc());
+});
+
+test('the streak reads identically with the vault armed', function () {
+    Carbon::setTestNow(Carbon::parse('2026-01-01 00:00:00'));
+
+    try {
+        $plaintext = User::factory()->create();
+        $armed = User::factory()->create();
+        $dek = armDegradedVault($armed);
+
+        $category = Category::factory()->cost()->create();
+
+        foreach (['2026-07-28', '2026-07-30'] as $date) {
+            Transaction::factory()->cost()->for($plaintext)->for($category)->create([
+                'occurred_at' => $date,
+            ]);
+
+            // The armed user's amount and title never reach the server in the
+            // clear, but occurred_at is plaintext for both — which is the whole
+            // reason the streak is built on dates rather than money.
+            $armed->transactions()->create(SealedField::wrap([
+                'type' => 'cost',
+                'amount' => clientEncrypt($armed, $dek, 'amount', '1250.00'),
+                'title' => clientEncrypt($armed, $dek, 'title', 'Taxi'),
+                'currency' => 'toman',
+                'category_id' => null,
+                'occurred_at' => $date,
+            ], ['amount', 'title']));
+        }
+
+        $today = CarbonImmutable::parse('2026-07-30');
+        $calculator = app(StreakCalculator::class);
+
+        // 2026-07-29 is missing for both, and forgiven for both.
+        expect($calculator->for($armed, $today)->toArray())
+            ->toBe($calculator->for($plaintext, $today)->toArray())
+            ->and($calculator->for($armed, $today)->currentRun)->toBe(3);
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('a savings goal target is sealed by the browser and stored verbatim', function () {
+    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $dek = armDegradedVault($user);
+
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+    // 8 decimals, not 2: a crypto-sized target rounded to 2 would be zero.
+    $target = clientEncrypt($user, $dek, 'target_quantity', '0.00012345', 'savings_goals');
+
+    $this->actingAs($user)
+        ->post(route('savings-goals.store'), [
+            'investment_asset_id' => $asset->id,
+            'target_quantity' => $target,
+            'target_date' => now()->addDays(180)->toDateString(),
+        ])
+        ->assertRedirect();
+
+    // Stored exactly as the browser sealed it — the server has no key to re-encrypt with.
+    expect(DB::table('savings_goals')->where('user_id', $user->id)->value('target_quantity'))
+        ->toBe($target);
+});
+
+test('the goals payload ships sealed targets with every date already resolved', function () {
+    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $dek = armDegradedVault($user);
+
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    $user->savingsGoals()->create(SealedField::wrap([
+        'investment_asset_id' => $asset->id,
+        'target_quantity' => clientEncrypt($user, $dek, 'target_quantity', '3.00000000', 'savings_goals'),
+        'started_on' => '2026-06-01',
+        'target_date' => '2026-10-18',
+    ], ['target_quantity']));
+
+    $payload = app(BuildGoalProgress::class)
+        ->clientPayload($user, CarbonImmutable::parse('2026-07-30'));
+
+    // Dates are never encrypted, so the server resolves the whole window and the
+    // browser never does calendar maths.
+    expect($payload['today'])->toBe('2026-07-30')
+        ->and($payload['goals'][0]['elapsed'])->toBe(59)
+        ->and($payload['goals'][0]['total'])->toBe(139)
+        ->and($payload['goals'][0]['started_on'])->toBe('2026-06-01')
+        ->and($payload['goals'][0]['target_date_display'])->not->toBeEmpty()
+        // The one thing the server genuinely cannot read.
+        ->and($payload['goals'][0]['target_quantity'])->toBeInstanceOf(
+            EncryptedValue::class,
+        );
+});
+
+test('the server drops a goal it cannot read rather than reporting a wrong target', function () {
+    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $dek = armDegradedVault($user);
+
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    $user->savingsGoals()->create(SealedField::wrap([
+        'investment_asset_id' => $asset->id,
+        'target_quantity' => clientEncrypt($user, $dek, 'target_quantity', '3.00000000', 'savings_goals'),
+        'started_on' => '2026-06-01',
+        'target_date' => '2026-10-18',
+    ], ['target_quantity']));
+
+    // The plaintext path is the wrong one to call here; if a controller ever
+    // forgets the vault branch, an empty list is the safe failure.
+    $progress = app(BuildGoalProgress::class)
+        ->handle($user, collect(), CarbonImmutable::parse('2026-07-30'));
+
+    expect($progress)->toBeEmpty();
+});
+
+test('the armed portfolio page ships sealed goals eagerly', function () {
+    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $dek = armDegradedVault($user);
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    $user->savingsGoals()->create(SealedField::wrap([
+        'investment_asset_id' => $asset->id,
+        'target_quantity' => clientEncrypt($user, $dek, 'target_quantity', '3.00000000', 'savings_goals'),
+        'started_on' => '2026-06-01',
+        'target_date' => '2026-10-18',
+    ], ['target_quantity']));
+
+    $this->actingAs($user)
+        ->get(route('portfolio'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Portfolio')
+            // `goals` must still travel as an explicit null: the page tells a
+            // deferred prop that has not landed apart from an empty list, and a
+            // missing key would leave it showing a skeleton forever.
+            ->where('goals', null)
+            ->has('vaultGoals.goals', 1)
+            ->has('vaultGoals.today')
             ->etc());
 });

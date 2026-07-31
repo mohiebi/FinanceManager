@@ -52,6 +52,7 @@ class HandleInertiaRequests extends Middleware
             'locales' => FrontendLocalization::locales(),
             'dir' => FrontendLocalization::direction($locale),
             'calendar' => $calendar,
+            'timezone' => FrontendLocalization::normalizeTimezone($request->user()?->timezone),
             'translations' => FrontendLocalization::messages($locale),
             // Eager, not deferred: the nav is built from this, and deferring would
             // make menu items pop in after first paint. Costs one memoized query

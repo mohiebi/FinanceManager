@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Goals\BuildGoalProgress;
 use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Enums\Currency;
+use App\Models\InvestmentAsset;
+use App\Models\User;
 use App\Services\AssetPriceService;
 use App\Support\CurrencyPreference;
 use Illuminate\Http\Request;
@@ -16,6 +19,7 @@ class PortfolioController extends Controller
         Request $request,
         AssetPriceService $priceService,
         BuildPortfolioBreakdown $breakdownBuilder,
+        BuildGoalProgress $goalBuilder,
     ): Response {
         $user = $request->user();
         $selectedCurrency = CurrencyPreference::resolve($request);
@@ -40,9 +44,12 @@ class PortfolioController extends Controller
             return Inertia::render('Portfolio', [
                 ...$common,
                 'vaultPortfolio' => $breakdownBuilder->clientPayload($user, $selectedCurrency),
+                'vaultGoals' => $goalBuilder->clientPayload($user),
                 'pricesAvailable' => $priceService->pricesAvailable(),
                 'assets' => [],
                 'summary' => null,
+                'goals' => null,
+                'assetOptions' => Inertia::defer(fn () => $this->assetOptions($user)),
             ]);
         }
 
@@ -52,7 +59,31 @@ class PortfolioController extends Controller
             ...$common,
             'assets' => Inertia::defer(fn () => $breakdownBuilder->handle($allEntries, $selectedCurrency)['assets']),
             'summary' => Inertia::defer(fn () => $breakdownBuilder->handle($allEntries, $selectedCurrency)['summary']),
+            'goals' => Inertia::defer(fn () => $goalBuilder->handle($user, $allEntries)),
             'pricesAvailable' => Inertia::defer(fn () => $priceService->pricesAvailable()),
+            // Deferred: only the create-goal dialog reads this, and most visits
+            // never open it.
+            'assetOptions' => Inertia::defer(fn () => $this->assetOptions($user)),
         ]);
+    }
+
+    /**
+     * Assets a goal may be denominated in — the same set the investment form
+     * offers, so a user cannot set a goal on something they cannot record.
+     *
+     * @return array<int, array{id: int, label: string, unit: string}>
+     */
+    private function assetOptions(User $user): array
+    {
+        return InvestmentAsset::query()
+            ->availableFor($user)
+            ->orderBy('name')
+            ->get()
+            ->map(fn (InvestmentAsset $asset): array => [
+                'id' => $asset->id,
+                'label' => $asset->label(),
+                'unit' => $asset->unit,
+            ])
+            ->all();
     }
 }

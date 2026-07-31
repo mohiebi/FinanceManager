@@ -1,0 +1,64 @@
+<?php
+
+return [
+    'title' => 'Flugbuch',
+    'run' => 'Tage in Folge erfasst',
+    'run_none' => 'Noch keine Serie — erfasse irgendetwas, um eine zu starten.',
+    'best_run' => 'Beste Serie · {days} Tage',
+    'logged_today' => 'Heute ist erfasst.',
+    'open_today' => 'Heute ist noch offen.',
+    'record_within_reach' => 'Erfasse heute, und es ist eine neue Bestmarke.',
+    'grace_left' => '{count} Joker diese Woche uebrig|{count} Joker diese Woche uebrig',
+    'grace_none' => 'Kein Joker mehr diese Woche',
+    'add_transaction' => 'Transaktion erfassen',
+    'no_spend_action' => 'Heute nichts ausgegeben',
+    'no_spend_recorded' => 'Heute als ausgabenfrei erfasst. Deine Serie laeuft weiter.',
+    'no_spend_conflict' => 'Du hast heute schon etwas erfasst, der Tag zaehlt also ohnehin.',
+
+    'states' => [
+        'logged' => 'Erfasst',
+        'no_spend' => 'Nichts ausgegeben',
+        'grace' => 'Joker genutzt',
+        'missed' => 'Verpasst',
+        'open' => 'Heute',
+    ],
+
+    'logbook' => [
+        'title' => 'Logbuch {month}',
+        'elapsed' => '{elapsed} von {total} Tagen vergangen',
+        'complete' => '{percent}% vollstaendig',
+        'complete_short' => 'Vollstaendig',
+        'days_covered' => 'Tage mit Eintrag',
+        'uncategorised' => 'Ohne Kategorie',
+        'bills' => 'Rechnungen abgeglichen',
+        'sort_uncategorised' => '{count} Eintrag zuordnen|{count} Eintraege zuordnen',
+    ],
+
+    'ranks' => [
+        'cadet' => 'Flugschueler',
+        'pilot' => 'Pilot',
+        'captain' => 'Kapitaen',
+        'progress' => '{days} Tage erfasst · noch {remaining} bis zum naechsten Rang',
+        'top' => '{days} Tage erfasst',
+    ],
+
+    'goals' => [
+        'new' => 'Neues Ziel',
+        'asset' => 'Sparen in',
+        'asset_placeholder' => 'Wert auswaehlen',
+        'target' => 'Zielmenge',
+        'target_date' => 'Bis',
+        'label' => 'Name',
+        'label_placeholder' => 'Nowruz-Fonds',
+        'title' => 'Sparziele',
+        'on_track' => 'Im Plan',
+        'behind_pace' => 'Hinter dem Plan',
+        'of_target' => 'von {target} {unit}',
+        'remaining' => 'Noch {days} Tage · {amount} {unit} pro Tag bis zum Ziel',
+        'window_closed' => 'Das Zieldatum ist verstrichen.',
+        'saved' => 'Ziel gespeichert.',
+        'deleted' => 'Ziel entfernt.',
+        'empty' => 'Noch keine Ziele. Setze eines in dem Wert, in dem du wirklich sparst — Gramm Gold oder Dollar, nicht Toman, damit die Inflation es nicht still aufzehrt.',
+    ],
+
+];

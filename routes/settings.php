@@ -28,6 +28,7 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     Route::get('settings/notifications', [NotificationController::class, 'edit'])->name('notifications.edit');
     Route::patch('settings/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::patch('settings/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::patch('settings/notifications/preferences', [NotificationController::class, 'updatePreferences'])->name('notifications.preferences');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
 

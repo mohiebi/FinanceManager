@@ -656,6 +656,54 @@
                 </p>
             </div>
         </Deferred>
+
+        <!-- ── Savings goals ─────────────────────────────────────────── -->
+        <!-- Outside <Deferred> on purpose: goals travel on their own key, and a
+             goal in grams stays meaningful even when no price is available. -->
+        <section class="mx-[18px] mb-[18px]">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <h2
+                    class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
+                >
+                    {{ t('gamification.goals.title') }}
+                </h2>
+                <button
+                    type="button"
+                    class="rounded-full bg-white/8 px-3 py-1 text-xs text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white"
+                    @click="goalDialogOpen = true"
+                >
+                    {{ t('gamification.goals.new') }}
+                </button>
+            </div>
+
+            <div
+                v-if="goalsLoading"
+                class="grid gap-[18px] md:grid-cols-2"
+                aria-busy="true"
+            >
+                <div
+                    v-for="index in 2"
+                    :key="index"
+                    class="h-[210px] animate-pulse rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10"
+                />
+            </div>
+
+            <div v-else-if="goals.length > 0" class="grid gap-[18px] md:grid-cols-2">
+                <GoalCard v-for="goal in goals" :key="goal.id" :goal="goal" />
+            </div>
+
+            <p
+                v-else
+                class="rounded-[22px] bg-[#1a1a1a] px-6 py-8 text-center text-sm text-[#989898] ring-1 ring-white/10"
+            >
+                {{ t('gamification.goals.empty') }}
+            </p>
+        </section>
+
+        <GoalDialog
+            v-model:open="goalDialogOpen"
+            :asset-options="props.assetOptions ?? []"
+        />
     </div>
 </template>
 
@@ -666,13 +714,21 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
 import PulseChart from '@/components/charts/PulseChart.vue';
+import GoalCard from '@/components/gamification/GoalCard.vue';
+import GoalDialog from '@/components/gamification/GoalDialog.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { useRelativeTime } from '@/composables/useRelativeTime';
+import { useVaultGoals } from '@/composables/useVaultGoals';
+import type { VaultGoalsPayload } from '@/composables/useVaultGoals';
 import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
 import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
 import type { CurrencyCode } from '@/lib/money';
 import type { PortfolioAsset, PortfolioSummary } from '@/lib/portfolio';
 import { dashboard, portfolio } from '@/routes';
+import type {
+    AssetOption,
+    GoalCard as GoalCardData,
+} from '@/types/gamification';
 
 type CurrencyOption = {
     label: string;
@@ -691,15 +747,43 @@ const props = defineProps<{
      * holdings, still encrypted, plus the public prices needed to value them.
      */
     vaultPortfolio?: VaultPortfolioPayload | null;
+    /** Deferred; null under the vault, where `vaultGoals` carries them instead. */
+    goals?: GoalCardData[] | null;
+    /** Sent instead of `goals` when the vault is armed — targets still sealed. */
+    vaultGoals?: VaultGoalsPayload | null;
+    assetOptions?: AssetOption[];
 }>();
 
 const selectedCurrency = ref(props.selectedCurrency);
 const { t } = useI18n();
 
-const { breakdown, decrypting } = useVaultPortfolio(
+const { breakdown, entries, decrypting } = useVaultPortfolio(
     () => props.vaultPortfolio,
     () => selectedCurrency.value as CurrencyCode,
 );
+
+// Reuses the decryption pass above rather than opening the same rows twice.
+const { goals: vaultGoalCards, decrypting: goalsDecrypting } = useVaultGoals(
+    () => props.vaultGoals,
+    () => entries.value,
+);
+
+const goals = computed<GoalCardData[]>(
+    () => vaultGoalCards.value ?? props.goals ?? [],
+);
+
+/**
+ * Undefined means the deferred prop has not landed yet; null means the vault
+ * sent no goals. Only the second is an empty list — showing the "no goals yet"
+ * invitation to someone who has three is worse than a skeleton.
+ */
+const goalsLoading = computed(
+    () =>
+        goalsDecrypting.value ||
+        (props.vaultGoals === undefined && props.goals === undefined),
+);
+
+const goalDialogOpen = ref(false);
 
 const assets = computed(() => breakdown.value?.assets ?? props.assets ?? []);
 const summary = computed(

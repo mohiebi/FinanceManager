@@ -16,6 +16,7 @@ enum Feature: string
     case Bills = 'bills';
     case Investments = 'investments';
     case Portfolio = 'portfolio';
+    case Gamification = 'gamification';
     case AiAssistant = 'ai_assistant';
     case TelegramBot = 'telegram_bot';
     case Vault = 'vault';
@@ -35,6 +36,7 @@ enum Feature: string
             self::Bills => 'Bills',
             self::Investments => 'Investments',
             self::Portfolio => 'Portfolio',
+            self::Gamification => 'Flight log',
             self::AiAssistant => 'AI Assistant',
             self::TelegramBot => 'Telegram Bot',
             self::Vault => 'Private vault',
@@ -80,7 +82,7 @@ enum Feature: string
     {
         return match ($this) {
             self::Portfolio => [self::Investments],
-            self::Bills, self::Reports => [self::Transactions],
+            self::Bills, self::Reports, self::Gamification => [self::Transactions],
             default => [],
         };
     }
@@ -130,6 +132,24 @@ enum Feature: string
     }
 
     /**
+     * Whether this module owns an entry in the primary navigation.
+     *
+     * Not every module is a page. The flight log renders on the dashboard and
+     * the vault is a security setting, so neither has anywhere for a sidebar
+     * item to point — which also means the "hide from menu" promo state is
+     * meaningless for them and must not be offered.
+     *
+     * Kept in step with the entries in resources/js/composables/useModuleNav.ts.
+     */
+    public function appearsInNav(): bool
+    {
+        return match ($this) {
+            self::Gamification, self::Vault => false,
+            default => true,
+        };
+    }
+
+    /**
      * The reverse dependency edge — features that break if this one is turned off.
      *
      * @return array<int, self>
@@ -142,21 +162,30 @@ enum Feature: string
         ));
     }
 
+    /**
+     * Whether a user who has never touched the modules page has this switched on.
+     *
+     * Core features always are. The flight log also is, unlike every other
+     * optional module: it has no page of its own to discover, so shipping it off
+     * would mean nobody ever sees it. It stays switched off-able for the people
+     * who find streaks patronising in a finance tool.
+     */
     public function enabledByDefault(): bool
     {
-        return $this->isCore();
+        return $this->isCore() || $this === self::Gamification;
     }
 
     /**
      * Whether a disabled module advertises itself in the nav by default.
      *
-     * Always true — discovery is the whole point of the promo state, and it matches
-     * the `show_promo` column default. Only ever consulted while a feature is
-     * disabled, so it says nothing about modules that ship switched on.
+     * True wherever there is a nav to advertise in — discovery is the whole point
+     * of the promo state, and it matches the `show_promo` column default. Only
+     * ever consulted while a feature is disabled, so it says nothing about
+     * modules that ship switched on.
      */
     public function promoByDefault(): bool
     {
-        return true;
+        return $this->appearsInNav();
     }
 
     /** Name of the lucide-vue-next icon used by the sidebar and modules page. */
@@ -168,6 +197,7 @@ enum Feature: string
             self::Bills => 'Receipt',
             self::Investments => 'TrendingUp',
             self::Portfolio => 'Wallet',
+            self::Gamification => 'Plane',
             self::AiAssistant => 'Sparkles',
             self::TelegramBot => 'Bot',
             self::Vault => 'ShieldCheck',

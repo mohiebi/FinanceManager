@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Gamification\AwardMilestones;
 use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Actions\Transactions\CurrencyConverter;
 use App\Actions\Transactions\SaveTransaction;
@@ -20,6 +21,8 @@ use App\Models\Transaction;
 use App\Services\AssetPriceService;
 use App\Support\CurrencyPreference;
 use App\Support\FrontendLocalization;
+use App\Support\LogbookCompleteness;
+use App\Support\StreakCalculator;
 use App\Support\TransactionListing;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -42,6 +45,9 @@ class TransactionController extends Controller
         CurrencyConverter $currencyConverter,
         BuildPortfolioBreakdown $breakdownBuilder,
         AssetPriceService $priceService,
+        StreakCalculator $streakCalculator,
+        LogbookCompleteness $completeness,
+        AwardMilestones $awardMilestones,
     ): Response {
         $user = $request->user();
         $selectedCurrency = CurrencyPreference::resolve($request);
@@ -75,6 +81,20 @@ class TransactionController extends Controller
                 ])
                 ->values()
                 ->all();
+        }
+
+        // Not deferred: one indexed query over plaintext dates, and the card sits
+        // above the fold. Deferring would trade a cheap query for a visible pop-in.
+        if ($features->enabled(Feature::Gamification)) {
+            $streak = $streakCalculator->for($user);
+            $logbook = $completeness->for($user);
+
+            // Nothing writes when these become true, so they are recognised on the
+            // next visit — which is when the user is there to see it anyway.
+            $awardMilestones->afterDashboard($user, $streak, $completeness->previousMonthWasComplete($user));
+
+            $moduleProps['streak'] = $streak->toArray();
+            $moduleProps['logbook'] = $logbook;
         }
 
         if ($features->enabled(Feature::Bills)) {
@@ -170,6 +190,9 @@ class TransactionController extends Controller
         $selectedCategoryId = $withFilters
             ? $this->resolveCategoryId($request)
             : null;
+        // `category=none` is the one non-numeric value the filter accepts, so the
+        // logbook's uncategorised count has somewhere to send the user.
+        $uncategorisedOnly = $withFilters && $request->query('category') === 'none';
         $search = $withFilters ? trim((string) $request->query('search')) : '';
         $fromDate = $withFilters ? $this->parseDate((string) $request->query('from')) : null;
         $toDate = $withFilters ? $this->parseDate((string) $request->query('to')) : null;
@@ -192,6 +215,10 @@ class TransactionController extends Controller
             ->when(
                 $selectedCategoryId !== null,
                 fn (Builder $query) => $query->where('category_id', $selectedCategoryId),
+            )
+            ->when(
+                $uncategorisedOnly,
+                fn (Builder $query) => $query->whereNull('category_id'),
             )
             ->when(
                 $fromDate instanceof Carbon,
@@ -258,7 +285,7 @@ class TransactionController extends Controller
             'filters' => [
                 'search' => $search,
                 'type' => $selectedType?->value ?? 'all',
-                'category' => $selectedCategoryId,
+                'category' => $uncategorisedOnly ? 'none' : $selectedCategoryId,
                 'from' => $fromDate?->toDateString() ?? '',
                 'to' => $toDate?->toDateString() ?? '',
             ],

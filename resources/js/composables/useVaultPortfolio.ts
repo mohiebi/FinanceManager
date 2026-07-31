@@ -21,6 +21,8 @@ export type VaultPortfolioPayload = {
         investment_asset_id: number;
         /** Plaintext — the sign that marks a disposal is inside the ciphertext. */
         kind: 'buy' | 'sell';
+        /** Plaintext too — savings goals date their baseline from it. */
+        occurred_at: string;
         quantity: Encrypted<string | number>;
         cost_basis: Encrypted<string | number> | null;
         cost_basis_currency: string | null;
@@ -31,9 +33,18 @@ export type VaultPortfolioPayload = {
     rates: Rates;
 };
 
+export type DecryptedEntry = PortfolioEntry & { occurred_at: string };
+
 export type UseVaultPortfolioReturn = {
     breakdown: ComputedRef<PortfolioBreakdown | null>;
     snapshot: ComputedRef<PortfolioSnapshot | null>;
+    /**
+     * The decrypted entries behind the breakdown.
+     *
+     * Exposed so savings goals can reuse this one decryption pass instead of
+     * instantiating a second composable over the same rows.
+     */
+    entries: ComputedRef<DecryptedEntry[] | null>;
     /**
      * True while holdings are still sealed.
      *
@@ -58,7 +69,7 @@ export function useVaultPortfolio(
 ): UseVaultPortfolioReturn {
     const { revealAsync, trackKey } = useVault();
 
-    const decrypted = ref<PortfolioEntry[] | null>(null);
+    const decrypted = ref<DecryptedEntry[] | null>(null);
 
     watchEffect(async () => {
         // Tracked before any await, so unlocking fills the net worth card in
@@ -94,6 +105,7 @@ export function useVaultPortfolio(
                 return {
                     investment_asset_id: entry.investment_asset_id,
                     kind: entry.kind,
+                    occurred_at: entry.occurred_at,
                     quantity,
                     cost_basis:
                         costBasis === undefined ? null : Number(costBasis) || 0,
@@ -140,6 +152,7 @@ export function useVaultPortfolio(
 
     return {
         breakdown,
+        entries: computed(() => decrypted.value),
         snapshot: computed(() =>
             breakdown.value === null ? null : buildSnapshot(breakdown.value),
         ),

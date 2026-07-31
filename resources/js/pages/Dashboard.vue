@@ -172,6 +172,21 @@
                         </p>
                     </article>
                 </div>
+
+                <!-- ── Flight log ── -->
+                <!-- Plain prop rather than deferred: one indexed query, and a
+                     <Deferred> key that never arrives would skeleton forever. -->
+                <div
+                    v-if="props.streak && props.logbook"
+                    class="grid items-stretch gap-[18px] xl:grid-cols-2"
+                >
+                    <StreakCard
+                        :streak="props.streak"
+                        @add-transaction="openCreateForm('cost')"
+                    />
+                    <CompletenessRing :logbook="props.logbook" />
+                </div>
+
                 <div class="grid items-stretch gap-[18px] xl:grid-cols-3">
                     <!-- ── Spending by category (donut) ── -->
                     <div
@@ -1045,6 +1060,8 @@ import PulseChart from '@/components/charts/PulseChart.vue';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
+import CompletenessRing from '@/components/gamification/CompletenessRing.vue';
+import StreakCard from '@/components/gamification/StreakCard.vue';
 import TransactionDialog from '@/components/transactions/TransactionDialog.vue';
 import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
 import { useRelativeTime } from '@/composables/useRelativeTime';
@@ -1058,6 +1075,7 @@ import { index as billsIndex } from '@/routes/bills';
 import { pay as payBill } from '@/routes/bills/occurrences';
 import { index as investmentsIndex } from '@/routes/investments';
 import { index as transactionsIndex } from '@/routes/transactions';
+import type { Logbook, Streak } from '@/types/gamification';
 import type { Encrypted } from '@/types/vault';
 
 type TransactionType = 'cost' | 'income';
@@ -1163,6 +1181,8 @@ const props = defineProps<{
         occurred_at: string;
     }[];
     // Module props — absent entirely when the owning module is switched off.
+    streak?: Streak;
+    logbook?: Logbook;
     upcomingBills?: UpcomingBill[];
     pricesSyncedAt?: string | null;
     // Deferred props — undefined until the follow-up request lands, and never

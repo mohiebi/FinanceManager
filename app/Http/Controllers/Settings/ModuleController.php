@@ -108,6 +108,9 @@ class ModuleController extends Controller
             'tier' => $feature->tier()->value,
             'enabled' => $features->enabled($feature),
             'show_promo' => $features->showsPromo($feature),
+            // Drives whether the "hide from menu" control is offered at all: a
+            // module with no sidebar entry has no menu to be hidden from.
+            'in_nav' => $feature->appearsInNav(),
             'may_use' => $user->mayUse($feature),
             'requires' => array_map(fn (Feature $dependency): string => $dependency->label(), $needs),
             'disables' => array_map(fn (Feature $dependent): string => $dependent->label(), $wouldDisable),

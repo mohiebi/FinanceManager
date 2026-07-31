@@ -7,13 +7,16 @@ use App\Concerns\OwnsEncryptedAttributes;
 use App\Contracts\HasEncryptionOwner;
 use App\Enums\Currency;
 use App\Enums\TransactionType;
+use App\Observers\TransactionObserver;
 use Database\Factories\TransactionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use InvalidArgumentException;
 
+#[ObservedBy([TransactionObserver::class])]
 #[Fillable([
     'user_id',
     'category_id',

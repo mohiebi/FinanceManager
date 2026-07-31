@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Morilog\Jalali\Jalalian;
@@ -68,6 +69,60 @@ class CalendarDates
     public static function jalaliMonthKey(Carbon|CarbonInterface $date): string
     {
         return Jalalian::fromCarbon(Carbon::instance($date))->format('Y-m');
+    }
+
+    /**
+     * The first day of the calendar month a date falls in, as a Gregorian date.
+     *
+     * A Jalali month does not start on the 1st of a Gregorian one, so "this
+     * month" means different days for two users looking at the same screen.
+     */
+    public static function monthStart(CarbonImmutable $date, string $calendar): CarbonImmutable
+    {
+        if (FrontendLocalization::normalizeCalendar($calendar) !== 'jalali') {
+            return $date->startOfMonth();
+        }
+
+        $jalali = Jalalian::fromCarbon(Carbon::instance($date));
+
+        return CarbonImmutable::parse(
+            (new Jalalian($jalali->getYear(), $jalali->getMonth(), 1))->toCarbon()->format('Y-m-d'),
+        );
+    }
+
+    /**
+     * How many days the date's calendar month holds — 28-31 in Gregorian, 29-31
+     * in Jalali.
+     */
+    public static function daysInMonth(CarbonImmutable $date, string $calendar): int
+    {
+        return FrontendLocalization::normalizeCalendar($calendar) === 'jalali'
+            ? (int) Jalalian::fromCarbon(Carbon::instance($date))->format('t')
+            : $date->daysInMonth;
+    }
+
+    /**
+     * The month's own name and number, for labelling a period in the user's calendar.
+     *
+     * @return array{label: string, day_of_month: int, days_in_month: int}
+     */
+    public static function monthDescriptor(CarbonImmutable $date, string $calendar): array
+    {
+        if (FrontendLocalization::normalizeCalendar($calendar) === 'jalali') {
+            $jalali = Jalalian::fromCarbon(Carbon::instance($date));
+
+            return [
+                'label' => $jalali->format('F'),
+                'day_of_month' => (int) $jalali->format('j'),
+                'days_in_month' => (int) $jalali->format('t'),
+            ];
+        }
+
+        return [
+            'label' => $date->translatedFormat('F'),
+            'day_of_month' => $date->day,
+            'days_in_month' => $date->daysInMonth,
+        ];
     }
 
     /**

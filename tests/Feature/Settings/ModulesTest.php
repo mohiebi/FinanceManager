@@ -14,7 +14,7 @@ test('the modules page lists every toggleable module at its default state', func
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/Modules')
-            ->has('modules', 8)
+            ->has('modules', 9)
             ->has('coreModules', 2)
             ->where('modules.0.key', Feature::Bills->value)
             ->where('modules.0.enabled', false)
@@ -29,22 +29,27 @@ test('the modules page lists every toggleable module at its default state', func
             ->where('modules.3.key', Feature::Portfolio->value)
             ->where('modules.3.enabled', false)
             ->where('modules.3.requires', ['Investments'])
+            // Its own module, and it needs Investments rather than Portfolio:
+            // progress is a ratio of holdings, not of net worth.
+            ->where('modules.4.key', Feature::Goals->value)
+            ->where('modules.4.enabled', false)
+            ->where('modules.4.requires', ['Investments'])
             // The one optional module that ships on: it has no page of its own,
             // so shipping it off would mean nobody ever finds it. It also has no
             // sidebar entry, so the hide-from-menu control must not be offered.
-            ->where('modules.4.key', Feature::Gamification->value)
-            ->where('modules.4.enabled', true)
-            ->where('modules.4.in_nav', false)
-            ->where('modules.4.requires', [])
-            ->where('modules.5.key', Feature::AiAssistant->value)
-            ->where('modules.5.enabled', false)
-            ->where('modules.6.key', Feature::TelegramBot->value)
+            ->where('modules.5.key', Feature::Gamification->value)
+            ->where('modules.5.enabled', true)
+            ->where('modules.5.in_nav', false)
+            ->where('modules.5.requires', [])
+            ->where('modules.6.key', Feature::AiAssistant->value)
             ->where('modules.6.enabled', false)
+            ->where('modules.7.key', Feature::TelegramBot->value)
+            ->where('modules.7.enabled', false)
             // Advertised on the page, but switched from its own — the card is a
             // link rather than a toggle.
-            ->where('modules.7.key', Feature::Vault->value)
-            ->where('modules.7.enabled', false)
-            ->where('modules.7.manage_url', route('security.edit'))
+            ->where('modules.8.key', Feature::Vault->value)
+            ->where('modules.8.enabled', false)
+            ->where('modules.8.manage_url', route('security.edit'))
         );
 });
 

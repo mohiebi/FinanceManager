@@ -11,6 +11,7 @@ import {
     Sparkles,
     Target,
     TrendingUp,
+    Trophy,
     Wallet,
 } from 'lucide-vue-next';
 import { ref } from 'vue';
@@ -51,6 +52,7 @@ const icons: Record<string, Component> = {
     Sparkles,
     Target,
     TrendingUp,
+    Trophy,
     Wallet,
 };
 

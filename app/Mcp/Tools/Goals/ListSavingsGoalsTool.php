@@ -27,7 +27,7 @@ class ListSavingsGoalsTool extends Tool
      */
     protected static function requiredFeatures(): array
     {
-        return [Feature::Portfolio];
+        return [Feature::Goals];
     }
 
     public function __construct(

@@ -60,6 +60,10 @@ return [
         'label' => 'Portfolio',
         'description' => 'Sieh dein Nettovermögen sowie Gewinn und Verlust über alle Anlagen hinweg.',
     ],
+    'goals' => [
+        'label' => 'Sparziele',
+        'description' => 'Setze Ziele in der Anlage, in der du tatsaechlich sparst — Gramm Gold, Dollar — damit Inflation sie nicht still auffrisst.',
+    ],
     'gamification' => [
         'label' => 'Flugbuch',
         'description' => 'Halte eine Serie an Eintragungen, markiere Tage ohne Ausgaben und sieh, wie vollstaendig jeder Monat erfasst ist. Nie darum, wie viel du ausgibst — nur darum, die Aufzeichnungen lueckenlos zu halten.',

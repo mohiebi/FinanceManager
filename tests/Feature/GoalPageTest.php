@@ -24,7 +24,7 @@ function holdGold(User $user, float $quantity, string $on = '2026-07-01'): void
 }
 
 test('the goals page lists every goal with its progress', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
 
     SavingsGoal::factory()->create([
         'user_id' => $user->id,
@@ -51,7 +51,7 @@ test('the goals page lists every goal with its progress', function () {
 });
 
 test('a met goal is reported as reached so the page can file it separately', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
 
     SavingsGoal::factory()->create([
         'user_id' => $user->id,
@@ -71,8 +71,8 @@ test('a met goal is reported as reached so the page can file it separately', fun
 });
 
 test('the page never carries another users goals', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
-    $stranger = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
+    $stranger = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
 
     SavingsGoal::factory()->create([
         'user_id' => $stranger->id,
@@ -92,7 +92,7 @@ test('the page is gated on the portfolio module', function () {
         ->get(route('goals'))
         ->assertRedirect();
 
-    $this->actingAs(User::factory()->withModules(Feature::Portfolio)->create())
+    $this->actingAs(User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create())
         ->get(route('goals'))
         ->assertOk();
 });

@@ -56,6 +56,10 @@ return [
         'label' => 'Portfolio',
         'description' => 'See your net worth and profit or loss across every asset you hold.',
     ],
+    'goals' => [
+        'label' => 'Savings goals',
+        'description' => 'Set targets in the asset you actually save in — grams of gold, dollars — so inflation cannot quietly erase them.',
+    ],
     'gamification' => [
         'label' => 'Flight log',
         'description' => 'Keep a logging streak, mark days you spent nothing, and see how complete each month is. Never about how much you spend — only about keeping the record straight.',

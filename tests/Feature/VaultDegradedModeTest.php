@@ -558,7 +558,7 @@ test('the streak reads identically with the vault armed', function () {
 });
 
 test('a savings goal target is sealed by the browser and stored verbatim', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
     $dek = armDegradedVault($user);
 
     $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
@@ -579,7 +579,7 @@ test('a savings goal target is sealed by the browser and stored verbatim', funct
 });
 
 test('the goals payload ships sealed targets with every date already resolved', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
     $dek = armDegradedVault($user);
 
     $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
@@ -608,7 +608,7 @@ test('the goals payload ships sealed targets with every date already resolved', 
 });
 
 test('the server drops a goal it cannot read rather than reporting a wrong target', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
     $dek = armDegradedVault($user);
 
     $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
@@ -629,7 +629,7 @@ test('the server drops a goal it cannot read rather than reporting a wrong targe
 });
 
 test('the armed portfolio page ships sealed goals eagerly', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
     $dek = armDegradedVault($user);
     $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
 
@@ -763,7 +763,7 @@ test('the budgets page ships sealed rows and rates instead of allowances it cann
 });
 
 test('a goal title reaches the armed portfolio page as ciphertext', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
     $dek = armDegradedVault($user);
     $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
 

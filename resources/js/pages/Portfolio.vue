@@ -772,6 +772,8 @@ const props = defineProps<{
     goals?: GoalCardData[] | null;
     /** Sent instead of `goals` when the vault is armed — targets still sealed. */
     vaultGoals?: VaultGoalsPayload | null;
+    /** False when the goals module is off, and the whole section is dropped. */
+    showsGoals?: boolean;
     assetOptions?: AssetOption[];
 }>();
 

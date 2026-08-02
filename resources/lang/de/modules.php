@@ -48,6 +48,10 @@ return [
         'label' => 'Rechnungen',
         'description' => 'Verfolge wiederkehrende und einmalige Rechnungen und werde vor Fälligkeit erinnert.',
     ],
+    'budgets' => [
+        'label' => 'Flugplan',
+        'description' => 'Entscheide vorab, wohin dein Geld geht — ein Anteil deines Einkommens, ein fester Betrag, oder der Rest.',
+    ],
     'investments' => [
         'label' => 'Investitionen',
         'description' => 'Erfasse deine Bestände — Gold, Devisen, Krypto — und verfolge Live-Kurse.',

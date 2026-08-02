@@ -14,8 +14,10 @@ enum Feature: string
     case Transactions = 'transactions';
     case Reports = 'reports';
     case Bills = 'bills';
+    case Budgets = 'budgets';
     case Investments = 'investments';
     case Portfolio = 'portfolio';
+    case Goals = 'goals';
     case Gamification = 'gamification';
     case AiAssistant = 'ai_assistant';
     case TelegramBot = 'telegram_bot';
@@ -34,8 +36,10 @@ enum Feature: string
             self::Transactions => 'Transactions',
             self::Reports => 'Reports',
             self::Bills => 'Bills',
+            self::Budgets => 'Flight plan',
             self::Investments => 'Investments',
             self::Portfolio => 'Portfolio',
+            self::Goals => 'Savings goals',
             self::Gamification => 'Flight log',
             self::AiAssistant => 'AI Assistant',
             self::TelegramBot => 'Telegram Bot',
@@ -81,8 +85,12 @@ enum Feature: string
     public function requires(): array
     {
         return match ($this) {
-            self::Portfolio => [self::Investments],
-            self::Bills, self::Reports, self::Gamification => [self::Transactions],
+            // Goals depend on Investments rather than on Portfolio: progress is
+            // a ratio of holdings, which is what Investments records. The
+            // portfolio's net worth and P&L are a different question entirely,
+            // and someone tracking grams of gold should not have to switch it on.
+            self::Portfolio, self::Goals => [self::Investments],
+            self::Bills, self::Reports, self::Gamification, self::Budgets => [self::Transactions],
             default => [],
         };
     }
@@ -195,8 +203,10 @@ enum Feature: string
             self::Transactions => 'ReceiptText',
             self::Reports => 'ChartPie',
             self::Bills => 'Receipt',
+            self::Budgets => 'Target',
             self::Investments => 'TrendingUp',
             self::Portfolio => 'Wallet',
+            self::Goals => 'Trophy',
             self::Gamification => 'Plane',
             self::AiAssistant => 'Sparkles',
             self::TelegramBot => 'Bot',

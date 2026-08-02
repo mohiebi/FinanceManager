@@ -44,6 +44,10 @@ return [
         'label' => 'Bills',
         'description' => 'Track recurring and one-off bills, and get reminded before they are due.',
     ],
+    'budgets' => [
+        'label' => 'Flight plan',
+        'description' => 'Decide where your money goes before it arrives — a share of your income, a fixed amount, or whatever is left.',
+    ],
     'investments' => [
         'label' => 'Investments',
         'description' => 'Log what you hold — gold, currency, crypto — and follow live prices.',

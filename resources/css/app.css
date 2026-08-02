@@ -465,6 +465,14 @@ html[dir='rtl'] body {
         appearance: auto;
     }
 
+    /* Budget plan lines pack four controls plus a delete button into one row.
+       The default 1.25rem inline padding eats most of a narrow field, so the
+       compact variant trades it back for legible content. */
+    .finance-dialog-field-compact {
+        padding-inline: 0.75rem !important;
+        font-size: 0.875rem;
+    }
+
     select.finance-dialog-field option {
         background-color: #1a1a1a;
         color: #ffffff;
@@ -545,5 +553,77 @@ html[dir='rtl'] body {
     }
     .finance-table-row:hover {
         background-color: rgba(255, 255, 255, 0.04);
+    }
+}
+
+/* ── Savings goal celebration ──────────────────────────────────────────────
+   Shown only while a goal's target is met. Every rule sits behind
+   prefers-reduced-motion: the badge and the confetti are decoration, and the
+   card still reads correctly with all of it switched off. */
+@layer components {
+    .goal-reached::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: inherit;
+        background: radial-gradient(
+            120% 80% at 50% 0%,
+            rgba(2, 205, 134, 0.16),
+            transparent 60%
+        );
+    }
+
+    .goal-confetti-piece {
+        position: absolute;
+        top: -12px;
+        width: 6px;
+        height: 10px;
+        border-radius: 1px;
+        opacity: 0;
+    }
+
+    .goal-reached-badge {
+        box-shadow: 0 0 0 0 rgba(2, 205, 134, 0.5);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .goal-confetti-piece {
+            animation: goal-confetti-fall 2.6s ease-in infinite;
+        }
+
+        .goal-reached-badge {
+            animation: goal-reached-pulse 2.4s ease-out infinite;
+        }
+    }
+
+    @keyframes goal-confetti-fall {
+        0% {
+            opacity: 0;
+            transform: translate3d(0, 0, 0) rotate(0deg);
+        }
+        10% {
+            opacity: 1;
+        }
+        85% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+            transform: translate3d(var(--goal-confetti-drift, 0), 240px, 0)
+                rotate(420deg);
+        }
+    }
+
+    @keyframes goal-reached-pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(2, 205, 134, 0.45);
+        }
+        70% {
+            box-shadow: 0 0 0 8px rgba(2, 205, 134, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(2, 205, 134, 0);
+        }
     }
 }

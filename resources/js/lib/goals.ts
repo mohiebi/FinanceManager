@@ -16,6 +16,7 @@ export type GoalPace = {
     expected_quantity: number;
     pace_delta: number;
     on_track: boolean;
+    reached: boolean;
     required_per_day: number;
     days_remaining: number;
 };
@@ -37,7 +38,8 @@ export function computePace(
     // above 1 would keep raising the bar after the deadline.
     const expected =
         total > 0
-            ? baseline + (target - baseline) * (Math.min(elapsed, total) / total)
+            ? baseline +
+              (target - baseline) * (Math.min(elapsed, total) / total)
             : target;
 
     const paceDelta = current - expected;
@@ -49,6 +51,11 @@ export function computePace(
         expected_quantity: round(expected),
         pace_delta: round(paceDelta),
         on_track: paceDelta >= 0,
+        // The target is met, not merely being met on schedule. Kept separate
+        // from `on_track` because someone at 103% is not "on track" — they are
+        // finished, and saying otherwise buries the moment worth marking.
+        // A zero target is never reached: there was nothing to reach.
+        reached: target > 0 && current >= target,
         // Clamped at zero: someone past their target does not owe a negative
         // amount per day. Divides by at least 1 so the last day is finite.
         required_per_day: round(

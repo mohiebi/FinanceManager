@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, usePage } from '@inertiajs/vue3';
 import {
     BotMessageSquare,
     CheckCircle2,
@@ -9,6 +9,7 @@ import {
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { connect, disconnect, edit } from '@/routes/telegram';
+import type { FeatureKey } from '@/types/features';
 
 type Props = {
     connected: boolean;
@@ -18,6 +19,7 @@ type Props = {
 };
 
 const { t } = useI18n();
+const page = usePage();
 const props = defineProps<Props>();
 
 const deepLink = computed(() => {
@@ -44,24 +46,54 @@ defineOptions({
     },
 });
 
-const commands = computed(() => [
-    { cmd: '/add_cost', desc: t('settings.telegram.commands.add_cost') },
-    { cmd: '/add_income', desc: t('settings.telegram.commands.add_income') },
-    {
-        cmd: '/add_investment',
-        desc: t('settings.telegram.commands.add_investment'),
-    },
-    { cmd: '/list', desc: t('settings.telegram.commands.list') },
-    {
-        cmd: '/report_today',
-        desc: t('settings.telegram.commands.report_today'),
-    },
-    { cmd: '/report_week', desc: t('settings.telegram.commands.report_week') },
-    {
-        cmd: '/report_month',
-        desc: t('settings.telegram.commands.report_month'),
-    },
-]);
+/**
+ * What the bot will actually answer, for this user.
+ *
+ * `feature: null` means the command is always available; the rest mirror the
+ * gates in App\Telegraph\TelegramHandler::mainKeyboard(), so the page never
+ * advertises a command that would reply "that module is switched off".
+ */
+const commands = computed(() => {
+    const features = page.props.features;
+
+    const entries: { cmd: string; key: string; feature: FeatureKey | null }[] =
+        [
+            { cmd: '/help', key: 'help', feature: null },
+            { cmd: '/add_cost', key: 'add_cost', feature: null },
+            { cmd: '/add_income', key: 'add_income', feature: null },
+            { cmd: '/list', key: 'list', feature: null },
+            { cmd: '/delete_tx', key: 'delete_tx', feature: null },
+            {
+                cmd: '/add_investment',
+                key: 'add_investment',
+                feature: 'investments',
+            },
+            { cmd: '/add_bill', key: 'add_bill', feature: 'bills' },
+            { cmd: '/list_bills', key: 'list_bills', feature: 'bills' },
+            { cmd: '/portfolio', key: 'portfolio', feature: 'portfolio' },
+            { cmd: '/budget', key: 'budget', feature: 'budgets' },
+            { cmd: '/no_spend', key: 'no_spend', feature: 'gamification' },
+            { cmd: '/report_today', key: 'report_today', feature: null },
+            { cmd: '/report_daily', key: 'report_daily', feature: null },
+            { cmd: '/report_week', key: 'report_week', feature: null },
+            { cmd: '/report_month', key: 'report_month', feature: null },
+        ];
+
+    return (
+        entries
+            // A missing prop means a partial page rather than a disabled module, so
+            // the command is kept rather than silently dropped.
+            .filter(
+                (entry) =>
+                    entry.feature === null ||
+                    (features?.[entry.feature]?.enabled ?? true),
+            )
+            .map((entry) => ({
+                cmd: entry.cmd,
+                desc: t(`settings.telegram.commands.${entry.key}`),
+            }))
+    );
+});
 </script>
 
 <template>

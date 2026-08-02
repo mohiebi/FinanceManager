@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import InputError from '@/components/InputError.vue';
@@ -23,17 +23,22 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { useVault } from '@/composables/useVault';
-import { store as storeGoal } from '@/routes/savings-goals';
-import type { AssetOption } from '@/types/gamification';
+import {
+    store as storeGoal,
+    update as updateGoal,
+} from '@/routes/savings-goals';
+import type { AssetOption, GoalCard } from '@/types/gamification';
 
 const props = defineProps<{
     assetOptions: AssetOption[];
+    /** The goal being edited, or null to create a new one. */
+    goal?: GoalCard | null;
 }>();
 
 const open = defineModel<boolean>('open', { required: true });
 
 const { t } = useI18n();
-const { sealForSubmit } = useVault();
+const { revealAsync, sealForSubmit } = useVault();
 const submitting = ref(false);
 
 const form = useForm({
@@ -43,11 +48,28 @@ const form = useForm({
     target_date: '',
 });
 
-watch(open, (isOpen) => {
-    if (isOpen) {
-        form.reset();
-        form.clearErrors();
+const isEditing = computed(() => (props.goal ?? null) !== null);
+
+watch(open, async (isOpen) => {
+    if (!isOpen) {
+        return;
     }
+
+    form.reset();
+    form.clearErrors();
+
+    const goal = props.goal ?? null;
+
+    if (goal === null) {
+        return;
+    }
+
+    form.investment_asset_id = String(goal.asset.id);
+    form.target_quantity = String(goal.target_quantity);
+    form.target_date = goal.target_date;
+    // The quantity is already decrypted on the card; the title is not, because
+    // nothing on the card needed it as a string until now.
+    form.title = (await revealAsync<string>(goal.title, 'savings_goals')) ?? '';
 });
 
 async function submit(): Promise<void> {
@@ -65,11 +87,15 @@ async function submit(): Promise<void> {
             { title: 'string', target_quantity: 'quantity' },
         );
 
-        form.transform(() => ({
+        const goal = props.goal ?? null;
+
+        const submission = form.transform(() => ({
             investment_asset_id: form.investment_asset_id,
             target_date: form.target_date,
             ...payload,
-        })).post(storeGoal.url(), {
+        }));
+
+        const options = {
             preserveScroll: true,
             onSuccess: () => {
                 open.value = false;
@@ -77,7 +103,15 @@ async function submit(): Promise<void> {
             onFinish: () => {
                 submitting.value = false;
             },
-        });
+        };
+
+        // SaveGoal leaves `started_on` alone on update, so the pace baseline of
+        // an existing goal survives an edit rather than resetting to today.
+        if (goal === null) {
+            submission.post(storeGoal.url(), options);
+        } else {
+            submission.put(updateGoal.url(goal.id), options);
+        }
     } catch {
         submitting.value = false;
     }
@@ -88,7 +122,11 @@ async function submit(): Promise<void> {
     <Dialog v-model:open="open">
         <DialogContent class="finance-dialog sm:max-w-[440px]">
             <DialogHeader>
-                <DialogTitle>{{ t('gamification.goals.new') }}</DialogTitle>
+                <DialogTitle>{{
+                    isEditing
+                        ? t('gamification.goals.edit')
+                        : t('gamification.goals.new')
+                }}</DialogTitle>
             </DialogHeader>
 
             <form class="space-y-4" @submit.prevent="submit">
@@ -96,13 +134,12 @@ async function submit(): Promise<void> {
                     <Label for="goal_asset">
                         {{ t('gamification.goals.asset') }}
                     </Label>
-                    <Select
-                        id="goal_asset"
-                        v-model="form.investment_asset_id"
-                    >
+                    <Select id="goal_asset" v-model="form.investment_asset_id">
                         <SelectTrigger class="finance-dialog-field w-full">
                             <SelectValue
-                                :placeholder="t('gamification.goals.asset_placeholder')"
+                                :placeholder="
+                                    t('gamification.goals.asset_placeholder')
+                                "
                             />
                         </SelectTrigger>
                         <SelectContent class="finance-dialog-select-content">

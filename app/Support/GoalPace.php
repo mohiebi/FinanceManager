@@ -28,6 +28,7 @@ class GoalPace
      *     expected_quantity: float,
      *     pace_delta: float,
      *     on_track: bool,
+     *     reached: bool,
      *     required_per_day: float,
      *     days_remaining: int,
      * }
@@ -56,6 +57,11 @@ class GoalPace
             'expected_quantity' => self::round($expected),
             'pace_delta' => self::round($paceDelta),
             'on_track' => $paceDelta >= 0,
+            // The target is met, not merely being met on schedule. Kept separate
+            // from `on_track` because someone at 103% is not "on track" — they
+            // are finished, and saying otherwise buries the moment worth marking.
+            // A zero target is never reached: there was nothing to reach.
+            'reached' => $target > 0 && $current >= $target,
             // Clamped at zero: someone past their target does not owe a negative
             // amount per day. Divides by at least 1 so the last day is finite.
             'required_per_day' => self::round(max(0.0, $target - $current) / max(1, $daysRemaining)),

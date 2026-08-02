@@ -1,3 +1,5 @@
+import type { Encrypted } from '@/types/vault';
+
 export type StreakDayState =
     | 'logged'
     | 'no_spend'
@@ -20,10 +22,16 @@ export type AssetOption = {
     unit: string;
 };
 
-/** Everything about a goal that is never encrypted, so both paths ship it identically. */
+/**
+ * Everything about a goal that both paths ship identically.
+ *
+ * All of it is plaintext except the title, which is a UserEncrypted column and
+ * so arrives as ciphertext whenever the viewer's vault is armed — render it
+ * through <Ciphered>, never straight into the template.
+ */
 export type GoalPresentation = {
     id: number;
-    title: string | null;
+    title: Encrypted<string> | null;
     asset: {
         id: number;
         key: string;
@@ -48,6 +56,8 @@ export type GoalCard = GoalPresentation & {
     expected_quantity: number;
     pace_delta: number;
     on_track: boolean;
+    /** The target is met. Distinct from on_track, which is only about schedule. */
+    reached: boolean;
     required_per_day: number;
     days_remaining: number;
 };

@@ -4,12 +4,15 @@ namespace App\Telegraph;
 
 use App\Actions\Bills\MarkBillOccurrencePaid;
 use App\Actions\Bills\SyncBillOccurrence;
+use App\Actions\Budgets\BuildBudgetProgress;
 use App\Actions\Gamification\RecordNoSpendDay;
 use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Enums\BillRecurrenceType;
+use App\Enums\BudgetRuleType;
 use App\Enums\Currency;
 use App\Enums\Feature;
 use App\Enums\TransactionType;
+use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Investment;
 use App\Models\InvestmentAsset;
@@ -490,6 +493,83 @@ class TelegramHandler extends WebhookHandler
                 $lines[] = '→ Price unavailable';
             }
         }
+
+        $this->chat->message(implode("\n", $lines))->keyboard($this->mainKeyboard())->send();
+    }
+
+    /**
+     * This period's plan: what each line may spend, and what is left of it.
+     *
+     * No vault branch, unlike the web page: Feature::Vault conflicts with
+     * Feature::TelegramBot, so a user whose server cannot read their amounts has
+     * no linked chat to send this to in the first place.
+     */
+    public function budget(): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user) {
+            $this->sendNotLinked();
+
+            return;
+        }
+
+        if ($this->featureLocked($user, Feature::Budgets)) {
+            return;
+        }
+
+        $budget = $user->budgets()
+            ->active()
+            ->with('lines.category')
+            ->latest('id')
+            ->first();
+
+        if (! $budget instanceof Budget) {
+            $this->chat->message('No flight plan yet. Create one in CashPilot under Flight plan, then check it here.')
+                ->keyboard($this->mainKeyboard())
+                ->send();
+
+            return;
+        }
+
+        $progress = app(BuildBudgetProgress::class)->handle($user, $budget);
+        $currency = $budget->currency;
+
+        $lines = [];
+        $lines[] = '🎯 Flight plan — '.$progress['period']['label'];
+        $lines[] = '';
+        $lines[] = 'Income: '.$this->fmtAmount((float) $progress['income'], $currency);
+        $lines[] = 'Allocated: '.$this->fmtAmount((float) $progress['allocated'], $currency);
+        $lines[] = 'Spent: '.$this->fmtAmount((float) $progress['actual'], $currency);
+
+        if ((float) $progress['over_allocated'] > 0) {
+            $lines[] = '⚠️ Over-allocated by '.$this->fmtAmount((float) $progress['over_allocated'], $currency);
+        }
+
+        $lines[] = '';
+        $lines[] = '───────────';
+
+        foreach ($progress['lines'] as $line) {
+            $label = $line['category']['name'] ?? 'Everything else';
+            $rule = $line['rule_type'] === BudgetRuleType::Percent->value && $line['percent'] !== null
+                ? ' ('.rtrim(rtrim(number_format((float) $line['percent'], 2, '.', ''), '0'), '.').'%)'
+                : '';
+
+            $lines[] = '';
+            $lines[] = $label.$rule;
+            $lines[] = '→ '.$this->fmtAmount((float) $line['actual'], $currency)
+                .' of '.$this->fmtAmount((float) $line['allocated'], $currency);
+
+            // The number the user actually came for: what is still spendable.
+            $lines[] = $line['over']
+                ? '⚠️ '.$this->fmtAmount(abs((float) $line['remaining']), $currency).' over'
+                : '✅ '.$this->fmtAmount((float) $line['remaining'], $currency).' left';
+        }
+
+        $lines[] = '';
+        $lines[] = $progress['period']['days_remaining'].' days left this period.';
 
         $this->chat->message(implode("\n", $lines))->keyboard($this->mainKeyboard())->send();
     }
@@ -1360,6 +1440,10 @@ class TelegramHandler extends WebhookHandler
 
         if ($user?->hasFeature(Feature::Portfolio)) {
             $buttons[] = Button::make('Portfolio')->action('portfolio')->width(0.5);
+        }
+
+        if ($user?->hasFeature(Feature::Budgets)) {
+            $buttons[] = Button::make('Flight plan')->action('budget')->width(0.5);
         }
 
         if ($user?->hasFeature(Feature::Gamification)) {

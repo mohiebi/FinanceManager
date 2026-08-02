@@ -2,15 +2,26 @@
     "_comment": "Shared by BuildGoalProgressTest (PHP) and tests/js/goals.test.ts. Under the vault the target quantity and the holdings are both ciphertext, so goal progress is computed in the browser instead of on the server; this fixture is what stops the two implementations drifting apart. Every value is rounded to 6 decimals on both sides.",
     "_encoding_comment": "How a sealed target quantity is serialised before encryption. The browser (codec.ts `encode`, type 'quantity') and the server (UserEncrypted::encode with ':decimal,8') must produce byte-identical strings, or an armed user's target is stored at a different precision from an unarmed one's. Values sitting exactly on a rounding boundary (1.845 at 2dp) are deliberately absent: PHP rounds half up and JS toFixed follows the binary representation down, which is a real but pre-existing divergence in the 'decimal' type and not something this feature should quietly change.",
     "encoding": [
-        { "value": 3, "quantity": "3.00000000", "decimal": "3.00" },
-        { "value": 1.845, "quantity": "1.84500000" },
+        {
+            "value": 3,
+            "quantity": "3.00000000",
+            "decimal": "3.00"
+        },
+        {
+            "value": 1.845,
+            "quantity": "1.84500000"
+        },
         {
             "value": 0.00012345,
             "quantity": "0.00012345",
             "_note": "the case that motivated the 8dp type — 2dp seals this as 0.00",
             "decimal": "0.00"
         },
-        { "value": 0.123456789, "quantity": "0.12345679", "decimal": "0.12" }
+        {
+            "value": 0.123456789,
+            "quantity": "0.12345679",
+            "decimal": "0.12"
+        }
     ],
     "cases": [
         {
@@ -27,6 +38,7 @@
                 "expected_quantity": 1.666667,
                 "pace_delta": 0.173333,
                 "on_track": true,
+                "reached": false,
                 "required_per_day": 0.0145,
                 "days_remaining": 80
             }
@@ -45,6 +57,7 @@
                 "expected_quantity": 1.666667,
                 "pace_delta": -1.166667,
                 "on_track": false,
+                "reached": false,
                 "required_per_day": 0.03125,
                 "days_remaining": 80
             }
@@ -63,6 +76,7 @@
                 "expected_quantity": 2.333333,
                 "pace_delta": -0.493333,
                 "on_track": false,
+                "reached": false,
                 "required_per_day": 0.0145,
                 "days_remaining": 80
             }
@@ -81,6 +95,7 @@
                 "expected_quantity": 3,
                 "pace_delta": -2,
                 "on_track": false,
+                "reached": false,
                 "required_per_day": 2,
                 "days_remaining": 0
             }
@@ -99,6 +114,7 @@
                 "expected_quantity": 0.166667,
                 "pace_delta": -0.166667,
                 "on_track": false,
+                "reached": false,
                 "required_per_day": 0.017647,
                 "days_remaining": 170
             }
@@ -117,6 +133,7 @@
                 "expected_quantity": 1.666667,
                 "pace_delta": 2.833333,
                 "on_track": true,
+                "reached": true,
                 "required_per_day": 0,
                 "days_remaining": 80
             }
@@ -135,6 +152,7 @@
                 "expected_quantity": 3,
                 "pace_delta": -1,
                 "on_track": false,
+                "reached": false,
                 "required_per_day": 1,
                 "days_remaining": 0
             }
@@ -153,6 +171,7 @@
                 "expected_quantity": 0,
                 "pace_delta": 1,
                 "on_track": true,
+                "reached": false,
                 "required_per_day": 0,
                 "days_remaining": 170
             }
@@ -171,6 +190,7 @@
                 "expected_quantity": 0.000062,
                 "pace_delta": -0.000022,
                 "on_track": false,
+                "reached": false,
                 "required_per_day": 0.000001,
                 "days_remaining": 90
             }

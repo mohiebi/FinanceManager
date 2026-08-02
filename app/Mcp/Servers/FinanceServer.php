@@ -5,7 +5,9 @@ namespace App\Mcp\Servers;
 use App\Mcp\Tools\Bills\ListBillsTool;
 use App\Mcp\Tools\Bills\ProposeBillTool;
 use App\Mcp\Tools\Bills\ProposePayBillTool;
+use App\Mcp\Tools\Budgets\BudgetProgressTool;
 use App\Mcp\Tools\GetUserContextTool;
+use App\Mcp\Tools\Goals\ListSavingsGoalsTool;
 use App\Mcp\Tools\Investments\ListInvestmentsTool;
 use App\Mcp\Tools\Investments\PortfolioSummaryTool;
 use App\Mcp\Tools\Investments\ProposeCustomAssetTool;
@@ -43,7 +45,13 @@ calendar months.
 Currencies: toman (Iranian toman, the default), usd, eur.
 
 Reading data (transactions, categories, bills, investments, portfolio,
-spending summaries) is direct.
+spending summaries, budgets, savings goals) is direct.
+
+Budgets answer "how much can I still spend on X this month". Allowances are
+rules, not fixed envelopes — a share of income, a fixed amount, or whatever
+is left over — so they move with the income actually received. Savings goals
+are denominated in asset units (grams of gold, dollars), never in toman, and
+report `reached` separately from `on_track`.
 
 Changing data is a strict two-step protocol:
 1. Call a propose-* tool. It validates the change and returns a diff plus a
@@ -68,6 +76,8 @@ class FinanceServer extends Server
         ListInvestmentsTool::class,
         PortfolioSummaryTool::class,
         SpendingSummaryTool::class,
+        BudgetProgressTool::class,
+        ListSavingsGoalsTool::class,
 
         // Propose (write nothing)
         ProposeTransactionTool::class,

@@ -1,0 +1,262 @@
+{
+    "_comment": "Shared by tests/Unit/BudgetMathTest.php and tests/js/budget.test.ts. Under the vault the income, the fixed amounts and the spending are all ciphertext, so budget allowances are resolved in the browser instead of on the server; this fixture is what stops the two implementations drifting apart. Money rounds to 2 decimals on both sides, ratios to 6.",
+    "_precision_comment": "Percentages are chosen to be exactly representable in binary (50, 15, 60, 12.5) so that PHP's round() and JS's toFixed() cannot disagree. A value sitting on a rounding boundary is a real but pre-existing divergence between the two languages and is deliberately not exercised here.",
+    "cases": [
+        {
+            "name": "half to investing, a fixed rent, and whatever is left",
+            "input": {
+                "income": 24000000,
+                "lines": [
+                    { "rule": "percent", "percent": 50, "actual": 4200000 },
+                    { "rule": "fixed", "fixed": 8000000, "actual": 8000000 },
+                    { "rule": "percent", "percent": 15, "actual": 2100000 },
+                    { "rule": "remainder", "actual": 1900000 }
+                ]
+            },
+            "expected": {
+                "income": 24000000,
+                "allocated": 24000000,
+                "unallocated": 0,
+                "over_allocated": 0,
+                "actual": 16200000,
+                "lines": [
+                    {
+                        "allocated": 12000000,
+                        "actual": 4200000,
+                        "remaining": 7800000,
+                        "progress": 0.35,
+                        "share": 0.5,
+                        "over": false
+                    },
+                    {
+                        "allocated": 8000000,
+                        "actual": 8000000,
+                        "remaining": 0,
+                        "progress": 1,
+                        "share": 0.333333,
+                        "over": false
+                    },
+                    {
+                        "allocated": 3600000,
+                        "actual": 2100000,
+                        "remaining": 1500000,
+                        "progress": 0.583333,
+                        "share": 0.15,
+                        "over": false
+                    },
+                    {
+                        "allocated": 400000,
+                        "actual": 1900000,
+                        "remaining": -1500000,
+                        "progress": 4.75,
+                        "share": 0.016667,
+                        "over": true
+                    }
+                ]
+            }
+        },
+        {
+            "name": "a plan that promises more than it earns",
+            "input": {
+                "income": 10000000,
+                "lines": [
+                    { "rule": "percent", "percent": 60, "actual": 0 },
+                    { "rule": "fixed", "fixed": 7000000, "actual": 0 },
+                    { "rule": "remainder", "actual": 500000 }
+                ]
+            },
+            "expected": {
+                "income": 10000000,
+                "allocated": 13000000,
+                "unallocated": 0,
+                "over_allocated": 3000000,
+                "actual": 500000,
+                "lines": [
+                    {
+                        "allocated": 6000000,
+                        "actual": 0,
+                        "remaining": 6000000,
+                        "progress": 0,
+                        "share": 0.6,
+                        "over": false
+                    },
+                    {
+                        "allocated": 7000000,
+                        "actual": 0,
+                        "remaining": 7000000,
+                        "progress": 0,
+                        "share": 0.7,
+                        "over": false
+                    },
+                    {
+                        "allocated": 0,
+                        "actual": 500000,
+                        "remaining": -500000,
+                        "progress": null,
+                        "share": 0,
+                        "over": true
+                    }
+                ]
+            }
+        },
+        {
+            "name": "the first of the month, before any income has landed",
+            "input": {
+                "income": 0,
+                "lines": [
+                    { "rule": "percent", "percent": 50, "actual": 0 },
+                    { "rule": "fixed", "fixed": 3000000, "actual": 1000000 },
+                    { "rule": "remainder", "actual": 0 }
+                ]
+            },
+            "expected": {
+                "income": 0,
+                "allocated": 3000000,
+                "unallocated": 0,
+                "over_allocated": 3000000,
+                "actual": 1000000,
+                "lines": [
+                    {
+                        "allocated": 0,
+                        "actual": 0,
+                        "remaining": 0,
+                        "progress": null,
+                        "share": null,
+                        "over": false
+                    },
+                    {
+                        "allocated": 3000000,
+                        "actual": 1000000,
+                        "remaining": 2000000,
+                        "progress": 0.333333,
+                        "share": null,
+                        "over": false
+                    },
+                    {
+                        "allocated": 0,
+                        "actual": 0,
+                        "remaining": 0,
+                        "progress": null,
+                        "share": null,
+                        "over": false
+                    }
+                ]
+            }
+        },
+        {
+            "name": "no remainder line, so the slack stays unallocated",
+            "input": {
+                "income": 20000000,
+                "lines": [
+                    { "rule": "percent", "percent": 50, "actual": 10000000 },
+                    { "rule": "percent", "percent": 25, "actual": 3000000 }
+                ]
+            },
+            "expected": {
+                "income": 20000000,
+                "allocated": 15000000,
+                "unallocated": 5000000,
+                "over_allocated": 0,
+                "actual": 13000000,
+                "lines": [
+                    {
+                        "allocated": 10000000,
+                        "actual": 10000000,
+                        "remaining": 0,
+                        "progress": 1,
+                        "share": 0.5,
+                        "over": false
+                    },
+                    {
+                        "allocated": 5000000,
+                        "actual": 3000000,
+                        "remaining": 2000000,
+                        "progress": 0.6,
+                        "share": 0.25,
+                        "over": false
+                    }
+                ]
+            }
+        },
+        {
+            "name": "two remainder lines split the pool evenly",
+            "input": {
+                "income": 12000000,
+                "lines": [
+                    { "rule": "fixed", "fixed": 6000000, "actual": 6000000 },
+                    { "rule": "remainder", "actual": 1000000 },
+                    { "rule": "remainder", "actual": 4000000 }
+                ]
+            },
+            "expected": {
+                "income": 12000000,
+                "allocated": 12000000,
+                "unallocated": 0,
+                "over_allocated": 0,
+                "actual": 11000000,
+                "lines": [
+                    {
+                        "allocated": 6000000,
+                        "actual": 6000000,
+                        "remaining": 0,
+                        "progress": 1,
+                        "share": 0.5,
+                        "over": false
+                    },
+                    {
+                        "allocated": 3000000,
+                        "actual": 1000000,
+                        "remaining": 2000000,
+                        "progress": 0.333333,
+                        "share": 0.25,
+                        "over": false
+                    },
+                    {
+                        "allocated": 3000000,
+                        "actual": 4000000,
+                        "remaining": -1000000,
+                        "progress": 1.333333,
+                        "share": 0.25,
+                        "over": true
+                    }
+                ]
+            }
+        },
+        {
+            "name": "a fractional share, overspent",
+            "input": {
+                "income": 16000000,
+                "lines": [{ "rule": "percent", "percent": 12.5, "actual": 2500000 }]
+            },
+            "expected": {
+                "income": 16000000,
+                "allocated": 2000000,
+                "unallocated": 14000000,
+                "over_allocated": 0,
+                "actual": 2500000,
+                "lines": [
+                    {
+                        "allocated": 2000000,
+                        "actual": 2500000,
+                        "remaining": -500000,
+                        "progress": 1.25,
+                        "share": 0.125,
+                        "over": true
+                    }
+                ]
+            }
+        },
+        {
+            "name": "an empty plan",
+            "input": { "income": 9000000, "lines": [] },
+            "expected": {
+                "income": 9000000,
+                "allocated": 0,
+                "unallocated": 9000000,
+                "over_allocated": 0,
+                "actual": 0,
+                "lines": []
+            }
+        }
+    ]
+}

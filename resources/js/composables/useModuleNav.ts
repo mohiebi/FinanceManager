@@ -6,15 +6,18 @@ import {
     Receipt,
     ReceiptText,
     Sparkles,
+    Target,
     TrendingUp,
+    Trophy,
     Wallet,
 } from 'lucide-vue-next';
 import type { ComputedRef } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { dashboard, portfolio, report } from '@/routes';
+import { dashboard, goals, portfolio, report } from '@/routes';
 import { edit as editAiConnections } from '@/routes/ai-connections';
 import { index as billsIndex } from '@/routes/bills';
+import { index as budgetsIndex } from '@/routes/budgets';
 import { index as investmentsIndex } from '@/routes/investments';
 import { edit as editModules } from '@/routes/modules';
 import { edit as editTelegram } from '@/routes/telegram';
@@ -93,11 +96,25 @@ export function useModuleNav(): UseModuleNavReturn {
                 icon: Wallet,
             },
             {
+                key: 'goals',
+                feature: 'goals',
+                title: t('navigation.goals'),
+                href: goals(),
+                icon: Trophy,
+            },
+            {
                 key: 'bills',
                 feature: 'bills',
                 title: t('navigation.bills'),
                 href: billsIndex(),
                 icon: Receipt,
+            },
+            {
+                key: 'budgets',
+                feature: 'budgets',
+                title: t('navigation.budgets'),
+                href: budgetsIndex(),
+                icon: Target,
             },
             {
                 key: 'ai_assistant',

@@ -176,12 +176,22 @@ return [
         'open_in_telegram' => 'باز کردن در تلگرام',
         'generate_new_link' => 'ساخت پیوند جدید',
         'connect_telegram' => 'اتصال به تلگرام',
+        // Only the commands the user's own modules make available are listed —
+        // see the gates in App\Telegraph\TelegramHandler::mainKeyboard().
         'commands' => [
+            'help' => 'نمایش منوی همه‌ی کارهایی که ربات می‌تواند انجام دهد',
             'add_cost' => 'ثبت هزینه (مرحله‌به‌مرحله)',
             'add_income' => 'ثبت درآمد',
             'add_investment' => 'ثبت یک سرمایه‌گذاری جدید',
+            'add_bill' => 'ساختن قبض دوره‌ای یا یک‌باره',
+            'list_bills' => 'دیدن سررسیدها و پرداخت‌کردن یک قبض',
+            'portfolio' => 'دارایی‌هایتان و ارزش کنونی آن‌ها',
+            'budget' => 'هر دسته این ماه چقدر دیگر می‌تواند خرج کند',
+            'no_spend' => 'علامت‌زدن امروز به‌عنوان روز بی‌خرج',
             'list' => 'مشاهده تراکنش‌های اخیر',
+            'delete_tx' => 'حذف یکی از تراکنش‌های اخیرتان',
             'report_today' => 'درآمد، هزینه و مانده خالص امروز',
+            'report_daily' => 'گزارش هر روزی که انتخاب کنید',
             'report_week' => 'خلاصه مالی این هفته',
             'report_month' => 'خلاصه مالی این ماه',
         ],

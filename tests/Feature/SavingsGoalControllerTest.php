@@ -22,7 +22,7 @@ function goalPayload(array $overrides = []): array
 }
 
 test('a user can set a goal denominated in an asset unit', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
 
     $this->actingAs($user)
         ->post(route('savings-goals.store'), goalPayload())
@@ -38,7 +38,7 @@ test('a user can set a goal denominated in an asset unit', function () {
 });
 
 test('a target date in the past is refused', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
 
     $this->actingAs($user)
         ->post(route('savings-goals.store'), goalPayload([
@@ -48,7 +48,7 @@ test('a target date in the past is refused', function () {
 });
 
 test('a goal cannot be set on an asset the user cannot use', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
     $stranger = User::factory()->create();
 
     $private = InvestmentAsset::query()->create([
@@ -65,8 +65,8 @@ test('a goal cannot be set on an asset the user cannot use', function () {
 });
 
 test('a user cannot touch another user goal', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
-    $stranger = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
+    $stranger = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
 
     $goal = SavingsGoal::factory()->for($stranger)->create();
 
@@ -95,7 +95,7 @@ test('goals are gated on the portfolio module', function () {
 });
 
 test('a goal survives a round trip through update', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
     $goal = SavingsGoal::factory()->for($user)->create();
 
     $this->actingAs($user)
@@ -113,7 +113,7 @@ test('editing a goal leaves its pace baseline where it was', function () {
     Carbon::setTestNow(Carbon::parse('2026-06-01 09:00:00'));
 
     try {
-        $user = User::factory()->withModules(Feature::Portfolio)->create();
+        $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
         $goal = SavingsGoal::factory()->for($user)->create([
             'started_on' => '2026-06-01',
             'target_date' => '2026-12-01',
@@ -138,7 +138,7 @@ test('editing a goal leaves its pace baseline where it was', function () {
 });
 
 test('an explicit started_on is still honoured on update', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
     $goal = SavingsGoal::factory()->for($user)->create(['started_on' => '2026-06-01']);
 
     $this->actingAs($user)

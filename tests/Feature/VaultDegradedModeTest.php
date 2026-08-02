@@ -558,7 +558,7 @@ test('the streak reads identically with the vault armed', function () {
 });
 
 test('a savings goal target is sealed by the browser and stored verbatim', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
     $dek = armDegradedVault($user);
 
     $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
@@ -579,7 +579,7 @@ test('a savings goal target is sealed by the browser and stored verbatim', funct
 });
 
 test('the goals payload ships sealed targets with every date already resolved', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
     $dek = armDegradedVault($user);
 
     $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
@@ -608,7 +608,7 @@ test('the goals payload ships sealed targets with every date already resolved', 
 });
 
 test('the server drops a goal it cannot read rather than reporting a wrong target', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
     $dek = armDegradedVault($user);
 
     $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
@@ -629,7 +629,7 @@ test('the server drops a goal it cannot read rather than reporting a wrong targe
 });
 
 test('the armed portfolio page ships sealed goals eagerly', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
     $dek = armDegradedVault($user);
     $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
 
@@ -651,5 +651,140 @@ test('the armed portfolio page ships sealed goals eagerly', function () {
             ->where('goals', null)
             ->has('vaultGoals.goals', 1)
             ->has('vaultGoals.today')
+            ->etc());
+});
+
+test('a budget line seals its amount but sends its percentage in plaintext', function () {
+    $user = User::factory()->withModules(Feature::Budgets)->create();
+    $dek = armDegradedVault($user);
+    $investing = Category::factory()->cost()->create(['name' => 'Investing']);
+    $rent = Category::factory()->cost()->create(['name' => 'Rent']);
+
+    $fixed = clientEncrypt($user, $dek, 'fixed_amount', '8000000.00', 'budget_lines');
+
+    $this->actingAs($user)
+        ->post(route('budgets.store'), [
+            'title' => clientEncrypt($user, $dek, 'title', 'Monthly plan', 'budgets'),
+            'income_basis' => 'actual',
+            'currency' => 'toman',
+            'lines' => [
+                ['category_id' => $investing->id, 'rule_type' => 'percent', 'percent' => 50],
+                ['category_id' => $rent->id, 'rule_type' => 'fixed', 'fixed_amount' => $fixed],
+            ],
+        ])
+        ->assertRedirect();
+
+    $stored = DB::table('budget_lines')->orderBy('sort_order')->get();
+
+    // The share is readable and the money is not — which is exactly what lets
+    // the server reject a plan promising more than 100% of an income it cannot see.
+    expect((float) $stored[0]->percent)->toBe(50.0)
+        ->and($stored[1]->fixed_amount)->toBe($fixed);
+});
+
+test('a plaintext budget amount is refused while the vault is armed', function () {
+    $user = User::factory()->withModules(Feature::Budgets)->create();
+    armDegradedVault($user);
+    $rent = Category::factory()->cost()->create(['name' => 'Rent']);
+
+    $this->actingAs($user)
+        ->post(route('budgets.store'), [
+            'income_basis' => 'actual',
+            'currency' => 'toman',
+            'lines' => [
+                ['category_id' => $rent->id, 'rule_type' => 'fixed', 'fixed_amount' => '8000000'],
+            ],
+        ])
+        ->assertSessionHasErrors('lines.0.fixed_amount');
+
+    expect(DB::table('budgets')->count())->toBe(0);
+});
+
+test('the plan is still validated for coherence when its amounts are unreadable', function () {
+    $user = User::factory()->withModules(Feature::Budgets)->create();
+    armDegradedVault($user);
+    $investing = Category::factory()->cost()->create(['name' => 'Investing']);
+    $food = Category::factory()->cost()->create(['name' => 'Food']);
+
+    $this->actingAs($user)
+        ->post(route('budgets.store'), [
+            'income_basis' => 'actual',
+            'currency' => 'toman',
+            'lines' => [
+                ['category_id' => $investing->id, 'rule_type' => 'percent', 'percent' => 70],
+                ['category_id' => $food->id, 'rule_type' => 'percent', 'percent' => 45],
+            ],
+        ])
+        ->assertSessionHasErrors('lines');
+});
+
+test('the budgets page ships sealed rows and rates instead of allowances it cannot compute', function () {
+    $user = User::factory()->withModules(Feature::Budgets)->create();
+    $dek = armDegradedVault($user);
+    $investing = Category::factory()->cost()->create(['name' => 'Investing']);
+
+    $budget = $user->budgets()->create([
+        'income_basis' => 'actual',
+        'currency' => 'toman',
+        'starts_on' => Carbon::today()->startOfMonth()->toDateString(),
+    ]);
+
+    $budget->lines()->create([
+        'category_id' => $investing->id,
+        'rule_type' => 'percent',
+        'percent' => 50,
+        'sort_order' => 0,
+    ]);
+
+    $user->transactions()->create(SealedField::wrap([
+        'category_id' => $investing->id,
+        'type' => 'cost',
+        'amount' => clientEncrypt($user, $dek, 'amount', '4200000.00'),
+        'currency' => 'toman',
+        'title' => clientEncrypt($user, $dek, 'title', 'Gold'),
+        'occurred_at' => Carbon::today()->toDateString(),
+    ], ['amount', 'title']));
+
+    $this->actingAs($user)
+        ->get(route('budgets.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Budgets')
+            // Must travel as an explicit null: the page tells "no plan" apart
+            // from "amounts still sealed", and a missing key would leave someone
+            // with a plan staring at the create-your-first invitation.
+            ->where('progress', null)
+            ->has('vaultBudget.transactions', 1)
+            ->has('vaultBudget.rates')
+            // 50 rather than 50.0: JSON has one number type, and a whole
+            // percentage comes back through the response as an int.
+            ->where('vaultBudget.lines.0.percent', 50)
+            ->etc());
+});
+
+test('a goal title reaches the armed portfolio page as ciphertext', function () {
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
+    $dek = armDegradedVault($user);
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    $title = clientEncrypt($user, $dek, 'title', 'Nowruz fund', 'savings_goals');
+
+    $user->savingsGoals()->create(SealedField::wrap([
+        'investment_asset_id' => $asset->id,
+        'title' => $title,
+        'target_quantity' => clientEncrypt($user, $dek, 'target_quantity', '3.00000000', 'savings_goals'),
+        'started_on' => '2026-06-01',
+        'target_date' => '2026-10-18',
+    ], ['title', 'target_quantity']));
+
+    // savings_goals.title is a UserEncrypted column, so it arrives wrapped rather
+    // than as a string. GoalCard has to render it through <Ciphered>; dropping it
+    // straight into the template prints [object Object].
+    $this->actingAs($user)
+        ->get(route('portfolio'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('vaultGoals.goals.0.title.__enc', 1)
+            ->has('vaultGoals.goals.0.title.c')
             ->etc());
 });

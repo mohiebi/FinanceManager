@@ -48,6 +48,10 @@ return [
         'label' => 'Rechnungen',
         'description' => 'Verfolge wiederkehrende und einmalige Rechnungen und werde vor Fälligkeit erinnert.',
     ],
+    'budgets' => [
+        'label' => 'Flugplan',
+        'description' => 'Entscheide vorab, wohin dein Geld geht — ein Anteil deines Einkommens, ein fester Betrag, oder der Rest.',
+    ],
     'investments' => [
         'label' => 'Investitionen',
         'description' => 'Erfasse deine Bestände — Gold, Devisen, Krypto — und verfolge Live-Kurse.',
@@ -55,6 +59,10 @@ return [
     'portfolio' => [
         'label' => 'Portfolio',
         'description' => 'Sieh dein Nettovermögen sowie Gewinn und Verlust über alle Anlagen hinweg.',
+    ],
+    'goals' => [
+        'label' => 'Sparziele',
+        'description' => 'Setze Ziele in der Anlage, in der du tatsaechlich sparst — Gramm Gold, Dollar — damit Inflation sie nicht still auffrisst.',
     ],
     'gamification' => [
         'label' => 'Flugbuch',

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Goals\BuildGoalProgress;
 use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Enums\Currency;
+use App\Enums\Feature;
 use App\Models\InvestmentAsset;
 use App\Models\User;
 use App\Services\AssetPriceService;
@@ -40,15 +41,22 @@ class PortfolioController extends Controller
         // `assets` and `summary` still travel, as plain empty props: they are what
         // <Deferred> waits on, and a key that never arrives leaves it showing a
         // spinner forever. The page reads its real values off vaultPortfolio.
+        // Goals are their own module now, so the portfolio only carries them
+        // when the user has it switched on.
+        $showsGoals = $user->hasFeature(Feature::Goals);
+
         if ($user->vaultIsArmed()) {
             return Inertia::render('Portfolio', [
                 ...$common,
                 'vaultPortfolio' => $breakdownBuilder->clientPayload($user, $selectedCurrency),
-                'vaultGoals' => $goalBuilder->clientPayload($user),
+                'vaultGoals' => $showsGoals ? $goalBuilder->clientPayload($user) : null,
                 'pricesAvailable' => $priceService->pricesAvailable(),
                 'assets' => [],
                 'summary' => null,
-                'goals' => null,
+                // Explicit null rather than a missing key: the page tells a
+                // deferred prop that has not landed apart from an empty list.
+                'goals' => $showsGoals ? null : [],
+                'showsGoals' => $showsGoals,
                 'assetOptions' => Inertia::defer(fn () => $this->assetOptions($user)),
             ]);
         }
@@ -59,7 +67,10 @@ class PortfolioController extends Controller
             ...$common,
             'assets' => Inertia::defer(fn () => $breakdownBuilder->handle($allEntries, $selectedCurrency)['assets']),
             'summary' => Inertia::defer(fn () => $breakdownBuilder->handle($allEntries, $selectedCurrency)['summary']),
-            'goals' => Inertia::defer(fn () => $goalBuilder->handle($user, $allEntries)),
+            'goals' => $showsGoals
+                ? Inertia::defer(fn () => $goalBuilder->handle($user, $allEntries))
+                : [],
+            'showsGoals' => $showsGoals,
             'pricesAvailable' => Inertia::defer(fn () => $priceService->pricesAvailable()),
             // Deferred: only the create-goal dialog reads this, and most visits
             // never open it.

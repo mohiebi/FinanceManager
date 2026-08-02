@@ -174,12 +174,22 @@ return [
         'open_in_telegram' => 'In Telegram öffnen',
         'generate_new_link' => 'Neuen Link erzeugen',
         'connect_telegram' => 'Telegram verbinden',
+        // Only the commands the user's own modules make available are listed —
+        // see the gates in App\Telegraph\TelegramHandler::mainKeyboard().
         'commands' => [
+            'help' => 'Das Menü mit allen Funktionen des Bots anzeigen',
             'add_cost' => 'Eine Ausgabe erfassen (Schritt für Schritt)',
             'add_income' => 'Eine Einnahme erfassen',
             'add_investment' => 'Eine neue Investitionsposition protokollieren',
+            'add_bill' => 'Eine wiederkehrende oder einmalige Rechnung anlegen',
+            'list_bills' => 'Fällige Rechnungen sehen und als bezahlt markieren',
+            'portfolio' => 'Deine Bestände und ihr aktueller Wert',
+            'budget' => 'Was jede Kategorie diesen Monat noch ausgeben darf',
+            'no_spend' => 'Heute als Tag ohne Ausgaben markieren',
             'list' => 'Letzte Transaktionen ansehen',
+            'delete_tx' => 'Eine deiner letzten Transaktionen entfernen',
             'report_today' => 'Heutige Einnahmen, Ausgaben und Nettosaldo',
+            'report_daily' => 'Ein Bericht für einen beliebigen Tag',
             'report_week' => 'Finanzzusammenfassung dieser Woche',
             'report_month' => 'Finanzzusammenfassung dieses Monats',
         ],

@@ -7,7 +7,9 @@ use App\Http\Controllers\Auth\EmailAuthPageController;
 use App\Http\Controllers\Auth\WebEmailAuthController;
 use App\Http\Controllers\Auth\WebGoogleAuthController;
 use App\Http\Controllers\BillController;
+use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\GoalController;
 use App\Http\Controllers\InvestmentAssetController;
 use App\Http\Controllers\InvestmentController;
 use App\Http\Controllers\InvestmentExportController;
@@ -143,12 +145,27 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
             ->middleware(RejectWhenVaultArmed::class)
             ->name('portfolio.export');
         Route::get('portfolio', PortfolioController::class)->name('portfolio');
+    });
 
-        // Deliberately not behind RejectWhenVaultArmed: goals are sealed in the
-        // browser and their progress is computed there, so working with the
-        // vault armed is the point rather than an edge case.
+    // Its own module rather than part of the portfolio's: progress is a ratio of
+    // holdings, so goals need Investments — not net worth and P&L.
+    //
+    // Deliberately not behind RejectWhenVaultArmed: goals are sealed in the
+    // browser and their progress is computed there, so working with the vault
+    // armed is the point rather than an edge case.
+    Route::middleware(EnsureFeatureEnabled::class.':goals')->group(function () {
+        Route::get('goals', GoalController::class)->name('goals');
+
         Route::resource('savings-goals', SavingsGoalController::class)
             ->only(['store', 'update', 'destroy']);
+    });
+
+    // Deliberately not behind RejectWhenVaultArmed: percentages are plaintext and
+    // the allowances are resolved in the browser, so working with the vault armed
+    // is the point rather than an edge case.
+    Route::middleware(EnsureFeatureEnabled::class.':budgets')->group(function () {
+        Route::resource('budgets', BudgetController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
     });
 
     Route::middleware(EnsureFeatureEnabled::class.':bills')->group(function () {

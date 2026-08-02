@@ -44,6 +44,10 @@ return [
         'label' => 'Bills',
         'description' => 'Track recurring and one-off bills, and get reminded before they are due.',
     ],
+    'budgets' => [
+        'label' => 'Flight plan',
+        'description' => 'Decide where your money goes before it arrives — a share of your income, a fixed amount, or whatever is left.',
+    ],
     'investments' => [
         'label' => 'Investments',
         'description' => 'Log what you hold — gold, currency, crypto — and follow live prices.',
@@ -51,6 +55,10 @@ return [
     'portfolio' => [
         'label' => 'Portfolio',
         'description' => 'See your net worth and profit or loss across every asset you hold.',
+    ],
+    'goals' => [
+        'label' => 'Savings goals',
+        'description' => 'Set targets in the asset you actually save in — grams of gold, dollars — so inflation cannot quietly erase them.',
     ],
     'gamification' => [
         'label' => 'Flight log',

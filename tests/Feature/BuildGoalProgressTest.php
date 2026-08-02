@@ -7,6 +7,7 @@ use App\Enums\Feature;
 use App\Models\InvestmentAsset;
 use App\Models\SavingsGoal;
 use App\Models\User;
+use App\Support\GoalPace;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 
@@ -168,4 +169,46 @@ test('one user cannot see another goal', function () {
     ]);
 
     expect(goalProgressFor($mine))->toBeEmpty();
+});
+
+test('a met target reads as reached rather than merely on track', function () {
+    // 103% is not "on track" — it is finished. The two facts are separate so the
+    // card can mark the moment instead of burying it under a pace reading.
+    $pace = GoalPace::compute(
+        baseline: 0,
+        current: 7.2,
+        target: 7,
+        elapsed: 100,
+        total: 180,
+    );
+
+    expect($pace['reached'])->toBeTrue()
+        ->and($pace['progress'])->toBeGreaterThan(1.0);
+});
+
+test('a goal short of its target is not reached even when ahead of pace', function () {
+    $pace = GoalPace::compute(
+        baseline: 0,
+        current: 2.9,
+        target: 3,
+        elapsed: 10,
+        total: 180,
+    );
+
+    expect($pace['on_track'])->toBeTrue()
+        ->and($pace['reached'])->toBeFalse();
+});
+
+test('a zero target is never reached', function () {
+    // "0 of 0, done!" is not a fact about the user, and the card would have
+    // nothing honest to celebrate.
+    $pace = GoalPace::compute(
+        baseline: 0,
+        current: 0,
+        target: 0,
+        elapsed: 10,
+        total: 180,
+    );
+
+    expect($pace['reached'])->toBeFalse();
 });

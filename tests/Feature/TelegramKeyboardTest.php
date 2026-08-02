@@ -46,9 +46,9 @@ test('telegram main keyboard groups related actions into rows', function () {
         ['Add cost', 'Add income'],
         ['Last 10 transactions', 'Add investment'],
         ['Add bill', 'My bills'],
-        ['Portfolio', 'Nothing spent today'],
-        ['Daily report', 'Weekly report'],
-        ['Monthly report'],
+        ['Portfolio', 'Flight plan'],
+        ['Nothing spent today', 'Daily report'],
+        ['Weekly report', 'Monthly report'],
     ]);
 });
 

@@ -659,8 +659,9 @@
 
         <!-- ── Savings goals ─────────────────────────────────────────── -->
         <!-- Outside <Deferred> on purpose: goals travel on their own key, and a
-             goal in grams stays meaningful even when no price is available. -->
-        <section class="mx-[18px] mb-[18px]">
+             goal in grams stays meaningful even when no price is available.
+             Dropped entirely when the goals module is off. -->
+        <section v-if="props.showsGoals" class="mx-[18px] mb-[18px]">
             <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <h2
                     class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
@@ -670,7 +671,7 @@
                 <button
                     type="button"
                     class="rounded-full bg-white/8 px-3 py-1 text-xs text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white"
-                    @click="goalDialogOpen = true"
+                    @click="openGoalDialog(null)"
                 >
                     {{ t('gamification.goals.new') }}
                 </button>
@@ -688,8 +689,17 @@
                 />
             </div>
 
-            <div v-else-if="goals.length > 0" class="grid gap-[18px] md:grid-cols-2">
-                <GoalCard v-for="goal in goals" :key="goal.id" :goal="goal" />
+            <div
+                v-else-if="goals.length > 0"
+                class="grid gap-[18px] md:grid-cols-2"
+            >
+                <GoalCard
+                    v-for="goal in goals"
+                    :key="goal.id"
+                    :goal="goal"
+                    @edit="openGoalDialog"
+                    @delete="deleteTargetGoal = $event"
+                />
             </div>
 
             <p
@@ -703,17 +713,27 @@
         <GoalDialog
             v-model:open="goalDialogOpen"
             :asset-options="props.assetOptions ?? []"
+            :goal="editingGoal"
+        />
+
+        <ConfirmDeleteModal
+            :open="deleteTargetGoal !== null"
+            :title="t('gamification.goals.delete_title')"
+            :description="t('gamification.goals.delete_description')"
+            @update:open="deleteTargetGoal = null"
+            @confirm="confirmDeleteGoal"
         />
     </div>
 </template>
 
 <script setup lang="ts">
-import { Deferred, Head } from '@inertiajs/vue3';
+import { Deferred, Head, router } from '@inertiajs/vue3';
 import { Download, TrendingDown, TrendingUp, Wallet } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
 import PulseChart from '@/components/charts/PulseChart.vue';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import GoalCard from '@/components/gamification/GoalCard.vue';
 import GoalDialog from '@/components/gamification/GoalDialog.vue';
 import { Spinner } from '@/components/ui/spinner';
@@ -725,6 +745,7 @@ import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
 import type { CurrencyCode } from '@/lib/money';
 import type { PortfolioAsset, PortfolioSummary } from '@/lib/portfolio';
 import { dashboard, portfolio } from '@/routes';
+import { destroy as destroyGoal } from '@/routes/savings-goals';
 import type {
     AssetOption,
     GoalCard as GoalCardData,
@@ -751,6 +772,8 @@ const props = defineProps<{
     goals?: GoalCardData[] | null;
     /** Sent instead of `goals` when the vault is armed — targets still sealed. */
     vaultGoals?: VaultGoalsPayload | null;
+    /** False when the goals module is off, and the whole section is dropped. */
+    showsGoals?: boolean;
     assetOptions?: AssetOption[];
 }>();
 
@@ -784,6 +807,29 @@ const goalsLoading = computed(
 );
 
 const goalDialogOpen = ref(false);
+const editingGoal = ref<GoalCardData | null>(null);
+const deleteTargetGoal = ref<GoalCardData | null>(null);
+
+/** Null opens the dialog for a new goal; a card opens it prefilled for editing. */
+function openGoalDialog(goal: GoalCardData | null): void {
+    editingGoal.value = goal;
+    goalDialogOpen.value = true;
+}
+
+function confirmDeleteGoal(): void {
+    const goal = deleteTargetGoal.value;
+
+    if (goal === null) {
+        return;
+    }
+
+    router.delete(destroyGoal.url(goal.id), {
+        preserveScroll: true,
+        onFinish: () => {
+            deleteTargetGoal.value = null;
+        },
+    });
+}
 
 const assets = computed(() => breakdown.value?.assets ?? props.assets ?? []);
 const summary = computed(

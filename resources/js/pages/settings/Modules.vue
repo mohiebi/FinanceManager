@@ -9,7 +9,9 @@ import {
     ReceiptText,
     ShieldCheck,
     Sparkles,
+    Target,
     TrendingUp,
+    Trophy,
     Wallet,
 } from 'lucide-vue-next';
 import { ref } from 'vue';
@@ -34,6 +36,12 @@ defineOptions({
     },
 });
 
+/**
+ * Every name App\Enums\Feature::icon() can return.
+ *
+ * A missing entry renders an empty square rather than failing, so this has to be
+ * kept in step by hand whenever a module is added.
+ */
 const icons: Record<string, Component> = {
     Bot,
     ChartPie,
@@ -42,7 +50,9 @@ const icons: Record<string, Component> = {
     ReceiptText,
     ShieldCheck,
     Sparkles,
+    Target,
     TrendingUp,
+    Trophy,
     Wallet,
 };
 

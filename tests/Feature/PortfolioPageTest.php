@@ -15,7 +15,7 @@ use Inertia\Testing\AssertableInertia as Assert;
  * page that no unit test would notice.
  */
 test('the unarmed page defers goals and asset options', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
 
     SavingsGoal::factory()->for($user)->create([
         'investment_asset_id' => InvestmentAsset::query()
@@ -38,7 +38,7 @@ test('the unarmed page defers goals and asset options', function () {
 });
 
 test('the deferred goals keys are registered so the follow-up request fires', function () {
-    $user = User::factory()->withModules(Feature::Portfolio)->create();
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
 
     SavingsGoal::factory()->for($user)->create([
         'investment_asset_id' => InvestmentAsset::query()

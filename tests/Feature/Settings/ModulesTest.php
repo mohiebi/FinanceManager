@@ -14,34 +14,42 @@ test('the modules page lists every toggleable module at its default state', func
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/Modules')
-            ->has('modules', 7)
+            ->has('modules', 9)
             ->has('coreModules', 2)
             ->where('modules.0.key', Feature::Bills->value)
             ->where('modules.0.enabled', false)
             ->where('modules.0.manage_url', null)
-            ->where('modules.1.key', Feature::Investments->value)
+            ->where('modules.1.key', Feature::Budgets->value)
             ->where('modules.1.enabled', false)
-            ->where('modules.2.key', Feature::Portfolio->value)
+            // Depends only on Transactions, which is core — so it advertises no
+            // requirement even though it has one.
+            ->where('modules.1.requires', [])
+            ->where('modules.2.key', Feature::Investments->value)
             ->where('modules.2.enabled', false)
-            ->where('modules.2.requires', ['Investments'])
+            ->where('modules.3.key', Feature::Portfolio->value)
+            ->where('modules.3.enabled', false)
+            ->where('modules.3.requires', ['Investments'])
+            // Its own module, and it needs Investments rather than Portfolio:
+            // progress is a ratio of holdings, not of net worth.
+            ->where('modules.4.key', Feature::Goals->value)
+            ->where('modules.4.enabled', false)
+            ->where('modules.4.requires', ['Investments'])
             // The one optional module that ships on: it has no page of its own,
             // so shipping it off would mean nobody ever finds it. It also has no
             // sidebar entry, so the hide-from-menu control must not be offered.
-            ->where('modules.3.key', Feature::Gamification->value)
-            ->where('modules.3.enabled', true)
-            ->where('modules.3.in_nav', false)
-            // Depends only on Transactions, which is core — so it advertises no
-            // requirement even though it has one.
-            ->where('modules.3.requires', [])
-            ->where('modules.4.key', Feature::AiAssistant->value)
-            ->where('modules.4.enabled', false)
-            ->where('modules.5.key', Feature::TelegramBot->value)
-            ->where('modules.5.enabled', false)
+            ->where('modules.5.key', Feature::Gamification->value)
+            ->where('modules.5.enabled', true)
+            ->where('modules.5.in_nav', false)
+            ->where('modules.5.requires', [])
+            ->where('modules.6.key', Feature::AiAssistant->value)
+            ->where('modules.6.enabled', false)
+            ->where('modules.7.key', Feature::TelegramBot->value)
+            ->where('modules.7.enabled', false)
             // Advertised on the page, but switched from its own — the card is a
             // link rather than a toggle.
-            ->where('modules.6.key', Feature::Vault->value)
-            ->where('modules.6.enabled', false)
-            ->where('modules.6.manage_url', route('security.edit'))
+            ->where('modules.8.key', Feature::Vault->value)
+            ->where('modules.8.enabled', false)
+            ->where('modules.8.manage_url', route('security.edit'))
         );
 });
 
@@ -104,8 +112,8 @@ test('the modules page reports which enabled modules a disable would take with i
     $this->actingAs($user)
         ->get(route('modules.edit'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('modules.1.key', Feature::Investments->value)
-            ->where('modules.1.disables', ['Portfolio'])
+            ->where('modules.2.key', Feature::Investments->value)
+            ->where('modules.2.disables', ['Portfolio'])
         );
 });
 
@@ -156,4 +164,39 @@ test('a disabled module can be hidden from the menu without enabling it', functi
 
     expect($fresh->hasFeature(Feature::Bills))->toBeFalse()
         ->and($fresh->featureSet()->showsPromo(Feature::Bills))->toBeFalse();
+});
+
+test('every module icon has a component behind it on the modules page', function () {
+    // The page resolves icon names through a hand-maintained map and renders an
+    // empty square when a name is missing — silent, and exactly how the budgets
+    // module shipped without one. This is the guard for that.
+    $page = file_get_contents(resource_path('js/pages/settings/Modules.vue'));
+    $map = str($page)->after('const icons: Record<string, Component> = {')->before('};')->toString();
+
+    // Collected rather than asserted one by one, so a failure names every module
+    // that is missing an icon instead of only the first.
+    $missing = collect(Feature::cases())
+        ->reject(fn (Feature $feature): bool => str_contains($map, $feature->icon()))
+        ->map(fn (Feature $feature): string => "{$feature->value} => {$feature->icon()}")
+        ->values()
+        ->all();
+
+    expect($missing)->toBe([]);
+});
+
+test('every module that claims a nav entry has one', function () {
+    // Feature::appearsInNav() and useModuleNav.ts are kept in step by hand; a
+    // module that says it has a sidebar entry and does not is a dead promo card.
+    // Core features are keyed but carry `feature: null`, so the key is what both
+    // kinds have in common.
+    $nav = file_get_contents(resource_path('js/composables/useModuleNav.ts'));
+
+    $missing = collect(Feature::cases())
+        ->filter(fn (Feature $feature): bool => $feature->appearsInNav())
+        ->reject(fn (Feature $feature): bool => str_contains($nav, "key: '{$feature->value}'"))
+        ->map(fn (Feature $feature): string => $feature->value)
+        ->values()
+        ->all();
+
+    expect($missing)->toBe([]);
 });

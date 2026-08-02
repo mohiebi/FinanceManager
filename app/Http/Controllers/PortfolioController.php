@@ -70,7 +70,6 @@ class PortfolioController extends Controller
             'goals' => $showsGoals
                 ? Inertia::defer(fn () => $goalBuilder->handle($user, $allEntries))
                 : [],
-            'vaultGoals' => null,
             'showsGoals' => $showsGoals,
             'pricesAvailable' => Inertia::defer(fn () => $priceService->pricesAvailable()),
             // Deferred: only the create-goal dialog reads this, and most visits

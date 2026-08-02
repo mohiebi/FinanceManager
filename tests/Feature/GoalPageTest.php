@@ -87,12 +87,40 @@ test('the page never carries another users goals', function () {
         ->assertInertia(fn (Assert $page) => $page->has('goals', 0)->etc());
 });
 
-test('the page is gated on the portfolio module', function () {
+test('the page is gated on the goals module, not the portfolio one', function () {
     $this->actingAs(User::factory()->create())
         ->get(route('goals'))
         ->assertRedirect();
 
-    $this->actingAs(User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create())
+    // Goals are their own module: someone who tracks grams of gold should not
+    // have to switch on net worth and P&L to do it.
+    $this->actingAs(User::factory()->withModules(Feature::Portfolio)->create())
+        ->get(route('goals'))
+        ->assertRedirect();
+
+    $this->actingAs(User::factory()->withModules(Feature::Goals)->create())
         ->get(route('goals'))
         ->assertOk();
+});
+
+test('the portfolio page drops the goals section when the module is off', function () {
+    $user = User::factory()->withModules(Feature::Portfolio)->create();
+
+    SavingsGoal::factory()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => goldAssetForPage()->id,
+        'title' => 'Nowruz fund',
+    ]);
+
+    // Asserted on the props rather than the rendered HTML: the page is an empty
+    // Inertia shell in tests, so the payload is the only place a leak could show.
+    $this->actingAs($user)
+        ->get(route('portfolio'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('showsGoals', false)
+            // An empty list rather than a deferred key: nothing will ever arrive
+            // to fill it, and the page must not wait for it.
+            ->where('goals', [])
+            ->etc());
 });

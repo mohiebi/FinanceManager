@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
+import SettingsSection from '@/components/settings/SettingsSection.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -272,365 +273,365 @@ defineOptions({
 <template>
     <Head :title="t('settings.assets.title')" />
 
-    <div class="settings-card space-y-7">
-        <div>
-            <p
-                class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-            >
-                {{ t('settings.assets.eyebrow') }}
-            </p>
-            <p class="mt-1 text-sm text-[#989898]">
-                {{ t('settings.assets.description') }}
-            </p>
-        </div>
-
-        <form class="space-y-4" @submit.prevent="createAsset">
-            <!-- Row 1: Name + Unit -->
-            <div class="grid gap-3 sm:grid-cols-[1fr_100px]">
-                <div class="grid gap-2">
-                    <Label class="finance-dialog-label" for="asset_name">{{
-                        t('settings.assets.name')
-                    }}</Label>
-                    <Input
-                        id="asset_name"
-                        v-model="createForm.name"
-                        class="finance-dialog-field finance-dialog-field-income"
-                        :placeholder="t('settings.assets.name_placeholder')"
-                    />
+    <div class="flex flex-col gap-[18px]">
+        <SettingsSection
+            :title="t('settings.assets.eyebrow')"
+            :description="t('settings.assets.description')"
+        >
+            <form class="space-y-4" @submit.prevent="createAsset">
+                <!-- Row 1: Name + Unit -->
+                <div class="grid gap-3 sm:grid-cols-[1fr_100px]">
+                    <div class="grid gap-2">
+                        <Label class="finance-dialog-label" for="asset_name">{{
+                            t('settings.assets.name')
+                        }}</Label>
+                        <Input
+                            id="asset_name"
+                            v-model="createForm.name"
+                            class="finance-dialog-field finance-dialog-field-income"
+                            :placeholder="t('settings.assets.name_placeholder')"
+                        />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label class="finance-dialog-label" for="asset_unit">{{
+                            t('settings.assets.unit')
+                        }}</Label>
+                        <Input
+                            id="asset_unit"
+                            v-model="createForm.unit"
+                            class="finance-dialog-field finance-dialog-field-income"
+                            :placeholder="t('settings.assets.unit_placeholder')"
+                        />
+                    </div>
                 </div>
-                <div class="grid gap-2">
-                    <Label class="finance-dialog-label" for="asset_unit">{{
-                        t('settings.assets.unit')
-                    }}</Label>
-                    <Input
-                        id="asset_unit"
-                        v-model="createForm.unit"
-                        class="finance-dialog-field finance-dialog-field-income"
-                        :placeholder="t('settings.assets.unit_placeholder')"
-                    />
-                </div>
-            </div>
 
-            <!-- Row 2: Emoji icon + Color swatches -->
-            <div class="grid gap-3 sm:grid-cols-[120px_1fr]">
-                <div class="grid gap-2">
-                    <Label class="finance-dialog-label">{{
-                        t('settings.assets.icon')
-                    }}</Label>
-                    <div class="relative">
-                        <button
-                            type="button"
-                            class="finance-dialog-field finance-dialog-field-income flex h-9 w-full items-center gap-2 px-3 text-start"
-                            @click="showCreateEmoji = !showCreateEmoji"
-                        >
-                            <span
-                                v-if="createForm.icon"
-                                class="text-xl leading-none"
-                                >{{ createForm.icon }}</span
-                            >
-                            <span v-else class="text-sm text-white/50">{{
-                                t('settings.assets.pick_emoji')
-                            }}</span>
-                        </button>
-                        <div
-                            v-if="showCreateEmoji"
-                            class="absolute top-full left-0 z-50 mt-1 w-[260px] rounded-xl border border-white/10 bg-[#1f1f1f] p-3 shadow-2xl"
-                        >
-                            <div
-                                v-for="group in emojiGroups"
-                                :key="group.label"
-                                class="mb-3 last:mb-0"
-                            >
-                                <p
-                                    class="mb-1.5 text-[10px] font-medium tracking-wider text-[#686868] uppercase"
-                                >
-                                    {{ emojiGroupLabel(group.label) }}
-                                </p>
-                                <div class="grid grid-cols-6 gap-1">
-                                    <button
-                                        v-for="emoji in group.emojis"
-                                        :key="emoji"
-                                        type="button"
-                                        :class="[
-                                            'flex h-8 w-full cursor-pointer items-center justify-center rounded-lg text-lg transition-colors hover:bg-white/10',
-                                            createForm.icon === emoji
-                                                ? 'bg-[#02CD86]/20 ring-1 ring-[#02CD86]/40'
-                                                : '',
-                                        ]"
-                                        @click="
-                                            createForm.icon = emoji;
-                                            showCreateEmoji = false;
-                                        "
-                                    >
-                                        {{ emoji }}
-                                    </button>
-                                </div>
-                            </div>
+                <!-- Row 2: Emoji icon + Color swatches -->
+                <div class="grid gap-3 sm:grid-cols-[120px_1fr]">
+                    <div class="grid gap-2">
+                        <Label class="finance-dialog-label">{{
+                            t('settings.assets.icon')
+                        }}</Label>
+                        <div class="relative">
                             <button
-                                v-if="createForm.icon"
                                 type="button"
-                                class="mt-1 w-full cursor-pointer rounded-lg py-1.5 text-xs text-[#989898] transition-colors hover:bg-white/5 hover:text-white"
-                                @click="
-                                    createForm.icon = '';
-                                    showCreateEmoji = false;
-                                "
+                                class="finance-dialog-field finance-dialog-field-income flex h-9 w-full items-center gap-2 px-3 text-start"
+                                @click="showCreateEmoji = !showCreateEmoji"
                             >
-                                {{ t('common.clear') }}
+                                <span
+                                    v-if="createForm.icon"
+                                    class="text-xl leading-none"
+                                    >{{ createForm.icon }}</span
+                                >
+                                <span v-else class="text-sm text-white/50">{{
+                                    t('settings.assets.pick_emoji')
+                                }}</span>
                             </button>
+                            <div
+                                v-if="showCreateEmoji"
+                                class="absolute top-full left-0 z-50 mt-1 w-[260px] rounded-xl border border-white/10 bg-[#1f1f1f] p-3 shadow-2xl"
+                            >
+                                <div
+                                    v-for="group in emojiGroups"
+                                    :key="group.label"
+                                    class="mb-3 last:mb-0"
+                                >
+                                    <p
+                                        class="mb-1.5 text-[10px] font-medium tracking-wider text-[#686868] uppercase"
+                                    >
+                                        {{ emojiGroupLabel(group.label) }}
+                                    </p>
+                                    <div class="grid grid-cols-6 gap-1">
+                                        <button
+                                            v-for="emoji in group.emojis"
+                                            :key="emoji"
+                                            type="button"
+                                            :class="[
+                                                'flex h-8 w-full cursor-pointer items-center justify-center rounded-lg text-lg transition-colors hover:bg-white/10',
+                                                createForm.icon === emoji
+                                                    ? 'bg-[#02CD86]/20 ring-1 ring-[#02CD86]/40'
+                                                    : '',
+                                            ]"
+                                            @click="
+                                                createForm.icon = emoji;
+                                                showCreateEmoji = false;
+                                            "
+                                        >
+                                            {{ emoji }}
+                                        </button>
+                                    </div>
+                                </div>
+                                <button
+                                    v-if="createForm.icon"
+                                    type="button"
+                                    class="mt-1 w-full cursor-pointer rounded-lg py-1.5 text-xs text-[#989898] transition-colors hover:bg-white/5 hover:text-white"
+                                    @click="
+                                        createForm.icon = '';
+                                        showCreateEmoji = false;
+                                    "
+                                >
+                                    {{ t('common.clear') }}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="grid gap-2">
-                    <Label class="finance-dialog-label">{{
-                        t('settings.assets.color')
-                    }}</Label>
-                    <div class="flex items-center gap-2 pt-1">
-                        <button
-                            v-for="c in presetColors"
-                            :key="c"
-                            type="button"
-                            :style="{ backgroundColor: c }"
-                            :class="[
-                                'size-6 cursor-pointer rounded-full transition-transform hover:scale-110',
-                                createForm.color === c
-                                    ? 'scale-110 ring-2 ring-white ring-offset-1 ring-offset-[#1a1a1a]'
-                                    : '',
-                            ]"
-                            @click="createForm.color = c"
-                        />
-                        <label
-                            class="relative size-6 cursor-pointer overflow-hidden rounded-full ring-1 ring-white/20"
-                            :style="{
-                                backgroundColor: presetColors.includes(
-                                    createForm.color,
-                                )
-                                    ? '#333'
-                                    : createForm.color,
-                            }"
-                        >
-                            <span
-                                class="absolute inset-0 flex items-center justify-center text-[9px] text-white/70"
-                                >+</span
-                            >
-                            <input
-                                v-model="createForm.color"
-                                type="color"
-                                class="absolute inset-0 cursor-pointer opacity-0"
+                    <div class="grid gap-2">
+                        <Label class="finance-dialog-label">{{
+                            t('settings.assets.color')
+                        }}</Label>
+                        <div class="flex items-center gap-2 pt-1">
+                            <button
+                                v-for="c in presetColors"
+                                :key="c"
+                                type="button"
+                                :style="{ backgroundColor: c }"
+                                :class="[
+                                    'size-6 cursor-pointer rounded-full transition-transform hover:scale-110',
+                                    createForm.color === c
+                                        ? 'scale-110 ring-2 ring-white ring-offset-1 ring-offset-[#1a1a1a]'
+                                        : '',
+                                ]"
+                                @click="createForm.color = c"
                             />
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Row 3: Price (manual default) -->
-            <div class="grid gap-2">
-                <Label class="finance-dialog-label" for="asset_price">
-                    {{ t('settings.assets.price_source') }}
-                    <span class="ml-1 font-light text-[#989898]"
-                        >({{ t('finance.fields.optional') }})</span
-                    >
-                </Label>
-                <Input
-                    v-if="createForm.price_source_type === 'manual'"
-                    id="asset_price"
-                    v-model="createForm.price_source_config.price"
-                    class="finance-dialog-field finance-dialog-field-income"
-                    type="number"
-                    min="0"
-                    step="any"
-                    :placeholder="t('settings.assets.price_placeholder')"
-                />
-            </div>
-
-            <!-- Advanced toggle -->
-            <button
-                type="button"
-                class="inline-flex items-center gap-1 text-[11px] text-white/40 transition-colors hover:text-white/70"
-                @click="showCreateAdvanced = !showCreateAdvanced"
-            >
-                <ChevronDown
-                    :class="[
-                        'size-3 transition-transform',
-                        showCreateAdvanced ? 'rotate-180' : '',
-                    ]"
-                />
-                {{ t('settings.assets.advanced_options') }}
-            </button>
-
-            <div
-                v-if="showCreateAdvanced"
-                class="space-y-3 rounded-[8px] border border-white/8 bg-black/20 p-3"
-            >
-                <div class="grid gap-2">
-                    <Label class="finance-dialog-label">{{
-                        t('settings.assets.price_source')
-                    }}</Label>
-                    <select
-                        v-model="createForm.price_source_type"
-                        class="finance-dialog-field finance-dialog-field-income"
-                    >
-                        <option value="manual">
-                            {{ t('settings.assets.sources.manual') }}
-                        </option>
-                        <option value="formula">
-                            {{ t('settings.assets.sources.formula') }}
-                        </option>
-                        <option value="json">
-                            {{ t('settings.assets.sources.json') }}
-                        </option>
-                        <option value="xml">
-                            {{ t('settings.assets.sources.xml') }}
-                        </option>
-                    </select>
-                </div>
-                <div
-                    v-if="createForm.price_source_type === 'formula'"
-                    class="space-y-2"
-                >
-                    <Input
-                        v-model="createForm.price_source_config.formula"
-                        class="finance-dialog-field finance-dialog-field-income"
-                        :placeholder="t('settings.assets.formula_placeholder')"
-                    />
-                    <div
-                        class="rounded-[6px] bg-black/20 p-2 text-xs leading-5 text-[#989898]"
-                    >
-                        <p class="font-medium text-white/70">
-                            {{ t('settings.assets.formula_help_title') }}
-                        </p>
-                        <div class="mt-1 flex flex-wrap gap-1.5">
-                            <code
-                                v-for="variable in formulaVariables"
-                                :key="variable"
-                                class="rounded-md bg-black/30 px-1.5 py-0.5 text-[#02CD86]"
-                                >{{ variable }}</code
+                            <label
+                                class="relative size-6 cursor-pointer overflow-hidden rounded-full ring-1 ring-white/20"
+                                :style="{
+                                    backgroundColor: presetColors.includes(
+                                        createForm.color,
+                                    )
+                                        ? '#333'
+                                        : createForm.color,
+                                }"
                             >
+                                <span
+                                    class="absolute inset-0 flex items-center justify-center text-[9px] text-white/70"
+                                    >+</span
+                                >
+                                <input
+                                    v-model="createForm.color"
+                                    type="color"
+                                    class="absolute inset-0 cursor-pointer opacity-0"
+                                />
+                            </label>
                         </div>
                     </div>
                 </div>
-                <div
-                    v-if="createForm.price_source_type === 'json'"
-                    class="grid gap-2 sm:grid-cols-2"
-                >
-                    <div class="grid gap-1">
-                        <Label class="finance-dialog-label">{{
-                            t('settings.assets.url')
-                        }}</Label
-                        ><Input
-                            v-model="createForm.price_source_config.url"
-                            class="finance-dialog-field finance-dialog-field-income"
-                            placeholder="https://api.example.com/price"
-                        />
-                    </div>
-                    <div class="grid gap-1">
-                        <Label class="finance-dialog-label">{{
-                            t('settings.assets.path')
-                        }}</Label
-                        ><Input
-                            v-model="createForm.price_source_config.path"
-                            class="finance-dialog-field finance-dialog-field-income"
-                            :placeholder="t('settings.assets.path_placeholder')"
-                        />
-                    </div>
-                </div>
-                <div
-                    v-if="createForm.price_source_type === 'xml'"
-                    class="grid gap-2 sm:grid-cols-2"
-                >
-                    <div class="grid gap-1">
-                        <Label class="finance-dialog-label">{{
-                            t('settings.assets.url')
-                        }}</Label
-                        ><Input
-                            v-model="createForm.price_source_config.url"
-                            class="finance-dialog-field finance-dialog-field-income"
-                            placeholder="https://example.com/feed.xml"
-                        />
-                    </div>
-                    <div class="grid gap-1">
-                        <Label class="finance-dialog-label">{{
-                            t('settings.assets.xpath')
-                        }}</Label
-                        ><Input
-                            v-model="createForm.price_source_config.xpath"
-                            class="finance-dialog-field finance-dialog-field-income"
-                            :placeholder="
-                                t('settings.assets.xpath_placeholder')
-                            "
-                        />
-                    </div>
-                </div>
-                <div class="grid gap-1.5">
-                    <Label class="finance-dialog-label"
-                        >{{ t('settings.assets.svg_icon') }}
+
+                <!-- Row 3: Price (manual default) -->
+                <div class="grid gap-2">
+                    <Label class="finance-dialog-label" for="asset_price">
+                        {{ t('settings.assets.price_source') }}
                         <span class="ml-1 font-light text-[#989898]"
                             >({{ t('finance.fields.optional') }})</span
-                        ></Label
-                    >
-                    <textarea
-                        v-model="createForm.icon_svg"
-                        rows="2"
-                        class="finance-dialog-field finance-dialog-field-income min-h-[56px] resize-y font-mono text-xs"
-                        :placeholder="t('settings.assets.svg_icon_placeholder')"
-                    />
-                    <p class="text-xs text-[#989898]">
-                        {{ t('settings.assets.svg_icon_help') }}
-                    </p>
-                </div>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <InputError
-                        :message="
-                            createForm.errors.name ||
-                            createForm.errors.unit ||
-                            createForm.errors.icon ||
-                            createForm.errors.icon_svg ||
-                            createForm.errors.color ||
-                            createForm.errors.price_source_type ||
-                            createForm.errors['price_source_config.price'] ||
-                            createForm.errors['price_source_config.formula'] ||
-                            createForm.errors['price_source_config.url'] ||
-                            createForm.errors['price_source_config.path'] ||
-                            createForm.errors['price_source_config.xpath']
-                        "
-                    />
-                    <Transition
-                        enter-active-class="transition ease-in-out"
-                        enter-from-class="opacity-0"
-                        leave-active-class="transition ease-in-out"
-                        leave-to-class="opacity-0"
-                    >
-                        <p
-                            v-show="createForm.recentlySuccessful"
-                            class="text-sm text-[#02CD86]"
                         >
-                            {{ t('common.saved') }}
-                        </p>
-                    </Transition>
+                    </Label>
+                    <Input
+                        v-if="createForm.price_source_type === 'manual'"
+                        id="asset_price"
+                        v-model="createForm.price_source_config.price"
+                        class="finance-dialog-field finance-dialog-field-income"
+                        type="number"
+                        min="0"
+                        step="any"
+                        :placeholder="t('settings.assets.price_placeholder')"
+                    />
                 </div>
-                <Button
-                    class="h-9 bg-[#02CD86] text-[#101010] hover:bg-[#08dd93]"
-                    :disabled="createForm.processing"
+
+                <!-- Advanced toggle -->
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-1 text-[11px] text-white/40 transition-colors hover:text-white/70"
+                    @click="showCreateAdvanced = !showCreateAdvanced"
                 >
-                    <Spinner v-if="createForm.processing" />
-                    <Plus v-else class="size-4" />
-                    {{ t('settings.assets.add') }}
-                </Button>
-            </div>
-        </form>
+                    <ChevronDown
+                        :class="[
+                            'size-3 transition-transform',
+                            showCreateAdvanced ? 'rotate-180' : '',
+                        ]"
+                    />
+                    {{ t('settings.assets.advanced_options') }}
+                </button>
 
-        <InputError :message="deleteError" />
+                <div
+                    v-if="showCreateAdvanced"
+                    class="space-y-3 rounded-[8px] border border-white/8 bg-black/20 p-3"
+                >
+                    <div class="grid gap-2">
+                        <Label class="finance-dialog-label">{{
+                            t('settings.assets.price_source')
+                        }}</Label>
+                        <select
+                            v-model="createForm.price_source_type"
+                            class="finance-dialog-field finance-dialog-field-income"
+                        >
+                            <option value="manual">
+                                {{ t('settings.assets.sources.manual') }}
+                            </option>
+                            <option value="formula">
+                                {{ t('settings.assets.sources.formula') }}
+                            </option>
+                            <option value="json">
+                                {{ t('settings.assets.sources.json') }}
+                            </option>
+                            <option value="xml">
+                                {{ t('settings.assets.sources.xml') }}
+                            </option>
+                        </select>
+                    </div>
+                    <div
+                        v-if="createForm.price_source_type === 'formula'"
+                        class="space-y-2"
+                    >
+                        <Input
+                            v-model="createForm.price_source_config.formula"
+                            class="finance-dialog-field finance-dialog-field-income"
+                            :placeholder="
+                                t('settings.assets.formula_placeholder')
+                            "
+                        />
+                        <div
+                            class="rounded-[6px] bg-black/20 p-2 text-xs leading-5 text-[#989898]"
+                        >
+                            <p class="font-medium text-white/70">
+                                {{ t('settings.assets.formula_help_title') }}
+                            </p>
+                            <div class="mt-1 flex flex-wrap gap-1.5">
+                                <code
+                                    v-for="variable in formulaVariables"
+                                    :key="variable"
+                                    class="rounded-md bg-black/30 px-1.5 py-0.5 text-[#02CD86]"
+                                    >{{ variable }}</code
+                                >
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        v-if="createForm.price_source_type === 'json'"
+                        class="grid gap-2 sm:grid-cols-2"
+                    >
+                        <div class="grid gap-1">
+                            <Label class="finance-dialog-label">{{
+                                t('settings.assets.url')
+                            }}</Label
+                            ><Input
+                                v-model="createForm.price_source_config.url"
+                                class="finance-dialog-field finance-dialog-field-income"
+                                placeholder="https://api.example.com/price"
+                            />
+                        </div>
+                        <div class="grid gap-1">
+                            <Label class="finance-dialog-label">{{
+                                t('settings.assets.path')
+                            }}</Label
+                            ><Input
+                                v-model="createForm.price_source_config.path"
+                                class="finance-dialog-field finance-dialog-field-income"
+                                :placeholder="
+                                    t('settings.assets.path_placeholder')
+                                "
+                            />
+                        </div>
+                    </div>
+                    <div
+                        v-if="createForm.price_source_type === 'xml'"
+                        class="grid gap-2 sm:grid-cols-2"
+                    >
+                        <div class="grid gap-1">
+                            <Label class="finance-dialog-label">{{
+                                t('settings.assets.url')
+                            }}</Label
+                            ><Input
+                                v-model="createForm.price_source_config.url"
+                                class="finance-dialog-field finance-dialog-field-income"
+                                placeholder="https://example.com/feed.xml"
+                            />
+                        </div>
+                        <div class="grid gap-1">
+                            <Label class="finance-dialog-label">{{
+                                t('settings.assets.xpath')
+                            }}</Label
+                            ><Input
+                                v-model="createForm.price_source_config.xpath"
+                                class="finance-dialog-field finance-dialog-field-income"
+                                :placeholder="
+                                    t('settings.assets.xpath_placeholder')
+                                "
+                            />
+                        </div>
+                    </div>
+                    <div class="grid gap-1.5">
+                        <Label class="finance-dialog-label"
+                            >{{ t('settings.assets.svg_icon') }}
+                            <span class="ml-1 font-light text-[#989898]"
+                                >({{ t('finance.fields.optional') }})</span
+                            ></Label
+                        >
+                        <textarea
+                            v-model="createForm.icon_svg"
+                            rows="2"
+                            class="finance-dialog-field finance-dialog-field-income min-h-[56px] resize-y font-mono text-xs"
+                            :placeholder="
+                                t('settings.assets.svg_icon_placeholder')
+                            "
+                        />
+                        <p class="text-xs text-[#989898]">
+                            {{ t('settings.assets.svg_icon_help') }}
+                        </p>
+                    </div>
+                </div>
 
-        <section class="space-y-3">
-            <div
-                class="flex items-center justify-between border-t border-white/10 pt-5"
-            >
-                <h2 class="text-sm font-medium text-white">
-                    {{ t('settings.assets.custom_assets') }}
-                </h2>
-                <span class="text-xs text-[#989898]">{{ assets.length }}</span>
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <InputError
+                            :message="
+                                createForm.errors.name ||
+                                createForm.errors.unit ||
+                                createForm.errors.icon ||
+                                createForm.errors.icon_svg ||
+                                createForm.errors.color ||
+                                createForm.errors.price_source_type ||
+                                createForm.errors[
+                                    'price_source_config.price'
+                                ] ||
+                                createForm.errors[
+                                    'price_source_config.formula'
+                                ] ||
+                                createForm.errors['price_source_config.url'] ||
+                                createForm.errors['price_source_config.path'] ||
+                                createForm.errors['price_source_config.xpath']
+                            "
+                        />
+                        <Transition
+                            enter-active-class="transition ease-in-out"
+                            enter-from-class="opacity-0"
+                            leave-active-class="transition ease-in-out"
+                            leave-to-class="opacity-0"
+                        >
+                            <p
+                                v-show="createForm.recentlySuccessful"
+                                class="text-sm text-[#02CD86]"
+                            >
+                                {{ t('common.saved') }}
+                            </p>
+                        </Transition>
+                    </div>
+                    <Button
+                        class="h-9 bg-[#02CD86] text-[#101010] hover:bg-[#08dd93]"
+                        :disabled="createForm.processing"
+                    >
+                        <Spinner v-if="createForm.processing" />
+                        <Plus v-else class="size-4" />
+                        {{ t('settings.assets.add') }}
+                    </Button>
+                </div>
+            </form>
+        </SettingsSection>
+
+        <SettingsSection :title="t('settings.assets.custom_assets')">
+            <div class="mb-3 flex items-center justify-between gap-3">
+                <InputError :message="deleteError" />
+                <span class="ms-auto text-xs text-[#989898]">
+                    {{ assets.length }}
+                </span>
             </div>
 
             <div v-if="assets.length > 0" class="space-y-2">
@@ -1046,7 +1047,7 @@ defineOptions({
             >
                 {{ t('settings.assets.empty') }}
             </p>
-        </section>
+        </SettingsSection>
 
         <ConfirmDeleteModal
             :open="deleteTarget !== null"

@@ -320,7 +320,7 @@ return [
         'description' => 'Manage AI assistants connected to your account and review the changes they made.',
         'connect' => [
             'title' => 'Connect your AI assistant',
-            'subtitle' => 'Pick your assistant and follow the steps. Once authorized, it can read your finance data and propose changes — nothing is saved until you approve it in chat.',
+            'subtitle' => 'Pick your assistant and follow the steps. Once authorized, it can read your finance data and apply a complete batch only after you approve it in chat.',
             'server_url' => 'MCP server address',
             'clients' => [
                 'claude' => 'Claude',
@@ -358,7 +358,7 @@ return [
         'no_connections' => 'No AI assistants are connected yet.',
         'safety' => [
             'title' => 'You stay in control',
-            'description' => 'Assistants can read your finance data and propose changes, but nothing is saved until you approve that exact change in chat.',
+            'description' => 'Your assistant summarizes the complete batch and asks once before applying it. After you approve, every item is saved in one operation.',
         ],
         'connected_at' => 'Connected',
         'active_sessions' => '{count} active session|{count} active sessions',

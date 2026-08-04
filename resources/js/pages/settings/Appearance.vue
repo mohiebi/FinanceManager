@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import AppearanceTabs from '@/components/AppearanceTabs.vue';
+import SettingsSection from '@/components/settings/SettingsSection.vue';
 import { edit } from '@/routes/appearance';
 
 const { t } = useI18n();
@@ -16,20 +17,10 @@ defineOptions({
 <template>
     <Head :title="t('settings.appearance.title')" />
 
-    <h1 class="sr-only">{{ t('settings.appearance.title') }}</h1>
-
-    <div class="settings-card space-y-5">
-        <div>
-            <p
-                class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-            >
-                {{ t('settings.appearance.title') }}
-            </p>
-            <p class="mt-1 text-sm text-[#989898]">
-                {{ t('settings.appearance.description') }}
-            </p>
-        </div>
-
+    <SettingsSection
+        :title="t('settings.appearance.title')"
+        :description="t('settings.appearance.description')"
+    >
         <AppearanceTabs />
-    </div>
+    </SettingsSection>
 </template>

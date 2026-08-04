@@ -2,8 +2,9 @@
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import InputError from '@/components/InputError.vue';
+import SettingsRow from '@/components/settings/SettingsRow.vue';
+import SettingsSection from '@/components/settings/SettingsSection.vue';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -59,138 +60,116 @@ function submit(): void {
 <template>
     <Head :title="t('settings.preferences.title')" />
 
-    <div class="settings-card space-y-6">
-        <div>
-            <p
-                class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
+    <SettingsSection
+        :title="t('settings.preferences.eyebrow')"
+        :description="t('settings.preferences.description')"
+    >
+        <form @submit.prevent="submit">
+            <SettingsRow
+                :label="t('settings.preferences.language')"
+                control-id="locale"
             >
-                {{ t('settings.preferences.eyebrow') }}
-            </p>
-            <p class="mt-1 text-sm text-[#989898]">
-                {{ t('settings.preferences.description') }}
-            </p>
-        </div>
-
-        <form class="space-y-5" @submit.prevent="submit">
-            <div class="space-y-2">
-                <div class="flex flex-wrap items-center gap-3">
-                    <Label class="min-w-24 text-white" for="locale">
-                        {{ t('settings.preferences.language') }}:
-                    </Label>
-                    <Select id="locale" v-model="form.locale">
-                        <SelectTrigger
-                            class="finance-dialog-field finance-dialog-field-income w-[148px]"
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent class="finance-dialog-select-content">
-                            <SelectItem
-                                v-for="locale in props.locales"
-                                :key="locale.value"
-                                :value="locale.value"
-                            >
-                                {{ locale.label }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <InputError :message="form.errors.locale" />
-            </div>
-
-            <div class="space-y-2">
-                <div class="flex flex-wrap items-center gap-3">
-                    <Label class="min-w-24 text-white" for="calendar">
-                        {{ t('settings.preferences.calendar') }}:
-                    </Label>
-                    <Select id="calendar" v-model="form.calendar">
-                        <SelectTrigger
-                            class="finance-dialog-field finance-dialog-field-income w-[148px]"
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent class="finance-dialog-select-content">
-                            <SelectItem
-                                v-for="calendar in props.calendars"
-                                :key="calendar.value"
-                                :value="calendar.value"
-                            >
-                                {{ calendar.label }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <InputError :message="form.errors.calendar" />
-            </div>
-
-            <div class="space-y-2">
-                <div class="flex flex-wrap items-center gap-3">
-                    <Label class="min-w-24 text-white" for="timezone">
-                        {{ t('settings.preferences.timezone') }}:
-                    </Label>
-                    <Select id="timezone" v-model="form.timezone">
-                        <SelectTrigger
-                            class="finance-dialog-field finance-dialog-field-income w-[240px]"
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent class="finance-dialog-select-content">
-                            <SelectGroup
-                                v-for="group in props.timezoneGroups"
-                                :key="group.label"
-                            >
-                                <SelectLabel>{{ group.label }}</SelectLabel>
-                                <SelectItem
-                                    v-for="zone in group.options"
-                                    :key="zone.value"
-                                    :value="zone.value"
-                                >
-                                    {{ zone.label }}
-                                </SelectItem>
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <p class="text-xs text-[#989898]">
-                    {{ t('settings.preferences.timezone_hint') }}
-                </p>
-                <InputError :message="form.errors.timezone" />
-            </div>
-
-            <div class="space-y-2">
-                <div class="flex flex-wrap items-center gap-3">
-                    <Label class="min-w-24 text-white" for="default_currency">
-                        {{ t('settings.preferences.default_currency') }}:
-                    </Label>
-                    <Select
-                        id="default_currency"
-                        v-model="form.default_currency"
+                <Select id="locale" v-model="form.locale">
+                    <SelectTrigger
+                        class="finance-dialog-field finance-dialog-field-income w-full sm:w-[220px]"
                     >
-                        <SelectTrigger
-                            class="finance-dialog-field finance-dialog-field-income w-[148px]"
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent class="finance-dialog-select-content">
+                        <SelectItem
+                            v-for="locale in props.locales"
+                            :key="locale.value"
+                            :value="locale.value"
                         >
-                            <SelectValue
-                                :placeholder="
-                                    t(
-                                        'settings.preferences.no_default_currency',
-                                    )
-                                "
-                            />
-                        </SelectTrigger>
-                        <SelectContent class="finance-dialog-select-content">
-                            <SelectItem
-                                v-for="currency in props.currencies"
-                                :key="currency.value"
-                                :value="currency.value"
-                            >
-                                {{ currency.label }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <InputError :message="form.errors.default_currency" />
-            </div>
+                            {{ locale.label }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                <InputError :message="form.errors.locale" />
+            </SettingsRow>
 
-            <div class="flex items-center gap-4">
+            <SettingsRow
+                :label="t('settings.preferences.calendar')"
+                control-id="calendar"
+            >
+                <Select id="calendar" v-model="form.calendar">
+                    <SelectTrigger
+                        class="finance-dialog-field finance-dialog-field-income w-full sm:w-[220px]"
+                    >
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent class="finance-dialog-select-content">
+                        <SelectItem
+                            v-for="calendar in props.calendars"
+                            :key="calendar.value"
+                            :value="calendar.value"
+                        >
+                            {{ calendar.label }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                <InputError :message="form.errors.calendar" />
+            </SettingsRow>
+
+            <SettingsRow
+                :label="t('settings.preferences.timezone')"
+                :help="t('settings.preferences.timezone_hint')"
+                control-id="timezone"
+            >
+                <Select id="timezone" v-model="form.timezone">
+                    <SelectTrigger
+                        class="finance-dialog-field finance-dialog-field-income w-full sm:w-[320px]"
+                    >
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent class="finance-dialog-select-content">
+                        <SelectGroup
+                            v-for="group in props.timezoneGroups"
+                            :key="group.label"
+                        >
+                            <SelectLabel>{{ group.label }}</SelectLabel>
+                            <SelectItem
+                                v-for="zone in group.options"
+                                :key="zone.value"
+                                :value="zone.value"
+                            >
+                                {{ zone.label }}
+                            </SelectItem>
+                        </SelectGroup>
+                    </SelectContent>
+                </Select>
+                <InputError :message="form.errors.timezone" />
+            </SettingsRow>
+
+            <SettingsRow
+                :label="t('settings.preferences.default_currency')"
+                control-id="default_currency"
+                last
+            >
+                <Select id="default_currency" v-model="form.default_currency">
+                    <SelectTrigger
+                        class="finance-dialog-field finance-dialog-field-income w-full sm:w-[220px]"
+                    >
+                        <SelectValue
+                            :placeholder="
+                                t('settings.preferences.no_default_currency')
+                            "
+                        />
+                    </SelectTrigger>
+                    <SelectContent class="finance-dialog-select-content">
+                        <SelectItem
+                            v-for="currency in props.currencies"
+                            :key="currency.value"
+                            :value="currency.value"
+                        >
+                            {{ currency.label }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                <InputError :message="form.errors.default_currency" />
+            </SettingsRow>
+
+            <div class="flex items-center gap-4 pt-5">
                 <Button
                     class="bg-[#02CD86] text-[#101010] hover:bg-[#08dd93]"
                     :disabled="form.processing"
@@ -213,5 +192,5 @@ function submit(): void {
                 </Transition>
             </div>
         </form>
-    </div>
+    </SettingsSection>
 </template>

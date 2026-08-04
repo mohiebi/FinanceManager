@@ -788,3 +788,60 @@ test('a goal title reaches the armed portfolio page as ciphertext', function () 
             ->has('vaultGoals.goals.0.title.c')
             ->etc());
 });
+
+test('the armed portfolio applies the achievement window without opening anything', function () {
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
+    $dek = armDegradedVault($user);
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    $sealedTarget = fn (): string => clientEncrypt($user, $dek, 'target_quantity', '3.00000000', 'savings_goals');
+
+    $user->savingsGoals()->create(SealedField::wrap([
+        'investment_asset_id' => $asset->id,
+        'title' => clientEncrypt($user, $dek, 'title', 'Finished long ago', 'savings_goals'),
+        'target_quantity' => $sealedTarget(),
+        'started_on' => '2025-06-01',
+        'target_date' => '2026-10-18',
+        'achieved_on' => '2026-01-05',
+    ], ['title', 'target_quantity']));
+
+    $user->savingsGoals()->create(SealedField::wrap([
+        'investment_asset_id' => $asset->id,
+        'title' => clientEncrypt($user, $dek, 'title', 'Still going', 'savings_goals'),
+        'target_quantity' => $sealedTarget(),
+        'started_on' => '2026-06-01',
+        'target_date' => '2026-10-18',
+    ], ['title', 'target_quantity']));
+
+    // The server cannot tell whether either goal is reached — but `achieved_on`
+    // is plaintext, so the window still applies without a key.
+    $this->actingAs($user)
+        ->get(route('portfolio'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('vaultGoals.goals', 1)
+            ->where('vaultGoals.goals.0.achieved_on', null)
+            ->etc());
+});
+
+test('the armed goals page keeps every achievement', function () {
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
+    $dek = armDegradedVault($user);
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    $user->savingsGoals()->create(SealedField::wrap([
+        'investment_asset_id' => $asset->id,
+        'target_quantity' => clientEncrypt($user, $dek, 'target_quantity', '3.00000000', 'savings_goals'),
+        'started_on' => '2025-06-01',
+        'target_date' => '2026-10-18',
+        'achieved_on' => '2026-01-05',
+    ], ['target_quantity']));
+
+    $this->actingAs($user)
+        ->get(route('goals'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('vaultGoals.goals', 1)
+            ->where('vaultGoals.goals.0.achieved_on', '2026-01-05')
+            ->etc());
+});

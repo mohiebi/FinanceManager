@@ -299,6 +299,11 @@ return [
         'no_default_currency' => 'Not set',
     ],
     'navigation' => [
+        'groups' => [
+            'account' => 'Account',
+            'workspace' => 'Workspace',
+            'integrations' => 'Integrations',
+        ],
         'profile' => 'Profile',
         'notifications' => 'Notifications',
         'security' => 'Privacy & security',

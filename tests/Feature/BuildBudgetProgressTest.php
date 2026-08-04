@@ -326,3 +326,52 @@ test('the armed payload tells the browser what currency a sealed amount is in', 
 
     expect($payload['lines'][0]['currency'])->toBe(Currency::Usd->value);
 });
+
+test('a category line that lost its category matches nothing', function () {
+    $user = User::factory()->create();
+    $budget = Budget::factory()->create(['user_id' => $user->id]);
+
+    // Only a remainder line may own uncategorised spending. Before this guard a
+    // percentage line with a null category quietly claimed every uncategorised
+    // row, so it looked like it was tracking something.
+    BudgetLine::factory()->percent(15)->create([
+        'budget_id' => $budget->id,
+        'category_id' => null,
+    ]);
+
+    record($user, incomeCategory(), 10000000, TransactionType::Income);
+
+    $user->transactions()->create([
+        'category_id' => null,
+        'type' => TransactionType::Cost,
+        'amount' => 1951000,
+        'currency' => 'toman',
+        'title' => 'Card payment',
+        'occurred_at' => Carbon::today()->toDateString(),
+    ]);
+
+    $progress = app(BuildBudgetProgress::class)->handle($user, $budget->load('lines.category'));
+
+    expect($progress['lines'][0]['actual'])->toBe(0.0);
+});
+
+test('a mirrored investment purchase counts against an investment category line', function () {
+    $user = User::factory()->create();
+    $investment = progressCategory('Investment');
+    $budget = Budget::factory()->create(['user_id' => $user->id]);
+
+    BudgetLine::factory()->percent(50)->create([
+        'budget_id' => $budget->id,
+        'category_id' => $investment->id,
+    ]);
+
+    record($user, incomeCategory(), 40000000, TransactionType::Income);
+    // What RecordInvestmentTransaction writes when the user ticks the box: a
+    // cost in the seeded `investment` category, for the full purchase price.
+    record($user, $investment, 20000000, TransactionType::Cost);
+
+    $progress = app(BuildBudgetProgress::class)->handle($user, $budget->load('lines.category'));
+
+    expect($progress['lines'][0]['allocated'])->toBe(20000000.0)
+        ->and($progress['lines'][0]['actual'])->toBe(20000000.0);
+});

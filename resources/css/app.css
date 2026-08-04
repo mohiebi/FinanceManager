@@ -627,3 +627,70 @@ html[dir='rtl'] body {
         }
     }
 }
+
+/* ── Small-screen density ──────────────────────────────────────────────────
+   The finance workspace puts two full tables side by side above a filter bar
+   of eight controls. That fits a desktop and overflows a small laptop, so the
+   type and the cell padding step down instead of the layout scrolling
+   sideways. Scoped to a container class rather than edited into every utility
+   class, so the desktop layout is untouched and there is one place to tune. */
+@layer components {
+    @media (max-width: 1439px) {
+        .finance-dense table {
+            font-size: 0.8125rem;
+        }
+
+        .finance-dense thead tr {
+            font-size: 0.875rem;
+        }
+
+        .finance-dense th,
+        .finance-dense td {
+            padding-inline: 0.5rem;
+            padding-block: 0.625rem;
+        }
+
+        /* The filter row: eight controls that only fit by giving up width. */
+        .finance-dense .finance-dialog-field,
+        .finance-dense select,
+        .finance-dense input[type='search'],
+        .finance-dense input[type='text'] {
+            font-size: 0.8125rem;
+        }
+    }
+
+    @media (max-width: 1023px) {
+        .finance-dense table {
+            font-size: 0.75rem;
+        }
+
+        .finance-dense thead tr {
+            font-size: 0.8125rem;
+        }
+
+        .finance-dense th,
+        .finance-dense td {
+            padding-inline: 0.375rem;
+            padding-block: 0.5rem;
+        }
+    }
+}
+
+/* ── Settings card ────────────────────────────────────────────────────────
+   The settings shell no longer wraps its slot in a panel, because a page that
+   holds both a name field and "delete my account" should not put them on one
+   surface. Pages compose their own cards instead: `SettingsSection` where a
+   page has been split into sections, this class where it is still a single
+   block. Same surface either way, so the two read as one system. */
+@layer components {
+    .settings-card {
+        border-radius: 22px;
+        background-color: #1a1a1a;
+        padding: 1.5rem;
+        /* Inset ring rather than a border, so the 22px corner stays crisp and
+           the card does not grow by 2px against its neighbours. */
+        box-shadow:
+            0 18px 45px rgb(0 0 0 / 20%),
+            inset 0 0 0 1px rgb(255 255 255 / 10%);
+    }
+}

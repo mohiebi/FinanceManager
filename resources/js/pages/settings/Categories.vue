@@ -123,7 +123,7 @@ defineOptions({
 <template>
     <Head :title="t('settings.categories.title')" />
 
-    <div class="space-y-7">
+    <div class="settings-card space-y-7">
         <div>
             <p
                 class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"

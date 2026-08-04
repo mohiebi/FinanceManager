@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'target_quantity',
     'target_date',
     'started_on',
+    'achieved_on',
     'is_active',
 ])]
 class SavingsGoal extends Model implements HasEncryptionOwner
@@ -64,6 +65,9 @@ class SavingsGoal extends Model implements HasEncryptionOwner
             'title' => UserEncrypted::class,
             'target_date' => 'date:Y-m-d',
             'started_on' => 'date:Y-m-d',
+            // Plaintext, unlike the target: a date the portfolio filters on, and
+            // one the server can read even when the quantities are sealed.
+            'achieved_on' => 'date:Y-m-d',
             'is_active' => 'boolean',
         ];
     }

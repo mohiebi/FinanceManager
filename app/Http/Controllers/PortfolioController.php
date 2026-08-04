@@ -49,7 +49,11 @@ class PortfolioController extends Controller
             return Inertia::render('Portfolio', [
                 ...$common,
                 'vaultPortfolio' => $breakdownBuilder->clientPayload($user, $selectedCurrency),
-                'vaultGoals' => $showsGoals ? $goalBuilder->clientPayload($user) : null,
+                // Recent finishes only: the portfolio is for what is still in
+                // play, and the goals page keeps the full record.
+                'vaultGoals' => $showsGoals
+                    ? $goalBuilder->clientPayload($user, recentOnly: true)
+                    : null,
                 'pricesAvailable' => $priceService->pricesAvailable(),
                 'assets' => [],
                 'summary' => null,
@@ -68,7 +72,7 @@ class PortfolioController extends Controller
             'assets' => Inertia::defer(fn () => $breakdownBuilder->handle($allEntries, $selectedCurrency)['assets']),
             'summary' => Inertia::defer(fn () => $breakdownBuilder->handle($allEntries, $selectedCurrency)['summary']),
             'goals' => $showsGoals
-                ? Inertia::defer(fn () => $goalBuilder->handle($user, $allEntries))
+                ? Inertia::defer(fn () => $goalBuilder->forPortfolio($user, $allEntries))
                 : [],
             'showsGoals' => $showsGoals,
             'pricesAvailable' => Inertia::defer(fn () => $priceService->pricesAvailable()),

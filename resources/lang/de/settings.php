@@ -299,6 +299,11 @@ return [
         'no_default_currency' => 'Nicht festgelegt',
     ],
     'navigation' => [
+        'groups' => [
+            'account' => 'Konto',
+            'workspace' => 'Arbeitsbereich',
+            'integrations' => 'Integrationen',
+        ],
         'profile' => 'Profil',
         'notifications' => 'Benachrichtigungen',
         'security' => 'Datenschutz & Sicherheit',

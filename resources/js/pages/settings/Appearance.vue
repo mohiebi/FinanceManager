@@ -18,7 +18,7 @@ defineOptions({
 
     <h1 class="sr-only">{{ t('settings.appearance.title') }}</h1>
 
-    <div class="space-y-5">
+    <div class="settings-card space-y-5">
         <div>
             <p
                 class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"

@@ -128,11 +128,16 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
             </p>
         </Transition>
 
-        <ul class="space-y-3">
+        <!-- One card on a phone, two from 640, three from 1280, four on an
+             ultrawide. Column count rather than card width does the work, so a
+             card never stretches past the point where its description stops
+             being scannable. -->
+        <ul class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             <li
                 v-for="module in props.modules"
                 :key="module.key"
-                class="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10"
+                class="flex flex-col rounded-2xl bg-white/5 p-4 ring-1 transition-colors"
+                :class="module.enabled ? 'ring-[#02CD86]/25' : 'ring-white/10'"
             >
                 <div class="flex items-start gap-3">
                     <span
@@ -150,61 +155,83 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                     </span>
 
                     <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2">
-                            <p class="text-sm font-medium text-white">
-                                {{ module.label }}
-                            </p>
+                        <p class="text-sm font-medium break-words text-white">
+                            {{ module.label }}
+                        </p>
+                        <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                            <!-- Every module is free today, but that is only
+                                 obvious once it says so — a switched-off card
+                                 otherwise reads as something withheld. -->
                             <span
-                                v-if="module.tier !== 'free'"
-                                class="rounded-md bg-[#02CD86]/10 px-2 py-0.5 text-[11px] font-medium text-[#02CD86]"
+                                v-if="!module.enabled"
+                                class="rounded-md px-2 py-0.5 text-[11px] font-medium"
+                                :class="
+                                    module.tier === 'free'
+                                        ? 'bg-[#02CD86]/10 text-[#02CD86]'
+                                        : 'bg-[#6C4EE9]/15 text-[#a89bf3]'
+                                "
                             >
-                                {{ t('modules.tiers.pro') }}
+                                {{ t(`modules.tiers.${module.tier}`) }}
+                            </span>
+                            <span v-else class="text-[11px] text-[#02CD86]">
+                                {{ t('modules.enabled') }}
                             </span>
                         </div>
-                        <p class="mt-1 text-sm text-[#989898]">
-                            {{ module.description }}
-                        </p>
-                        <p
-                            v-if="module.requires.length > 0"
-                            class="mt-1.5 text-xs text-[#6f6f6f]"
-                        >
-                            {{
-                                t('modules.requires', {
-                                    features: module.requires.join(', '),
-                                })
-                            }}
-                        </p>
                     </div>
 
-                    <!-- Self-managed modules are advertised here but switched on
-                         their own page, because arming one re-keys the user's data
-                         and cannot be done by a plain toggle. -->
-                    <Link
-                        v-if="module.manage_url"
-                        :href="module.manage_url"
-                        class="shrink-0 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/15"
-                    >
-                        {{ t('modules.manage') }}
-                    </Link>
+                    <!-- Self-managed modules keep their header clear: the manage
+                         link's label is long, and sitting here as a shrink-0
+                         sibling it squeezed the title until it wrapped one
+                         letter per line. It lives in the footer instead. -->
                     <Switch
-                        v-else
+                        v-if="!module.manage_url"
                         :checked="module.enabled"
                         :disabled="processing === module.key || !module.may_use"
                         :aria-label="module.label"
                         @update:checked="toggle(module, $event)"
                     />
+                    <Lock
+                        v-else
+                        class="mt-1 size-4 shrink-0 text-[#6f6f6f]"
+                        aria-hidden="true"
+                    />
                 </div>
 
-                <p
-                    v-if="module.manage_url"
-                    class="mt-3 border-t border-white/5 pt-3 text-xs text-[#6f6f6f]"
-                >
-                    {{ t('modules.managed_elsewhere') }}
+                <p class="mt-3 text-sm text-[#989898]">
+                    {{ module.description }}
                 </p>
+
+                <p
+                    v-if="module.requires.length > 0"
+                    class="mt-2 text-xs text-[#6f6f6f]"
+                >
+                    {{
+                        t('modules.requires', {
+                            features: module.requires.join(', '),
+                        })
+                    }}
+                </p>
+
+                <!-- Pinned to the bottom so cards in a row line their controls
+                     up regardless of how long each description runs. -->
+                <div
+                    v-if="module.manage_url"
+                    class="mt-auto border-t border-white/5 pt-3"
+                >
+                    <p class="text-xs text-[#6f6f6f]">
+                        {{ t('modules.managed_elsewhere') }}
+                    </p>
+                    <Link
+                        :href="module.manage_url"
+                        class="mt-2 inline-flex cursor-pointer items-center rounded-xl bg-white/10 px-3 py-2 text-xs font-medium text-white transition-colors duration-200 hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none"
+                    >
+                        {{ t('modules.manage') }}
+                    </Link>
+                </div>
 
                 <label
                     v-else-if="!module.enabled && module.in_nav"
-                    class="mt-3 flex cursor-pointer items-center gap-2 border-t border-white/5 pt-3"
+                    class="mt-auto flex cursor-pointer items-center gap-2 border-t border-white/5 pt-3"
                 >
                     <Checkbox
                         :checked="!module.show_promo"
@@ -222,29 +249,33 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
             <p class="text-xs text-[#6f6f6f]">
                 {{ t('modules.core_badge') }}
             </p>
-            <ul class="space-y-3">
+            <ul
+                class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+            >
                 <li
                     v-for="module in props.coreModules"
                     :key="module.key"
-                    class="flex items-start gap-3 rounded-2xl bg-white/[0.02] p-4 ring-1 ring-white/5"
+                    class="flex flex-col rounded-2xl bg-white/[0.02] p-4 ring-1 ring-white/5"
                 >
-                    <span
-                        class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/5 text-[#6f6f6f]"
-                    >
-                        <component
-                            :is="icons[module.icon]"
-                            class="size-[18px]"
-                        />
-                    </span>
-                    <div class="min-w-0 flex-1">
-                        <p class="text-sm font-medium text-[#989898]">
+                    <div class="flex items-start gap-3">
+                        <span
+                            class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/5 text-[#6f6f6f]"
+                        >
+                            <component
+                                :is="icons[module.icon]"
+                                class="size-[18px]"
+                            />
+                        </span>
+                        <p
+                            class="min-w-0 flex-1 text-sm font-medium break-words text-[#989898]"
+                        >
                             {{ module.label }}
                         </p>
-                        <p class="mt-1 text-sm text-[#6f6f6f]">
-                            {{ module.description }}
-                        </p>
+                        <Lock class="mt-1 size-4 shrink-0 text-[#6f6f6f]" />
                     </div>
-                    <Lock class="mt-1 size-4 shrink-0 text-[#6f6f6f]" />
+                    <p class="mt-3 text-sm text-[#6f6f6f]">
+                        {{ module.description }}
+                    </p>
                 </li>
             </ul>
         </div>

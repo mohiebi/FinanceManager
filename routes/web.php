@@ -158,6 +158,13 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
 
         Route::resource('savings-goals', SavingsGoalController::class)
             ->only(['store', 'update', 'destroy']);
+
+        // Only the browser knows a sealed goal is finished, so it reports the
+        // date. Write-once server-side, and throttled because it fires from a
+        // watcher rather than a click.
+        Route::post('savings-goals/{savingsGoal}/achieved', [SavingsGoalController::class, 'markAchieved'])
+            ->middleware('throttle:20,1')
+            ->name('savings-goals.achieved');
     });
 
     // Deliberately not behind RejectWhenVaultArmed: percentages are plaintext and

@@ -59,7 +59,7 @@ function submit(): void {
 <template>
     <Head :title="t('settings.preferences.title')" />
 
-    <div class="space-y-6">
+    <div class="settings-card space-y-6">
         <div>
             <p
                 class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
@@ -161,11 +161,20 @@ function submit(): void {
                     <Label class="min-w-24 text-white" for="default_currency">
                         {{ t('settings.preferences.default_currency') }}:
                     </Label>
-                    <Select id="default_currency" v-model="form.default_currency">
+                    <Select
+                        id="default_currency"
+                        v-model="form.default_currency"
+                    >
                         <SelectTrigger
                             class="finance-dialog-field finance-dialog-field-income w-[148px]"
                         >
-                            <SelectValue :placeholder="t('settings.preferences.no_default_currency')" />
+                            <SelectValue
+                                :placeholder="
+                                    t(
+                                        'settings.preferences.no_default_currency',
+                                    )
+                                "
+                            />
                         </SelectTrigger>
                         <SelectContent class="finance-dialog-select-content">
                             <SelectItem

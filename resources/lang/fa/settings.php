@@ -301,6 +301,11 @@ return [
         'no_default_currency' => 'تنظیم نشده',
     ],
     'navigation' => [
+        'groups' => [
+            'account' => 'حساب',
+            'workspace' => 'فضای کاری',
+            'integrations' => 'اتصال‌ها',
+        ],
         'assets' => 'دارایی‌ها',
         'profile' => 'پروفایل',
         'notifications' => 'اعلان‌ها',

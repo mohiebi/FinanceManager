@@ -55,7 +55,7 @@ onUnmounted(() => clearTwoFactorAuthData());
 
     <h1 class="sr-only">{{ t('settings.security.title') }}</h1>
 
-    <div class="flex flex-col gap-8">
+    <div class="settings-card flex flex-col gap-8">
         <!-- Password section -->
         <div class="space-y-5">
             <div>

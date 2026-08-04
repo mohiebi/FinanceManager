@@ -2,7 +2,7 @@
     <Head :title="t('finance.reports.title')" />
 
     <div
-        class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
+        class="finance-dense flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
     >
         <!-- Hero / period summary -->
         <section

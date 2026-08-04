@@ -816,6 +816,15 @@ function openGoalDialog(goal: GoalCardData | null): void {
     goalDialogOpen.value = true;
 }
 
+// The reload after a save hands back fresh goal objects, so the one held here
+// is stale the moment it is written. Dropped on close rather than kept, or
+// re-opening the editor would prefill from the values that were just replaced.
+watch(goalDialogOpen, (open) => {
+    if (!open) {
+        editingGoal.value = null;
+    }
+});
+
 function confirmDeleteGoal(): void {
     const goal = deleteTargetGoal.value;
 
@@ -825,6 +834,9 @@ function confirmDeleteGoal(): void {
 
     router.delete(destroyGoal.url(goal.id), {
         preserveScroll: true,
+        // Same reason as the dialog's: the controller redirects `back()`, so the
+        // goal props have to be asked for by name to actually come back.
+        onSuccess: () => router.reload({ only: ['goals', 'vaultGoals'] }),
         onFinish: () => {
             deleteTargetGoal.value = null;
         },

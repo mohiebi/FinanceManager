@@ -149,3 +149,51 @@ test('an explicit started_on is still honoured on update', function () {
 
     expect($goal->fresh()->started_on->toDateString())->toBe('2026-07-15');
 });
+
+test('the browser can record that a sealed goal was met', function () {
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
+    $goal = SavingsGoal::factory()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => InvestmentAsset::query()
+            ->where('slug', AssetType::Gold->value)->firstOrFail()->id,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('savings-goals.achieved', $goal))
+        ->assertRedirect();
+
+    expect($goal->fresh()->achieved_on)->not->toBeNull();
+});
+
+test('recording an achievement twice does not move the date', function () {
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
+    $goal = SavingsGoal::factory()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => InvestmentAsset::query()
+            ->where('slug', AssetType::Gold->value)->firstOrFail()->id,
+        'achieved_on' => '2026-01-05',
+    ]);
+
+    // A stale tab replaying this must not rewrite history.
+    $this->actingAs($user)
+        ->post(route('savings-goals.achieved', $goal))
+        ->assertRedirect();
+
+    expect($goal->fresh()->achieved_on->toDateString())->toBe('2026-01-05');
+});
+
+test('another users goal cannot be marked achieved', function () {
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
+    $stranger = User::factory()->create();
+    $theirs = SavingsGoal::factory()->create([
+        'user_id' => $stranger->id,
+        'investment_asset_id' => InvestmentAsset::query()
+            ->where('slug', AssetType::Gold->value)->firstOrFail()->id,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('savings-goals.achieved', $theirs))
+        ->assertNotFound();
+
+    expect($theirs->fresh()->achieved_on)->toBeNull();
+});

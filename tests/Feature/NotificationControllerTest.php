@@ -1,8 +1,10 @@
 <?php
 
+use App\Enums\Feature;
 use App\Models\BillOccurrence;
 use App\Models\User;
 use App\Notifications\BillDueNotification;
+use Inertia\Testing\AssertableInertia as Assert;
 
 test('it lists the users notifications', function () {
     $user = User::factory()->create();
@@ -75,4 +77,53 @@ test('users cannot mark another users notification as read', function () {
     $this->actingAs($intruder)
         ->patch(route('notifications.read', $notification->id))
         ->assertNotFound();
+});
+
+test('the streak nudge is unavailable until telegram is linked', function () {
+    // The nudge is delivered over Telegram, so without a linked chat the switch
+    // has nowhere to send and renders disabled rather than lying.
+    $user = User::factory()->create(['telegram_chat_id' => null]);
+
+    $this->actingAs($user)
+        ->get(route('notifications.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('streakNudge.available', false)
+            ->where('streakNudge.enabled', false)
+            ->etc());
+});
+
+test('linking telegram makes the streak nudge available', function () {
+    $user = User::factory()->create(['telegram_chat_id' => '98620653']);
+
+    $this->actingAs($user)
+        ->get(route('notifications.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('streakNudge.available', true)
+            ->etc());
+});
+
+test('the streak nudge preference persists once it can be switched on', function () {
+    $user = User::factory()->create(['telegram_chat_id' => '98620653']);
+
+    $this->actingAs($user)
+        ->patch(route('notifications.preferences'), ['streak_nudge_enabled' => true])
+        ->assertRedirect();
+
+    expect($user->fresh()->streak_nudge_enabled)->toBeTrue();
+});
+
+test('the streak nudge is refused while the flight log is off', function () {
+    $user = User::factory()
+        ->withoutModules(Feature::Gamification)
+        ->create(['telegram_chat_id' => '98620653']);
+
+    // A stale tab would otherwise store a preference that contradicts what the
+    // settings page shows.
+    $this->actingAs($user)
+        ->patch(route('notifications.preferences'), ['streak_nudge_enabled' => true])
+        ->assertForbidden();
+
+    expect($user->fresh()->streak_nudge_enabled)->toBeFalse();
 });

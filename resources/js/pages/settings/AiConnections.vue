@@ -52,10 +52,13 @@ const expandedHistoryId = ref<string | null>(null);
 
 const dateFormatter = computed(
     () =>
-        new Intl.DateTimeFormat(locale.value === 'fa' ? 'fa-IR' : locale.value, {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-        }),
+        new Intl.DateTimeFormat(
+            locale.value === 'fa' ? 'fa-IR' : locale.value,
+            {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+            },
+        ),
 );
 
 function formatDate(value: string | null): string {
@@ -231,7 +234,7 @@ defineOptions({
 
     <h1 class="sr-only">{{ t('settings.ai.title') }}</h1>
 
-    <div class="space-y-8">
+    <div class="settings-card space-y-8">
         <!-- Header -->
         <div>
             <p
@@ -307,7 +310,11 @@ defineOptions({
                             {{ t('settings.ai.connect.quick_install.title') }}
                         </p>
                         <p class="mt-1 text-xs leading-5 text-[#989898]">
-                            {{ t('settings.ai.connect.quick_install.description') }}
+                            {{
+                                t(
+                                    'settings.ai.connect.quick_install.description',
+                                )
+                            }}
                         </p>
                     </div>
                     <button
@@ -479,7 +486,7 @@ defineOptions({
                 >
                     <button
                         type="button"
-                        class="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left transition hover:bg-white/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#02CD86]"
+                        class="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left transition hover:bg-white/[0.025] focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:outline-none focus-visible:ring-inset"
                         :aria-expanded="expandedHistoryId === entry.id"
                         @click="
                             expandedHistoryId =
@@ -487,14 +494,23 @@ defineOptions({
                         "
                     >
                         <span class="min-w-0 flex-1">
-                            <span class="block truncate text-sm font-medium text-white">
+                            <span
+                                class="block truncate text-sm font-medium text-white"
+                            >
                                 {{ actionLabel(entry.action) }}
                                 {{ resourceLabel(entry.resource_type) }}
                             </span>
                             <span class="mt-1 block text-xs text-[#989898]">
-                                {{ entry.client_name ?? t('settings.ai.unknown_client') }}
+                                {{
+                                    entry.client_name ??
+                                    t('settings.ai.unknown_client')
+                                }}
                                 <span class="mx-1 text-white/20">&middot;</span>
-                                {{ formatDate(entry.consumed_at ?? entry.created_at) }}
+                                {{
+                                    formatDate(
+                                        entry.consumed_at ?? entry.created_at,
+                                    )
+                                }}
                             </span>
                         </span>
                         <span
@@ -527,13 +543,21 @@ defineOptions({
                                 :key="field"
                                 class="rounded-xl bg-[#252525] px-3 py-2.5"
                             >
-                                <dt class="text-[11px] font-medium tracking-[0.08em] text-[#989898] uppercase">
+                                <dt
+                                    class="text-[11px] font-medium tracking-[0.08em] text-[#989898] uppercase"
+                                >
                                     {{ fieldLabel(field) }}
                                 </dt>
-                                <dd class="mt-1 break-words text-xs text-white">
-                                    <span class="text-[#989898]">{{ formatChangeValue(change.old) }}</span>
-                                    <span class="mx-1.5 text-[#02CD86]">&rarr;</span>
-                                    <span>{{ formatChangeValue(change.new) }}</span>
+                                <dd class="mt-1 text-xs break-words text-white">
+                                    <span class="text-[#989898]">{{
+                                        formatChangeValue(change.old)
+                                    }}</span>
+                                    <span class="mx-1.5 text-[#02CD86]"
+                                        >&rarr;</span
+                                    >
+                                    <span>{{
+                                        formatChangeValue(change.new)
+                                    }}</span>
                                 </dd>
                             </div>
                         </dl>

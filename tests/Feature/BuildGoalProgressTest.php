@@ -212,3 +212,124 @@ test('a zero target is never reached', function () {
 
     expect($pace['reached'])->toBeFalse();
 });
+
+test('reaching a target stamps the day it happened', function () {
+    $user = User::factory()->create();
+    $goal = SavingsGoal::factory()->started(100)->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => goldAsset()->id,
+        'target_quantity' => 3,
+    ]);
+
+    buyGold($user, 3.2, '2026-07-01');
+
+    app(BuildGoalProgress::class)->handle(
+        $user,
+        app(BuildPortfolioBreakdown::class)->entriesFor($user),
+        CarbonImmutable::parse('2026-07-30'),
+    );
+
+    expect($goal->fresh()->achieved_on->toDateString())->toBe('2026-07-30');
+});
+
+test('the achievement date is never moved once written', function () {
+    $user = User::factory()->create();
+    $goal = SavingsGoal::factory()->started(100)->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => goldAsset()->id,
+        'target_quantity' => 3,
+        'achieved_on' => '2026-05-01',
+    ]);
+
+    buyGold($user, 3.2, '2026-07-01');
+
+    // Selling the asset afterwards must not un-achieve a goal the user
+    // genuinely finished, and a later visit must not restamp it as "today".
+    app(BuildGoalProgress::class)->handle(
+        $user,
+        app(BuildPortfolioBreakdown::class)->entriesFor($user),
+        CarbonImmutable::parse('2026-07-30'),
+    );
+
+    expect($goal->fresh()->achieved_on->toDateString())->toBe('2026-05-01');
+});
+
+test('a goal short of its target is not stamped', function () {
+    $user = User::factory()->create();
+    $goal = SavingsGoal::factory()->started(100)->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => goldAsset()->id,
+        'target_quantity' => 3,
+    ]);
+
+    buyGold($user, 1.5, '2026-07-01');
+
+    app(BuildGoalProgress::class)->handle(
+        $user,
+        app(BuildPortfolioBreakdown::class)->entriesFor($user),
+        CarbonImmutable::parse('2026-07-30'),
+    );
+
+    expect($goal->fresh()->achieved_on)->toBeNull();
+});
+
+test('the portfolio keeps recent finishes and drops older ones', function () {
+    $user = User::factory()->create();
+    $today = CarbonImmutable::parse('2026-07-30');
+
+    $recent = SavingsGoal::factory()->started(200)->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => goldAsset()->id,
+        'title' => 'Finished last month',
+        'target_quantity' => 1,
+        'achieved_on' => '2026-06-20',
+    ]);
+    $old = SavingsGoal::factory()->started(400)->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => goldAsset()->id,
+        'title' => 'Finished long ago',
+        'target_quantity' => 1,
+        'achieved_on' => '2026-01-05',
+    ]);
+    $running = SavingsGoal::factory()->started(10)->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => goldAsset()->id,
+        'title' => 'Still going',
+        'target_quantity' => 99,
+    ]);
+
+    buyGold($user, 2, '2026-07-01');
+
+    $ids = collect(app(BuildGoalProgress::class)->forPortfolio(
+        $user,
+        app(BuildPortfolioBreakdown::class)->entriesFor($user),
+        $today,
+    ))->pluck('id')->all();
+
+    expect($ids)->toContain($recent->id)
+        ->and($ids)->toContain($running->id)
+        // Six months back is a record, not something to act on. It stays on the
+        // goals page, which keeps everything.
+        ->and($ids)->not->toContain($old->id);
+});
+
+test('the goals page keeps every achievement, however old', function () {
+    $user = User::factory()->create();
+
+    $old = SavingsGoal::factory()->started(400)->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => goldAsset()->id,
+        'target_quantity' => 1,
+        'achieved_on' => '2026-01-05',
+    ]);
+
+    buyGold($user, 2, '2026-07-01');
+
+    $ids = collect(app(BuildGoalProgress::class)->handle(
+        $user,
+        app(BuildPortfolioBreakdown::class)->entriesFor($user),
+        CarbonImmutable::parse('2026-07-30'),
+    ))->pluck('id')->all();
+
+    expect($ids)->toContain($old->id);
+});

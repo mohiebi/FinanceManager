@@ -102,7 +102,7 @@ const commands = computed(() => {
     <h1 class="sr-only">{{ t('settings.telegram.title') }}</h1>
 
     <!-- ── Connected state ─────────────────────────────────── -->
-    <div v-if="connected" class="space-y-8">
+    <div v-if="connected" class="settings-card space-y-8">
         <!-- Header -->
         <div>
             <p
@@ -195,7 +195,7 @@ const commands = computed(() => {
     </div>
 
     <!-- ── Not connected state ─────────────────────────────── -->
-    <div v-else class="space-y-8">
+    <div v-else class="settings-card space-y-8">
         <!-- Header -->
         <div>
             <p

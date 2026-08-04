@@ -16,26 +16,24 @@ class NotificationController extends Controller
 {
     public function edit(Request $request): Response
     {
-        $notifications = $request->user()
-            ->notifications()
-            ->latest()
-            ->limit(100)
-            ->get()
-            ->map(fn (DatabaseNotification $notification) => [
-                'id' => $notification->id,
-                'data' => $notification->data,
-                'read_at' => $notification->read_at?->toIso8601String(),
-                'created_at' => $notification->created_at->toIso8601String(),
-            ]);
+        $user = $request->user();
 
         return Inertia::render('settings/Notifications', [
-            'notifications' => $notifications,
-            'streakNudge' => [
-                'enabled' => (bool) $request->user()->streak_nudge_enabled,
-                // The nudge is delivered over Telegram, so without a linked chat
-                // the switch has nowhere to send and says so rather than lying.
-                'available' => $request->user()->hasFeature(Feature::Gamification)
-                    && $request->user()->hasTelegram(),
+            'notifications' => fn () => $user
+                ->notifications()
+                ->latest()
+                ->limit(100)
+                ->get()
+                ->map(fn (DatabaseNotification $notification) => [
+                    'id' => $notification->id,
+                    'data' => $notification->data,
+                    'read_at' => $notification->read_at?->toIso8601String(),
+                    'created_at' => $notification->created_at->toIso8601String(),
+                ]),
+            'streakNudge' => fn () => [
+                'enabled' => (bool) $user->streak_nudge_enabled,
+                'available' => $this->streakNudgeAvailable($user),
+                'telegramLinked' => $user->hasTelegram(),
                 'hour' => StreakReminderJob::REMINDER_HOUR,
             ],
         ]);
@@ -50,10 +48,11 @@ class NotificationController extends Controller
             'streak_nudge_enabled' => ['required', 'boolean'],
         ]);
 
-        // The page disables the switch when the module is off, but a stale tab or
-        // a direct request would otherwise store a preference that contradicts
-        // what the settings page shows.
-        abort_unless($request->user()->hasFeature(Feature::Gamification), 403);
+        if ($validated['streak_nudge_enabled']) {
+            // Enabling must obey the same contract as the page. Disabling stays
+            // available so a stale preference can always be corrected safely.
+            abort_unless($this->streakNudgeAvailable($request->user()), 403);
+        }
 
         $request->user()->update($validated);
 
@@ -80,5 +79,10 @@ class NotificationController extends Controller
         $request->user()->unreadNotifications()->update(['read_at' => now()]);
 
         return back();
+    }
+
+    private function streakNudgeAvailable(User $user): bool
+    {
+        return $user->hasFeature(Feature::Gamification) && $user->hasTelegram();
     }
 }

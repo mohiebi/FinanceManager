@@ -90,6 +90,7 @@ test('the streak nudge is unavailable until telegram is linked', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->where('streakNudge.available', false)
             ->where('streakNudge.enabled', false)
+            ->where('streakNudge.telegramLinked', false)
             ->etc());
 });
 
@@ -101,6 +102,7 @@ test('linking telegram makes the streak nudge available', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('streakNudge.available', true)
+            ->where('streakNudge.telegramLinked', true)
             ->etc());
 });
 
@@ -112,6 +114,16 @@ test('the streak nudge preference persists once it can be switched on', function
         ->assertRedirect();
 
     expect($user->fresh()->streak_nudge_enabled)->toBeTrue();
+});
+
+test('the streak nudge is refused until telegram is linked', function () {
+    $user = User::factory()->create(['telegram_chat_id' => null]);
+
+    $this->actingAs($user)
+        ->patch(route('notifications.preferences'), ['streak_nudge_enabled' => true])
+        ->assertForbidden();
+
+    expect($user->fresh()->streak_nudge_enabled)->toBeFalse();
 });
 
 test('the streak nudge is refused while the flight log is off', function () {
@@ -126,4 +138,21 @@ test('the streak nudge is refused while the flight log is off', function () {
         ->assertForbidden();
 
     expect($user->fresh()->streak_nudge_enabled)->toBeFalse();
+});
+
+test('disconnecting telegram disables the streak nudge', function () {
+    $user = User::factory()
+        ->withModules(Feature::TelegramBot)
+        ->create([
+            'telegram_chat_id' => '98620653',
+            'streak_nudge_enabled' => true,
+        ]);
+
+    $this->actingAs($user)
+        ->delete(route('telegram.disconnect'))
+        ->assertRedirect();
+
+    expect($user->fresh())
+        ->telegram_chat_id->toBeNull()
+        ->streak_nudge_enabled->toBeFalse();
 });

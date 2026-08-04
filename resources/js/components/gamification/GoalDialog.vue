@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useForm } from '@inertiajs/vue3';
+import { router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
@@ -99,6 +99,12 @@ async function submit(): Promise<void> {
             preserveScroll: true,
             onSuccess: () => {
                 open.value = false;
+
+                // The controllers redirect `back()`, and the goal props are
+                // deferred on the portfolio — so the card kept rendering the
+                // values it already had. Asking for them by name refetches both
+                // pages' shapes without pulling the rest of the page down again.
+                router.reload({ only: ['goals', 'vaultGoals'] });
             },
             onFinish: () => {
                 submitting.value = false;

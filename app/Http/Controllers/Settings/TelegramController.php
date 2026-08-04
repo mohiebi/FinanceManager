@@ -37,6 +37,7 @@ class TelegramController extends Controller
         $request->user()->update([
             'telegram_chat_id' => null,
             'telegram_connect_token' => null,
+            'streak_nudge_enabled' => false,
         ]);
 
         return back();

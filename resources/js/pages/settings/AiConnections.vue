@@ -12,6 +12,7 @@ import {
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
+import SettingsSection from '@/components/settings/SettingsSection.vue';
 import { destroy as destroyConnection, edit } from '@/routes/ai-connections';
 
 type Connection = {
@@ -52,10 +53,13 @@ const expandedHistoryId = ref<string | null>(null);
 
 const dateFormatter = computed(
     () =>
-        new Intl.DateTimeFormat(locale.value === 'fa' ? 'fa-IR' : locale.value, {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-        }),
+        new Intl.DateTimeFormat(
+            locale.value === 'fa' ? 'fa-IR' : locale.value,
+            {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+            },
+        ),
 );
 
 function formatDate(value: string | null): string {
@@ -231,186 +235,199 @@ defineOptions({
 
     <h1 class="sr-only">{{ t('settings.ai.title') }}</h1>
 
-    <div class="space-y-8">
-        <!-- Header -->
-        <div>
-            <p
-                class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-            >
-                {{ t('settings.ai.eyebrow') }}
-            </p>
-            <p class="mt-1 text-sm text-[#989898]">
-                {{ t('settings.ai.description') }}
-            </p>
-        </div>
-
-        <section
-            class="flex gap-3 rounded-2xl bg-[#02CD86]/8 p-4 ring-1 ring-[#02CD86]/20"
-            aria-labelledby="ai-safety-title"
+    <div class="flex flex-col gap-[18px]">
+        <SettingsSection
+            :title="t('settings.ai.eyebrow')"
+            :description="t('settings.ai.description')"
         >
-            <div
-                class="grid size-9 shrink-0 place-items-center rounded-xl bg-[#02CD86]/12"
-            >
-                <ShieldCheck class="size-4 text-[#02CD86]" />
-            </div>
-            <div>
-                <p id="ai-safety-title" class="text-sm font-medium text-white">
-                    {{ t('settings.ai.safety.title') }}
-                </p>
-                <p class="mt-1 max-w-prose text-sm leading-6 text-[#989898]">
-                    {{ t('settings.ai.safety.description') }}
-                </p>
-            </div>
-        </section>
-
-        <!-- Connect your assistant -->
-        <div class="rounded-[22px] bg-[#252525] p-5 ring-1 ring-white/10">
-            <p class="font-medium text-white">
-                {{ t('settings.ai.connect.title') }}
-            </p>
-            <p class="mt-1 text-sm text-[#989898]">
-                {{ t('settings.ai.connect.subtitle') }}
-            </p>
-
-            <!-- Client picker -->
-            <div class="mt-4 flex flex-wrap gap-2">
-                <button
-                    v-for="option in clientOptions"
-                    :key="option.key"
-                    type="button"
-                    class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium transition"
-                    :class="
-                        selectedClient === option.key
-                            ? 'bg-[#02CD86]/10 text-[#02CD86] ring-1 ring-[#02CD86]/30'
-                            : 'bg-[#101010] text-[#989898] ring-1 ring-white/10 hover:bg-white/5 hover:text-white'
-                    "
-                    @click="
-                        selectedClient =
-                            selectedClient === option.key ? null : option.key
-                    "
+            <div class="space-y-5">
+                <section
+                    class="flex gap-3 rounded-2xl bg-[#02CD86]/8 p-4 ring-1 ring-[#02CD86]/20"
+                    aria-labelledby="ai-safety-title"
                 >
-                    {{ option.label }}
-                </button>
-            </div>
-
-            <!-- Setup steps for the selected client -->
-            <div
-                v-if="selectedClient"
-                class="mt-4 space-y-5 rounded-xl bg-[#101010] p-4 ring-1 ring-white/5"
-            >
-                <div
-                    v-if="selectedInstallCommand"
-                    class="flex flex-col gap-3 rounded-xl bg-[#02CD86]/8 p-3 ring-1 ring-[#02CD86]/20 sm:flex-row sm:items-center sm:justify-between"
-                >
+                    <div
+                        class="grid size-9 shrink-0 place-items-center rounded-xl bg-[#02CD86]/12"
+                    >
+                        <ShieldCheck class="size-4 text-[#02CD86]" />
+                    </div>
                     <div>
-                        <p class="text-sm font-medium text-white">
-                            {{ t('settings.ai.connect.quick_install.title') }}
+                        <p
+                            id="ai-safety-title"
+                            class="text-sm font-medium text-white"
+                        >
+                            {{ t('settings.ai.safety.title') }}
                         </p>
-                        <p class="mt-1 text-xs leading-5 text-[#989898]">
-                            {{ t('settings.ai.connect.quick_install.description') }}
+                        <p
+                            class="mt-1 max-w-prose text-sm leading-6 text-[#989898]"
+                        >
+                            {{ t('settings.ai.safety.description') }}
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#02CD86] px-3 py-2.5 text-sm font-medium text-[#101010] transition hover:brightness-110"
-                        @click="
-                            copyText(
-                                selectedInstallCommand,
-                                `quick-install-${selectedClient}`,
-                            )
-                        "
-                    >
-                        <Check
-                            v-if="
-                                copiedKey === `quick-install-${selectedClient}`
-                            "
-                            class="size-4"
-                        />
-                        <Copy v-else class="size-4" />
-                        {{
-                            copiedKey === `quick-install-${selectedClient}`
-                                ? t('settings.ai.connect.quick_install.copied')
-                                : t('settings.ai.connect.quick_install.button')
-                        }}
-                    </button>
-                </div>
+                </section>
 
+                <!-- Connect your assistant -->
                 <div
-                    v-for="(section, sectionIndex) in clientSections[
-                        selectedClient
-                    ]"
-                    :key="sectionIndex"
-                    class="space-y-3"
+                    class="rounded-[22px] bg-[#252525] p-5 ring-1 ring-white/10"
                 >
-                    <p
-                        v-if="section.title"
-                        class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase"
-                    >
-                        {{ section.title }}
+                    <p class="font-medium text-white">
+                        {{ t('settings.ai.connect.title') }}
+                    </p>
+                    <p class="mt-1 text-sm text-[#989898]">
+                        {{ t('settings.ai.connect.subtitle') }}
                     </p>
 
-                    <ol class="space-y-3">
-                        <li
-                            v-for="(step, stepIndex) in section.steps"
-                            :key="stepIndex"
-                            class="flex gap-3"
+                    <!-- Client picker -->
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <button
+                            v-for="option in clientOptions"
+                            :key="option.key"
+                            type="button"
+                            class="cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium transition"
+                            :class="
+                                selectedClient === option.key
+                                    ? 'bg-[#02CD86]/10 text-[#02CD86] ring-1 ring-[#02CD86]/30'
+                                    : 'bg-[#101010] text-[#989898] ring-1 ring-white/10 hover:bg-white/5 hover:text-white'
+                            "
+                            @click="
+                                selectedClient =
+                                    selectedClient === option.key
+                                        ? null
+                                        : option.key
+                            "
                         >
-                            <span
-                                class="grid size-5 shrink-0 place-items-center rounded-full bg-[#02CD86]/10 text-[11px] font-semibold text-[#02CD86]"
-                            >
-                                {{ stepIndex + 1 }}
-                            </span>
-                            <div class="min-w-0 flex-1 space-y-2">
-                                <p
-                                    v-if="step.text"
-                                    class="text-sm text-[#989898]"
-                                >
-                                    {{ step.text }}
+                            {{ option.label }}
+                        </button>
+                    </div>
+
+                    <!-- Setup steps for the selected client -->
+                    <div
+                        v-if="selectedClient"
+                        class="mt-4 space-y-5 rounded-xl bg-[#101010] p-4 ring-1 ring-white/5"
+                    >
+                        <div
+                            v-if="selectedInstallCommand"
+                            class="flex flex-col gap-3 rounded-xl bg-[#02CD86]/8 p-3 ring-1 ring-[#02CD86]/20 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                            <div>
+                                <p class="text-sm font-medium text-white">
+                                    {{
+                                        t(
+                                            'settings.ai.connect.quick_install.title',
+                                        )
+                                    }}
                                 </p>
-                                <div
-                                    v-if="step.code"
-                                    class="flex items-start gap-2"
+                                <p
+                                    class="mt-1 text-xs leading-5 text-[#989898]"
                                 >
-                                    <pre
-                                        class="min-w-0 flex-1 overflow-x-auto rounded-xl bg-[#252525] px-4 py-2.5 font-mono text-xs leading-relaxed whitespace-pre text-[#02CD86]"
-                                        dir="ltr"
-                                        >{{ step.code }}</pre
-                                    >
-                                    <button
-                                        type="button"
-                                        class="grid size-9 shrink-0 cursor-pointer place-items-center rounded-xl bg-white/10 text-white transition hover:bg-white/15"
-                                        @click="
-                                            copyText(
-                                                step.code,
-                                                `${selectedClient}-${sectionIndex}-${stepIndex}`,
-                                            )
-                                        "
-                                    >
-                                        <Check
-                                            v-if="
-                                                copiedKey ===
-                                                `${selectedClient}-${sectionIndex}-${stepIndex}`
-                                            "
-                                            class="size-4 text-[#02CD86]"
-                                        />
-                                        <Copy v-else class="size-4" />
-                                    </button>
-                                </div>
+                                    {{
+                                        t(
+                                            'settings.ai.connect.quick_install.description',
+                                        )
+                                    }}
+                                </p>
                             </div>
-                        </li>
-                    </ol>
+                            <button
+                                type="button"
+                                class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#02CD86] px-3 py-2.5 text-sm font-medium text-[#101010] transition hover:brightness-110"
+                                @click="
+                                    copyText(
+                                        selectedInstallCommand,
+                                        `quick-install-${selectedClient}`,
+                                    )
+                                "
+                            >
+                                <Check
+                                    v-if="
+                                        copiedKey ===
+                                        `quick-install-${selectedClient}`
+                                    "
+                                    class="size-4"
+                                />
+                                <Copy v-else class="size-4" />
+                                {{
+                                    copiedKey ===
+                                    `quick-install-${selectedClient}`
+                                        ? t(
+                                              'settings.ai.connect.quick_install.copied',
+                                          )
+                                        : t(
+                                              'settings.ai.connect.quick_install.button',
+                                          )
+                                }}
+                            </button>
+                        </div>
+
+                        <div
+                            v-for="(section, sectionIndex) in clientSections[
+                                selectedClient
+                            ]"
+                            :key="sectionIndex"
+                            class="space-y-3"
+                        >
+                            <p
+                                v-if="section.title"
+                                class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase"
+                            >
+                                {{ section.title }}
+                            </p>
+
+                            <ol class="space-y-3">
+                                <li
+                                    v-for="(step, stepIndex) in section.steps"
+                                    :key="stepIndex"
+                                    class="flex gap-3"
+                                >
+                                    <span
+                                        class="grid size-5 shrink-0 place-items-center rounded-full bg-[#02CD86]/10 text-[11px] font-semibold text-[#02CD86]"
+                                    >
+                                        {{ stepIndex + 1 }}
+                                    </span>
+                                    <div class="min-w-0 flex-1 space-y-2">
+                                        <p
+                                            v-if="step.text"
+                                            class="text-sm text-[#989898]"
+                                        >
+                                            {{ step.text }}
+                                        </p>
+                                        <div
+                                            v-if="step.code"
+                                            class="flex items-start gap-2"
+                                        >
+                                            <pre
+                                                class="min-w-0 flex-1 overflow-x-auto rounded-xl bg-[#252525] px-4 py-2.5 font-mono text-xs leading-relaxed whitespace-pre text-[#02CD86]"
+                                                dir="ltr"
+                                                >{{ step.code }}</pre
+                                            >
+                                            <button
+                                                type="button"
+                                                class="grid size-9 shrink-0 cursor-pointer place-items-center rounded-xl bg-white/10 text-white transition hover:bg-white/15"
+                                                @click="
+                                                    copyText(
+                                                        step.code,
+                                                        `${selectedClient}-${sectionIndex}-${stepIndex}`,
+                                                    )
+                                                "
+                                            >
+                                                <Check
+                                                    v-if="
+                                                        copiedKey ===
+                                                        `${selectedClient}-${sectionIndex}-${stepIndex}`
+                                                    "
+                                                    class="size-4 text-[#02CD86]"
+                                                />
+                                                <Copy v-else class="size-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </SettingsSection>
 
-        <!-- Connected assistants -->
-        <div>
-            <p
-                class="mb-4 text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-            >
-                {{ t('settings.ai.connected_apps') }}
-            </p>
-
+        <SettingsSection :title="t('settings.ai.connected_apps')">
             <p v-if="connections.length === 0" class="text-sm text-[#989898]">
                 {{ t('settings.ai.no_connections') }}
             </p>
@@ -454,19 +471,9 @@ defineOptions({
                     </button>
                 </li>
             </ul>
-        </div>
+        </SettingsSection>
 
-        <!-- Divider -->
-        <div class="border-t border-white/5" />
-
-        <!-- Change history -->
-        <div>
-            <p
-                class="mb-4 text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-            >
-                {{ t('settings.ai.history') }}
-            </p>
-
+        <SettingsSection :title="t('settings.ai.history')">
             <p v-if="history.length === 0" class="text-sm text-[#989898]">
                 {{ t('settings.ai.history_empty') }}
             </p>
@@ -479,7 +486,7 @@ defineOptions({
                 >
                     <button
                         type="button"
-                        class="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left transition hover:bg-white/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#02CD86]"
+                        class="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left transition hover:bg-white/[0.025] focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:outline-none focus-visible:ring-inset"
                         :aria-expanded="expandedHistoryId === entry.id"
                         @click="
                             expandedHistoryId =
@@ -487,14 +494,23 @@ defineOptions({
                         "
                     >
                         <span class="min-w-0 flex-1">
-                            <span class="block truncate text-sm font-medium text-white">
+                            <span
+                                class="block truncate text-sm font-medium text-white"
+                            >
                                 {{ actionLabel(entry.action) }}
                                 {{ resourceLabel(entry.resource_type) }}
                             </span>
                             <span class="mt-1 block text-xs text-[#989898]">
-                                {{ entry.client_name ?? t('settings.ai.unknown_client') }}
+                                {{
+                                    entry.client_name ??
+                                    t('settings.ai.unknown_client')
+                                }}
                                 <span class="mx-1 text-white/20">&middot;</span>
-                                {{ formatDate(entry.consumed_at ?? entry.created_at) }}
+                                {{
+                                    formatDate(
+                                        entry.consumed_at ?? entry.created_at,
+                                    )
+                                }}
                             </span>
                         </span>
                         <span
@@ -527,20 +543,28 @@ defineOptions({
                                 :key="field"
                                 class="rounded-xl bg-[#252525] px-3 py-2.5"
                             >
-                                <dt class="text-[11px] font-medium tracking-[0.08em] text-[#989898] uppercase">
+                                <dt
+                                    class="text-[11px] font-medium tracking-[0.08em] text-[#989898] uppercase"
+                                >
                                     {{ fieldLabel(field) }}
                                 </dt>
-                                <dd class="mt-1 break-words text-xs text-white">
-                                    <span class="text-[#989898]">{{ formatChangeValue(change.old) }}</span>
-                                    <span class="mx-1.5 text-[#02CD86]">&rarr;</span>
-                                    <span>{{ formatChangeValue(change.new) }}</span>
+                                <dd class="mt-1 text-xs break-words text-white">
+                                    <span class="text-[#989898]">{{
+                                        formatChangeValue(change.old)
+                                    }}</span>
+                                    <span class="mx-1.5 text-[#02CD86]"
+                                        >&rarr;</span
+                                    >
+                                    <span>{{
+                                        formatChangeValue(change.new)
+                                    }}</span>
                                 </dd>
                             </div>
                         </dl>
                     </div>
                 </li>
             </ul>
-        </div>
+        </SettingsSection>
 
         <ConfirmDeleteModal
             :open="revokeTarget !== null"

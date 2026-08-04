@@ -299,6 +299,11 @@ return [
         'no_default_currency' => 'Nicht festgelegt',
     ],
     'navigation' => [
+        'groups' => [
+            'account' => 'Konto',
+            'workspace' => 'Arbeitsbereich',
+            'integrations' => 'Integrationen',
+        ],
         'profile' => 'Profil',
         'notifications' => 'Benachrichtigungen',
         'security' => 'Datenschutz & Sicherheit',
@@ -315,7 +320,7 @@ return [
         'description' => 'Verwalte die mit deinem Konto verbundenen KI-Assistenten und sieh, was sie geändert haben.',
         'connect' => [
             'title' => 'KI-Assistenten verbinden',
-            'subtitle' => 'Wähle deinen Assistenten und folge den Schritten. Nach der Autorisierung kann er deine Finanzdaten lesen und Änderungen vorschlagen — gespeichert wird nichts, bis du es im Chat bestätigst.',
+            'subtitle' => 'Wähle deinen Assistenten und folge den Schritten. Nach der Autorisierung kann er deine Finanzdaten lesen und einen vollständigen Stapel erst nach deiner Bestätigung im Chat anwenden.',
             'server_url' => 'MCP-Server-Adresse',
             'clients' => [
                 'claude' => 'Claude',
@@ -353,7 +358,7 @@ return [
         'no_connections' => 'Noch keine KI-Assistenten verbunden.',
         'safety' => [
             'title' => 'Du behältst die Kontrolle',
-            'description' => 'Assistenten können deine Finanzdaten lesen und Änderungen vorschlagen. Gespeichert wird erst, wenn du genau diese Änderung im Chat bestätigst.',
+            'description' => 'Dein Assistent fasst den vollständigen Stapel zusammen und fragt einmal nach. Nach deiner Bestätigung werden alle Einträge in einem Vorgang gespeichert.',
         ],
         'connected_at' => 'Verbunden',
         'active_sessions' => '{count} aktive Sitzung|{count} aktive Sitzungen',

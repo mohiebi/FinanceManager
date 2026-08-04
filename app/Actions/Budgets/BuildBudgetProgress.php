@@ -121,7 +121,7 @@ class BuildBudgetProgress
                 'category_id' => $transaction->category_id,
                 'amount' => $transaction->amount,
                 'currency' => $transaction->currency->value,
-            ])->all(),
+            ])->values()->all(),
             'rates' => [
                 'tomanPerUsd' => $this->prices->priceFor(AssetType::Usd),
                 'tomanPerEur' => $this->prices->priceFor(AssetType::Eur),
@@ -263,6 +263,14 @@ class BuildBudgetProgress
         array $claimedCategoryIds,
     ): float {
         $costs = $transactions->where('type', TransactionType::Cost);
+
+        // Only a remainder line may own uncategorised spending. A category line
+        // that somehow lost its category matches nothing rather than quietly
+        // hoovering up every row with a null category — which is what it did,
+        // and it read as though the line were tracking something.
+        if ($line->rule_type !== BudgetRuleType::Remainder && $line->category_id === null) {
+            return 0.0;
+        }
 
         // "Everything else" is exactly that: spending no other line has claimed,
         // including rows with no category at all.

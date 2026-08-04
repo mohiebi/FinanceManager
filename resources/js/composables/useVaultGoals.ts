@@ -1,8 +1,10 @@
+import { router } from '@inertiajs/vue3';
 import { computed, ref, watchEffect } from 'vue';
 import type { ComputedRef } from 'vue';
 import { useVault } from '@/composables/useVault';
 import type { DecryptedEntry } from '@/composables/useVaultPortfolio';
 import { computePace } from '@/lib/goals';
+import { achieved as markGoalAchieved } from '@/routes/savings-goals';
 import type { GoalCard, GoalPresentation } from '@/types/gamification';
 import type { Encrypted } from '@/types/vault';
 
@@ -86,7 +88,11 @@ export function useVaultGoals(
     const goals = computed<GoalCard[] | null>(() => {
         const current = payload();
 
-        if (current === null || current === undefined || targets.value === null) {
+        if (
+            current === null ||
+            current === undefined ||
+            targets.value === null
+        ) {
             return null;
         }
 
@@ -125,18 +131,55 @@ export function useVaultGoals(
         });
     });
 
+    /**
+     * Tell the server about a goal that has just been met.
+     *
+     * With the vault armed the server cannot see that a target was reached, so
+     * without this the portfolio has no date to apply its recency window to and
+     * every finished goal would sit there forever.
+     *
+     * Fires once per goal: the endpoint writes only when the date is still null,
+     * and `stamped` stops a re-render sending it twice in the same session.
+     */
+    const stamped = new Set<number>();
+
+    watchEffect(() => {
+        for (const goal of goals.value ?? []) {
+            if (!goal.reached || goal.achieved_on !== null) {
+                continue;
+            }
+
+            if (stamped.has(goal.id)) {
+                continue;
+            }
+
+            stamped.add(goal.id);
+
+            router.post(
+                markGoalAchieved.url(goal.id),
+                {},
+                { preserveScroll: true, preserveState: true, only: [] },
+            );
+        }
+    });
+
     return {
         goals,
         decrypting: computed(() => {
             const current = payload();
 
             return (
-                current !== null && current !== undefined && goals.value === null
+                current !== null &&
+                current !== undefined &&
+                goals.value === null
             );
         }),
     };
 }
 
 function sum(entries: DecryptedEntry[]): number {
-    return entries.reduce((total, entry) => total + (Number(entry.quantity) || 0), 0);
+    return entries.reduce(
+        (total, entry) => total + (Number(entry.quantity) || 0),
+        0,
+    );
 }

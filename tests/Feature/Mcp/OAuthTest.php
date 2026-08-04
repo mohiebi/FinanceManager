@@ -77,8 +77,9 @@ test('an authenticated ai client can list the finance tools', function () {
     $names = collect($response->json('result.tools'))->pluck('name');
 
     expect($names)->toContain('list-transactions-tool')
-        ->toContain('propose-transaction-tool')
-        ->toContain('confirm-proposal-tool');
+        ->toContain('apply-finance-changes-tool')
+        ->not->toContain('propose-transaction-tool')
+        ->not->toContain('confirm-proposal-tool');
 });
 
 test('users with the ai assistant module switched off cannot use the mcp endpoint', function () {

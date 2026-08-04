@@ -49,6 +49,8 @@ return [
     'mark_all_read' => 'Mark all as read',
     'empty' => 'No notifications yet',
     'empty_description' => 'Bill reminders and other alerts will show up here.',
+    'preferences_heading' => 'Notification preferences',
+    'preferences_description' => 'Choose which reminders CashPilot sends you.',
     'page_title' => 'Notifications',
     'page_description' => 'Bill reminders and other account alerts.',
     'unread' => 'Unread',

@@ -124,8 +124,10 @@ test('the nudge toggle is refused while the module is off', function () {
     expect($user->fresh()->streak_nudge_enabled)->toBeFalse();
 });
 
-test('the nudge toggle works once the module is on', function () {
-    $user = User::factory()->withModules(Feature::Gamification)->create();
+test('the nudge toggle works once the module is on and telegram is linked', function () {
+    $user = User::factory()
+        ->withModules(Feature::Gamification)
+        ->create(['telegram_chat_id' => '98620653']);
 
     $this->actingAs($user)
         ->patch(route('notifications.preferences'), ['streak_nudge_enabled' => true])

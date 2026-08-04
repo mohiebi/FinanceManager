@@ -1,5 +1,7 @@
 <?php
 
+use App\Actions\Goals\BuildGoalProgress;
+use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Enums\AssetType;
 use App\Enums\Feature;
 use App\Models\InvestmentAsset;
@@ -122,5 +124,99 @@ test('the portfolio page drops the goals section when the module is off', functi
             // An empty list rather than a deferred key: nothing will ever arrive
             // to fill it, and the page must not wait for it.
             ->where('goals', [])
+            ->etc());
+});
+
+test('an edited goal comes back with its new values on the next render', function () {
+    $user = User::factory()->withModules(Feature::Goals)->create();
+
+    $goal = SavingsGoal::factory()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => goldAssetForPage()->id,
+        'title' => 'Nowruz fund',
+        'target_quantity' => 3,
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('savings-goals.update', $goal), [
+            'investment_asset_id' => goldAssetForPage()->id,
+            'title' => 'Renamed fund',
+            'target_quantity' => 9,
+            'target_date' => now()->addDays(120)->toDateString(),
+        ])
+        ->assertRedirect();
+
+    // The write landed; the question is whether the page hands the new values
+    // back, because the card was still showing the old ones.
+    $this->actingAs($user)
+        ->get(route('goals'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('goals.0.title', 'Renamed fund')
+            ->where('goals.0.target_quantity', 9)
+            ->etc());
+});
+
+test('the portfolio drops achievements older than the window', function () {
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
+
+    SavingsGoal::factory()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => goldAssetForPage()->id,
+        'title' => 'Finished long ago',
+        'target_quantity' => 1,
+        'achieved_on' => now()->subMonths(9)->toDateString(),
+    ]);
+    SavingsGoal::factory()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => goldAssetForPage()->id,
+        'title' => 'Still going',
+        'target_quantity' => 99,
+    ]);
+
+    holdGold($user, 2, now()->toDateString());
+
+    $this->actingAs($user)
+        ->get(route('portfolio'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('showsGoals', true)
+            ->etc());
+
+    // Deferred, so the list arrives on the follow-up request.
+    $this->actingAs($user)
+        ->get(route('portfolio'), ['X-Inertia-Partial-Data' => 'goals'])
+        ->assertOk();
+
+    $recent = app(BuildGoalProgress::class)->forPortfolio(
+        $user,
+        app(BuildPortfolioBreakdown::class)->entriesFor($user),
+    );
+
+    expect(collect($recent)->pluck('title')->all())
+        ->toContain('Still going')
+        ->not->toContain('Finished long ago');
+});
+
+test('the goals page still shows an old achievement', function () {
+    $user = User::factory()->withModules(Feature::Portfolio, Feature::Goals)->create();
+
+    SavingsGoal::factory()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => goldAssetForPage()->id,
+        'title' => 'Finished long ago',
+        'target_quantity' => 1,
+        'achieved_on' => now()->subMonths(9)->toDateString(),
+    ]);
+
+    holdGold($user, 2, now()->toDateString());
+
+    $this->actingAs($user)
+        ->get(route('goals'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('goals', 1)
+            ->where('goals.0.title', 'Finished long ago')
+            ->where('goals.0.reached', true)
             ->etc());
 });

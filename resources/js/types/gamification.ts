@@ -44,6 +44,13 @@ export type GoalPresentation = {
     target_date: string;
     /** Already rendered in the user's calendar — no jalali maths in the browser. */
     target_date_display: string;
+    /**
+     * The day the target was first met, or null if it never has been.
+     *
+     * Plaintext on both paths, which is what lets the portfolio apply its
+     * three-month window without reading a single quantity.
+     */
+    achieved_on: string | null;
     elapsed_days: number;
     total_days: number;
 };

@@ -2,7 +2,7 @@
     <Head :title="t('finance.transactions.title')" />
 
     <div
-        class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
+        class="finance-dense flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
     >
         <section
             class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
@@ -1265,12 +1265,12 @@ const selectionType = computed<TransactionType | null>(() => {
 });
 const bulkCategories = computed(() => {
     if (selectionType.value === 'cost') {
-return props.categories.cost ?? [];
-}
+        return props.categories.cost ?? [];
+    }
 
     if (selectionType.value === 'income') {
-return props.categories.income ?? [];
-}
+        return props.categories.income ?? [];
+    }
 
     return [];
 });
@@ -1285,10 +1285,10 @@ function toggleCost(id: number, selected: boolean): void {
     const next = new Set(selectedCostIds.value);
 
     if (selected) {
-next.add(id);
-} else {
-next.delete(id);
-}
+        next.add(id);
+    } else {
+        next.delete(id);
+    }
 
     selectedCostIds.value = next;
 }
@@ -1296,10 +1296,10 @@ function toggleIncome(id: number, selected: boolean): void {
     const next = new Set(selectedIncomeIds.value);
 
     if (selected) {
-next.add(id);
-} else {
-next.delete(id);
-}
+        next.add(id);
+    } else {
+        next.delete(id);
+    }
 
     selectedIncomeIds.value = next;
 }
@@ -1365,8 +1365,8 @@ function bulkAssignCategory(): void {
     const type = selectionType.value;
 
     if (!type || !bulkCategoryId.value) {
-return;
-}
+        return;
+    }
 
     const ids =
         type === 'cost'

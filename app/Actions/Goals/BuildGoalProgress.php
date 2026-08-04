@@ -27,6 +27,9 @@ use Illuminate\Support\Collection;
  */
 class BuildGoalProgress
 {
+    /** How long a finished goal keeps its place on the portfolio. */
+    public const RECENT_MONTHS = 3;
+
     /**
      * @return Collection<int, SavingsGoal>
      */
@@ -74,6 +77,11 @@ class BuildGoalProgress
                     total: $window['total'],
                 );
 
+                // Recorded the first time it is seen met, and never rewritten:
+                // selling the asset afterwards must not un-achieve a goal the
+                // user genuinely finished.
+                $this->stampAchievement($goal, $pace['reached'], $today);
+
                 return [
                     ...$this->presentation($goal, $calendar, $window),
                     ...$pace,
@@ -86,6 +94,50 @@ class BuildGoalProgress
     }
 
     /**
+     * The portfolio's slice: everything still running, plus recent finishes.
+     *
+     * A goal met two years ago is a record, not a thing to act on, and the
+     * portfolio is not the place to keep every one of them — the goals page is.
+     *
+     * @param  Collection<int, Investment>  $entries
+     * @return array<int, array<string, mixed>>
+     */
+    public function forPortfolio(User $user, Collection $entries, ?CarbonImmutable $today = null): array
+    {
+        $today = $today ?? $user->localToday();
+        $cutoff = $this->recentCutoff($today);
+
+        // Filtered after handle() rather than in the query, so a goal stamped by
+        // this very call is judged on the stamp it just received.
+        return array_values(array_filter(
+            $this->handle($user, $entries, $today),
+            static fn (array $goal): bool => $goal['achieved_on'] === null
+                || $goal['achieved_on'] >= $cutoff,
+        ));
+    }
+
+    /** Achievements older than this drop off the portfolio. */
+    public function recentCutoff(CarbonImmutable $today): string
+    {
+        return $today->subMonths(self::RECENT_MONTHS)->toDateString();
+    }
+
+    /**
+     * Write the achievement date once.
+     *
+     * Skipped entirely when nothing would change, so the common case — every
+     * page load after the first — issues no write at all.
+     */
+    private function stampAchievement(SavingsGoal $goal, bool $reached, CarbonImmutable $today): void
+    {
+        if (! $reached || $goal->achieved_on !== null) {
+            return;
+        }
+
+        $goal->forceFill(['achieved_on' => $today->toDateString()])->save();
+    }
+
+    /**
      * The armed path: sealed values plus every date already resolved.
      *
      * A sibling payload rather than an extension of the portfolio's, so goals
@@ -94,13 +146,20 @@ class BuildGoalProgress
      *
      * @return array{goals: array<int, array<string, mixed>>, today: string}
      */
-    public function clientPayload(User $user, ?CarbonImmutable $today = null): array
+    public function clientPayload(User $user, ?CarbonImmutable $today = null, bool $recentOnly = false): array
     {
         $today = $today ?? $user->localToday();
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
+        $cutoff = $this->recentCutoff($today);
 
         return [
             'goals' => $this->goalsFor($user)
+                // The server cannot tell whether a sealed goal is reached, but a
+                // stamped date says it already was — so the portfolio's window
+                // applies here too, without opening anything.
+                ->reject(fn (SavingsGoal $goal): bool => $recentOnly
+                    && $goal->achieved_on !== null
+                    && $goal->achieved_on->toDateString() < $cutoff)
                 ->map(function (SavingsGoal $goal) use ($today, $calendar): array {
                     $window = $this->window($goal, $today);
 
@@ -147,6 +206,9 @@ class BuildGoalProgress
             ],
             'target_date' => $goal->target_date->toDateString(),
             'target_date_display' => DateFormatter::format($goal->target_date, $calendar, 'j F Y'),
+            // Plaintext on both paths, which is what lets the portfolio apply
+            // its recency window without reading a single quantity.
+            'achieved_on' => $goal->achieved_on?->toDateString(),
             'elapsed_days' => $window['elapsed'],
             'total_days' => $window['total'],
         ];

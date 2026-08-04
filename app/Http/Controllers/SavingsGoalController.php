@@ -50,6 +50,30 @@ class SavingsGoalController extends Controller
     }
 
     /**
+     * Record that a goal has been met, for users whose server cannot see it.
+     *
+     * With the vault armed the target and the holdings are both ciphertext, so
+     * only the browser knows a goal is finished — and without a date the
+     * portfolio cannot tell a finish from last week apart from one from 2024.
+     *
+     * Write-once and idempotent: the date is never moved, so a stale tab
+     * replaying this cannot rewrite history, and selling the asset afterwards
+     * cannot un-achieve a goal the user genuinely finished.
+     */
+    public function markAchieved(Request $request, SavingsGoal $savingsGoal): RedirectResponse
+    {
+        $this->authoriseOwnership($request, $savingsGoal);
+
+        if ($savingsGoal->achieved_on === null) {
+            $savingsGoal->forceFill([
+                'achieved_on' => $request->user()->localToday()->toDateString(),
+            ])->save();
+        }
+
+        return back();
+    }
+
+    /**
      * 404 rather than 403 — a goal belonging to someone else should not be
      * confirmed to exist.
      */

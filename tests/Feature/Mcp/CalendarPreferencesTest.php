@@ -1,12 +1,11 @@
 <?php
 
 use App\Mcp\Servers\FinanceServer;
+use App\Mcp\Tools\ApplyFinanceChangesTool;
 use App\Mcp\Tools\GetUserContextTool;
 use App\Mcp\Tools\Reports\SpendingSummaryTool;
 use App\Mcp\Tools\Transactions\ListTransactionsTool;
-use App\Mcp\Tools\Transactions\ProposeTransactionTool;
 use App\Models\Category;
-use App\Models\McpProposal;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\CalendarDates;
@@ -133,27 +132,26 @@ test('gregorian users get gregorian month buckets and no jalali fields', functio
             ->etc());
 });
 
-test('proposing a transaction with a jalali date stores the gregorian equivalent and shows both in the diff', function () {
+test('applying a transaction with a jalali date stores the gregorian equivalent', function () {
     $user = User::factory()->create(['calendar' => 'jalali']);
     $category = Category::factory()->cost()->create();
 
     FinanceServer::actingAs($user)
-        ->tool(ProposeTransactionTool::class, [
-            'action' => 'create',
-            'type' => 'cost',
-            'category_id' => $category->id,
-            'amount' => 250,
-            'currency' => 'toman',
-            'title' => 'Jalali-dated coffee',
-            'occurred_at' => '1405-04-15',
+        ->tool(ApplyFinanceChangesTool::class, [
+            'operations' => [[
+                'resource' => 'transaction',
+                'action' => 'create',
+                'type' => 'cost',
+                'category_id' => $category->id,
+                'amount' => 250,
+                'currency' => 'toman',
+                'title' => 'Jalali-dated coffee',
+                'occurred_at' => '1405-04-15',
+            ]],
         ])
         ->assertOk();
 
-    $proposal = McpProposal::query()->first();
-
-    expect($proposal->payload['occurred_at'])->toBe('2026-07-06')
-        ->and($proposal->diff_summary['occurred_at']['new'])->toBe('2026-07-06')
-        ->and($proposal->diff_summary['occurred_at']['new_jalali'])->toBe('1405-04-15');
+    expect($user->transactions()->sole()->occurred_at->toDateString())->toBe('2026-07-06');
 });
 
 test('invalid jalali dates fall through to a validation error instead of silently querying', function () {

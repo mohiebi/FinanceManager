@@ -1,7 +1,7 @@
 <?php
 
 use App\Enums\McpProposalStatus;
-use App\Mcp\Servers\FinanceServer;
+use App\Mcp\Servers\FinanceServer as PublicFinanceServer;
 use App\Mcp\Support\ProposalService;
 use App\Mcp\Tools\Bills\ProposeBillTool;
 use App\Mcp\Tools\Bills\ProposePayBillTool;
@@ -19,6 +19,25 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\Fluent\AssertableJson;
 use Laravel\Passport\AccessToken;
 use Laravel\Passport\Client;
+
+/**
+ * The proposal flow is no longer advertised by the public finance server, but
+ * its legacy audit-path tests stay executable until the old classes and stored
+ * proposal records are retired in a dedicated data migration.
+ */
+class FinanceServer extends PublicFinanceServer
+{
+    protected array $tools = [
+        ProposeTransactionTool::class,
+        ProposeCategoryTool::class,
+        ProposeBillTool::class,
+        ProposePayBillTool::class,
+        ProposeCustomAssetTool::class,
+        ConfirmProposalTool::class,
+        RejectProposalTool::class,
+        ListPendingProposalsTool::class,
+    ];
+}
 
 test('a proposal records the OAuth client attached to the Passport token', function () {
     $user = User::factory()->withModules()->create();

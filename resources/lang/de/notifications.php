@@ -42,6 +42,8 @@ return [
     'mark_all_read' => 'Alle als gelesen markieren',
     'empty' => 'Noch keine Benachrichtigungen',
     'empty_description' => 'Rechnungserinnerungen und andere Hinweise werden hier angezeigt.',
+    'preferences_heading' => 'Benachrichtigungseinstellungen',
+    'preferences_description' => 'Wähle, welche Erinnerungen CashPilot dir sendet.',
     'page_title' => 'Benachrichtigungen',
     'page_description' => 'Rechnungserinnerungen und andere Kontohinweise.',
     'unread' => 'Ungelesen',

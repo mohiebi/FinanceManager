@@ -451,11 +451,16 @@ class AssetPriceService
             }
         }
 
-        if (isset($prices['bitcoin_usd'], $prices['usd'])) {
-            $prices['bitcoin'] = $prices['bitcoin_usd'] * $prices['usd'];
-        }
-
         if ($prices !== []) {
+            $prices = [
+                ...Cache::get('asset-prices.tgju.last_known', []),
+                ...$prices,
+            ];
+
+            if (isset($prices['bitcoin_usd'], $prices['usd'])) {
+                $prices['bitcoin'] = $prices['bitcoin_usd'] * $prices['usd'];
+            }
+
             Cache::forever('asset-prices.tgju.synced_at', now()->toIso8601String());
             Cache::forever('asset-prices.tgju.last_known', $prices);
         }

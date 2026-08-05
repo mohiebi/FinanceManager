@@ -113,6 +113,43 @@ test('asset price service falls back to the last known prices when a fresh fetch
         ->and($service->pricesAvailable())->toBeTrue();
 });
 
+test('asset price service preserves last known prices when a fresh fetch is only partially successful', function () {
+    Cache::flush();
+
+    config([
+        'services.tgju.enabled' => true,
+        'services.tgju.url' => 'https://www.tgju.org/',
+        'services.tgju.fallback_url' => 'http://www.tgju.org/',
+        'services.tgju.currency_url' => 'https://www.tgju.org/currency',
+        'services.tgju.currency_fallback_url' => 'http://www.tgju.org/currency',
+    ]);
+
+    Cache::forever('asset-prices.tgju.last_known', [
+        'usd' => 172100.0,
+        'eur' => 198000.0,
+    ]);
+
+    Http::fake([
+        'https://www.tgju.org/' => Http::response('', 500),
+        'http://www.tgju.org/' => Http::response('', 500),
+        'https://www.tgju.org/currency' => Http::response(tgjuHtml([
+            '/html/body/main/div[4]/div/div/div[1]/table/tbody/tr[2]/td[1]' => '2,221,600',
+        ])),
+    ]);
+
+    $prices = app(AssetPriceService::class)->tgjuPrices();
+
+    expect($prices)
+        ->toMatchArray([
+            'usd' => 172100.0,
+            'eur' => 222160.0,
+        ])
+        ->and(Cache::get('asset-prices.tgju.last_known'))->toMatchArray([
+            'usd' => 172100.0,
+            'eur' => 222160.0,
+        ]);
+});
+
 test('lastSyncedAt stays null when the fetch fails', function () {
     Cache::flush();
 

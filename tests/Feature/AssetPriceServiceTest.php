@@ -47,7 +47,8 @@ test('asset price service reads tgju prices from configured xpaths', function ()
             'usdt' => 101000.0,
             'gold_900' => 14400000.0,
             'gold_ounce' => 2350.5,
-            'silver_ounce' => 30.25,
+            'silver_ounce_usd' => 30.25,
+            'silver_ounce' => 3025000.0,
             'bitcoin_usd' => 108500.0,
         ]);
 });

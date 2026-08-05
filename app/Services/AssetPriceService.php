@@ -46,7 +46,7 @@ class AssetPriceService
             'xpath' => '/html/body/main/div[4]/div[3]/div[2]/table/tbody/tr[4]/td[1]',
             'divide_by' => 10,
         ],
-        'silver_ounce' => [
+        'silver_ounce_usd' => [
             'source' => 'home',
             'xpath' => '/html/body/main/div[4]/div[3]/div[1]/table/tbody/tr[2]/td[1]',
             'divide_by' => 1,
@@ -464,6 +464,10 @@ class AssetPriceService
 
             if (isset($prices['bitcoin_usd'], $prices['usd'])) {
                 $prices['bitcoin'] = $prices['bitcoin_usd'] * $prices['usd'];
+            }
+
+            if (isset($prices['silver_ounce_usd'], $prices['usd'])) {
+                $prices['silver_ounce'] = $prices['silver_ounce_usd'] * $prices['usd'];
             }
 
             Cache::forever('asset-prices.tgju.synced_at', now()->toIso8601String());

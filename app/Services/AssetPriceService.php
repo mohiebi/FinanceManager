@@ -46,6 +46,11 @@ class AssetPriceService
             'xpath' => '/html/body/main/div[4]/div[3]/div[2]/table/tbody/tr[4]/td[1]',
             'divide_by' => 10,
         ],
+        'silver_ounce' => [
+            'source' => 'home',
+            'xpath' => '/html/body/main/div[4]/div[3]/div[1]/table/tbody/tr[2]/td[1]',
+            'divide_by' => 1,
+        ],
         'gold_ounce' => [
             'source' => 'home',
             'xpath' => '/html/body/main/div[1]/div[2]/div/ul/li[2]/span[1]/span',

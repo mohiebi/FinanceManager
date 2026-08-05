@@ -26,6 +26,7 @@ test('asset price service reads tgju prices from configured xpaths', function ()
             '/html/body/main/div[1]/div[2]/div/ul/li[4]/span[1]/span' => '120,000,000',
             '/html/body/main/div[1]/div[2]/div/ul/li[5]/span[1]/span' => '970,000,000',
             '/html/body/main/div[4]/div[3]/div[2]/table/tbody/tr[4]/td[1]' => '1,400,000',
+            '/html/body/main/div[4]/div[3]/div[1]/table/tbody/tr[2]/td[1]' => '30.25',
             '/html/body/main/div[1]/div[2]/div/ul/li[2]/span[1]/span' => '2,350.50',
             '/html/body/main/div[1]/div[2]/div/ul/li[9]/span[1]/span' => '108,500',
         ])),
@@ -46,6 +47,7 @@ test('asset price service reads tgju prices from configured xpaths', function ()
             'usdt' => 101000.0,
             'gold_900' => 14400000.0,
             'gold_ounce' => 2350.5,
+            'silver_ounce' => 30.25,
             'bitcoin_usd' => 108500.0,
         ]);
 });

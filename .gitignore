@@ -30,3 +30,4 @@ yarn-error.log
 .claude/*
 design-system/cashpilot/MASTER.md
 vite.config.ts
+.agents/*

@@ -124,6 +124,7 @@ const formulaVariables = [
     'silver',
     'silver_ounce',
     'silver_ounce_usd',
+    'silver_bar',
     'coin',
     'bitcoin',
     'bitcoin_usd',

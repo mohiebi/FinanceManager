@@ -15,6 +15,12 @@ use Throwable;
 
 class AssetPriceService
 {
+    /**
+     * Grams per troy ounce, used to convert an ounce spot price into a
+     * per-gram price for bar-weight formulas (e.g. price × weight in grams).
+     */
+    private const GRAMS_PER_TROY_OUNCE = 31.1034768;
+
     private const TGJU_PRICE_PATHS = [
         'usd' => [
             'source' => 'home',
@@ -468,6 +474,10 @@ class AssetPriceService
 
             if (isset($prices['silver_ounce_usd'], $prices['usd'])) {
                 $prices['silver_ounce'] = $prices['silver_ounce_usd'] * $prices['usd'];
+            }
+
+            if (isset($prices['silver_ounce'])) {
+                $prices['silver_bar'] = $prices['silver_ounce'] / self::GRAMS_PER_TROY_OUNCE;
             }
 
             Cache::forever('asset-prices.tgju.synced_at', now()->toIso8601String());

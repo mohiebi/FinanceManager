@@ -631,48 +631,43 @@ html[dir='rtl'] body {
 /* ── Small-screen density ──────────────────────────────────────────────────
    The finance workspace puts two full tables side by side above a filter bar
    of eight controls. That fits a desktop and overflows a small laptop, so the
-   type and the cell padding step down instead of the layout scrolling
-   sideways. Scoped to a container class rather than edited into every utility
-   class, so the desktop layout is untouched and there is one place to tune. */
+   type and the cell padding scale continuously with the viewport instead of
+   the layout scrolling sideways. clamp() rather than fixed breakpoint tiers,
+   so a 1366px laptop and a 2560px monitor each get a size proportional to
+   their own width instead of both being forced into the same "small" bucket.
+   Scoped to a container class rather than edited into every utility class,
+   so there is one place to tune. */
 @layer components {
-    @media (max-width: 1439px) {
-        .finance-dense table {
-            font-size: 0.8125rem;
-        }
-
-        .finance-dense thead tr {
-            font-size: 0.875rem;
-        }
-
-        .finance-dense th,
-        .finance-dense td {
-            padding-inline: 0.5rem;
-            padding-block: 0.625rem;
-        }
-
-        /* The filter row: eight controls that only fit by giving up width. */
-        .finance-dense .finance-dialog-field,
-        .finance-dense select,
-        .finance-dense input[type='search'],
-        .finance-dense input[type='text'] {
-            font-size: 0.8125rem;
-        }
+    .finance-dense table {
+        font-size: clamp(0.8125rem, 0.76rem + 0.22vw, 1rem);
     }
 
-    @media (max-width: 1023px) {
-        .finance-dense table {
-            font-size: 0.75rem;
-        }
+    .finance-dense thead tr {
+        font-size: clamp(0.875rem, 0.82rem + 0.22vw, 1.0625rem);
+    }
 
-        .finance-dense thead tr {
-            font-size: 0.8125rem;
-        }
+    .finance-dense th,
+    .finance-dense td {
+        padding-inline: clamp(0.5rem, 0.29rem + 0.89vw, 1.25rem);
+        padding-block: clamp(0.5rem, 0.4rem + 0.44vw, 0.875rem);
+    }
 
-        .finance-dense th,
-        .finance-dense td {
-            padding-inline: 0.375rem;
-            padding-block: 0.5rem;
-        }
+    /* The filter row: eight controls that only fit by giving up width. */
+    .finance-dense .finance-dialog-field,
+    .finance-dense select,
+    .finance-dense input[type='search'],
+    .finance-dense input[type='text'] {
+        font-size: clamp(0.8125rem, 0.78rem + 0.15vw, 0.9375rem);
+    }
+
+    /* The row-selection checkbox column: fixed-size control, no text, so it
+       should never claim more than the checkbox needs — override the fluid
+       cell padding above (same th/td selector, so this needs the extra class
+       for specificity) and let the column shrink to content width. */
+    .finance-dense th.finance-cell-tight,
+    .finance-dense td.finance-cell-tight {
+        width: 1%;
+        padding-inline: 0.5rem;
     }
 }
 

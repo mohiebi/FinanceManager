@@ -198,12 +198,12 @@
 
                 <div class="overflow-x-auto px-3 pb-5">
                     <table
-                        class="w-full border-separate border-spacing-y-0 text-xs sm:text-sm"
+                        class="w-full border-separate border-spacing-y-0 text-sm"
                     >
                         <thead>
                             <tr class="text-left">
                                 <th
-                                    class="rounded-l-2xl bg-[#24212f] px-2 py-3 text-center sm:px-3"
+                                    class="finance-cell-tight rounded-l-2xl bg-[#24212f] px-2 py-3 text-center"
                                 >
                                     <Checkbox
                                         :checked="costsSelectionState"
@@ -241,7 +241,7 @@
                                 :key="transaction.id"
                                 class="group"
                             >
-                                <td class="px-2 py-3 text-center sm:px-3">
+                                <td class="finance-cell-tight px-2 py-3 text-center">
                                     <Checkbox
                                         :checked="
                                             selectedCostIds.has(transaction.id)
@@ -427,12 +427,12 @@
 
                 <div class="overflow-x-auto px-3 pb-5">
                     <table
-                        class="w-full border-separate border-spacing-y-0 text-xs sm:text-sm"
+                        class="w-full border-separate border-spacing-y-0 text-sm"
                     >
                         <thead>
                             <tr class="text-left">
                                 <th
-                                    class="rounded-l-2xl bg-[#0d2620] px-2 py-3 text-center sm:px-3"
+                                    class="finance-cell-tight rounded-l-2xl bg-[#0d2620] px-2 py-3 text-center"
                                 >
                                     <Checkbox
                                         :checked="incomesSelectionState"
@@ -471,7 +471,7 @@
                                 :key="transaction.id"
                                 class="group"
                             >
-                                <td class="px-2 py-3 text-center sm:px-3">
+                                <td class="finance-cell-tight px-2 py-3 text-center">
                                     <Checkbox
                                         :checked="
                                             selectedIncomeIds.has(

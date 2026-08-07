@@ -7,10 +7,12 @@
         <section
             class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
-            <div class="flex items-end justify-between gap-6">
-                <div class="flex min-w-0 items-end gap-2 overflow-x-auto pb-1">
-                    <div class="grid w-60 shrink-0 gap-2">
-                        <Label for="transaction_search">{{
+            <div
+                class="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between"
+            >
+                <div class="flex flex-wrap items-end gap-3">
+                    <div class="grid min-w-[160px] flex-1 gap-1.5 sm:max-w-[220px]">
+                        <Label for="transaction_search" class="text-xs">{{
                             t('finance.fields.search')
                         }}</Label>
                         <Input
@@ -22,8 +24,8 @@
                         />
                     </div>
 
-                    <div class="grid w-40 shrink-0 gap-2">
-                        <Label for="transaction_category">{{
+                    <div class="grid min-w-[130px] flex-1 gap-1.5 sm:max-w-[170px]">
+                        <Label for="transaction_category" class="text-xs">{{
                             t('finance.fields.category')
                         }}</Label>
                         <Select v-model="filterCategory">
@@ -58,8 +60,8 @@
                         </Select>
                     </div>
 
-                    <div class="grid w-72 shrink-0 gap-2">
-                        <Label for="transaction_from">{{
+                    <div class="grid min-w-[210px] flex-1 gap-1.5 sm:max-w-[260px]">
+                        <Label for="transaction_from" class="text-xs">{{
                             t('finance.fields.from')
                         }}</Label>
                         <BirthdatePicker
@@ -72,8 +74,8 @@
                         />
                     </div>
 
-                    <div class="grid w-72 shrink-0 gap-2">
-                        <Label for="transaction_to">{{
+                    <div class="grid min-w-[210px] flex-1 gap-1.5 sm:max-w-[260px]">
+                        <Label for="transaction_to" class="text-xs">{{
                             t('finance.fields.to')
                         }}</Label>
                         <BirthdatePicker
@@ -88,7 +90,7 @@
 
                     <div class="flex shrink-0 items-end gap-2">
                         <Button
-                            class="h-9 shrink-0 rounded-full bg-[#02CD86] px-5 text-sm font-semibold text-[#071812] shadow-[0_10px_24px_rgba(2,205,134,0.22)] hover:bg-[#00b978]"
+                            class="h-9 shrink-0 rounded-full bg-[#02CD86] px-4 text-xs font-semibold text-[#071812] shadow-[0_10px_24px_rgba(2,205,134,0.22)] hover:bg-[#00b978] sm:text-sm"
                             @click="applyFilters()"
                         >
                             <Search class="size-4" />
@@ -107,9 +109,9 @@
                     </div>
                 </div>
 
-                <div class="flex shrink-0 gap-2">
+                <div class="flex flex-wrap shrink-0 gap-2">
                     <Button
-                        class="h-9 shrink-0 rounded-full bg-white/5 px-4 text-sm text-white shadow-none ring-1 ring-white/15 hover:bg-white/10"
+                        class="h-9 shrink-0 rounded-full bg-white/5 px-4 text-xs text-white shadow-none ring-1 ring-white/15 hover:bg-white/10 sm:text-sm"
                         @click="openImportDialog"
                     >
                         <Upload class="size-4" />
@@ -117,7 +119,7 @@
                     </Button>
                     <a
                         :href="`/transactions/export?currency=${selectedCurrency}`"
-                        class="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-white/5 px-4 text-sm whitespace-nowrap text-white ring-1 ring-white/15 transition-colors hover:bg-white/10"
+                        class="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-white/5 px-4 text-xs whitespace-nowrap text-white ring-1 ring-white/15 transition-colors hover:bg-white/10 sm:text-sm"
                     >
                         <Download class="size-4" />
                         {{ t('finance.actions.export_transactions') }}
@@ -154,24 +156,24 @@
         </section>
 
         <div
-            class="grid items-start gap-[18px] px-[18px] py-[38px] lg:grid-cols-2"
+            class="grid items-start gap-[18px] px-[18px] py-6 sm:py-[38px] xl:grid-cols-2"
         >
             <section
                 class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div
-                    class="flex items-center justify-between gap-4 px-5 py-[29px]"
+                    class="flex flex-wrap items-center justify-between gap-3 px-5 py-5"
                 >
                     <div>
                         <h2
-                            class="text-[22px] leading-none font-normal text-white"
+                            class="text-lg leading-none font-normal text-white sm:text-xl"
                         >
                             {{ t('finance.tables.money_going_out') }}
                         </h2>
                     </div>
                     <div class="flex flex-wrap items-center justify-end gap-2">
                         <Button
-                            class="h-14 w-max justify-between rounded-md bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-3.5 text-[22px] leading-none font-bold text-white shadow-[0_10px_20px_rgba(108,78,233,0.22)] transition hover:brightness-105"
+                            class="h-10 w-max justify-between rounded-md bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-3.5 text-sm leading-none font-bold text-white shadow-[0_10px_20px_rgba(108,78,233,0.22)] transition hover:brightness-105 sm:h-11 sm:text-base"
                             @click="openCreateForm('cost')"
                         >
                             <span class="grid text-left">
@@ -188,7 +190,7 @@
                             <span
                                 class="grid h-[1.65em] w-[1.65em] min-w-[1.65em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_42%,rgba(45,45,45,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
                             >
-                                <Plus class="size-6" />
+                                <Plus class="size-5" />
                             </span>
                         </Button>
                     </div>
@@ -196,12 +198,12 @@
 
                 <div class="overflow-x-auto px-3 pb-5">
                     <table
-                        class="w-full border-separate border-spacing-y-0 text-sm"
+                        class="w-full border-separate border-spacing-y-0 text-xs sm:text-sm"
                     >
                         <thead>
-                            <tr class="text-left text-base">
+                            <tr class="text-left">
                                 <th
-                                    class="rounded-l-2xl bg-[#24212f] px-2 py-4 text-center sm:px-3"
+                                    class="rounded-l-2xl bg-[#24212f] px-2 py-3 text-center sm:px-3"
                                 >
                                     <Checkbox
                                         :checked="costsSelectionState"
@@ -209,27 +211,27 @@
                                     />
                                 </th>
                                 <th
-                                    class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                    class="bg-[#24212f] px-3 py-3 text-center font-normal text-[#c4b2ff] sm:px-5"
                                 >
                                     {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
-                                    class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                    class="bg-[#24212f] px-3 py-3 text-center font-normal text-[#c4b2ff] sm:px-5"
                                 >
                                     {{ t('finance.fields.category') }}
                                 </th>
                                 <th
-                                    class="bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                    class="bg-[#24212f] px-3 py-3 text-center font-normal text-[#c4b2ff] sm:px-5"
                                 >
                                     {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
-                                    class="hidden bg-[#24212f] px-3 py-4 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
+                                    class="hidden bg-[#24212f] px-3 py-3 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
                                 >
                                     {{ t('finance.fields.date') }}
                                 </th>
                                 <th
-                                    class="rounded-r-2xl bg-[#24212f] px-3 py-4 sm:px-5"
+                                    class="rounded-r-2xl bg-[#24212f] px-3 py-3 sm:px-5"
                                 ></th>
                             </tr>
                         </thead>
@@ -239,7 +241,7 @@
                                 :key="transaction.id"
                                 class="group"
                             >
-                                <td class="px-2 py-[17px] text-center sm:px-3">
+                                <td class="px-2 py-3 text-center sm:px-3">
                                     <Checkbox
                                         :checked="
                                             selectedCostIds.has(transaction.id)
@@ -254,7 +256,7 @@
                                     />
                                 </td>
                                 <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
+                                    class="px-3 py-3 text-center leading-tight font-normal text-white sm:px-5"
                                 >
                                     <button
                                         class="cursor-pointer text-white hover:text-[#947BFF]"
@@ -276,15 +278,15 @@
                                         />
                                     </div>
                                 </td>
-                                <td class="px-3 py-[17px] text-center sm:px-5">
+                                <td class="px-3 py-3 text-center sm:px-5">
                                     <span
-                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
+                                        class="inline-flex min-w-[88px] justify-center rounded-md bg-white/10 px-3 py-1.5 leading-tight font-normal text-white"
                                     >
                                         {{ categoryName(transaction) }}
                                     </span>
                                 </td>
                                 <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
+                                    class="px-3 py-3 text-center leading-tight font-normal text-white sm:px-5"
                                 >
                                     <CipheredMoney
                                         :amount="transaction.amount"
@@ -299,11 +301,11 @@
                                     />
                                 </td>
                                 <td
-                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
+                                    class="hidden px-3 py-3 text-center leading-tight font-normal text-white sm:table-cell sm:px-5"
                                 >
                                     {{ displayDate(transaction.occurred_at) }}
                                 </td>
-                                <td class="px-3 py-3.5 text-center sm:px-5">
+                                <td class="px-3 py-3 text-center sm:px-5">
                                     <div
                                         class="flex items-center justify-center gap-1"
                                     >
@@ -389,18 +391,18 @@
                 class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div
-                    class="flex items-center justify-between gap-4 px-5 py-[29px]"
+                    class="flex flex-wrap items-center justify-between gap-3 px-5 py-5"
                 >
                     <div>
                         <h2
-                            class="text-[22px] leading-none font-normal text-white"
+                            class="text-lg leading-none font-normal text-white sm:text-xl"
                         >
                             {{ t('finance.tables.money_coming_in') }}
                         </h2>
                     </div>
                     <div class="flex flex-wrap items-center justify-end gap-2">
                         <Button
-                            class="h-14 w-max justify-between rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00A96F_100%)] px-3.5 text-[22px] leading-none font-bold text-white shadow-[0_10px_20px_rgba(2,205,134,0.22)] transition hover:brightness-105"
+                            class="h-10 w-max justify-between rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00A96F_100%)] px-3.5 text-sm leading-none font-bold text-white shadow-[0_10px_20px_rgba(2,205,134,0.22)] transition hover:brightness-105 sm:h-11 sm:text-base"
                             @click="openCreateForm('income')"
                         >
                             <span class="grid text-left">
@@ -417,7 +419,7 @@
                             <span
                                 class="grid h-[1.65em] w-[1.65em] min-w-[1.65em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_42%,rgba(45,45,45,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
                             >
-                                <Plus class="size-6" />
+                                <Plus class="size-5" />
                             </span>
                         </Button>
                     </div>
@@ -425,12 +427,12 @@
 
                 <div class="overflow-x-auto px-3 pb-5">
                     <table
-                        class="w-full border-separate border-spacing-y-0 text-sm"
+                        class="w-full border-separate border-spacing-y-0 text-xs sm:text-sm"
                     >
                         <thead>
-                            <tr class="text-left text-base">
+                            <tr class="text-left">
                                 <th
-                                    class="rounded-l-2xl bg-[#0d2620] px-2 py-4 text-center sm:px-3"
+                                    class="rounded-l-2xl bg-[#0d2620] px-2 py-3 text-center sm:px-3"
                                 >
                                     <Checkbox
                                         :checked="incomesSelectionState"
@@ -438,27 +440,27 @@
                                     />
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#0d2620] px-3 py-3 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#0d2620] px-3 py-3 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     {{ t('finance.fields.category') }}
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#0d2620] px-3 py-3 text-center font-normal text-[#7ee8c4] sm:px-5"
                                 >
                                     {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
-                                    class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
+                                    class="hidden bg-[#0d2620] px-3 py-3 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
                                 >
                                     {{ t('finance.fields.date') }}
                                 </th>
                                 <th
-                                    class="rounded-r-2xl bg-[#0d2620] px-3 py-4 sm:px-5"
+                                    class="rounded-r-2xl bg-[#0d2620] px-3 py-3 sm:px-5"
                                 ></th>
                             </tr>
                         </thead>
@@ -469,7 +471,7 @@
                                 :key="transaction.id"
                                 class="group"
                             >
-                                <td class="px-2 py-[17px] text-center sm:px-3">
+                                <td class="px-2 py-3 text-center sm:px-3">
                                     <Checkbox
                                         :checked="
                                             selectedIncomeIds.has(
@@ -486,7 +488,7 @@
                                     />
                                 </td>
                                 <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
+                                    class="px-3 py-3 text-center leading-tight font-normal text-white sm:px-5"
                                 >
                                     <button
                                         class="cursor-pointer text-white hover:text-[#02CD86]"
@@ -508,15 +510,15 @@
                                         />
                                     </div>
                                 </td>
-                                <td class="px-3 py-[17px] text-center sm:px-5">
+                                <td class="px-3 py-3 text-center sm:px-5">
                                     <span
-                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
+                                        class="inline-flex min-w-[88px] justify-center rounded-md bg-white/10 px-3 py-1.5 leading-tight font-normal text-white"
                                     >
                                         {{ categoryName(transaction) }}
                                     </span>
                                 </td>
                                 <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
+                                    class="px-3 py-3 text-center leading-tight font-normal text-white sm:px-5"
                                 >
                                     <CipheredMoney
                                         :amount="transaction.amount"
@@ -531,11 +533,11 @@
                                     />
                                 </td>
                                 <td
-                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
+                                    class="hidden px-3 py-3 text-center leading-tight font-normal text-white sm:table-cell sm:px-5"
                                 >
                                     {{ displayDate(transaction.occurred_at) }}
                                 </td>
-                                <td class="px-3 py-3.5 text-center sm:px-5">
+                                <td class="px-3 py-3 text-center sm:px-5">
                                     <div
                                         class="flex items-center justify-center gap-1"
                                     >

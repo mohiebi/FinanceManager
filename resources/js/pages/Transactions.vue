@@ -226,7 +226,7 @@
                                     {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
-                                    class="hidden bg-[#24212f] px-3 py-3 text-center font-normal text-[#c4b2ff] sm:table-cell sm:px-5"
+                                    class="hidden bg-[#24212f] px-3 py-3 text-center font-normal whitespace-nowrap text-[#c4b2ff] sm:table-cell sm:px-5"
                                 >
                                     {{ t('finance.fields.date') }}
                                 </th>
@@ -286,7 +286,7 @@
                                     </span>
                                 </td>
                                 <td
-                                    class="px-3 py-3 text-center leading-tight font-normal text-white sm:px-5"
+                                    class="px-3 py-3 text-center leading-tight font-normal whitespace-nowrap text-white sm:px-5"
                                 >
                                     <CipheredMoney
                                         :amount="transaction.amount"
@@ -301,7 +301,7 @@
                                     />
                                 </td>
                                 <td
-                                    class="hidden px-3 py-3 text-center leading-tight font-normal text-white sm:table-cell sm:px-5"
+                                    class="hidden px-3 py-3 text-center leading-tight font-normal whitespace-nowrap text-white sm:table-cell sm:px-5"
                                 >
                                     {{ displayDate(transaction.occurred_at) }}
                                 </td>
@@ -455,7 +455,7 @@
                                     {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
-                                    class="hidden bg-[#0d2620] px-3 py-3 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
+                                    class="hidden bg-[#0d2620] px-3 py-3 text-center font-normal whitespace-nowrap text-[#7ee8c4] sm:table-cell sm:px-5"
                                 >
                                     {{ t('finance.fields.date') }}
                                 </th>
@@ -518,7 +518,7 @@
                                     </span>
                                 </td>
                                 <td
-                                    class="px-3 py-3 text-center leading-tight font-normal text-white sm:px-5"
+                                    class="px-3 py-3 text-center leading-tight font-normal whitespace-nowrap text-white sm:px-5"
                                 >
                                     <CipheredMoney
                                         :amount="transaction.amount"
@@ -533,7 +533,7 @@
                                     />
                                 </td>
                                 <td
-                                    class="hidden px-3 py-3 text-center leading-tight font-normal text-white sm:table-cell sm:px-5"
+                                    class="hidden px-3 py-3 text-center leading-tight font-normal whitespace-nowrap text-white sm:table-cell sm:px-5"
                                 >
                                     {{ displayDate(transaction.occurred_at) }}
                                 </td>

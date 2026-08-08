@@ -648,7 +648,7 @@ html[dir='rtl'] body {
 
     .finance-dense th,
     .finance-dense td {
-        padding-inline: clamp(0.5rem, 0.29rem + 0.89vw, 1.25rem);
+        padding-inline: clamp(0.375rem, 0.3rem + 0.3vw, 0.625rem);
         padding-block: clamp(0.5rem, 0.4rem + 0.44vw, 0.875rem);
     }
 
@@ -667,7 +667,7 @@ html[dir='rtl'] body {
     .finance-dense th.finance-cell-tight,
     .finance-dense td.finance-cell-tight {
         width: 1%;
-        padding-inline: 0.5rem;
+        padding-inline: 0.375rem;
     }
 }
 

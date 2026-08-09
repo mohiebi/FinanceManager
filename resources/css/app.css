@@ -639,11 +639,11 @@ html[dir='rtl'] body {
    so there is one place to tune. */
 @layer components {
     .finance-dense table {
-        font-size: clamp(0.8125rem, 0.76rem + 0.22vw, 1rem);
+        font-size: clamp(0.8125rem, 0.7rem + 0.4vw, 1.125rem);
     }
 
     .finance-dense thead tr {
-        font-size: clamp(0.875rem, 0.82rem + 0.22vw, 1.0625rem);
+        font-size: clamp(0.875rem, 0.76rem + 0.4vw, 1.1875rem);
     }
 
     .finance-dense th,

@@ -63,6 +63,7 @@ class ProposeBillTool extends Tool
         $validated = $request->validate(SaveBill::rules($user));
         $payload = SaveBill::normalize(
             $validated,
+            $user,
             $request->filled('category_id'),
             $request->has('telegram_reminder_enabled') ? (bool) $request->get('telegram_reminder_enabled') : null,
         );

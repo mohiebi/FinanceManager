@@ -27,7 +27,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
 #[ObservedBy([UserEncryptionKeyObserver::class])]
-#[Fillable(['name', 'email', 'birthdate', 'locale', 'calendar', 'timezone', 'streak_nudge_enabled', 'default_currency', 'password', 'email_verified_at', 'last_active_at', 'signup_source', 'telegram_chat_id', 'telegram_connect_token'])]
+#[Fillable(['name', 'email', 'birthdate', 'locale', 'calendar', 'timezone', 'streak_nudge_enabled', 'bill_advance_reminder_enabled', 'default_currency', 'password', 'email_verified_at', 'last_active_at', 'signup_source', 'telegram_chat_id', 'telegram_connect_token'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'telegram_chat_id', 'telegram_connect_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -367,6 +367,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'last_active_at' => 'datetime',
             'streak_nudge_enabled' => 'boolean',
+            'bill_advance_reminder_enabled' => 'boolean',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];

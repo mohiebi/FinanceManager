@@ -154,6 +154,7 @@ class FinanceMutationApplier
         $validated = $this->validate($operation, SaveBill::rules($user));
         $payload = SaveBill::normalize(
             $validated,
+            $user,
             array_key_exists('category_id', $operation),
             array_key_exists('telegram_reminder_enabled', $operation)
                 ? (bool) $operation['telegram_reminder_enabled']

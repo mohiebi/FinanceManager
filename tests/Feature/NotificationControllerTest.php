@@ -156,3 +156,65 @@ test('disconnecting telegram disables the streak nudge', function () {
         ->telegram_chat_id->toBeNull()
         ->streak_nudge_enabled->toBeFalse();
 });
+
+test('the bill advance reminder is unavailable until telegram is linked', function () {
+    $user = User::factory()->withModules(Feature::Bills)->create(['telegram_chat_id' => null]);
+
+    $this->actingAs($user)
+        ->get(route('notifications.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('billAdvanceReminder.available', false)
+            ->etc());
+});
+
+test('linking telegram makes the bill advance reminder available', function () {
+    $user = User::factory()->withModules(Feature::Bills)->create(['telegram_chat_id' => '98620653']);
+
+    $this->actingAs($user)
+        ->get(route('notifications.edit'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('billAdvanceReminder.available', true)
+            ->etc());
+});
+
+test('the bill advance reminder preference persists once it can be switched on', function () {
+    $user = User::factory()->withModules(Feature::Bills)->create(['telegram_chat_id' => '98620653']);
+
+    $this->actingAs($user)
+        ->patch(route('notifications.preferences'), ['bill_advance_reminder_enabled' => false])
+        ->assertRedirect();
+
+    expect($user->fresh()->bill_advance_reminder_enabled)->toBeFalse();
+});
+
+test('turning the bill advance reminder on is refused while bills is off', function () {
+    $user = User::factory()
+        ->withoutModules(Feature::Bills)
+        ->create([
+            'telegram_chat_id' => '98620653',
+            'bill_advance_reminder_enabled' => false,
+        ]);
+
+    $this->actingAs($user)
+        ->patch(route('notifications.preferences'), ['bill_advance_reminder_enabled' => true])
+        ->assertForbidden();
+
+    expect($user->fresh()->bill_advance_reminder_enabled)->toBeFalse();
+});
+
+test('either notification preference can be saved without resending the other', function () {
+    $user = User::factory()->withModules(Feature::Bills, Feature::Gamification)->create([
+        'telegram_chat_id' => '98620653',
+        'streak_nudge_enabled' => true,
+    ]);
+
+    $this->actingAs($user)
+        ->patch(route('notifications.preferences'), ['bill_advance_reminder_enabled' => false])
+        ->assertRedirect();
+
+    expect($user->fresh())
+        ->streak_nudge_enabled->toBeTrue()
+        ->bill_advance_reminder_enabled->toBeFalse();
+});

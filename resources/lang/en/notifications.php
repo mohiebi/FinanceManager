@@ -1,13 +1,15 @@
 <?php
 
 return [
+    // Fires BillReminderJob::ADVANCE_REMINDER_DAYS days ahead — keep the "3" here
+    // in sync with that constant.
     'bill_due_tomorrow' => [
-        'title' => 'Bill due tomorrow',
+        'title' => 'Bill due soon',
         // Sent live to Telegram, never stored by us.
-        'body' => ':title is due tomorrow (:date). Amount: :amount :currency.',
+        'body' => ':title is due in 3 days (:date). Amount: :amount :currency.',
         // Stored in the notifications table, which is not encrypted — so it must
         // not repeat the bill's title or amount.
-        'body_generic' => 'A bill is due tomorrow (:date).',
+        'body_generic' => 'A bill is due in 3 days (:date).',
     ],
     'bill_due_today' => [
         'title' => 'Bill due today',
@@ -46,6 +48,9 @@ return [
     'streak_nudge_label' => 'Evening streak reminder',
     'streak_nudge_hint' => 'A Telegram message at {hour}:00 your time, only on days you have not logged anything yet.',
     'streak_nudge_unavailable' => 'Turn on the Flight log module and link Telegram to use this.',
+    'bill_advance_reminder_label' => 'Advance bill reminder',
+    'bill_advance_reminder_hint' => 'Also send a Telegram reminder {days} days before a bill is due, not just on the due date.',
+    'bill_advance_reminder_unavailable' => 'Turn on the Bills module and link Telegram to use this.',
     'mark_all_read' => 'Mark all as read',
     'empty' => 'No notifications yet',
     'empty_description' => 'Bill reminders and other alerts will show up here.',

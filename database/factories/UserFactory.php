@@ -35,6 +35,7 @@ class UserFactory extends Factory
             'calendar' => 'gregorian',
             'timezone' => 'UTC',
             'streak_nudge_enabled' => false,
+            'bill_advance_reminder_enabled' => true,
             // Declared even though it is null: a DB default is not present on a
             // freshly-created instance, so strict mode throws the moment
             // anything reads it in the same request — which the notifications

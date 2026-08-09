@@ -35,8 +35,8 @@ test('it skips users who have the bills module switched off', function () {
     }
 });
 
-test('it sends a day-before reminder exactly once', function () {
-    Carbon::setTestNow(Carbon::create(2026, 7, 14, 9));
+test('it sends an advance reminder exactly once, N days before the due date', function () {
+    Carbon::setTestNow(Carbon::create(2026, 7, 12, 9));
     Notification::fake();
 
     try {
@@ -44,6 +44,8 @@ test('it sends a day-before reminder exactly once', function () {
             'telegram_chat_id' => '12345',
             'calendar' => 'jalali',
         ]);
+
+        expect(BillReminderJob::ADVANCE_REMINDER_DAYS)->toBe(3);
 
         $bill = $user->bills()->create([
             'title' => 'Rent',
@@ -69,6 +71,34 @@ test('it sends a day-before reminder exactly once', function () {
         // Running it again the same day must not duplicate the reminder.
         app(BillReminderJob::class)->handle(app(BillDueDateCalculator::class));
         Notification::assertSentToTimes($user, BillDueNotification::class, 1);
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('it does not send the advance reminder when the user has turned it off', function () {
+    Carbon::setTestNow(Carbon::create(2026, 7, 12, 9));
+    Notification::fake();
+
+    try {
+        $user = User::factory()->withModules()->create([
+            'telegram_chat_id' => '12345',
+            'bill_advance_reminder_enabled' => false,
+        ]);
+
+        $bill = $user->bills()->create([
+            'title' => 'Rent',
+            'amount' => 100,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 15,
+        ]);
+
+        $bill->occurrences()->create(['due_date' => '2026-07-15']);
+
+        app(BillReminderJob::class)->handle(app(BillDueDateCalculator::class));
+
+        Notification::assertNothingSent();
     } finally {
         Carbon::setTestNow();
     }

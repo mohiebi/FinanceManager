@@ -23,17 +23,31 @@ const props = defineProps<{
         telegramLinked: boolean;
         hour: number;
     };
+    billAdvanceReminder: {
+        enabled: boolean;
+        available: boolean;
+        days: number;
+    };
 }>();
 
 const { t } = useI18n();
 const { formatRelativeTime } = useRelativeTime();
 const savingNudge = ref(false);
 const streakNudgeEnabled = ref(props.streakNudge.enabled);
+const savingBillAdvanceReminder = ref(false);
+const billAdvanceReminderEnabled = ref(props.billAdvanceReminder.enabled);
 
 watch(
     () => props.streakNudge.enabled,
     (enabled) => {
         streakNudgeEnabled.value = enabled;
+    },
+);
+
+watch(
+    () => props.billAdvanceReminder.enabled,
+    (enabled) => {
+        billAdvanceReminderEnabled.value = enabled;
     },
 );
 
@@ -74,6 +88,27 @@ const setStreakNudge = (enabled: boolean) => {
             onFinish: () => {
                 savingNudge.value = false;
                 streakNudgeEnabled.value = props.streakNudge.enabled;
+            },
+        },
+    );
+};
+
+const setBillAdvanceReminder = (enabled: boolean) => {
+    if (savingBillAdvanceReminder.value || !props.billAdvanceReminder.available) {
+        return;
+    }
+
+    billAdvanceReminderEnabled.value = enabled;
+    savingBillAdvanceReminder.value = true;
+    router.patch(
+        notificationPreferences().url,
+        { bill_advance_reminder_enabled: enabled },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                savingBillAdvanceReminder.value = false;
+                billAdvanceReminderEnabled.value =
+                    props.billAdvanceReminder.enabled;
             },
         },
     );
@@ -131,12 +166,32 @@ defineOptions({
                           })
                         : t('notifications.streak_nudge_unavailable')
                 "
-                last
             >
                 <Switch
                     :checked="streakNudgeEnabled"
                     :disabled="!props.streakNudge.available || savingNudge"
                     @update:checked="setStreakNudge($event === true)"
+                />
+            </SettingsRow>
+
+            <SettingsRow
+                :label="t('notifications.bill_advance_reminder_label')"
+                :help="
+                    props.billAdvanceReminder.available
+                        ? t('notifications.bill_advance_reminder_hint', {
+                              days: props.billAdvanceReminder.days,
+                          })
+                        : t('notifications.bill_advance_reminder_unavailable')
+                "
+                last
+            >
+                <Switch
+                    :checked="billAdvanceReminderEnabled"
+                    :disabled="
+                        !props.billAdvanceReminder.available ||
+                        savingBillAdvanceReminder
+                    "
+                    @update:checked="setBillAdvanceReminder($event === true)"
                 />
             </SettingsRow>
         </SettingsSection>

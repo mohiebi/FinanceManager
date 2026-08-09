@@ -52,7 +52,7 @@ class BillController extends Controller
                 ->whereDate('due_date', '>=', $monthFrom->toDateString())
                 ->whereDate('due_date', '<=', $monthTo->toDateString())])
             ->get()
-            ->map(function (Bill $bill) use ($currencyConverter, $request, $selectedCurrency, $vaultArmed) {
+            ->map(function (Bill $bill) use ($currencyConverter, $request, $selectedCurrency, $vaultArmed, $user) {
                 $next = $bill->occurrences->first();
                 $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
 
@@ -78,7 +78,7 @@ class BillController extends Controller
                     'category_id' => $bill->category_id,
                     'category_name' => $this->localizedCategoryName($request, $bill->category),
                     'reminder_time' => $bill->reminder_time ?? '09:00',
-                    'reminder_timezone' => $bill->reminder_timezone ?? 'UTC',
+                    'reminder_timezone' => $bill->reminder_timezone ?? $user->resolvedTimezone(),
                     'next_occurrence' => $next ? [
                         'id' => $next->id,
                         'due_date' => $next->due_date->toDateString(),
@@ -236,6 +236,7 @@ class BillController extends Controller
 
         return SaveBill::normalize(
             $validated,
+            $request->user(),
             $request->filled('category_id'),
             $request->has('telegram_reminder_enabled') ? $request->boolean('telegram_reminder_enabled') : null,
             $vaultArmed,

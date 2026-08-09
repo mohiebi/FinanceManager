@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Enums\Feature;
 use App\Http\Controllers\Controller;
+use App\Jobs\BillReminderJob;
 use App\Jobs\StreakReminderJob;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -36,22 +37,36 @@ class NotificationController extends Controller
                 'telegramLinked' => $user->hasTelegram(),
                 'hour' => StreakReminderJob::REMINDER_HOUR,
             ],
+            'billAdvanceReminder' => fn () => [
+                'enabled' => (bool) $user->bill_advance_reminder_enabled,
+                'available' => $this->billAdvanceReminderAvailable($user),
+                'days' => BillReminderJob::ADVANCE_REMINDER_DAYS,
+            ],
         ]);
     }
 
     /**
-     * Opt in or out of the nightly streak reminder.
+     * Opt in or out of the nightly streak reminder and/or the advance bill
+     * reminder. Each preference is independently optional so either toggle
+     * can be saved without resending the other's current value.
      */
     public function updatePreferences(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'streak_nudge_enabled' => ['required', 'boolean'],
+            'streak_nudge_enabled' => ['sometimes', 'boolean'],
+            'bill_advance_reminder_enabled' => ['sometimes', 'boolean'],
         ]);
 
-        if ($validated['streak_nudge_enabled']) {
+        abort_if($validated === [], 422);
+
+        if (($validated['streak_nudge_enabled'] ?? false)) {
             // Enabling must obey the same contract as the page. Disabling stays
             // available so a stale preference can always be corrected safely.
             abort_unless($this->streakNudgeAvailable($request->user()), 403);
+        }
+
+        if (($validated['bill_advance_reminder_enabled'] ?? false)) {
+            abort_unless($this->billAdvanceReminderAvailable($request->user()), 403);
         }
 
         $request->user()->update($validated);
@@ -84,5 +99,10 @@ class NotificationController extends Controller
     private function streakNudgeAvailable(User $user): bool
     {
         return $user->hasFeature(Feature::Gamification) && $user->hasTelegram();
+    }
+
+    private function billAdvanceReminderAvailable(User $user): bool
+    {
+        return $user->hasFeature(Feature::Bills) && $user->hasTelegram();
     }
 }

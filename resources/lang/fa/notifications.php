@@ -2,9 +2,9 @@
 
 return [
     'bill_due_tomorrow' => [
-        'title' => 'قبض فردا سررسید می‌شود',
-        'body' => '«:title» فردا (:date) سررسید می‌شود. مبلغ: :amount :currency.',
-        'body_generic' => 'یک قبض فردا (:date) سررسید می‌شود.',
+        'title' => 'قبض به‌زودی سررسید می‌شود',
+        'body' => '«:title» تا ۳ روز دیگر (:date) سررسید می‌شود. مبلغ: :amount :currency.',
+        'body_generic' => 'یک قبض تا ۳ روز دیگر (:date) سررسید می‌شود.',
     ],
     'bill_due_today' => [
         'title' => 'قبض امروز سررسید می‌شود',
@@ -39,6 +39,9 @@ return [
     'streak_nudge_label' => 'یادآوری شبانه‌ی زنجیره',
     'streak_nudge_hint' => 'یک پیام تلگرام ساعت {hour} به وقت شما، فقط روزهایی که هنوز چیزی ثبت نکرده‌اید.',
     'streak_nudge_unavailable' => 'برای استفاده، ماژول دفتر پرواز را روشن کنید و تلگرام را وصل کنید.',
+    'bill_advance_reminder_label' => 'یادآوری زودهنگام قبض',
+    'bill_advance_reminder_hint' => 'یک پیام تلگرام هم {days} روز پیش از سررسید قبض بفرست، نه فقط روز سررسید.',
+    'bill_advance_reminder_unavailable' => 'برای استفاده، ماژول قبض‌ها را روشن کنید و تلگرام را وصل کنید.',
     'mark_all_read' => 'خواندن همه',
     'empty' => 'هنوز اعلانی ندارید',
     'empty_description' => 'یادآور قبض‌ها و دیگر اعلان‌ها همین‌جا نمایش داده می‌شوند.',

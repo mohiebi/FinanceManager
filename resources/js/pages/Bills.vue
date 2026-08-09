@@ -621,7 +621,7 @@
 </template>
 
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { toJalaali } from 'jalaali-js';
 import { CalendarClock, Plus, Receipt, Trash2 } from 'lucide-vue-next';
 import { computed, ref, watch, watchEffect } from 'vue';
@@ -723,6 +723,12 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const { revealAsync, sealForSubmit, isArmed, trackKey } = useVault();
+const page = usePage();
+/** The account timezone set in Settings > Preferences; new bill reminders
+ *  default to it, though each bill can still override it. */
+const accountTimezone = computed(
+    () => (page.props.timezone as string | undefined) ?? 'UTC',
+);
 const bills = computed(() => props.bills);
 
 /**
@@ -845,7 +851,7 @@ const form = useForm({
     due_date: '',
     telegram_reminder_enabled: false,
     reminder_time: '09:00',
-    reminder_timezone: 'UTC',
+    reminder_timezone: accountTimezone.value,
 });
 
 const timeOptions = Array.from(
@@ -941,7 +947,7 @@ function openCreateDialog(): void {
     form.recurrence_type = 'monthly';
     form.due_day_of_month = '1';
     form.reminder_time = '09:00';
-    form.reminder_timezone = 'UTC';
+    form.reminder_timezone = accountTimezone.value;
     isDialogOpen.value = true;
 }
 
@@ -970,7 +976,7 @@ async function openEditDialog(bill: Bill): Promise<void> {
     const storedHour =
         (bill.reminder_time ?? '09:00').split(':')[0]?.padStart(2, '0') ?? '09';
     form.reminder_time = `${storedHour}:00`;
-    form.reminder_timezone = bill.reminder_timezone ?? 'UTC';
+    form.reminder_timezone = bill.reminder_timezone ?? accountTimezone.value;
     isDialogOpen.value = true;
 }
 

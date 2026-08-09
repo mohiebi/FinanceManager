@@ -2,9 +2,9 @@
 
 return [
     'bill_due_tomorrow' => [
-        'title' => 'Rechnung morgen fällig',
-        'body' => ':title ist morgen fällig (:date). Betrag: :amount :currency.',
-        'body_generic' => 'Eine Rechnung ist morgen fällig (:date).',
+        'title' => 'Rechnung bald fällig',
+        'body' => ':title ist in 3 Tagen fällig (:date). Betrag: :amount :currency.',
+        'body_generic' => 'Eine Rechnung ist in 3 Tagen fällig (:date).',
     ],
     'bill_due_today' => [
         'title' => 'Rechnung heute fällig',
@@ -39,6 +39,9 @@ return [
     'streak_nudge_label' => 'Abendliche Serien-Erinnerung',
     'streak_nudge_hint' => 'Eine Telegram-Nachricht um {hour}:00 deiner Zeit, nur an Tagen ohne Eintrag.',
     'streak_nudge_unavailable' => 'Schalte das Flugbuch-Modul ein und verbinde Telegram, um dies zu nutzen.',
+    'bill_advance_reminder_label' => 'Frühzeitige Rechnungserinnerung',
+    'bill_advance_reminder_hint' => 'Sende zusätzlich {days} Tage vor Fälligkeit eine Telegram-Erinnerung, nicht nur am Fälligkeitstag.',
+    'bill_advance_reminder_unavailable' => 'Schalte das Rechnungen-Modul ein und verbinde Telegram, um dies zu nutzen.',
     'mark_all_read' => 'Alle als gelesen markieren',
     'empty' => 'Noch keine Benachrichtigungen',
     'empty_description' => 'Rechnungserinnerungen und andere Hinweise werden hier angezeigt.',

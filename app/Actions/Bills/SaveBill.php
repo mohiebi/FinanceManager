@@ -59,18 +59,24 @@ class SaveBill
 
     /**
      * Normalizes validated data the same way the web controller always has:
-     * blank category becomes null, reminders default to enabled, and the
-     * irrelevant due field for the recurrence type is cleared.
+     * blank category becomes null, reminders default to enabled, a blank
+     * reminder timezone falls back to the user's account timezone (Settings
+     * > Preferences) rather than UTC, and the irrelevant due field for the
+     * recurrence type is cleared.
      *
      * @param  array<string, mixed>  $validated
      * @return array<string, mixed>
      */
-    public static function normalize(array $validated, bool $categoryProvided, ?bool $reminderEnabled, bool $vaultArmed = false): array
+    public static function normalize(array $validated, User $user, bool $categoryProvided, ?bool $reminderEnabled, bool $vaultArmed = false): array
     {
         $validated['category_id'] = $categoryProvided && $validated['category_id'] !== null
             ? (int) $validated['category_id']
             : null;
         $validated['telegram_reminder_enabled'] = $reminderEnabled ?? true;
+
+        if (blank($validated['reminder_timezone'] ?? null)) {
+            $validated['reminder_timezone'] = $user->resolvedTimezone();
+        }
 
         if ($validated['recurrence_type'] === BillRecurrenceType::Monthly->value) {
             $validated['due_date'] = null;

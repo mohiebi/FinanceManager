@@ -25,6 +25,14 @@ class BillReminderJob implements ShouldQueue
 
     public int $timeout = 120;
 
+    /**
+     * How many days before the due date the advance reminder fires, when the
+     * user has it enabled (Settings > Notifications). Keep the "in :days
+     * days" wording in resources/lang/*\/notifications.php's
+     * bill_due_tomorrow strings in sync with this number.
+     */
+    public const int ADVANCE_REMINDER_DAYS = 3;
+
     public function __construct()
     {
         $this->onQueue('notifications');
@@ -134,18 +142,22 @@ class BillReminderJob implements ShouldQueue
             }
 
             $todayStr = $nowInTz->toDateString();
-            $tomorrowStr = $nowInTz->copy()->addDay()->toDateString();
+            $advanceStr = $nowInTz->copy()->addDays(self::ADVANCE_REMINDER_DAYS)->toDateString();
         } catch (\Throwable) {
             return;
         }
 
+        // Opt-out, defaults on (see the users.bill_advance_reminder_enabled
+        // migration) — the due-day reminder below is unconditional.
+        $advanceReminderEnabled = (bool) $bill->user->bill_advance_reminder_enabled;
+
         $occurrences = $unpaid->filter(
             fn (BillOccurrence $occurrence) => $occurrence->due_date->toDateString() === $todayStr
-                || $occurrence->due_date->toDateString() === $tomorrowStr,
+                || ($advanceReminderEnabled && $occurrence->due_date->toDateString() === $advanceStr),
         );
 
         foreach ($occurrences as $occurrence) {
-            if ($occurrence->due_date->toDateString() === $tomorrowStr && ! $occurrence->reminder_day_before_sent_at) {
+            if ($advanceReminderEnabled && $occurrence->due_date->toDateString() === $advanceStr && ! $occurrence->reminder_day_before_sent_at) {
                 $bill->user->notify(new BillDueNotification($bill, $occurrence, 'day_before'));
                 $occurrence->forceFill(['reminder_day_before_sent_at' => now()])->save();
             }

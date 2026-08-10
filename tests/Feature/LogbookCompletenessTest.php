@@ -4,6 +4,7 @@ use App\Enums\Feature;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Support\CalendarDates;
 use App\Support\LogbookCompleteness;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
@@ -108,6 +109,39 @@ test('the month follows the user calendar, not the gregorian one', function () {
     expect($gregorianBook['days_elapsed'])->toBe(8)
         ->and($jalaliBook['days_elapsed'])->toBe(17)
         ->and($jalaliBook['month'])->not->toBe($gregorianBook['month']);
+});
+
+test('a jalali user ahead of UTC does not lose a day of completeness to the month-start timezone bug', function () {
+    // Real request path: no $today override, so this goes through
+    // User::localToday() -> CalendarDates::monthStart(), the exact chain that
+    // previously mismatched timezones and undercounted days_elapsed by one.
+    Carbon::setTestNow(Carbon::parse('2026-08-19 10:00:00', 'Asia/Tehran'));
+
+    try {
+        $user = User::factory()->create([
+            'calendar' => 'jalali',
+            'timezone' => 'Asia/Tehran',
+        ]);
+        $category = Category::factory()->cost()->forUser($user)->create();
+
+        $today = $user->localToday();
+        $monthStart = CalendarDates::monthStart($today, 'jalali');
+
+        for ($date = $monthStart; $date->toDateString() <= $today->toDateString(); $date = $date->addDay()) {
+            Transaction::factory()->cost()->for($user)->for($category)->create([
+                'occurred_at' => $date->toDateString(),
+            ]);
+        }
+
+        $logbook = app(LogbookCompleteness::class)->for($user);
+
+        // Every elapsed day has a record, so coverage can never legitimately
+        // exceed 100% — days_covered must equal, never exceed, days_elapsed.
+        expect($logbook['days_covered'])->toBe($logbook['days_elapsed'])
+            ->and($logbook['percent'])->toBe(100);
+    } finally {
+        Carbon::setTestNow();
+    }
 });
 
 test('a brand new month with nothing logged reads as zero, not as an error', function () {

@@ -85,8 +85,15 @@ class CalendarDates
 
         $jalali = Jalalian::fromCarbon(Carbon::instance($date));
 
+        // The Jalalian round-trip below (new Jalalian(...)->toCarbon()->format())
+        // drops the timezone $date carried in, so the bare "Y-m-d" string has to
+        // be re-anchored to it explicitly. Without this, a non-UTC user (e.g.
+        // Asia/Tehran) ends up with $date in their own timezone and $monthStart
+        // implicitly in UTC — diffInDays() then measures across that offset and
+        // truncates the fraction away, undercounting days_elapsed by a day.
         return CarbonImmutable::parse(
             (new Jalalian($jalali->getYear(), $jalali->getMonth(), 1))->toCarbon()->format('Y-m-d'),
+            $date->getTimezone(),
         );
     }
 

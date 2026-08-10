@@ -33,6 +33,7 @@ const mainNavItems = computed<ModuleNavItem[]>(() => {
         items.push({
             key: 'admin',
             title: 'Admin',
+            subtitle: 'Control tower',
             href: adminDashboard(),
             icon: ShieldCheck,
             state: 'enabled',
@@ -150,15 +151,15 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                                           : 'text-white',
                                 ]"
                             >
-                                {{ item.title }}
+                                {{ item.subtitle ?? item.title }}
                             </span>
-                            <!-- The flight-themed aside — a wink, not a second
-                                 label, so it stays quieter than the real one. -->
+                            <!-- The plain functional name, kept as a quiet
+                                 aside now that the flight name leads. -->
                             <span
                                 v-if="item.subtitle"
-                                class="truncate text-[11px] text-white/35"
+                                class="truncate text-[11px] lowercase text-white/35"
                             >
-                                ({{ item.subtitle }})
+                                ({{ item.title }})
                             </span>
                         </span>
                     </Link>
@@ -192,10 +193,12 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                                 <span
                                     class="truncate text-sm font-medium text-white"
                                 >
-                                    {{ t('settings.title') }}
+                                    {{ t('navigation.settings_subtitle') }}
                                 </span>
-                                <span class="truncate text-[11px] text-white/35">
-                                    ({{ t('navigation.settings_subtitle') }})
+                                <span
+                                    class="truncate text-[11px] lowercase text-white/35"
+                                >
+                                    ({{ t('settings.title') }})
                                 </span>
                             </span>
                         </button>

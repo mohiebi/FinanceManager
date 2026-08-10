@@ -139,9 +139,9 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
         <div class="w-full">
             <div class="mb-[18px]">
                 <h1 class="text-[22px] font-normal text-white">
-                    {{ t('settings.title') }}
-                    <span class="text-sm font-normal text-white/35">
-                        ({{ t('navigation.settings_subtitle') }})
+                    {{ t('navigation.settings_subtitle') }}
+                    <span class="text-sm font-normal lowercase text-white/35">
+                        ({{ t('settings.title') }})
                     </span>
                 </h1>
                 <p class="mt-1 text-sm text-[#989898]">

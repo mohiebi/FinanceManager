@@ -202,7 +202,12 @@ html[dir='rtl'] body {
 }
 
 .dark {
-    --background: hsl(0 0% 3.9%);
+    /* Matches the #111111 every finance page paints over this (SidebarInset's
+       shell background). It used to sit at 3.9% lightness while every page
+       wrapper used #101010/#111111 (6.3–6.7%) — a small but real gap that
+       showed up as a seam wherever a page's own background div didn't quite
+       reach the edge of the scrollable area. One shared color, no seam. */
+    --background: hsl(0 0% 6.7%);
     --foreground: hsl(0 0% 98%);
     --card: hsl(0 0% 3.9%);
     --card-foreground: hsl(0 0% 98%);

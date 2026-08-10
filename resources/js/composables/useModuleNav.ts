@@ -57,6 +57,7 @@ export function useModuleNav(): UseModuleNavReturn {
             key: string;
             feature: FeatureKey | null;
             title: string;
+            subtitle?: string;
             href: NavItem['href'];
             icon: NavItem['icon'];
         }[] = [
@@ -64,6 +65,7 @@ export function useModuleNav(): UseModuleNavReturn {
                 key: 'dashboard',
                 feature: null,
                 title: t('navigation.dashboard'),
+                subtitle: t('navigation.dashboard_subtitle'),
                 href: dashboard(),
                 icon: LayoutGrid,
             },
@@ -78,6 +80,7 @@ export function useModuleNav(): UseModuleNavReturn {
                 key: 'reports',
                 feature: null,
                 title: t('navigation.report'),
+                subtitle: t('navigation.report_subtitle'),
                 href: report(),
                 icon: ChartPie,
             },
@@ -85,6 +88,7 @@ export function useModuleNav(): UseModuleNavReturn {
                 key: 'investments',
                 feature: 'investments',
                 title: t('navigation.investments'),
+                subtitle: t('navigation.investments_subtitle'),
                 href: investmentsIndex(),
                 icon: TrendingUp,
             },
@@ -99,6 +103,7 @@ export function useModuleNav(): UseModuleNavReturn {
                 key: 'goals',
                 feature: 'goals',
                 title: t('navigation.goals'),
+                subtitle: t('navigation.goals_subtitle'),
                 href: goals(),
                 icon: Trophy,
             },
@@ -120,6 +125,7 @@ export function useModuleNav(): UseModuleNavReturn {
                 key: 'ai_assistant',
                 feature: 'ai_assistant',
                 title: t('navigation.ai_assistant'),
+                subtitle: t('navigation.ai_assistant_subtitle'),
                 href: editAiConnections(),
                 icon: Sparkles,
             },

@@ -193,7 +193,7 @@ function changeCurrency(value: string) {
                                         "
                                         @click="isMenuOpen = false"
                                     >
-                                        <span class="relative">
+                                        <span class="relative shrink-0">
                                             <component
                                                 :is="item.icon"
                                                 class="size-[18px] shrink-0"
@@ -203,7 +203,20 @@ function changeCurrency(value: string) {
                                                 class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#02cd86] text-[#353535] rtl:-left-1"
                                             />
                                         </span>
-                                        {{ item.title }}
+                                        <span class="flex min-w-0 flex-col">
+                                            <span class="truncate">{{
+                                                item.title
+                                            }}</span>
+                                            <!-- The flight-themed aside — a wink,
+                                                 not a second label, so it stays
+                                                 quieter than the real one. -->
+                                            <span
+                                                v-if="item.subtitle"
+                                                class="truncate text-[11px] font-normal text-white/35"
+                                            >
+                                                ({{ item.subtitle }})
+                                            </span>
+                                        </span>
                                     </Link>
                                 </nav>
 
@@ -216,7 +229,20 @@ function changeCurrency(value: string) {
                                             <Settings
                                                 class="size-[18px] shrink-0"
                                             />
-                                            {{ t('settings.title') }}
+                                            <span class="flex min-w-0 flex-col">
+                                                <span class="truncate">{{
+                                                    t('settings.title')
+                                                }}</span>
+                                                <span
+                                                    class="truncate text-[11px] font-normal text-white/35"
+                                                >
+                                                    ({{
+                                                        t(
+                                                            'navigation.settings_subtitle',
+                                                        )
+                                                    }})
+                                                </span>
+                                            </span>
                                         </button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent

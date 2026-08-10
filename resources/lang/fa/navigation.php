@@ -2,13 +2,18 @@
 
 return [
     'dashboard' => 'داشبورد',
+    'dashboard_subtitle' => 'عرشه پرواز',
     'transactions' => 'تراکنش‌ها',
     'report' => 'گزارش',
+    'report_subtitle' => 'گزارش پرواز',
     'investments' => 'سرمایه‌گذاری‌ها',
+    'investments_subtitle' => 'پرواز باری',
     'portfolio' => 'پرتفوی',
     'goals' => 'هدف‌ها',
+    'goals_subtitle' => 'مسیر پرواز',
     'bills' => 'قبض‌ها',
     'budgets' => 'طرح پرواز',
+    'settings_subtitle' => 'اتاق کنترل',
     'primary' => 'ناوبری اصلی',
     'platform' => 'پلتفرم',
     'account' => 'ناوبری حساب',
@@ -23,5 +28,6 @@ return [
     'collapse_sidebar' => 'بستن نوار کناری',
     'logout' => 'خروج',
     'ai_assistant' => 'دستیار هوش مصنوعی',
+    'ai_assistant_subtitle' => 'کمک‌خلبان',
     'telegram_bot' => 'ربات تلگرام',
 ];

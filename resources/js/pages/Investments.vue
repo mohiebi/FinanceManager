@@ -219,58 +219,6 @@
                 </Button>
             </div>
 
-            <!-- ── Asset summary cards ───────────────────────────────── -->
-            <div
-                v-if="(props.assets ?? []).length > 0"
-                class="grid grid-cols-2 gap-[18px] px-[18px] sm:grid-cols-3 xl:grid-cols-6 pt-4"
-            >
-                <div
-                    v-for="asset in props.assets ?? []"
-                    :key="asset.key"
-                    class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-4 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
-                    :style="{ borderTop: `2.5px solid ${asset.color}` }"
-                >
-                    <div class="mb-2 flex items-center justify-between">
-                        <AssetIcon
-                            :icon="asset.icon"
-                            :icon-svg="asset.icon_svg"
-                            :label="asset.label"
-                            :color="asset.color"
-                            size="lg"
-                        />
-                        <span
-                            class="rounded-md px-2 py-0.5 text-xs font-semibold text-white"
-                            :style="{ backgroundColor: asset.color }"
-                        >
-                            <template v-if="props.pricesAvailable"
-                                >{{ asset.allocation }}%</template
-                            >
-                            <template v-else>{{
-                                t('finance.price_unavailable')
-                            }}</template>
-                        </span>
-                    </div>
-                    <p class="text-sm font-semibold text-white">
-                        {{ asset.label }}
-                    </p>
-                    <p class="mt-0.5 text-xs text-[#989898]">
-                        {{ asset.quantity_display }} {{ asset.unit }}
-                    </p>
-                    <p class="mt-2 text-sm font-bold text-white">
-                        <template v-if="props.pricesAvailable">
-                            {{ asset.value_formatted }}
-                            <span class="text-xs font-normal text-[#989898]">{{
-                                currencySymbol
-                            }}</span>
-                        </template>
-                        <span
-                            v-else
-                            class="text-xs font-medium text-[#989898]"
-                            >{{ t('finance.price_unavailable') }}</span
-                        >
-                    </p>
-                </div>
-            </div>
         </Deferred>
 
         <!-- ── Recent entries table ──────────────────────────────── -->

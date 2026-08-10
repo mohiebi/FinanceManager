@@ -2,13 +2,18 @@
 
 return [
     'dashboard' => 'Dashboard',
+    'dashboard_subtitle' => 'Cockpit',
     'transactions' => 'Transaktionen',
     'report' => 'Bericht',
+    'report_subtitle' => 'Flugbericht',
     'investments' => 'Investitionen',
+    'investments_subtitle' => 'Frachtflug',
     'portfolio' => 'Portfolio',
     'goals' => 'Ziele',
+    'goals_subtitle' => 'Flugroute',
     'bills' => 'Rechnungen',
     'budgets' => 'Flugplan',
+    'settings_subtitle' => 'Kontrollraum',
     'primary' => 'Hauptnavigation',
     'platform' => 'Plattform',
     'account' => 'Kontonavigation',
@@ -23,5 +28,6 @@ return [
     'collapse_sidebar' => 'Seitenleiste einklappen',
     'logout' => 'Abmelden',
     'ai_assistant' => 'KI-Assistent',
+    'ai_assistant_subtitle' => 'Co-Pilot',
     'telegram_bot' => 'Telegram-Bot',
 ];

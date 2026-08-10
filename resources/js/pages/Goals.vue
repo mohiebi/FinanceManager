@@ -21,6 +21,9 @@
                         class="mt-1 text-2xl font-semibold tracking-tight text-white"
                     >
                         {{ t('gamification.goals.page_title') }}
+                        <span class="text-sm font-normal text-white/35">
+                            ({{ t('navigation.goals_subtitle') }})
+                        </span>
                     </h1>
                     <p class="mt-1 max-w-lg text-sm text-[#989898]">
                         {{ t('gamification.goals.page_description') }}

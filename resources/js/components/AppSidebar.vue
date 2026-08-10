@@ -138,16 +138,28 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
 
                         <!-- Text — plain, no background -->
                         <span
-                            :class="[
-                                'truncate text-sm font-medium group-data-[collapsible=icon]:sr-only',
-                                isActive(item)
-                                    ? 'text-[#02cd86]'
-                                    : item.state === 'promo'
-                                      ? 'text-white/40'
-                                      : 'text-white',
-                            ]"
+                            class="flex min-w-0 flex-col group-data-[collapsible=icon]:sr-only"
                         >
-                            {{ item.title }}
+                            <span
+                                :class="[
+                                    'truncate text-sm font-medium',
+                                    isActive(item)
+                                        ? 'text-[#02cd86]'
+                                        : item.state === 'promo'
+                                          ? 'text-white/40'
+                                          : 'text-white',
+                                ]"
+                            >
+                                {{ item.title }}
+                            </span>
+                            <!-- The flight-themed aside — a wink, not a second
+                                 label, so it stays quieter than the real one. -->
+                            <span
+                                v-if="item.subtitle"
+                                class="truncate text-[11px] text-white/35"
+                            >
+                                ({{ item.subtitle }})
+                            </span>
                         </span>
                     </Link>
                 </nav>
@@ -175,9 +187,16 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                                 <Settings class="size-[18px] shrink-0" />
                             </span>
                             <span
-                                class="truncate text-sm font-medium text-white group-data-[collapsible=icon]:sr-only"
+                                class="flex min-w-0 flex-col group-data-[collapsible=icon]:sr-only"
                             >
-                                {{ t('settings.title') }}
+                                <span
+                                    class="truncate text-sm font-medium text-white"
+                                >
+                                    {{ t('settings.title') }}
+                                </span>
+                                <span class="truncate text-[11px] text-white/35">
+                                    ({{ t('navigation.settings_subtitle') }})
+                                </span>
                             </span>
                         </button>
                     </DropdownMenuTrigger>

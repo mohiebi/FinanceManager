@@ -222,7 +222,7 @@
             <!-- ── Asset summary cards ───────────────────────────────── -->
             <div
                 v-if="(props.assets ?? []).length > 0"
-                class="grid grid-cols-2 gap-[18px] px-[18px] sm:grid-cols-3 xl:grid-cols-6"
+                class="grid grid-cols-2 gap-[18px] px-[18px] sm:grid-cols-3 xl:grid-cols-6 pt-4"
             >
                 <div
                     v-for="asset in props.assets ?? []"

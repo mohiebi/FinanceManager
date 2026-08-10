@@ -7,7 +7,6 @@ use App\Actions\Investments\SaveInvestment;
 use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\Currency;
 use App\Http\Resources\InvestmentAssetResource;
-use App\Models\AssetPriceSnapshot;
 use App\Models\Investment;
 use App\Models\InvestmentAsset;
 use App\Services\AssetPriceService;
@@ -15,7 +14,6 @@ use App\Support\CurrencyPreference;
 use App\Support\Encryption\SealedField;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -25,9 +23,6 @@ class InvestmentController extends Controller
     public function index(Request $request, AssetPriceService $priceService, CurrencyConverter $currencyConverter): Response
     {
         $user = $request->user();
-        $range = in_array($request->query('range'), ['1w', '1m', '3m', '1y', 'all'])
-            ? (string) $request->query('range')
-            : '1m';
         $selectedCurrency = CurrencyPreference::resolve($request);
 
         $fmt = function (float $amount) use ($selectedCurrency, $currencyConverter): string {
@@ -86,7 +81,6 @@ class InvestmentController extends Controller
             'assetTypes' => $assetTypes,
             'entries' => $recentEntries,
             'sourceTypes' => $this->sourceTypes(),
-            'selectedRange' => $range,
             'currencies' => collect(Currency::cases())->map(fn (Currency $c) => [
                 'label' => $c->label(),
                 'value' => $c->value,
@@ -122,7 +116,6 @@ class InvestmentController extends Controller
                     'entry_count' => $allEntries->count(),
                 ];
             }),
-            'chartData' => Inertia::defer(fn () => $vaultArmed ? ['categories' => [], 'series' => []] : $this->generateChartData($allEntries, $range, $priceService)),
             'prices' => Inertia::defer(fn () => $assetOptions
                 ->mapWithKeys(fn (InvestmentAsset $asset) => [$asset->slug => $priceService->priceFor($asset)])
                 ->all()),
@@ -332,116 +325,6 @@ class InvestmentController extends Controller
         usort($assets, fn ($leftAsset, $rightAsset) => $rightAsset['value'] <=> $leftAsset['value']);
 
         return $assets;
-    }
-
-    /**
-     * Build ApexCharts-ready series + categories for the selected time range.
-     *
-     * @param  Collection<int, Investment>  $entries
-     * @return array{categories: list<string>, series: list<array<string, mixed>>}
-     */
-    private function generateChartData(Collection $entries, string $range, AssetPriceService $priceService): array
-    {
-        $entries = $entries->filter(fn (Investment $entry) => $entry->asset !== null);
-
-        if ($entries->isEmpty()) {
-            return ['categories' => [], 'series' => []];
-        }
-
-        $now = Carbon::today();
-        $firstEntry = Carbon::parse($entries->min('occurred_at'));
-
-        [$from, $step] = match ($range) {
-            '1w' => [$now->copy()->subDays(6), 'day'],
-            '3m' => [$now->copy()->subMonths(3), 'week'],
-            '1y' => [$now->copy()->subYear(), 'month'],
-            'all' => [$firstEntry->copy(), 'month'],
-            default => [$now->copy()->subDays(29), 'day'],
-        };
-
-        $dates = [];
-        $dateCursor = $from->copy();
-        while ($dateCursor->lte($now)) {
-            $dates[] = $dateCursor->toDateString();
-            match ($step) {
-                'day' => $dateCursor->addDay(),
-                'week' => $dateCursor->addWeek(),
-                'month' => $dateCursor->addMonthNoOverflow(),
-            };
-        }
-        if (! in_array($now->toDateString(), $dates, true)) {
-            $dates[] = $now->toDateString();
-        }
-
-        $groupedEntries = $entries->groupBy('investment_asset_id');
-
-        // Historical prices recorded by the hourly RefreshAssetPricesJob.
-        // Dates before the first snapshot fall back to the current price;
-        // "today" always uses the live price.
-        $snapshotsByAsset = AssetPriceSnapshot::query()
-            ->whereIn('investment_asset_id', $groupedEntries->keys())
-            ->where('snapped_on', '<=', $now)
-            ->orderBy('snapped_on')
-            ->get()
-            ->groupBy('investment_asset_id');
-
-        $seriesList = [];
-        $totalByDate = array_fill_keys($dates, 0.0);
-
-        foreach ($groupedEntries as $assetId => $typeEntries) {
-            $asset = $typeEntries->first()?->asset;
-
-            if (! $asset) {
-                continue;
-            }
-
-            $currentPrice = $priceService->priceFor($asset);
-            $snapshots = $snapshotsByAsset->get($assetId, collect())->values();
-            $snapshotPointer = 0;
-            $lastKnownPrice = null;
-            $seriesData = [];
-
-            foreach ($dates as $date) {
-                while (
-                    $snapshotPointer < $snapshots->count()
-                    && $snapshots[$snapshotPointer]->snapped_on->toDateString() <= $date
-                ) {
-                    $lastKnownPrice = (float) $snapshots[$snapshotPointer]->price;
-                    $snapshotPointer++;
-                }
-
-                $price = $date === $now->toDateString()
-                    ? $currentPrice
-                    : ($lastKnownPrice ?? $currentPrice);
-
-                $dateParsed = Carbon::parse($date);
-                $cumulativeQuantity = $typeEntries
-                    ->filter(fn ($entry) => $entry->occurred_at->lte($dateParsed))
-                    ->sum('quantity');
-                $value = round((float) $cumulativeQuantity * $price);
-                $seriesData[] = $value;
-                $totalByDate[$date] += $value;
-            }
-
-            $seriesList[] = [
-                'name' => $asset->label(),
-                'key' => $asset->slug,
-                'color' => $asset->color,
-                'data' => $seriesData,
-            ];
-        }
-
-        array_unshift($seriesList, [
-            'name' => __('finance.assets.total'),
-            'key' => 'total',
-            'color' => '#02CD86',
-            'data' => array_values($totalByDate),
-        ]);
-
-        return [
-            'categories' => $dates,
-            'series' => $seriesList,
-        ];
     }
 
     private function formatMoney(float $amount): string

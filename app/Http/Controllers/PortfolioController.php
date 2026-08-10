@@ -24,6 +24,9 @@ class PortfolioController extends Controller
     ): Response {
         $user = $request->user();
         $selectedCurrency = CurrencyPreference::resolve($request);
+        $range = in_array($request->query('range'), ['1w', '1m', '3m', '1y', 'all'])
+            ? (string) $request->query('range')
+            : '1m';
 
         $common = [
             'currencies' => collect(Currency::cases())->map(fn (Currency $c) => [
@@ -31,6 +34,7 @@ class PortfolioController extends Controller
                 'value' => $c->value,
             ]),
             'selectedCurrency' => $selectedCurrency->value,
+            'selectedRange' => $range,
             'pricesSyncedAt' => $priceService->lastSyncedAt(),
         ];
 
@@ -57,6 +61,10 @@ class PortfolioController extends Controller
                 'pricesAvailable' => $priceService->pricesAvailable(),
                 'assets' => [],
                 'summary' => null,
+                // The vault can decrypt today's holdings client-side (see
+                // vaultPortfolio above) but not a day-by-day history, so the
+                // value-over-time chart simply has nothing to plot here.
+                'chartData' => ['categories' => [], 'series' => []],
                 // Explicit null rather than a missing key: the page tells a
                 // deferred prop that has not landed apart from an empty list.
                 'goals' => $showsGoals ? null : [],
@@ -71,6 +79,7 @@ class PortfolioController extends Controller
             ...$common,
             'assets' => Inertia::defer(fn () => $breakdownBuilder->handle($allEntries, $selectedCurrency)['assets']),
             'summary' => Inertia::defer(fn () => $breakdownBuilder->handle($allEntries, $selectedCurrency)['summary']),
+            'chartData' => Inertia::defer(fn () => $breakdownBuilder->history($allEntries, $range, $priceService)),
             'goals' => $showsGoals
                 ? Inertia::defer(fn () => $goalBuilder->forPortfolio($user, $allEntries))
                 : [],

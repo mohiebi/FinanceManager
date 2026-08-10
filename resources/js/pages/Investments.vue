@@ -86,7 +86,6 @@
         <Deferred
             :data="[
                 'assets',
-                'chartData',
                 'summary',
                 'prices',
                 'marketPriceRows',
@@ -194,128 +193,6 @@
                     </div>
                 </div>
             </section>
-
-            <!-- ── Charts row ────────────────────────────────────────── -->
-            <div
-                v-if="(props.assets ?? []).length > 0"
-                class="grid items-stretch gap-[18px] px-[18px] py-[18px] xl:grid-cols-[320px_1fr]"
-            >
-                <!-- Donut / allocation chart -->
-                <section
-                    class="flex flex-col overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
-                >
-                    <div class="mb-4 flex items-center justify-between">
-                        <h2
-                            class="text-[18px] leading-none font-normal text-white"
-                        >
-                            {{ t('finance.investments.allocation') }}
-                        </h2>
-                        <span class="text-xs text-[#989898]">{{
-                            t('finance.investments.by_current_value')
-                        }}</span>
-                    </div>
-                    <div class="flex flex-1 items-center">
-                        <DonutChart
-                            :series="donutSeries"
-                            :labels="donutLabels"
-                            :colors="donutColors"
-                            :center-label="t('finance.investments.portfolio')"
-                            :center-value="
-                                props.pricesAvailable
-                                    ? props.summary?.total_value_formatted +
-                                      ' T'
-                                    : t('finance.price_unavailable')
-                            "
-                            @slice-click="onSliceClick"
-                        />
-                    </div>
-                </section>
-
-                <!-- Line chart — value over time -->
-                <section
-                    class="flex flex-col overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
-                >
-                    <div
-                        class="mb-4 flex flex-wrap items-center justify-between gap-3"
-                    >
-                        <h2
-                            class="text-[18px] leading-none font-normal text-white"
-                        >
-                            {{ t('finance.investments.value_over_time') }}
-                        </h2>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <!-- Currency pills -->
-                            <div class="flex gap-1">
-                                <button
-                                    v-for="c in props.currencies"
-                                    :key="c.value"
-                                    type="button"
-                                    :class="[
-                                        'cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition',
-                                        selectedCurrency === c.value
-                                            ? 'bg-[#02CD86]/10 text-[#02CD86] ring-1 ring-[#02CD86]/25'
-                                            : 'text-[#686868] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
-                                    ]"
-                                    @click="changeCurrency(c.value)"
-                                >
-                                    {{ c.label }}
-                                </button>
-                            </div>
-                            <!-- Range buttons -->
-                            <div class="flex flex-wrap gap-1.5">
-                                <button
-                                    v-for="rangeOption in ranges"
-                                    :key="rangeOption.value"
-                                    type="button"
-                                    :class="[
-                                        'cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition',
-                                        selectedRange === rangeOption.value
-                                            ? 'bg-white/15 text-white'
-                                            : 'text-[#686868] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
-                                    ]"
-                                    @click="changeRange(rangeOption.value)"
-                                >
-                                    {{ rangeOption.label }}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Series toggle chips -->
-                    <div class="mb-3 flex flex-wrap gap-2">
-                        <button
-                            v-for="seriesItem in availableSeries"
-                            :key="seriesItem.key"
-                            type="button"
-                            :class="[
-                                'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition',
-                                activeSeries.has(seriesItem.key)
-                                    ? 'text-white'
-                                    : 'bg-white/5 text-[#686868] ring-1 ring-white/10 hover:text-white',
-                            ]"
-                            :style="
-                                activeSeries.has(seriesItem.key)
-                                    ? { backgroundColor: seriesItem.color }
-                                    : {}
-                            "
-                            @click="toggleSeries(seriesItem.key)"
-                        >
-                            <span
-                                class="size-2 shrink-0 rounded-full"
-                                :style="{ backgroundColor: seriesItem.color }"
-                            />
-                            {{ seriesItem.name }}
-                        </button>
-                    </div>
-
-                    <LineChart
-                        :series="filteredChartSeries"
-                        :categories="props.chartData?.categories ?? []"
-                        :calendar="displayCalendar"
-                        :height="340"
-                    />
-                </section>
-            </div>
 
             <!-- ── Empty state when no entries yet ──────────────────── -->
             <div
@@ -603,9 +480,6 @@ import { Download, Minus, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
-import DonutChart from '@/components/charts/DonutChart.vue';
-import LineChart from '@/components/charts/LineChart.vue';
-import type { ChartSeries } from '@/components/charts/LineChart.vue';
 import Ciphered from '@/components/Ciphered.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InvestmentEntryDialog from '@/components/investments/InvestmentEntryDialog.vue';
@@ -669,11 +543,6 @@ type Entry = {
     occurred_at: string;
 };
 
-type ChartData = {
-    categories: string[];
-    series: ChartSeries[];
-};
-
 type CurrencyOption = {
     label: string;
     value: string;
@@ -706,10 +575,8 @@ const props = defineProps<{
         asset_count: number;
         entry_count: number;
     };
-    chartData?: ChartData;
     assetTypes: AssetTypeOption[];
     entries: Entry[];
-    selectedRange: string;
     entryCount: number;
     assetTypeCount: number;
     prices?: Record<AssetKey, number>;
@@ -734,15 +601,6 @@ defineOptions({
     },
 });
 
-const ranges = [
-    { label: '1W', value: '1w' },
-    { label: '1M', value: '1m' },
-    { label: '3M', value: '3m' },
-    { label: '1Y', value: '1y' },
-    { label: 'All', value: 'all' },
-];
-
-const selectedRange = ref(props.selectedRange);
 const selectedCurrency = ref(props.selectedCurrency);
 const page = usePage();
 const { t } = useI18n();
@@ -767,119 +625,15 @@ const currencySymbol = computed(() => {
     }
 });
 
-const availableSeries = computed<ChartSeries[]>(
-    () => props.chartData?.series ?? [],
-);
-const activeSeries = ref<Set<string>>(
-    new Set(availableSeries.value.map((seriesItem) => seriesItem.key)),
-);
-
-const filteredChartSeries = computed<ChartSeries[]>(() =>
-    availableSeries.value.filter((seriesItem) =>
-        activeSeries.value.has(seriesItem.key),
-    ),
-);
-
 const pricesResolved = computed(() => props.pricesAvailable !== undefined);
 const visibleMarketPriceRows = computed<MarketPriceRow[]>(() =>
     (props.marketPriceRows ?? []).filter((row) => row.assets.length > 0),
-);
-
-const donutSeries = computed(() =>
-    (props.assets ?? []).map((asset) => asset.allocation),
-);
-const donutLabels = computed(() =>
-    (props.assets ?? []).map((asset) => asset.label),
-);
-const donutColors = computed(() =>
-    (props.assets ?? []).map((asset) => asset.color),
-);
-
-function toggleSeries(key: string) {
-    if (activeSeries.value.has(key)) {
-        if (activeSeries.value.size === 1) {
-            return;
-        }
-
-        activeSeries.value.delete(key);
-    } else {
-        activeSeries.value.add(key);
-    }
-
-    activeSeries.value = new Set(activeSeries.value);
-}
-
-function onSliceClick(sliceIndex: number | null) {
-    if (sliceIndex === null) {
-        activeSeries.value = new Set(
-            availableSeries.value.map((seriesItem) => seriesItem.key),
-        );
-    } else {
-        const asset = (props.assets ?? [])[sliceIndex];
-
-        if (!asset) {
-            return;
-        }
-
-        if (
-            activeSeries.value.size === 1 &&
-            activeSeries.value.has(asset.key)
-        ) {
-            activeSeries.value = new Set(
-                availableSeries.value.map((seriesItem) => seriesItem.key),
-            );
-        } else {
-            activeSeries.value = new Set([asset.key]);
-        }
-    }
-}
-
-function changeRange(range: string) {
-    selectedRange.value = range;
-    router.get(
-        investmentsIndex.url({
-            query: { range, currency: selectedCurrency.value },
-        }),
-        {},
-        { preserveScroll: true, preserveState: true, replace: true },
-    );
-}
-
-function changeCurrency(currency: string) {
-    if (currency === selectedCurrency.value) {
-        return;
-    }
-
-    selectedCurrency.value = currency;
-    router.get(
-        investmentsIndex.url({
-            query: { range: selectedRange.value, currency },
-        }),
-        {},
-        { preserveScroll: true, preserveState: true, replace: true },
-    );
-}
-
-watch(
-    () => props.chartData?.series,
-    () => {
-        activeSeries.value = new Set(
-            (props.chartData?.series ?? []).map((seriesItem) => seriesItem.key),
-        );
-    },
 );
 
 watch(
     () => props.selectedCurrency,
     (value) => {
         selectedCurrency.value = value;
-    },
-);
-
-watch(
-    () => props.selectedRange,
-    (value) => {
-        selectedRange.value = value;
     },
 );
 

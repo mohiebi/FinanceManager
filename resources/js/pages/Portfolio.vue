@@ -265,7 +265,7 @@
             </div>
         </section>
 
-        <Deferred :data="['assets', 'summary', 'pricesAvailable']">
+        <Deferred :data="['assets', 'summary', 'chartData', 'pricesAvailable']">
             <template #fallback>
                 <div
                     class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
@@ -433,6 +433,111 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- ── Charts row ────────────────────────────────────────── -->
+            <div
+                v-if="assets.length > 0"
+                class="grid items-stretch gap-[18px] px-[18px] py-[18px] xl:grid-cols-[320px_1fr]"
+            >
+                <!-- Donut / allocation chart -->
+                <section
+                    class="flex flex-col overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                >
+                    <div class="mb-4 flex items-center justify-between">
+                        <h2
+                            class="text-[18px] leading-none font-normal text-white"
+                        >
+                            {{ t('finance.portfolio.allocation') }}
+                        </h2>
+                        <span class="text-xs text-[#989898]">{{
+                            t('finance.portfolio.by_current_value')
+                        }}</span>
+                    </div>
+                    <div class="flex flex-1 items-center">
+                        <DonutChart
+                            :series="donutSeries"
+                            :labels="donutLabels"
+                            :colors="donutColors"
+                            :center-label="t('finance.portfolio.current_value')"
+                            :center-value="
+                                props.pricesAvailable
+                                    ? summary.total_current_value_formatted +
+                                      ' ' +
+                                      currencySymbol
+                                    : t('finance.price_unavailable')
+                            "
+                            @slice-click="onSliceClick"
+                        />
+                    </div>
+                </section>
+
+                <!-- Line chart — value over time -->
+                <section
+                    class="flex flex-col overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                >
+                    <div
+                        class="mb-4 flex flex-wrap items-center justify-between gap-3"
+                    >
+                        <h2
+                            class="text-[18px] leading-none font-normal text-white"
+                        >
+                            {{ t('finance.portfolio.value_over_time') }}
+                        </h2>
+                        <!-- Range buttons — currency is switched from the global
+                             header selector, not duplicated here. -->
+                        <div class="flex flex-wrap gap-1.5">
+                            <button
+                                v-for="rangeOption in ranges"
+                                :key="rangeOption.value"
+                                type="button"
+                                :class="[
+                                    'cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition',
+                                    selectedRange === rangeOption.value
+                                        ? 'bg-white/15 text-white'
+                                        : 'text-[#686868] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
+                                ]"
+                                @click="changeRange(rangeOption.value)"
+                            >
+                                {{ rangeOption.label }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Series toggle chips -->
+                    <div class="mb-3 flex flex-wrap gap-2">
+                        <button
+                            v-for="seriesItem in availableSeries"
+                            :key="seriesItem.key"
+                            type="button"
+                            :class="[
+                                'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition',
+                                activeSeries.has(seriesItem.key)
+                                    ? 'text-white'
+                                    : 'bg-white/5 text-[#686868] ring-1 ring-white/10 hover:text-white',
+                            ]"
+                            :style="
+                                activeSeries.has(seriesItem.key)
+                                    ? { backgroundColor: seriesItem.color }
+                                    : {}
+                            "
+                            @click="toggleSeries(seriesItem.key)"
+                        >
+                            <span
+                                class="size-2 shrink-0 rounded-full"
+                                :style="{ backgroundColor: seriesItem.color }"
+                            />
+                            {{ seriesItem.name }}
+                        </button>
+                    </div>
+
+                    <LineChart
+                        :series="filteredChartSeries"
+                        :categories="props.chartData?.categories ?? []"
+                        :calendar="displayCalendar"
+                        :height="340"
+                    />
+                </section>
             </div>
 
             <!-- ── Holdings detail ───────────────────────────────── -->
@@ -727,11 +832,14 @@
 </template>
 
 <script setup lang="ts">
-import { Deferred, Head, router } from '@inertiajs/vue3';
+import { Deferred, Head, router, usePage } from '@inertiajs/vue3';
 import { Download, TrendingDown, TrendingUp, Wallet } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
+import DonutChart from '@/components/charts/DonutChart.vue';
+import LineChart from '@/components/charts/LineChart.vue';
+import type { ChartSeries } from '@/components/charts/LineChart.vue';
 import PulseChart from '@/components/charts/PulseChart.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import GoalCard from '@/components/gamification/GoalCard.vue';
@@ -756,9 +864,16 @@ type CurrencyOption = {
     value: string;
 };
 
+type ChartData = {
+    categories: string[];
+    series: ChartSeries[];
+};
+
 const props = defineProps<{
     assets?: PortfolioAsset[];
     summary?: PortfolioSummary | null;
+    chartData?: ChartData;
+    selectedRange: string;
     currencies: CurrencyOption[];
     selectedCurrency: string;
     pricesAvailable?: boolean;
@@ -779,6 +894,10 @@ const props = defineProps<{
 
 const selectedCurrency = ref(props.selectedCurrency);
 const { t } = useI18n();
+const page = usePage();
+const displayCalendar = computed(
+    () => (page.props.calendar as string | undefined) ?? 'gregorian',
+);
 
 const { breakdown, entries, decrypting } = useVaultPortfolio(
     () => props.vaultPortfolio,
@@ -880,6 +999,99 @@ const currencySymbol = computed(() => {
             return 'T';
     }
 });
+
+// ── Allocation donut + value-over-time chart ─────────────────────────────
+const ranges = [
+    { label: '1W', value: '1w' },
+    { label: '1M', value: '1m' },
+    { label: '3M', value: '3m' },
+    { label: '1Y', value: '1y' },
+    { label: 'All', value: 'all' },
+];
+
+const selectedRange = ref(props.selectedRange);
+
+const donutSeries = computed(() => assets.value.map((asset) => asset.current_value));
+const donutLabels = computed(() => assets.value.map((asset) => asset.label));
+const donutColors = computed(() => assets.value.map((asset) => asset.color));
+
+const availableSeries = computed<ChartSeries[]>(
+    () => props.chartData?.series ?? [],
+);
+const activeSeries = ref<Set<string>>(
+    new Set(availableSeries.value.map((seriesItem) => seriesItem.key)),
+);
+
+const filteredChartSeries = computed<ChartSeries[]>(() =>
+    availableSeries.value.filter((seriesItem) =>
+        activeSeries.value.has(seriesItem.key),
+    ),
+);
+
+function toggleSeries(key: string): void {
+    if (activeSeries.value.has(key)) {
+        if (activeSeries.value.size === 1) {
+            return;
+        }
+
+        activeSeries.value.delete(key);
+    } else {
+        activeSeries.value.add(key);
+    }
+
+    activeSeries.value = new Set(activeSeries.value);
+}
+
+function onSliceClick(sliceIndex: number | null): void {
+    if (sliceIndex === null) {
+        activeSeries.value = new Set(
+            availableSeries.value.map((seriesItem) => seriesItem.key),
+        );
+
+        return;
+    }
+
+    const asset = assets.value[sliceIndex];
+
+    if (!asset) {
+        return;
+    }
+
+    if (activeSeries.value.size === 1 && activeSeries.value.has(asset.key)) {
+        activeSeries.value = new Set(
+            availableSeries.value.map((seriesItem) => seriesItem.key),
+        );
+    } else {
+        activeSeries.value = new Set([asset.key]);
+    }
+}
+
+function changeRange(range: string): void {
+    selectedRange.value = range;
+    router.get(
+        portfolio.url({
+            query: { range, currency: selectedCurrency.value },
+        }),
+        {},
+        { preserveScroll: true, preserveState: true, replace: true },
+    );
+}
+
+watch(
+    () => props.chartData?.series,
+    () => {
+        activeSeries.value = new Set(
+            (props.chartData?.series ?? []).map((seriesItem) => seriesItem.key),
+        );
+    },
+);
+
+watch(
+    () => props.selectedRange,
+    (value) => {
+        selectedRange.value = value;
+    },
+);
 
 // Profit / loss per asset — only assets with a recorded cost basis have a P&L.
 const pnlByAsset = computed(() => {

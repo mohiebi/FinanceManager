@@ -5,11 +5,13 @@ namespace App\Actions\Investments;
 use App\Actions\Transactions\CurrencyConverter;
 use App\Enums\AssetType;
 use App\Enums\Currency;
+use App\Models\AssetPriceSnapshot;
 use App\Models\Investment;
 use App\Models\InvestmentAsset;
 use App\Models\User;
 use App\Services\AssetPriceService;
 use App\Support\Encryption\EncryptedValue;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class BuildPortfolioBreakdown
@@ -283,6 +285,117 @@ class BuildPortfolioBreakdown
         return $from === null
             ? $amount
             : $this->currencyConverter->convert($amount, $from, Currency::Toman);
+    }
+
+    /**
+     * Build ApexCharts-ready series + categories for the selected time range —
+     * the portfolio's "value over time" chart.
+     *
+     * @param  Collection<int, Investment>  $entries
+     * @return array{categories: list<string>, series: list<array<string, mixed>>}
+     */
+    public function history(Collection $entries, string $range, AssetPriceService $priceService): array
+    {
+        $entries = $entries->filter(fn (Investment $entry): bool => $entry->asset !== null);
+
+        if ($entries->isEmpty()) {
+            return ['categories' => [], 'series' => []];
+        }
+
+        $now = Carbon::today();
+        $firstEntry = Carbon::parse($entries->min('occurred_at'));
+
+        [$from, $step] = match ($range) {
+            '1w' => [$now->copy()->subDays(6), 'day'],
+            '3m' => [$now->copy()->subMonths(3), 'week'],
+            '1y' => [$now->copy()->subYear(), 'month'],
+            'all' => [$firstEntry->copy(), 'month'],
+            default => [$now->copy()->subDays(29), 'day'],
+        };
+
+        $dates = [];
+        $dateCursor = $from->copy();
+        while ($dateCursor->lte($now)) {
+            $dates[] = $dateCursor->toDateString();
+            match ($step) {
+                'day' => $dateCursor->addDay(),
+                'week' => $dateCursor->addWeek(),
+                'month' => $dateCursor->addMonthNoOverflow(),
+            };
+        }
+        if (! in_array($now->toDateString(), $dates, true)) {
+            $dates[] = $now->toDateString();
+        }
+
+        $groupedEntries = $entries->groupBy('investment_asset_id');
+
+        // Historical prices recorded by the hourly RefreshAssetPricesJob.
+        // Dates before the first snapshot fall back to the current price;
+        // "today" always uses the live price.
+        $snapshotsByAsset = AssetPriceSnapshot::query()
+            ->whereIn('investment_asset_id', $groupedEntries->keys())
+            ->where('snapped_on', '<=', $now)
+            ->orderBy('snapped_on')
+            ->get()
+            ->groupBy('investment_asset_id');
+
+        $seriesList = [];
+        $totalByDate = array_fill_keys($dates, 0.0);
+
+        foreach ($groupedEntries as $assetId => $typeEntries) {
+            $asset = $typeEntries->first()?->asset;
+
+            if (! $asset) {
+                continue;
+            }
+
+            $currentPrice = $priceService->priceFor($asset);
+            $snapshots = $snapshotsByAsset->get($assetId, collect())->values();
+            $snapshotPointer = 0;
+            $lastKnownPrice = null;
+            $seriesData = [];
+
+            foreach ($dates as $date) {
+                while (
+                    $snapshotPointer < $snapshots->count()
+                    && $snapshots[$snapshotPointer]->snapped_on->toDateString() <= $date
+                ) {
+                    $lastKnownPrice = (float) $snapshots[$snapshotPointer]->price;
+                    $snapshotPointer++;
+                }
+
+                $price = $date === $now->toDateString()
+                    ? $currentPrice
+                    : ($lastKnownPrice ?? $currentPrice);
+
+                $dateParsed = Carbon::parse($date);
+                $cumulativeQuantity = $typeEntries
+                    ->filter(fn ($entry) => $entry->occurred_at->lte($dateParsed))
+                    ->sum('quantity');
+                $value = round((float) $cumulativeQuantity * $price);
+                $seriesData[] = $value;
+                $totalByDate[$date] += $value;
+            }
+
+            $seriesList[] = [
+                'name' => $asset->label(),
+                'key' => $asset->slug,
+                'color' => $asset->color,
+                'data' => $seriesData,
+            ];
+        }
+
+        array_unshift($seriesList, [
+            'name' => __('finance.assets.total'),
+            'key' => 'total',
+            'color' => '#02CD86',
+            'data' => array_values($totalByDate),
+        ]);
+
+        return [
+            'categories' => $dates,
+            'series' => $seriesList,
+        ];
     }
 
     /**

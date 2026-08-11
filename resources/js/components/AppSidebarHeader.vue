@@ -218,7 +218,9 @@ function changeCurrency(value: string) {
                                                 class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#6C4EE9] p-px text-white rtl:-left-1"
                                             />
                                         </span>
-                                        <span class="flex min-w-0 flex-col">
+                                        <span
+                                            class="flex min-w-0 flex-col items-center"
+                                        >
                                             <span class="truncate">{{
                                                 item.subtitle ?? item.title
                                             }}</span>
@@ -232,6 +234,24 @@ function changeCurrency(value: string) {
                                                 {{ item.title }}
                                             </span>
                                         </span>
+
+                                        <!-- Off is never "you have to pay" —
+                                             it just is not switched on yet. -->
+                                        <span
+                                            v-if="item.state !== 'enabled'"
+                                            :class="[
+                                                'ml-auto shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium',
+                                                item.state === 'locked'
+                                                    ? 'bg-[#6C4EE9]/15 text-[#a89bf3]'
+                                                    : 'bg-[#02CD86]/10 text-[#02CD86]',
+                                            ]"
+                                        >
+                                            {{
+                                                t(
+                                                    `modules.tiers.${item.state === 'locked' ? 'pro' : 'free'}`,
+                                                )
+                                            }}
+                                        </span>
                                     </Link>
                                 </nav>
 
@@ -244,7 +264,9 @@ function changeCurrency(value: string) {
                                             <Settings
                                                 class="size-[18px] shrink-0"
                                             />
-                                            <span class="flex min-w-0 flex-col">
+                                            <span
+                                                class="flex min-w-0 flex-col items-center"
+                                            >
                                                 <span class="truncate">{{
                                                     t(
                                                         'navigation.settings_subtitle',

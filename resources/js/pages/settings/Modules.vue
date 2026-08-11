@@ -128,11 +128,14 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
             </p>
         </Transition>
 
-        <!-- One card on a phone, two from 640, three from 1280, four on an
-             ultrawide. Column count rather than card width does the work, so a
-             card never stretches past the point where its description stops
-             being scannable. -->
-        <ul class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <!-- One card on a phone, two from 640, three from 1280 — and three
+             stays the ceiling until a genuinely ultrawide 1800px, not
+             Tailwind's `2xl` (1536px), which is just an ordinary laptop and
+             was cramming a fourth column into too little width per card,
+             clipping the description. Column count rather than card width
+             does the work, so a card never stretches past the point where
+             its description stops being scannable. -->
+        <ul class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4">
             <li
                 v-for="module in props.modules"
                 :key="module.key"
@@ -250,7 +253,7 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                 {{ t('modules.core_badge') }}
             </p>
             <ul
-                class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+                class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4"
             >
                 <li
                     v-for="module in props.coreModules"

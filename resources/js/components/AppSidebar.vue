@@ -144,9 +144,13 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                             />
                         </span>
 
-                        <!-- Text — plain, no background -->
+                        <!-- Text — plain, no background. Not flex-1: sized to
+                             its own content so `items-center` centers the
+                             shorter line under the longer one, title or
+                             subtitle, instead of centering in whatever room
+                             is left in the row. -->
                         <span
-                            class="flex min-w-0 flex-col group-data-[collapsible=icon]:sr-only"
+                            class="flex min-w-0 flex-col items-center group-data-[collapsible=icon]:sr-only"
                         >
                             <span
                                 :class="[
@@ -168,6 +172,28 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                             >
                                 {{ item.title }}
                             </span>
+                        </span>
+
+                        <!-- Off is never "you have to pay" — it just is not
+                             switched on yet. Spelling that out here is the
+                             only thing that stops the dimmed "+" items from
+                             reading as a paywall. ml-auto rather than the text
+                             column stretching, so the label stays put next to
+                             the icon and only the badge floats to the edge. -->
+                        <span
+                            v-if="item.state !== 'enabled'"
+                            :class="[
+                                'ml-auto shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium group-data-[collapsible=icon]:hidden',
+                                item.state === 'locked'
+                                    ? 'bg-[#6C4EE9]/15 text-[#a89bf3]'
+                                    : 'bg-[#02CD86]/10 text-[#02CD86]',
+                            ]"
+                        >
+                            {{
+                                t(
+                                    `modules.tiers.${item.state === 'locked' ? 'pro' : 'free'}`,
+                                )
+                            }}
                         </span>
                     </Link>
                 </nav>
@@ -195,7 +221,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                                 <Settings class="size-[18px] shrink-0" />
                             </span>
                             <span
-                                class="flex min-w-0 flex-col group-data-[collapsible=icon]:sr-only"
+                                class="flex min-w-0 flex-col items-center group-data-[collapsible=icon]:sr-only"
                             >
                                 <span
                                     class="truncate text-sm font-medium text-white"

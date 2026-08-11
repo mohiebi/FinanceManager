@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\Feature;
-use App\Enums\FeatureTier;
 use App\Enums\TransactionType;
 use App\Observers\UserEncryptionKeyObserver;
 use App\Support\Encryption\UserKeyRing;
@@ -254,7 +253,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function mayUse(Feature $feature): bool
     {
-        return $feature->tier() === FeatureTier::Free || $this->isPro();
+        return $feature->mayUseWithPro($this->isPro());
     }
 
     public function hasFeature(Feature $feature): bool

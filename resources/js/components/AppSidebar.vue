@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import {
+    Lock,
     PanelLeftClose,
     PanelLeftOpen,
     Plus,
@@ -124,7 +125,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                                 isActive(item)
                                     ? 'text-[#02cd86]'
                                     : 'text-white',
-                                item.state === 'promo' ? 'opacity-40' : '',
+                                item.state !== 'enabled' ? 'opacity-40' : '',
                             ]"
                         >
                             <component
@@ -134,6 +135,12 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                             <Plus
                                 v-if="item.state === 'promo'"
                                 class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#02cd86] text-[#353535] rtl:-left-1"
+                            />
+                            <!-- Pro, not bought yet — a lock rather than the
+                                 free "+", so it doesn't promise a tap turns it on. -->
+                            <Lock
+                                v-else-if="item.state === 'locked'"
+                                class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#6C4EE9] p-px text-white rtl:-left-1"
                             />
                         </span>
 
@@ -146,7 +153,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                                     'truncate text-sm font-medium',
                                     isActive(item)
                                         ? 'text-[#02cd86]'
-                                        : item.state === 'promo'
+                                        : item.state !== 'enabled'
                                           ? 'text-white/40'
                                           : 'text-white',
                                 ]"

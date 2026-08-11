@@ -16,6 +16,9 @@ export type ModuleState = {
     enabled: boolean;
     show_promo: boolean;
     core: boolean;
+    tier: 'free' | 'pro';
+    /** Plan entitlement — false for a Pro module the user hasn't bought. */
+    may_use: boolean;
 };
 
 export type FeatureMap = Record<FeatureKey, ModuleState>;

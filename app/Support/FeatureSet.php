@@ -88,9 +88,13 @@ final readonly class FeatureSet
     /**
      * The shape shared with Inertia.
      *
-     * @return array<string, array{enabled: bool, show_promo: bool, core: bool}>
+     * `$isPro` decides `may_use` for paid modules — a plan entitlement, not
+     * whether the user has switched the module on. Free modules and core
+     * modules are always usable regardless of it.
+     *
+     * @return array<string, array{enabled: bool, show_promo: bool, core: bool, tier: string, may_use: bool}>
      */
-    public function toArray(): array
+    public function toArray(bool $isPro = false): array
     {
         $features = [];
 
@@ -99,6 +103,8 @@ final readonly class FeatureSet
                 'enabled' => $this->enabled($feature),
                 'show_promo' => $this->showsPromo($feature),
                 'core' => $feature->isCore(),
+                'tier' => $feature->tier()->value,
+                'may_use' => $feature->mayUseWithPro($isPro),
             ];
         }
 

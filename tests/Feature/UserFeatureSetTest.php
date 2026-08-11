@@ -3,6 +3,7 @@
 use App\Actions\Features\FeatureToggleResult;
 use App\Actions\Features\UpdateUserFeature;
 use App\Enums\Feature;
+use App\Enums\FeatureTier;
 use App\Models\User;
 
 test('a user with no feature rows sits at the enum defaults', function () {
@@ -86,6 +87,26 @@ test('an enabled module never advertises a promo', function () {
     app(UpdateUserFeature::class)($user, Feature::Bills, true);
 
     expect($user->featureSet()->showsPromo(Feature::Bills))->toBeFalse();
+});
+
+test('every feature is free today, so every user may use all of them', function () {
+    $user = User::factory()->create();
+
+    foreach (Feature::cases() as $feature) {
+        expect($feature->tier())->toBe(FeatureTier::Free)
+            ->and($user->mayUse($feature))->toBeTrue();
+    }
+});
+
+test('the shared feature map carries tier and entitlement alongside enablement', function () {
+    $user = User::factory()->create();
+
+    $map = $user->featureSet()->toArray($user->isPro());
+
+    foreach (Feature::cases() as $feature) {
+        expect($map[$feature->value]['tier'])->toBe('free')
+            ->and($map[$feature->value]['may_use'])->toBeTrue();
+    }
 });
 
 test('the whereFeatureEnabled scope honours sparse defaults in both directions', function () {

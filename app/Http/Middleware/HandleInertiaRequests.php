@@ -57,7 +57,7 @@ class HandleInertiaRequests extends Middleware
             // Eager, not deferred: the nav is built from this, and deferring would
             // make menu items pop in after first paint. Costs one memoized query
             // that the feature middleware has usually already paid for.
-            'features' => fn () => $request->user()?->featureSet()->toArray(),
+            'features' => fn () => $request->user()?->featureSet()->toArray($request->user()->isPro()),
             // Eager like the feature map: the unlock dialog is a layout-level gate,
             // and deferring it would flash unlocked-looking UI on every page load.
             'vault' => fn () => $request->user()?->vaultDescriptor(),

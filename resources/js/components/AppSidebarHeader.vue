@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Menu, Plus, Settings, ShieldCheck, User } from 'lucide-vue-next';
+import {
+    Lock,
+    Menu,
+    Plus,
+    Settings,
+    ShieldCheck,
+    User,
+} from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import NotificationBell from '@/components/NotificationBell.vue';
@@ -188,7 +195,7 @@ function changeCurrency(value: string) {
                                         :class="
                                             isActive(item)
                                                 ? 'bg-[#454545] text-[#02cd86]'
-                                                : item.state === 'promo'
+                                                : item.state !== 'enabled'
                                                   ? 'text-white/35 hover:bg-[#454545] hover:text-white/60'
                                                   : 'text-white/70 hover:bg-[#454545] hover:text-white'
                                         "
@@ -202,6 +209,13 @@ function changeCurrency(value: string) {
                                             <Plus
                                                 v-if="item.state === 'promo'"
                                                 class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#02cd86] text-[#353535] rtl:-left-1"
+                                            />
+                                            <!-- Pro, not bought yet — a lock
+                                                 rather than the free "+", so it
+                                                 doesn't promise a tap turns it on. -->
+                                            <Lock
+                                                v-else-if="item.state === 'locked'"
+                                                class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#6C4EE9] p-px text-white rtl:-left-1"
                                             />
                                         </span>
                                         <span class="flex min-w-0 flex-col">

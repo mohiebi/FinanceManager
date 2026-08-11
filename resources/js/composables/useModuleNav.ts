@@ -26,11 +26,12 @@ import type { FeatureKey } from '@/types/features';
 import type { NavItem } from '@/types/navigation';
 
 /**
- * `enabled` renders normally; `promo` renders greyed with a "+". Modules the
- * user hid are dropped from the list entirely, so there
- * is no third state to render.
+ * `enabled` renders normally. `promo` renders greyed with a "+" — free, just
+ * switched off. `locked` renders greyed with a lock — a Pro module the user
+ * has not bought, so there is nothing to switch on yet. Modules the user hid
+ * are dropped from the list entirely, so there is no fourth state to render.
  */
-export type ModuleNavState = 'enabled' | 'promo';
+export type ModuleNavState = 'enabled' | 'promo' | 'locked';
 
 export type ModuleNavItem = NavItem & {
     key: string;
@@ -156,7 +157,16 @@ export function useModuleNav(): UseModuleNavReturn {
                 return [];
             }
 
-            return [{ ...entry, href: editModules(), state: 'promo' }];
+            // Same "off, but still worth advertising" spot in the nav either
+            // way — only the badge (and what it's inviting the user toward)
+            // differs between a free toggle and a Pro purchase.
+            return [
+                {
+                    ...entry,
+                    href: editModules(),
+                    state: state.may_use ? 'promo' : 'locked',
+                },
+            ];
         });
     });
 

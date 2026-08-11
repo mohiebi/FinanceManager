@@ -2,6 +2,9 @@
 
 namespace App\Enums;
 
+use App\Models\User;
+use App\Support\FeatureSet;
+
 /**
  * A togglable area of the app.
  *
@@ -75,6 +78,19 @@ enum Feature: string
         return match ($this) {
             default => FeatureTier::Free,
         };
+    }
+
+    /**
+     * Whether a plan carrying the given Pro entitlement may use this feature.
+     *
+     * Free features are usable regardless — `$isPro` only ever gates a paid
+     * tier. The single source both {@see User::mayUse()} and
+     * {@see FeatureSet::toArray()} defer to, so the nav and the
+     * modules page can never disagree about who is entitled to what.
+     */
+    public function mayUseWithPro(bool $isPro): bool
+    {
+        return $this->tier() === FeatureTier::Free || $isPro;
     }
 
     /**

@@ -215,7 +215,7 @@ function changeCurrency(value: string) {
                                                 v-if="item.subtitle"
                                                 class="truncate text-[11px] font-normal lowercase text-white/35"
                                             >
-                                                ({{ item.title }})
+                                                {{ item.title }}
                                             </span>
                                         </span>
                                     </Link>
@@ -239,9 +239,7 @@ function changeCurrency(value: string) {
                                                 <span
                                                     class="truncate text-[11px] font-normal lowercase text-white/35"
                                                 >
-                                                    ({{
-                                                        t('settings.title')
-                                                    }})
+                                                    {{ t('settings.title') }}
                                                 </span>
                                             </span>
                                         </button>

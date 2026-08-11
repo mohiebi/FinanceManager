@@ -118,6 +118,7 @@ export function useModuleNav(): UseModuleNavReturn {
                 key: 'budgets',
                 feature: 'budgets',
                 title: t('navigation.budgets'),
+                subtitle: t('navigation.budgets_subtitle'),
                 href: budgetsIndex(),
                 icon: Target,
             },

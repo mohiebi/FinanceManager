@@ -159,7 +159,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                                 v-if="item.subtitle"
                                 class="truncate text-[11px] lowercase text-white/35"
                             >
-                                ({{ item.title }})
+                                {{ item.title }}
                             </span>
                         </span>
                     </Link>
@@ -198,7 +198,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                                 <span
                                     class="truncate text-[11px] lowercase text-white/35"
                                 >
-                                    ({{ t('settings.title') }})
+                                    {{ t('settings.title') }}
                                 </span>
                             </span>
                         </button>

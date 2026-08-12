@@ -14,7 +14,7 @@ return [
     'bills' => 'Bills',
     'budgets' => 'Budgets',
     'budgets_subtitle' => 'Flight plan',
-    'ai_assistant' => 'AI Assistant',
+    'ai_assistant' => 'AI',
     'ai_assistant_subtitle' => 'Co-pilot',
     'telegram_bot' => 'Telegram Bot',
     'settings_subtitle' => 'Controls Room',

@@ -28,7 +28,7 @@ return [
     'expand_sidebar' => 'Seitenleiste erweitern',
     'collapse_sidebar' => 'Seitenleiste einklappen',
     'logout' => 'Abmelden',
-    'ai_assistant' => 'KI-Assistent',
+    'ai_assistant' => 'KI',
     'ai_assistant_subtitle' => 'Co-Pilot',
     'telegram_bot' => 'Telegram-Bot',
 ];

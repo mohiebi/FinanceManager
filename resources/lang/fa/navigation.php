@@ -28,7 +28,7 @@ return [
     'expand_sidebar' => 'باز کردن نوار کناری',
     'collapse_sidebar' => 'بستن نوار کناری',
     'logout' => 'خروج',
-    'ai_assistant' => 'دستیار هوش مصنوعی',
+    'ai_assistant' => 'هوش مصنوعی',
     'ai_assistant_subtitle' => 'کمک‌خلبان',
     'telegram_bot' => 'ربات تلگرام',
 ];

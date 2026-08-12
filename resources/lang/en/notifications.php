@@ -59,4 +59,30 @@ return [
     'page_title' => 'Notifications',
     'page_description' => 'Bill reminders and other account alerts.',
     'unread' => 'Unread',
+
+    // Server-rendered with Laravel :placeholders, unlike resources/lang/*/billing.php
+    // which the browser renders. Stored bodies deliberately carry no transaction
+    // hash or wallet address: notifications.data is not encrypted.
+    'subscription_action' => 'Open billing',
+
+    'subscription_activated' => [
+        'title' => 'Pro is active',
+        'body_generic' => 'Your :plan plan runs until :date.',
+        'email_body' => 'Thank you — your payment went through. Your :plan plan runs until :date. Nothing renews by itself, so we will remind you before it ends.',
+    ],
+    'subscription_payment_failed' => [
+        'title' => 'We could not confirm your payment',
+        'body_generic' => 'Your :plan payment could not be confirmed.',
+        'email_body' => 'We could not confirm your :plan payment. :reason If you believe this is wrong, reply to this email and we will look into it — nothing is lost.',
+    ],
+    'subscription_expiring' => [
+        'title' => 'Your Pro access ends soon',
+        'body_generic' => 'Pro ends on :date.',
+        'email_body' => 'Your Pro access ends on :date, in :days days. Crypto payments cannot be taken again automatically, so it will not renew on its own.',
+    ],
+    'subscription_expired' => [
+        'title' => 'Your Pro access has ended',
+        'body_generic' => 'Pro ended on :date.',
+        'email_body' => 'Your Pro access ended on :date. Your data is untouched and everything free still works exactly as before.',
+    ],
 ];

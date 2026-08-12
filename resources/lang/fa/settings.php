@@ -311,6 +311,7 @@ return [
         'notifications' => 'اعلان‌ها',
         'security' => 'حریم خصوصی و امنیت',
         'preferences' => 'ترجیحات',
+        'billing' => 'صورت‌حساب',
         'modules' => 'ماژول‌ها',
         'categories' => 'دسته‌بندی‌ها',
         'telegram' => 'تلگرام',

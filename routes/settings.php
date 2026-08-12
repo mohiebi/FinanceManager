@@ -3,6 +3,7 @@
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InvestmentAssetController;
 use App\Http\Controllers\Settings\AiConnectionsController;
+use App\Http\Controllers\Settings\BillingController;
 use App\Http\Controllers\Settings\ModuleController;
 use App\Http\Controllers\Settings\NotificationController;
 use App\Http\Controllers\Settings\PreferencesController;
@@ -47,6 +48,28 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
 
     Route::get('settings/modules', [ModuleController::class, 'edit'])->name('modules.edit');
     Route::patch('settings/modules', [ModuleController::class, 'update'])->name('modules.update');
+
+    // Billing is not a Feature module, so it carries no EnsureFeatureEnabled —
+    // and no RejectWhenVaultArmed either: these rows are plaintext by design,
+    // because the worker that settles a payment has no data key.
+    //
+    // Registered unconditionally and gated inside the controller. Registering on
+    // config('billing.enabled') would break route caching and leave Wayfinder
+    // with nothing to generate.
+    Route::get('settings/billing', [BillingController::class, 'edit'])->name('billing.edit');
+
+    Route::post('settings/billing/payments', [BillingController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('billing.payments.store');
+
+    // Tighter, because each submission fans out into outbound calls to a node.
+    Route::post('settings/billing/payments/{payment}/proof', [BillingController::class, 'submitProof'])
+        ->middleware('throttle:6,1')
+        ->name('billing.payments.proof');
+
+    Route::delete('settings/billing/payments/{payment}', [BillingController::class, 'destroy'])
+        ->middleware('throttle:10,1')
+        ->name('billing.payments.cancel');
 
     // The vault's own endpoints. Enrolling hands over the raw data key, so it sits
     // behind a fresh password confirmation; the other two carry client-produced

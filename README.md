@@ -213,3 +213,40 @@ php artisan test --compact
 - Custom import categories are scoped to the importing user and must not become global defaults.
 - Gate any new module-specific route with `EnsureFeatureEnabled::class` and register it in `App\Enums\Feature` (label, icon, dependencies) and `useModuleNav.ts` if it owns a nav entry — a mismatch between the two is caught by `ModulesTest`.
 - Anything that must still work with the vault armed (Portfolio, Budgets, Savings goals) resolves its numbers client-side from decrypted values rather than assuming the server can read them; routes that genuinely require server-side plaintext sit behind `RejectWhenVaultArmed`.
+
+### Subscriptions
+
+Pro accounts are prepaid spans of access bought with crypto. Nothing renews itself — a crypto
+payment cannot be taken a second time — so every plan extends the buyer's current expiry and the
+expiry reminder is load-bearing rather than decorative.
+
+- **No module is Pro yet.** `Feature::tier()` returns `Free` for every case, and `ProEntitlementTest`
+  asserts it, so making a feature paid is a deliberate one-line change rather than an accident.
+- `users.pro_until` is the entitlement, and it is written **only** by `GrantProAccess` /
+  `RevokeProAccess`, always inside a transaction that locks the user row and always alongside a
+  `subscription_grants` row. It is kept out of the model's `#[Fillable]` list on purpose: a
+  mass-assignment path into it would be free Pro. Expiry needs no job — `isPro()` compares against
+  the clock on every read.
+- **Billing tables are plaintext by design**, against the convention everywhere else. The worker
+  that settles a payment has no browser and no per-user data key, so encrypting them would make a
+  real payment permanently unverifiable the moment its buyer armed their vault. Never put
+  `RejectWhenVaultArmed` on a billing route.
+- **Token amounts are decimal strings end to end** (`App\Support\Billing\TokenAmount`). One ether is
+  10^18 wei against a `PHP_INT_MAX` of ~9.2×10^18, so a cast overflows within plausible amounts, and
+  the money columns are `string` rather than `decimal` because SQLite hands a DECIMAL back as a float.
+  Never route these through `CurrencyConverter` or `resources/js/lib/money.ts`, which assume 2-decimal fiat.
+- Each intent's expected amount carries a **per-payment nonce** in its lowest digits so that no two
+  open intents ever expect the same figure, and verification matches it **exactly**. A tolerance band
+  wide enough to absorb a rounding error would be wide enough to span the next intent's amount and
+  settle the wrong payment.
+- For ERC-20, the credited amount is read from the receipt's `Transfer` logs, not from the
+  transaction's recipient — that is what makes exchange and smart-wallet withdrawals work. Checking
+  `log.address` against the payment's snapshotted contract is the **entire** defence against a
+  worthless token minted to look like a payment.
+- **An unreachable node must never fail a payment.** Only the terminal verdicts in
+  `PaymentFailureReason` set `Failed`; everything retryable leaves the payment `Submitted` for
+  `ReconcileSubscriptionsJob` to retry and, failing that, for an admin to decide.
+- Adding a chain is a `PaymentNetwork` case plus a `config/billing.php` block. Every EVM chain shares
+  `EvmJsonRpcExplorer`; only a non-EVM chain needs a new driver behind `ChainExplorer`.
+- The `billing` queue must stay in `composer.json`'s `--queue=` list (`QueueCoverageTest` enforces it)
+  **and** in the production worker's own list, which lives outside this repo and no test can check.

@@ -50,4 +50,27 @@ return [
     'page_title' => 'Benachrichtigungen',
     'page_description' => 'Rechnungserinnerungen und andere Kontohinweise.',
     'unread' => 'Ungelesen',
+
+    'subscription_action' => 'Zur Abrechnung',
+
+    'subscription_activated' => [
+        'title' => 'Pro ist aktiv',
+        'body_generic' => 'Dein Tarif :plan läuft bis :date.',
+        'email_body' => 'Danke — deine Zahlung ist angekommen. Dein Tarif :plan läuft bis :date. Nichts verlängert sich von selbst, wir erinnern dich also rechtzeitig.',
+    ],
+    'subscription_payment_failed' => [
+        'title' => 'Wir konnten deine Zahlung nicht bestätigen',
+        'body_generic' => 'Deine Zahlung für :plan konnte nicht bestätigt werden.',
+        'email_body' => 'Wir konnten deine Zahlung für :plan nicht bestätigen. :reason Wenn das nicht stimmt, antworte einfach auf diese E-Mail — es ist nichts verloren.',
+    ],
+    'subscription_expiring' => [
+        'title' => 'Dein Pro-Zugang endet bald',
+        'body_generic' => 'Pro endet am :date.',
+        'email_body' => 'Dein Pro-Zugang endet am :date, in :days Tagen. Krypto-Zahlungen lassen sich nicht erneut einziehen, er verlängert sich also nicht von selbst.',
+    ],
+    'subscription_expired' => [
+        'title' => 'Dein Pro-Zugang ist abgelaufen',
+        'body_generic' => 'Pro endete am :date.',
+        'email_body' => 'Dein Pro-Zugang endete am :date. Deine Daten sind unverändert, und alles Kostenlose funktioniert genau wie vorher.',
+    ],
 ];

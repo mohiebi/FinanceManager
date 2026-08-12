@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminBillingController;
 use App\Http\Controllers\AdminCustomerExportController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AssetPriceSyncController;
@@ -28,6 +29,7 @@ use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\RejectWhenVaultArmed;
 use App\Support\FrontendLocalization;
 use App\Support\SeoMetadata;
+use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -102,6 +104,21 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     Route::get('admin/customers/export', AdminCustomerExportController::class)
         ->middleware(EnsureUserIsAdmin::class)
         ->name('admin.customers.export');
+
+    Route::middleware(EnsureUserIsAdmin::class)->group(function () {
+        Route::get('admin/billing', [AdminBillingController::class, 'index'])->name('admin.billing');
+
+        // A second factor on top of the admin check, which is one string compare
+        // against a configured email. These routes hand out paid entitlements,
+        // so they get the same treatment as arming the vault.
+        Route::middleware([RequirePassword::class, 'throttle:30,1'])->group(function () {
+            Route::post('admin/billing/payments/{payment}/approve', [AdminBillingController::class, 'approve'])->name('admin.billing.approve');
+            Route::post('admin/billing/payments/{payment}/reject', [AdminBillingController::class, 'reject'])->name('admin.billing.reject');
+            Route::post('admin/billing/payments/{payment}/recheck', [AdminBillingController::class, 'recheck'])->name('admin.billing.recheck');
+            Route::post('admin/billing/users/{user}/grant', [AdminBillingController::class, 'grant'])->name('admin.billing.grant');
+            Route::post('admin/billing/users/{user}/revoke', [AdminBillingController::class, 'revoke'])->name('admin.billing.revoke');
+        });
+    });
 
     Route::get('dashboard', [TransactionController::class, 'dashboard'])->name('dashboard');
     Route::get('transactions/import-template', [TransactionImportController::class, 'template'])->name('transactions.import-template');

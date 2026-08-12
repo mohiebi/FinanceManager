@@ -7,6 +7,7 @@ use App\Http\Middleware\SetUserPreferences;
 use App\Http\Middleware\TrackUserActivity;
 use App\Jobs\BillReminderJob;
 use App\Jobs\CaptureDailyStatsJob;
+use App\Jobs\ReconcileSubscriptionsJob;
 use App\Jobs\RefreshAssetPricesJob;
 use App\Jobs\StreakReminderJob;
 use App\Models\McpProposal;
@@ -62,6 +63,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Prunes resolved/expired MCP proposals older than the 90-day audit window.
         $schedule->command('model:prune', ['--model' => [McpProposal::class]])->daily();
+
+        // Closes payment intents nobody paid, restarts verifications a restarted
+        // worker dropped, and sends the two subscription reminders. There is no
+        // downgrade pass to run: pro_until is compared against the clock on every
+        // read, so an entitlement lapses on its own. Registered only here, not in
+        // routes/console.php — Laravel merges both sources, so a second entry
+        // would be a second independent schedule.
+        $schedule->job(new ReconcileSubscriptionsJob)->hourly()->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

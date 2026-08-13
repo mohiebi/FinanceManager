@@ -75,13 +75,7 @@ final readonly class BuildBillingOverview
      */
     private function needsAttention(): Collection
     {
-        $reviewable = array_values(array_map(
-            fn (PaymentFailureReason $reason): string => $reason->value,
-            array_filter(
-                PaymentFailureReason::cases(),
-                fn (PaymentFailureReason $reason): bool => $reason->needsReview(),
-            ),
-        ));
+        $reviewable = array_column(PaymentFailureReason::needingReview(), 'value');
 
         return SubscriptionPayment::query()
             ->with('user:id,name,email')

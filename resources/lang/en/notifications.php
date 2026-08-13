@@ -64,6 +64,13 @@ return [
     // which the browser renders. Stored bodies deliberately carry no transaction
     // hash or wallet address: notifications.data is not encrypted.
     'subscription_action' => 'Open billing',
+    'review_action' => 'Open subscriptions',
+
+    'payment_needs_review' => [
+        'title' => 'A payment needs your decision',
+        'body_generic' => ':count payment(s) could not be settled automatically.',
+        'email_body' => ':count payment(s) could not be settled automatically and are waiting on you. The most recent stopped because: :reason Nobody is told their payment failed until you decide, so they are still waiting.',
+    ],
 
     'subscription_activated' => [
         'title' => 'Pro is active',

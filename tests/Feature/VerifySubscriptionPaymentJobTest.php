@@ -8,6 +8,7 @@ use App\Enums\PaymentStatus;
 use App\Jobs\VerifySubscriptionPaymentJob;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
+use App\Notifications\PaymentNeedsReviewNotification;
 use App\Notifications\SubscriptionActivatedNotification;
 use App\Notifications\SubscriptionPaymentFailedNotification;
 use App\Support\Billing\TokenAmount;
@@ -109,6 +110,99 @@ test('the buyer is told when a payment is refused for good', function () {
     verify($payment);
 
     Notification::assertSentTo($payment->user, SubscriptionPaymentFailedNotification::class);
+});
+
+test('an outcome a human might reverse alerts the operator, not the buyer', function () {
+    $admin = User::factory()->create(['email' => 'boss@example.com']);
+    config()->set('app.admin_email', 'boss@example.com');
+
+    // An exchange that deducted its fee from the amount sent. Real money, just
+    // not the figure the intent expects — and quite possibly something the
+    // operator will approve within the hour.
+    $payment = paymentExpecting(USDT_AMOUNT_HEX);
+    fakeEvmChain([
+        'tx_to' => USDT_CONTRACT,
+        'logs' => [evmTransferLog(USDT_CONTRACT, TEST_RECEIVING_ADDRESS, '0x5b8d7f')],
+    ]);
+
+    verify($payment);
+
+    expect($payment->fresh()->failure_reason)->toBe(PaymentFailureReason::AmountMismatch);
+
+    Notification::assertSentTo($admin, PaymentNeedsReviewNotification::class);
+
+    // Telling the buyer their payment failed, only to reverse it, is worse than
+    // telling them nothing while it is decided.
+    Notification::assertNotSentTo($payment->user, SubscriptionPaymentFailedNotification::class);
+});
+
+test('one alert covers a whole burst of stranded payments', function () {
+    $admin = User::factory()->create(['email' => 'boss@example.com']);
+    config()->set('app.admin_email', 'boss@example.com');
+
+    // A chain going down parks everything in flight at the same moment. Six
+    // identical emails would be less useful than one saying six are waiting.
+    // failed() makes no request of its own — it is the hook the queue calls once
+    // the retries are spent — so no chain fake is needed here.
+    foreach (range(1, 6) as $ignored) {
+        $payment = paymentExpecting(USDT_AMOUNT_HEX);
+
+        (new VerifySubscriptionPaymentJob($payment->id))->failed(new RuntimeException('gave up'));
+    }
+
+    Notification::assertSentToTimes($admin, PaymentNeedsReviewNotification::class, 1);
+});
+
+test('a different kind of problem is never buried by an ongoing outage', function () {
+    $admin = User::factory()->create(['email' => 'boss@example.com']);
+    config()->set('app.admin_email', 'boss@example.com');
+
+    $stranded = paymentExpecting(USDT_AMOUNT_HEX);
+    (new VerifySubscriptionPaymentJob($stranded->id))->failed(new RuntimeException('gave up'));
+
+    $mismatched = paymentExpecting(USDT_AMOUNT_HEX);
+    fakeEvmChain([
+        'tx_to' => USDT_CONTRACT,
+        'logs' => [evmTransferLog(USDT_CONTRACT, TEST_RECEIVING_ADDRESS, '0x5b8d7f')],
+    ]);
+    verify($mismatched);
+
+    expect($stranded->fresh()->failure_reason)->toBe(PaymentFailureReason::ExplorerUnavailable)
+        ->and($mismatched->fresh()->failure_reason)->toBe(PaymentFailureReason::AmountMismatch);
+
+    // Debounced per reason, so an unreachable node cannot silence a genuine
+    // amount problem sitting behind it.
+    Notification::assertSentToTimes($admin, PaymentNeedsReviewNotification::class, 2);
+});
+
+test('a definitive refusal still goes to the buyer and not the operator', function () {
+    $admin = User::factory()->create(['email' => 'boss@example.com']);
+    config()->set('app.admin_email', 'boss@example.com');
+
+    // A reverted transaction is not a judgement call — nothing an operator
+    // could decide would make it a payment.
+    $payment = paymentExpecting(USDT_AMOUNT_HEX);
+    fakeEvmChain([
+        'succeeded' => false,
+        'tx_to' => USDT_CONTRACT,
+        'logs' => [evmTransferLog(USDT_CONTRACT, TEST_RECEIVING_ADDRESS, USDT_AMOUNT_HEX)],
+    ]);
+
+    verify($payment);
+
+    Notification::assertSentTo($payment->user, SubscriptionPaymentFailedNotification::class);
+    Notification::assertNotSentTo($admin, PaymentNeedsReviewNotification::class);
+});
+
+test('no configured admin means no alert and no crash', function () {
+    config()->set('app.admin_email', '');
+
+    $payment = paymentExpecting(USDT_AMOUNT_HEX);
+
+    (new VerifySubscriptionPaymentJob($payment->id))->failed(new RuntimeException('gave up'));
+
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Submitted);
+    Notification::assertNothingSent();
 });
 
 test('nothing is said while a payment might still settle', function () {

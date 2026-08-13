@@ -91,10 +91,11 @@ const TEST_TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a1162
  * actually reports them, and the expected decimal is derived from the same hex
  * with TokenAmount — so a fixture and the payment it settles cannot drift.
  *
- * Etherscan is answered by the same closure rather than a second Http::fake(),
- * which would replace this one instead of composing with it. Pass `internal`
- * for an execution trace, or `etherscan` for a callable that answers it however
- * the test needs.
+ * Etherscan is answered by this same closure rather than by a second
+ * Http::fake(). Stubs accumulate and the earliest match wins, so registering a
+ * broad fake alongside this one silently swallows every request meant for it.
+ * Pass `internal` for an execution trace, or `etherscan` for a callable that
+ * answers however the test needs.
  *
  * @param  array<string, mixed>  $options
  */

@@ -166,4 +166,12 @@ return [
     */
     'expiry_warning_days' => env('BILLING_EXPIRY_WARNING_DAYS', 7),
 
+    /*
+    | How long one "a payment needs your decision" alert suppresses the next of
+    | the same kind. An unreachable chain parks every payment in flight at once,
+    | and a dozen identical emails is less useful than one that says how many
+    | are waiting.
+    */
+    'review_alert_minutes' => env('BILLING_REVIEW_ALERT_MINUTES', 15),
+
 ];

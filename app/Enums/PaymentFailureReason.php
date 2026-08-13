@@ -110,4 +110,20 @@ enum PaymentFailureReason: string
             default => false,
         };
     }
+
+    /**
+     * Every reason that parks a payment in front of a person.
+     *
+     * Shared by the admin queue and by the alert that fills it, so the two can
+     * never disagree about what counts as waiting.
+     *
+     * @return array<int, self>
+     */
+    public static function needingReview(): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $reason): bool => $reason->needsReview(),
+        ));
+    }
 }

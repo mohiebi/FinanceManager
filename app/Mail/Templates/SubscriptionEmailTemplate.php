@@ -13,11 +13,16 @@ use App\Support\FrontendLocalization;
  */
 class SubscriptionEmailTemplate
 {
-    public static function render(string $headline, string $body, string $locale, ?string $action = null): string
-    {
+    public static function render(
+        string $headline,
+        string $body,
+        string $locale,
+        ?string $action = null,
+        ?string $url = null,
+    ): string {
         $direction = FrontendLocalization::direction($locale);
         $align = $direction === 'rtl' ? 'right' : 'left';
-        $url = route('billing.edit');
+        $url = $url ?? route('billing.edit');
         $year = date('Y');
         $appName = e((string) config('app.name'));
 

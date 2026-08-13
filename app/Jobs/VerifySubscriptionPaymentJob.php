@@ -8,6 +8,8 @@ use App\Enums\GrantReason;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentStatus;
 use App\Models\SubscriptionPayment;
+use App\Models\User;
+use App\Notifications\PaymentNeedsReviewNotification;
 use App\Notifications\SubscriptionActivatedNotification;
 use App\Notifications\SubscriptionPaymentFailedNotification;
 use App\Support\Billing\PaymentVerification;
@@ -18,6 +20,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -97,10 +100,16 @@ class VerifySubscriptionPaymentJob implements ShouldBeUnique, ShouldQueue
 
         $payment->forceFill(['status' => PaymentStatus::Failed])->save();
 
-        // Only a terminal verdict is worth telling somebody about. A payment
-        // still being retried, or one waiting on a human, stays quiet — saying
-        // "your money failed" while we are still deciding would be worse than
-        // saying nothing.
+        // Who hears about this depends on whether the answer is actually final.
+        // A reviewable reason means money probably did arrive and an admin may
+        // well approve it within the hour — telling the buyer their payment
+        // failed first, only to reverse it, is worse than telling them nothing.
+        if ($verification->reason?->needsReview() === true) {
+            $this->askForReview($payment->fresh());
+
+            return;
+        }
+
         $payment->user->notify(new SubscriptionPaymentFailedNotification($payment->fresh()));
     }
 
@@ -124,6 +133,53 @@ class VerifySubscriptionPaymentJob implements ShouldBeUnique, ShouldQueue
         $payment->forceFill([
             'failure_reason' => PaymentFailureReason::ExplorerUnavailable,
         ])->save();
+
+        $this->askForReview($payment->fresh());
+    }
+
+    /**
+     * Ask the operator to decide, once per burst.
+     *
+     * Debounced per reason, because the thing that strands payments in bulk is
+     * a chain being unreachable — which parks every payment in flight at the
+     * same moment. One message saying how many are waiting is far more useful
+     * than twenty saying the same thing, and the console shows the rest.
+     *
+     * A distinct kind of problem still gets its own alert, so a single amount
+     * mismatch is never buried by an ongoing outage.
+     */
+    private function askForReview(SubscriptionPayment $payment): void
+    {
+        $adminEmail = trim((string) config('app.admin_email'));
+
+        if ($adminEmail === '') {
+            return;
+        }
+
+        $admin = User::query()->where('email', $adminEmail)->first();
+
+        if ($admin === null) {
+            return;
+        }
+
+        $window = (int) config('billing.review_alert_minutes', 15);
+        $key = 'billing.review-alert.'.($payment->failure_reason?->value ?? 'unknown');
+
+        // add() only succeeds when the key is absent, so the first payment of a
+        // burst sends and the rest are absorbed.
+        if (! Cache::add($key, true, now()->addMinutes($window))) {
+            return;
+        }
+
+        $admin->notify(new PaymentNeedsReviewNotification($payment, $this->waitingForReview()));
+    }
+
+    private function waitingForReview(): int
+    {
+        return SubscriptionPayment::query()
+            ->whereIn('failure_reason', array_column(PaymentFailureReason::needingReview(), 'value'))
+            ->whereNot('status', PaymentStatus::Confirmed->value)
+            ->count();
     }
 
     private function settle(

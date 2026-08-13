@@ -52,6 +52,13 @@ return [
     'unread' => 'Ungelesen',
 
     'subscription_action' => 'Zur Abrechnung',
+    'review_action' => 'Zu den Abonnements',
+
+    'payment_needs_review' => [
+        'title' => 'Eine Zahlung braucht deine Entscheidung',
+        'body_generic' => ':count Zahlung(en) konnten nicht automatisch abgeschlossen werden.',
+        'email_body' => ':count Zahlung(en) konnten nicht automatisch abgeschlossen werden und warten auf dich. Die letzte scheiterte an: :reason Bis du entscheidest, erfährt niemand, dass seine Zahlung fehlgeschlagen ist — sie warten also noch.',
+    ],
 
     'subscription_activated' => [
         'title' => 'Pro ist aktiv',

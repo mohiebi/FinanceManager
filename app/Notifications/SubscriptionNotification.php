@@ -82,9 +82,21 @@ abstract class SubscriptionNotification extends Notification implements ShouldQu
                 headline: trans("notifications.{$key}.title", [], $locale),
                 body: trans("notifications.{$key}.email_body", $this->replacements($notifiable), $locale),
                 locale: $locale,
-                action: trans('notifications.subscription_action', [], $locale),
+                action: trans($this->actionKey(), [], $locale),
+                url: $this->actionUrl(),
             ),
         ];
+    }
+
+    /** Where the email's button goes. Overridden by admin-facing messages. */
+    protected function actionUrl(): string
+    {
+        return route('billing.edit');
+    }
+
+    protected function actionKey(): string
+    {
+        return 'notifications.subscription_action';
     }
 
     /**

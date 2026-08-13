@@ -32,7 +32,10 @@ final readonly class EvmJsonRpcExplorer implements ChainExplorer
      */
     private const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 
-    public function __construct(private PaymentNetwork $network) {}
+    public function __construct(
+        private PaymentNetwork $network,
+        private ?EtherscanClient $etherscan = null,
+    ) {}
 
     public function transferFor(SubscriptionPayment $payment): ?TokenTransfer
     {
@@ -88,22 +91,33 @@ final readonly class EvmJsonRpcExplorer implements ChainExplorer
     }
 
     /**
-     * Value credited by a plain ether transfer.
+     * Value credited by an ether transfer, direct or internal.
      *
-     * Only a direct send is visible this way. Ether moved onward by a contract
-     * is an internal transfer: it appears in no receipt and emits no log, so
-     * this correctly returns nothing and the verifier routes it to a human
-     * rather than calling it a wrong payment.
+     * A direct send is visible in the transaction itself. Ether forwarded by a
+     * contract is not: it appears in no receipt and emits no log, so a node
+     * alone cannot see it. Where Etherscan is configured, the execution trace
+     * is consulted and those payments settle by themselves; where it is not,
+     * this returns nothing and the verifier routes the payment to a human
+     * rather than calling it wrong.
      */
     private function nativeCredit(SubscriptionPayment $payment, array $transaction): string
     {
         $to = $this->normalizeAddress($transaction['to'] ?? null);
+        $direct = $to !== null && $to === $payment->pay_to_address
+            ? TokenAmount::fromHex((string) ($transaction['value'] ?? '0x0'))
+            : '0';
 
-        if ($to === null || $to !== $payment->pay_to_address) {
-            return '0';
+        // Only worth asking when the transaction ran contract code. A plain
+        // wallet-to-wallet send has no trace to look at, and the extra call
+        // would buy nothing.
+        if ($this->etherscan?->isConfigured() !== true || $to === $payment->pay_to_address) {
+            return $direct;
         }
 
-        return TokenAmount::fromHex((string) ($transaction['value'] ?? '0x0'));
+        return TokenAmount::add(
+            $direct,
+            $this->etherscan->internalCreditTo((string) $payment->tx_hash, (string) $payment->pay_to_address),
+        );
     }
 
     /**
@@ -230,10 +244,47 @@ final readonly class EvmJsonRpcExplorer implements ChainExplorer
     /**
      * Send a JSON-RPC batch and return the results in the order asked.
      *
+     * Falls back to Etherscan's proxy module when our own endpoint cannot
+     * answer. Not redundancy for its own sake: a payment stranded by a
+     * sustained outage is somebody's money sitting in limbo waiting on a human,
+     * and a second opinion is cheaper than that.
+     *
      * @param  array<int, array{method: string, params: array<int, mixed>}>  $calls
      * @return array<int, mixed>
      */
     private function call(array $calls): array
+    {
+        try {
+            return $this->callRpc($calls);
+        } catch (ExplorerUnavailable $exception) {
+            if ($this->etherscan?->isConfigured() !== true) {
+                throw $exception;
+            }
+
+            return $this->callViaEtherscan($calls);
+        }
+    }
+
+    /**
+     * @param  array<int, array{method: string, params: array<int, mixed>}>  $calls
+     * @return array<int, mixed>
+     */
+    private function callViaEtherscan(array $calls): array
+    {
+        // One request per method: the proxy module takes no batches. Only ever
+        // reached while the primary endpoint is down, so the extra round trips
+        // buy a settled payment rather than costing anything in the normal case.
+        return array_map(
+            fn (array $call): mixed => $this->etherscan->rpc($call['method'], $call['params']),
+            $calls,
+        );
+    }
+
+    /**
+     * @param  array<int, array{method: string, params: array<int, mixed>}>  $calls
+     * @return array<int, mixed>
+     */
+    private function callRpc(array $calls): array
     {
         $url = $this->network->rpcUrl();
 

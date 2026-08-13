@@ -17,7 +17,10 @@ final readonly class ChainExplorerFactory
     public function for(PaymentNetwork $network): ChainExplorer
     {
         return match ($network) {
-            PaymentNetwork::Ethereum => new EvmJsonRpcExplorer($network),
+            // Etherscan is optional and the driver treats it as such: without a
+            // key everything still works, minus the ability to see ether moved
+            // inside a contract and minus a second opinion when the node is down.
+            PaymentNetwork::Ethereum => new EvmJsonRpcExplorer($network, new EtherscanClient($network)),
         };
     }
 }

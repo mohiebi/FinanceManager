@@ -66,6 +66,8 @@ return [
         'copy' => 'Copy',
         'copied' => 'Copied',
         'open_wallet' => 'Open in wallet',
+        'scan' => 'Payment QR code',
+        'scan_hint' => 'Scan with your wallet — the amount is filled in for you.',
         'window_closes' => 'This payment window closes {time}.',
         'quote_closes' => 'This rate is held until {time}.',
         'hash_label' => 'Transaction hash',

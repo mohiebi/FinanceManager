@@ -101,6 +101,29 @@ return [
     ],
 
     /*
+    | Etherscan's V2 multichain API. Entirely optional — everything works
+    | without it — but it settles two things a node cannot.
+    |
+    | The first is ether forwarded by a contract, which most exchange
+    | withdrawals are. Such a transfer appears in no receipt and emits no log,
+    | so without this it lands in the manual review queue every single time,
+    | despite being a perfectly real payment. With it, those settle by
+    | themselves.
+    |
+    | The second is redundancy: the proxy module is JSON-RPC over HTTP, so it
+    | stands in when our own endpoint is unreachable.
+    |
+    | One key covers every supported chain — the chain is a query parameter.
+    */
+    'etherscan' => [
+        'enabled' => env('BILLING_ETHERSCAN_ENABLED', false),
+        'url' => env('BILLING_ETHERSCAN_URL', 'https://api.etherscan.io/v2/api'),
+        'api_key' => env('BILLING_ETHERSCAN_API_KEY'),
+        'timeout' => env('BILLING_ETHERSCAN_TIMEOUT', 8),
+        'connect_timeout' => env('BILLING_ETHERSCAN_CONNECT_TIMEOUT', 4),
+    ],
+
+    /*
     | USD rate lookup for volatile settlement assets. Stablecoins never reach
     | this — they short-circuit to 1.00 without a network call.
     */

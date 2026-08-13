@@ -66,6 +66,8 @@ return [
         'copy' => 'Kopieren',
         'copied' => 'Kopiert',
         'open_wallet' => 'In Wallet öffnen',
+        'scan' => 'Zahlungs-QR-Code',
+        'scan_hint' => 'Mit deiner Wallet scannen — der Betrag wird automatisch eingetragen.',
         'window_closes' => 'Dieses Zahlungsfenster schließt {time}.',
         'quote_closes' => 'Dieser Kurs gilt bis {time}.',
         'hash_label' => 'Transaktions-Hash',

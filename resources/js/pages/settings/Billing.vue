@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { Check, Copy, ExternalLink, Wallet } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import QRCode from 'qrcode';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SettingsSection from '@/components/settings/SettingsSection.vue';
 import { Button } from '@/components/ui/button';
@@ -126,6 +127,50 @@ onBeforeUnmount(() => {
 function shortDate(value: string | null): string {
     return value ? formatAppDate(value.slice(0, 10), calendar.value) : '';
 }
+
+/**
+ * A scannable version of the payment request.
+ *
+ * Encodes the EIP-681 URI rather than the bare address, so a scan fills in the
+ * amount as well — which matters more here than usual, because the amount has
+ * to match to the last decimal and a hand-typed eighteen-decimal figure will
+ * not.
+ *
+ * Rendered on mount rather than in an immediate watcher: setup also runs during
+ * SSR, where there is no canvas to draw on.
+ */
+const qrDataUrl = ref<string | null>(null);
+
+async function renderQr(): Promise<void> {
+    const value = props.pending?.payment_uri ?? props.pending?.pay_to_address;
+
+    if (!value) {
+        qrDataUrl.value = null;
+
+        return;
+    }
+
+    try {
+        qrDataUrl.value = await QRCode.toDataURL(value, {
+            errorCorrectionLevel: 'M',
+            margin: 2,
+            width: 320,
+            // Dark modules on white, deliberately, rather than themed to the
+            // page: inverted or low-contrast codes are the ones scanners fail on.
+            color: { dark: '#000000', light: '#ffffff' },
+        });
+    } catch {
+        // A missing QR is a smaller problem than a broken page — the address and
+        // amount are both right there to copy.
+        qrDataUrl.value = null;
+    }
+}
+
+onMounted(renderQr);
+watch(
+    () => props.pending?.payment_uri ?? props.pending?.pay_to_address,
+    renderQr,
+);
 
 const daysLeft = computed<number | null>(() => {
     const until = subscription.value?.pro_until;
@@ -429,14 +474,32 @@ const toneClasses: Record<string, string> = {
                     </div>
                 </div>
 
-                <a
-                    v-if="pending.payment_uri"
-                    :href="pending.payment_uri"
-                    class="inline-flex items-center gap-2 text-sm text-white underline-offset-4 hover:underline"
-                >
-                    <Wallet class="size-4" />
-                    {{ t('billing.pay.open_wallet') }}
-                </a>
+                <div class="flex flex-wrap items-center gap-4">
+                    <!-- White plate behind the code on purpose: the page is dark,
+                         and a themed or inverted QR is the kind scanners fail on. -->
+                    <img
+                        v-if="qrDataUrl"
+                        :src="qrDataUrl"
+                        :alt="t('billing.pay.scan')"
+                        width="160"
+                        height="160"
+                        class="rounded-xl bg-white p-2"
+                    />
+
+                    <div class="space-y-2">
+                        <p class="text-xs text-[#6f6f6f]">
+                            {{ t('billing.pay.scan_hint') }}
+                        </p>
+                        <a
+                            v-if="pending.payment_uri"
+                            :href="pending.payment_uri"
+                            class="inline-flex items-center gap-2 text-sm text-white underline-offset-4 hover:underline"
+                        >
+                            <Wallet class="size-4" />
+                            {{ t('billing.pay.open_wallet') }}
+                        </a>
+                    </div>
+                </div>
 
                 <p class="text-xs text-[#6f6f6f]">
                     {{

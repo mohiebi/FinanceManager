@@ -91,6 +91,11 @@ const TEST_TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a1162
  * actually reports them, and the expected decimal is derived from the same hex
  * with TokenAmount — so a fixture and the payment it settles cannot drift.
  *
+ * Etherscan is answered by the same closure rather than a second Http::fake(),
+ * which would replace this one instead of composing with it. Pass `internal`
+ * for an execution trace, or `etherscan` for a callable that answers it however
+ * the test needs.
+ *
  * @param  array<string, mixed>  $options
  */
 function fakeEvmChain(array $options = []): void
@@ -106,12 +111,26 @@ function fakeEvmChain(array $options = []): void
         'tx_to' => TEST_RECEIVING_ADDRESS,
         'value' => '0x0',
         'logs' => [],
+        'internal' => [],
+        'etherscan' => null,
         ...$options,
     ];
 
     $minedAt = $options['timestamp'] ?? now();
 
     Http::fake(function (Request $request) use ($options, $minedAt) {
+        if (str_contains($request->url(), 'etherscan')) {
+            if (is_callable($options['etherscan'])) {
+                return ($options['etherscan'])($request);
+            }
+
+            // Etherscan reports "nothing found" with the same status it uses for
+            // real errors, so the fixture has to reproduce that quirk faithfully.
+            return Http::response($options['internal'] === []
+                ? ['status' => '0', 'message' => 'No transactions found', 'result' => []]
+                : ['status' => '1', 'message' => 'OK', 'result' => $options['internal']]);
+        }
+
         $results = [];
 
         foreach ($request->data() as $call) {

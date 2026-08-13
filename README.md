@@ -246,6 +246,12 @@ expiry reminder is load-bearing rather than decorative.
 - **An unreachable node must never fail a payment.** Only the terminal verdicts in
   `PaymentFailureReason` set `Failed`; everything retryable leaves the payment `Submitted` for
   `ReconcileSubscriptionsJob` to retry and, failing that, for an admin to decide.
+- **Etherscan is optional but worth configuring.** Ether forwarded by a contract — which most exchange
+  withdrawals are — is an internal transfer: it appears in no receipt and emits no log, so a node alone
+  cannot see it and every such payment would need approving by hand. With `BILLING_ETHERSCAN_API_KEY`
+  set, `EtherscanClient` reads the execution trace and those settle automatically. It also stands in as
+  a second endpoint when the RPC node is unreachable. It widens what we can *see*, never what counts
+  as payment: the exact-amount and confirmation rules are unchanged.
 - Adding a chain is a `PaymentNetwork` case plus a `config/billing.php` block. Every EVM chain shares
   `EvmJsonRpcExplorer`; only a non-EVM chain needs a new driver behind `ChainExplorer`.
 - The `billing` queue must stay in `composer.json`'s `--queue=` list (`QueueCoverageTest` enforces it)

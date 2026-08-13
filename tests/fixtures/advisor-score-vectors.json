@@ -1,0 +1,34 @@
+{
+    "cases": [
+        {
+            "name": "conservative profile",
+            "input": {
+                "q1_age": "35_44", "q2_income_stability": "unpredictable", "q3_emergency_fund": "under_1", "q4_high_interest_debt": "significant", "q5_portfolio_wealth_share": "over_75",
+                "q6_primary_goal": "property", "q7_goal_importance": "essential", "q8_time_horizon": "1_3_years", "q9_early_withdrawal": "likely", "q10_liquidity": { "proportion": "over_50", "speed": "same_day" },
+                "q11_permanent_loss_impact": "severe", "q12_drawdown_10": "sell_all", "q13_drawdown_20": "sell_all", "q14_drawdown_35": "cannot_tolerate", "q15_max_drawdown": "5", "q16_risk_return": "portfolio_a",
+                "q17_experience": "never", "q18_asset_classes": ["deposits"], "q19_diversification": "reduce_specific_risk", "q20_fomo": "buy_immediately", "q21_concentration": "add_more", "q22_target_return": "18_plus"
+            },
+            "expected": { "scores": { "risk_willingness": 7, "risk_capacity": 17, "financial_resilience": 15, "liquidity_need": 92, "investment_knowledge": 42, "behavioral_stability": 10, "loss_aversion": 100, "return_ambition": 70, "time_horizon": 25, "raw_risk": 21, "capacity_ceiling": 34, "willingness_ceiling": 26, "effective_risk": 20 }, "risk_band": "very_conservative", "persona": "capital_protector", "maximum_tolerated_drawdown": 5, "warnings": ["return_expectation_exceeds_risk_capacity"] }
+        },
+        {
+            "name": "high willingness low capacity",
+            "input": {
+                "q1_age": "25_34", "q2_income_stability": "no_regular_income", "q3_emergency_fund": "under_1", "q4_high_interest_debt": "none", "q5_portfolio_wealth_share": "over_75",
+                "q6_primary_goal": "speculative_growth", "q7_goal_importance": "optional", "q8_time_horizon": "1_3_years", "q9_early_withdrawal": "likely", "q10_liquidity": { "proportion": "over_50", "speed": "same_day" },
+                "q11_permanent_loss_impact": "severe", "q12_drawdown_10": "buy_more", "q13_drawdown_20": "buy_more", "q14_drawdown_35": "buying_opportunity", "q15_max_drawdown": "50", "q16_risk_return": "portfolio_c",
+                "q17_experience": "5_plus", "q18_asset_classes": ["deposits", "gold", "silver", "stocks", "etfs", "bonds", "real_estate", "bitcoin", "crypto", "derivatives"], "q19_diversification": "reduce_specific_risk", "q20_fomo": "evaluate_fundamentals", "q21_concentration": "rebalance_part", "q22_target_return": "18_plus"
+            },
+            "expected": { "scores": { "risk_willingness": 98, "risk_capacity": 33, "financial_resilience": 40, "liquidity_need": 92, "investment_knowledge": 95, "behavioral_stability": 90, "loss_aversion": 7, "return_ambition": 100, "time_horizon": 25, "raw_risk": 71, "capacity_ceiling": 46, "willingness_ceiling": 98, "effective_risk": 20 }, "risk_band": "very_conservative", "persona": "capital_protector", "maximum_tolerated_drawdown": 50, "warnings": ["return_expectation_exceeds_risk_capacity", "willingness_exceeds_capacity"] }
+        },
+        {
+            "name": "high capacity low willingness",
+            "input": {
+                "q1_age": "35_44", "q2_income_stability": "very_stable", "q3_emergency_fund": "over_12", "q4_high_interest_debt": "none", "q5_portfolio_wealth_share": "under_10",
+                "q6_primary_goal": "retirement", "q7_goal_importance": "very_important", "q8_time_horizon": "10_plus", "q9_early_withdrawal": "unlikely", "q10_liquidity": { "proportion": "under_10", "speed": "within_month" },
+                "q11_permanent_loss_impact": "minimal", "q12_drawdown_10": "sell_part", "q13_drawdown_20": "sell_part", "q14_drawdown_35": "extremely_uncomfortable", "q15_max_drawdown": "10", "q16_risk_return": "portfolio_a",
+                "q17_experience": "5_plus", "q18_asset_classes": ["deposits", "gold", "stocks", "etfs", "bonds", "real_estate"], "q19_diversification": "reduce_specific_risk", "q20_fomo": "evaluate_fundamentals", "q21_concentration": "rebalance_part", "q22_target_return": "8_12"
+            },
+            "expected": { "scores": { "risk_willingness": 22, "risk_capacity": 88, "financial_resilience": 100, "liquidity_need": 21, "investment_knowledge": 85, "behavioral_stability": 56, "loss_aversion": 83, "return_ambition": 50, "time_horizon": 95, "raw_risk": 62, "capacity_ceiling": 90, "willingness_ceiling": 38, "effective_risk": 30 }, "risk_band": "conservative", "persona": "cautious_builder", "maximum_tolerated_drawdown": 10, "warnings": ["capacity_exceeds_willingness"] }
+        }
+    ]
+}

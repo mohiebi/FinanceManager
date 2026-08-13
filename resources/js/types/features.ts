@@ -8,6 +8,7 @@ export type FeatureKey =
     | 'goals'
     | 'gamification'
     | 'ai_assistant'
+    | 'advisor'
     | 'telegram_bot'
     | 'vault';
 

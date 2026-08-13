@@ -89,10 +89,17 @@ test('an enabled module never advertises a promo', function () {
     expect($user->featureSet()->showsPromo(Feature::Bills))->toBeFalse();
 });
 
-test('every feature is free today, so every user may use all of them', function () {
+test('advisor is Pro gated while all existing features remain free', function () {
     $user = User::factory()->create();
 
     foreach (Feature::cases() as $feature) {
+        if ($feature === Feature::Advisor) {
+            expect($feature->tier())->toBe(FeatureTier::Pro)
+                ->and($user->mayUse($feature))->toBeFalse();
+
+            continue;
+        }
+
         expect($feature->tier())->toBe(FeatureTier::Free)
             ->and($user->mayUse($feature))->toBeTrue();
     }
@@ -104,8 +111,8 @@ test('the shared feature map carries tier and entitlement alongside enablement',
     $map = $user->featureSet()->toArray($user->isPro());
 
     foreach (Feature::cases() as $feature) {
-        expect($map[$feature->value]['tier'])->toBe('free')
-            ->and($map[$feature->value]['may_use'])->toBeTrue();
+        expect($map[$feature->value]['tier'])->toBe($feature === Feature::Advisor ? 'pro' : 'free')
+            ->and($map[$feature->value]['may_use'])->toBe($feature !== Feature::Advisor);
     }
 });
 

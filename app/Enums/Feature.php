@@ -23,6 +23,7 @@ enum Feature: string
     case Goals = 'goals';
     case Gamification = 'gamification';
     case AiAssistant = 'ai_assistant';
+    case Advisor = 'advisor';
     case TelegramBot = 'telegram_bot';
     case Vault = 'vault';
 
@@ -45,6 +46,7 @@ enum Feature: string
             self::Goals => 'Savings goals',
             self::Gamification => 'Flight log',
             self::AiAssistant => 'AI Assistant',
+            self::Advisor => 'AI Portfolio Advisor',
             self::TelegramBot => 'Telegram Bot',
             self::Vault => 'Private vault',
         };
@@ -76,6 +78,7 @@ enum Feature: string
     public function tier(): FeatureTier
     {
         return match ($this) {
+            self::Advisor => FeatureTier::Pro,
             default => FeatureTier::Free,
         };
     }
@@ -225,6 +228,7 @@ enum Feature: string
             self::Goals => 'Trophy',
             self::Gamification => 'Plane',
             self::AiAssistant => 'Sparkles',
+            self::Advisor => 'BrainCircuit',
             self::TelegramBot => 'Bot',
             self::Vault => 'ShieldCheck',
         };

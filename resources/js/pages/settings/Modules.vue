@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
     Bot,
+    BrainCircuit,
     ChartPie,
     Lock,
     Plane,
@@ -44,6 +45,7 @@ defineOptions({
  */
 const icons: Record<string, Component> = {
     Bot,
+    BrainCircuit,
     ChartPie,
     Plane,
     Receipt,
@@ -135,7 +137,9 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
              clipping the description. Column count rather than card width
              does the work, so a card never stretches past the point where
              its description stops being scannable. -->
-        <ul class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4">
+        <ul
+            class="grid gap-4 min-[1800px]:grid-cols-4 sm:grid-cols-2 xl:grid-cols-3"
+        >
             <li
                 v-for="module in props.modules"
                 :key="module.key"
@@ -253,7 +257,7 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                 {{ t('modules.core_badge') }}
             </p>
             <ul
-                class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4"
+                class="grid gap-4 min-[1800px]:grid-cols-4 sm:grid-cols-2 xl:grid-cols-3"
             >
                 <li
                     v-for="module in props.coreModules"

@@ -1,0 +1,279 @@
+<?php
+
+use App\Ai\Agents\AdvisorRecommendationAgent;
+use App\Enums\AdvisorRecommendationStatus;
+use App\Enums\Feature;
+use App\Models\AdvisorProfile;
+use App\Models\InvestmentAsset;
+use App\Models\InvestorAssessment;
+use App\Models\User;
+use App\Services\Advisor\AdvisorProposalValidator;
+use App\Support\Encryption\UserCrypto;
+
+function advisorRecommendationProfile(User $user): AdvisorProfile
+{
+    $usd = InvestmentAsset::query()->where('slug', 'usd')->firstOrFail();
+    $bitcoin = InvestmentAsset::query()->where('slug', 'bitcoin')->firstOrFail();
+    $assessment = InvestorAssessment::factory()->for($user)->completed()->create();
+
+    return AdvisorProfile::query()->create([
+        'user_id' => $user->id,
+        'investor_assessment_id' => $assessment->id,
+        'profile_version' => 1,
+        'ai_consent_at' => now(),
+        'profile_payload' => [
+            'profile_version' => 1,
+            'persona' => 'strategic_growth_investor',
+            'risk_band' => 'growth',
+            'scores' => [
+                'effective_risk' => 65, 'risk_willingness' => 75, 'risk_capacity' => 70,
+                'financial_resilience' => 75, 'liquidity_need' => 20, 'investment_knowledge' => 70,
+                'behavioral_stability' => 75, 'loss_aversion' => 30, 'return_ambition' => 70, 'time_horizon' => 95,
+            ],
+            'maximum_tolerated_drawdown' => 30,
+            'financial_context' => ['income_stability' => 'mostly_stable', 'emergency_fund' => '6_12', 'high_interest_debt' => 'none', 'portfolio_share_of_liquid_wealth' => '25_50'],
+            'goals' => ['primary' => 'long_term_wealth', 'importance' => 'important', 'time_horizon' => '10_plus', 'early_withdrawal_likelihood' => 'unlikely', 'liquidity' => ['proportion' => 'under_10', 'speed' => 'within_month'], 'target_return' => '8_12'],
+            'portfolio_preferences' => ['scope' => 'both', 'primary_currency' => 'TOMAN', 'country' => 'US', 'markets' => ['Global'], 'tax_sensitive' => false, 'exclusions' => []],
+            'selected_assets' => [
+                ['asset_key' => 'cash', 'source' => 'cashpilot', 'investment_asset_id' => $usd->id, 'name' => 'US Dollar', 'ticker' => 'USD', 'identifier' => null, 'exchange_or_market' => null, 'country' => 'US', 'currency' => 'USD', 'category' => 'currency', 'risk_band' => 'defensive', 'liquidity' => 'same_day', 'perspective' => 'neutral', 'conviction' => 'medium', 'holding_period' => '10_plus', 'inclusion' => 'required'],
+                ['asset_key' => 'bitcoin', 'source' => 'cashpilot', 'investment_asset_id' => $bitcoin->id, 'name' => 'Bitcoin', 'ticker' => 'BTC', 'identifier' => null, 'exchange_or_market' => null, 'country' => null, 'currency' => 'USD', 'category' => 'crypto', 'risk_band' => 'speculative', 'liquidity' => 'same_day', 'perspective' => 'bullish', 'conviction' => 'medium', 'holding_period' => '10_plus', 'inclusion' => 'allowed'],
+            ],
+            'options_capability' => ['willingness' => 'no', 'broker_access' => false, 'knowledge_score' => 0, 'experience_level' => 'none', 'allowed_underlying_categories' => [], 'allowed_strategy_families' => [], 'maximum_risk_budget_percent' => 0, 'monitoring_suitability' => 'not_applicable'],
+            'constraints' => ['minimum_liquid_allocation' => 20, 'maximum_single_asset_allocation' => 100, 'maximum_high_risk_allocation' => 80, 'maximum_speculative_allocation' => 50, 'maximum_options_risk_budget' => 0, 'hard_caps' => []],
+            'warnings' => [],
+        ],
+    ]);
+}
+
+function advisorContext(AdvisorProfile $profile): array
+{
+    $payload = $profile->profile_payload;
+
+    return [
+        'selected_assets' => $payload['selected_assets'],
+        'portfolio_preferences' => $payload['portfolio_preferences'],
+        'options_capability' => $payload['options_capability'],
+        'constraints' => $payload['constraints'],
+    ];
+}
+
+beforeEach(fn () => $this->withoutVite());
+
+test('a valid structured AI recommendation is encrypted and stored ready', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorRecommendationProfile($user);
+    AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
+
+    $response = $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertOk()
+        ->assertJsonPath('status', 'ready')
+        ->assertJsonPath('payload.status', 'recommendation_ready');
+
+    $recommendation = $user->advisorRecommendations()->sole();
+    expect($recommendation->status)->toBe(AdvisorRecommendationStatus::Ready)
+        ->and($recommendation->provider_calls)->toBe(1)
+        ->and($recommendation->repair_attempts)->toBe(0)
+        ->and(UserCrypto::looksEncrypted($recommendation->getRawOriginal('recommendation_payload')))->toBeTrue()
+        ->and($recommendation->recommendation_payload['primary']['allocations'])->toHaveCount(2)
+        ->and($response->json('payload.transition_plan'))->toBeArray();
+});
+
+test('one invalid response receives one repair request', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorRecommendationProfile($user);
+    $invalid = advisorValidRecommendation();
+    $invalid['primary']['allocations'][0]['target_percent'] = 60;
+    AdvisorRecommendationAgent::fake([$invalid, advisorValidRecommendation()])->preventStrayPrompts();
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertOk()->assertJsonPath('status', 'ready');
+
+    $recommendation = $user->advisorRecommendations()->sole();
+    expect($recommendation->provider_calls)->toBe(2)
+        ->and($recommendation->repair_attempts)->toBe(1)
+        ->and($recommendation->status)->toBe(AdvisorRecommendationStatus::Ready);
+});
+
+test('a second invalid response fails safely', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorRecommendationProfile($user);
+    $invalid = advisorValidRecommendation();
+    $invalid['primary']['allocations'][0]['target_percent'] = 60;
+    AdvisorRecommendationAgent::fake([$invalid, $invalid])->preventStrayPrompts();
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertOk()->assertJsonPath('status', 'failed')->assertJsonPath('failure_code', 'validation_failed');
+
+    expect($user->advisorRecommendations()->sole()->recommendation_payload)->toBeNull();
+});
+
+test('provider failures fail safely without persisting a plaintext response', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorRecommendationProfile($user);
+    AdvisorRecommendationAgent::fake(fn () => throw new RuntimeException('Provider timeout.'));
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertOk()
+        ->assertJsonPath('status', 'failed')
+        ->assertJsonPath('failure_code', 'provider_failure');
+
+    $recommendation = $user->advisorRecommendations()->sole();
+    expect($recommendation->status)->toBe(AdvisorRecommendationStatus::Failed)
+        ->and($recommendation->recommendation_payload)->toBeNull()
+        ->and($recommendation->provider_calls)->toBe(1);
+});
+
+test('clarification is limited to three questions and one round', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorRecommendationProfile($user);
+    $clarification = [
+        ...advisorValidRecommendation(),
+        'status' => 'needs_clarification',
+        'questions' => [['key' => 'identify', 'question' => 'Which market?', 'reason' => 'Ticker is ambiguous.', 'input_type' => 'text', 'options' => []]],
+        'summary' => null, 'primary' => null, 'safer_alternative' => null, 'higher_risk_alternative' => null,
+    ];
+    AdvisorRecommendationAgent::fake([$clarification, advisorValidRecommendation()])->preventStrayPrompts();
+
+    $id = $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertJsonPath('status', 'needs_clarification')->json('recommendation_id');
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.clarify', $id), ['answers' => ['identify' => 'NASDAQ']])
+        ->assertOk()->assertJsonPath('status', 'ready');
+
+    expect($user->advisorRecommendations()->sole()->clarification_rounds)->toBe(1);
+});
+
+test('an oversized clarification request is rejected', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorRecommendationProfile($user);
+    $clarification = [
+        ...advisorValidRecommendation(),
+        'status' => 'needs_clarification',
+        'questions' => collect(range(1, 4))->map(fn (int $number): array => [
+            'key' => 'question_'.$number,
+            'question' => 'Question '.$number,
+            'reason' => 'Asset identity is incomplete.',
+            'input_type' => 'text',
+            'options' => [],
+        ])->all(),
+        'summary' => null,
+        'primary' => null,
+        'safer_alternative' => null,
+        'higher_risk_alternative' => null,
+    ];
+    AdvisorRecommendationAgent::fake([$clarification])->preventStrayPrompts();
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertOk()
+        ->assertJsonPath('status', 'failed')
+        ->assertJsonPath('failure_code', 'invalid_clarification_request');
+});
+
+test('an AI suggested asset is usable only after explicit clarification consent', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorRecommendationProfile($user);
+    $clarification = [
+        ...advisorValidRecommendation(),
+        'status' => 'needs_clarification',
+        'questions' => [[
+            'key' => 'allow_diversifier',
+            'question' => 'May I include a bond diversifier?',
+            'reason' => 'It can reduce portfolio risk.',
+            'input_type' => 'boolean',
+            'options' => [],
+        ]],
+        'suggested_additional_assets' => [[
+            'key' => 'accepted-bond',
+            'name' => 'Bond diversifier',
+            'category' => 'bond',
+            'reason' => 'Diversification.',
+        ]],
+        'summary' => null,
+        'primary' => null,
+        'safer_alternative' => null,
+        'higher_risk_alternative' => null,
+    ];
+    $final = advisorValidRecommendation();
+    $final['primary']['allocations'] = [
+        ['asset_key' => 'cash', 'target_percent' => 65, 'role' => 'Liquidity reserve', 'rationale' => 'Maintains resilience.'],
+        ['asset_key' => 'bitcoin', 'target_percent' => 30, 'role' => 'Growth satellite', 'rationale' => 'Fits the risk envelope.'],
+        ['asset_key' => 'accepted-bond', 'target_percent' => 5, 'role' => 'Diversifier', 'rationale' => 'Adds a defensive source of return.'],
+    ];
+    AdvisorRecommendationAgent::fake([$clarification, $final])->preventStrayPrompts();
+
+    $id = $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertJsonPath('status', 'needs_clarification')
+        ->json('recommendation_id');
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.clarify', $id), [
+        'answers' => ['allow_diversifier' => true],
+        'accepted_assets' => [['asset_key' => 'accepted-bond', 'name' => 'Bond diversifier', 'category' => 'bond']],
+    ])->assertOk()->assertJsonPath('status', 'ready');
+});
+
+test('model only agent instructions prohibit current market and live option claims', function () {
+    $instructions = (string) app(AdvisorRecommendationAgent::class)->instructions();
+
+    expect($instructions)->toContain("do not claim knowledge of today's prices")
+        ->and($instructions)->toContain('never invent strikes, expirations, premiums, Greeks');
+});
+
+test('the validator rejects current market claims and exact option contracts in model only mode', function () {
+    $user = User::factory()->pro()->create();
+    $profile = advisorRecommendationProfile($user);
+    $proposal = advisorValidRecommendation();
+    $proposal['summary'] = "Today's market price and current market conditions favor this allocation.";
+    $proposal['primary']['options_overlays'][0] = [
+        'strategy' => 'protective_put',
+        'underlying_asset_keys' => ['bitcoin'],
+        'purpose' => 'Protection',
+        'coverage_percent' => 50,
+        'maximum_risk_budget_percent' => 1,
+        'strike' => 50000,
+        'conditions' => [],
+        'benefits' => [],
+        'tradeoffs' => [],
+    ];
+    $context = advisorContext($profile);
+    $context['knowledge_mode'] = 'model_only';
+    $codes = collect(app(AdvisorProposalValidator::class)->validate($proposal, $context))->pluck('code');
+
+    expect($codes)->toContain('unsupported_current_market_claim')
+        ->and($codes)->toContain('live_options_detail');
+});
+
+test('the validator rejects unknown assets excessive risk and prohibited options', function () {
+    $user = User::factory()->pro()->create();
+    $profile = advisorRecommendationProfile($user);
+    $proposal = advisorValidRecommendation();
+    $proposal['primary']['allocations'][1]['asset_key'] = 'not-selected';
+    $proposal['primary']['options_overlays'] = [[
+        'strategy' => 'naked_short_call', 'underlying_asset_keys' => ['bitcoin'], 'purpose' => 'Income',
+        'coverage_percent' => 10, 'maximum_risk_budget_percent' => 8, 'conditions' => [], 'benefits' => [], 'tradeoffs' => [],
+    ]];
+
+    $context = advisorContext($profile);
+    $context['options_capability'] = [
+        'willingness' => 'yes', 'broker_access' => true, 'allowed_underlying_categories' => ['crypto'],
+        'allowed_strategy_families' => ['protective_put'], 'maximum_risk_budget_percent' => 5,
+        'assignment_tolerance' => false, 'cap_upside' => false,
+    ];
+    $codes = collect(app(AdvisorProposalValidator::class)->validate($proposal, $context))->pluck('code');
+
+    expect($codes)->toContain('unselected_asset')
+        ->and($codes)->toContain('prohibited_options_strategy')
+        ->and($codes)->toContain('options_risk_budget');
+});
+
+test('cross user recommendation identifiers return not found', function () {
+    $owner = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    $other = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    $profile = advisorRecommendationProfile($owner);
+    $recommendation = $owner->advisorRecommendations()->create([
+        'advisor_profile_id' => $profile->id, 'status' => 'ready', 'mode' => 'target_only', 'profile_version' => 1,
+        'scoring_version' => 1, 'prompt_version' => 1, 'knowledge_version' => 1, 'context_hash' => hash('sha256', 'x'),
+        'current_portfolio_included' => false, 'recommendation_payload' => advisorValidRecommendation(),
+    ]);
+
+    $this->actingAs($other)->get(route('advisor.recommendations.show', $recommendation))->assertNotFound();
+});

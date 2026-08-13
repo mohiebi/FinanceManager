@@ -68,6 +68,10 @@ return [
         'label' => 'AI Assistant',
         'description' => 'Connect AI tools that can read your finance data and propose changes for your approval.',
     ],
+    'advisor' => [
+        'label' => 'AI Portfolio Advisor',
+        'description' => 'Build a CashPilot risk profile and receive a constrained AI-designed target portfolio.',
+    ],
     'telegram_bot' => [
         'label' => 'Telegram Bot',
         'description' => 'Use CashPilot from Telegram to add entries, review summaries, and receive reminders.',

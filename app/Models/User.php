@@ -104,6 +104,24 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(InvestmentAsset::class);
     }
 
+    /** @return HasMany<InvestorAssessment, User> */
+    public function investorAssessments(): HasMany
+    {
+        return $this->hasMany(InvestorAssessment::class);
+    }
+
+    /** @return HasMany<AdvisorProfile, User> */
+    public function advisorProfiles(): HasMany
+    {
+        return $this->hasMany(AdvisorProfile::class);
+    }
+
+    /** @return HasMany<AdvisorRecommendation, User> */
+    public function advisorRecommendations(): HasMany
+    {
+        return $this->hasMany(AdvisorRecommendation::class);
+    }
+
     /**
      * @return HasMany<SocialAccount, User>
      */

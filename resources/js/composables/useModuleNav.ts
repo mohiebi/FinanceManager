@@ -1,6 +1,7 @@
 import { usePage } from '@inertiajs/vue3';
 import {
     Bot,
+    BrainCircuit,
     ChartPie,
     LayoutGrid,
     Receipt,
@@ -15,6 +16,7 @@ import type { ComputedRef } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { dashboard, goals, portfolio, report } from '@/routes';
+import { index as advisorIndex } from '@/routes/advisor';
 import { edit as editAiConnections } from '@/routes/ai-connections';
 import { index as billsIndex } from '@/routes/bills';
 import { index as budgetsIndex } from '@/routes/budgets';
@@ -122,6 +124,14 @@ export function useModuleNav(): UseModuleNavReturn {
                 subtitle: t('navigation.budgets_subtitle'),
                 href: budgetsIndex(),
                 icon: Target,
+            },
+            {
+                key: 'advisor',
+                feature: 'advisor',
+                title: t('navigation.advisor'),
+                subtitle: t('navigation.advisor_subtitle'),
+                href: advisorIndex(),
+                icon: BrainCircuit,
             },
             {
                 key: 'ai_assistant',

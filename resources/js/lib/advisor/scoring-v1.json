@@ -1,0 +1,530 @@
+{
+    "assessment_version": 1,
+    "scoring_version": 1,
+    "sections": [
+        {
+            "number": 1,
+            "key": "financial_foundation",
+            "questions": [
+                "q1_age",
+                "q2_income_stability",
+                "q3_emergency_fund",
+                "q4_high_interest_debt",
+                "q5_portfolio_wealth_share"
+            ]
+        },
+        {
+            "number": 2,
+            "key": "investment_goals",
+            "questions": [
+                "q6_primary_goal",
+                "q7_goal_importance",
+                "q8_time_horizon",
+                "q9_early_withdrawal",
+                "q10_liquidity"
+            ]
+        },
+        {
+            "number": 3,
+            "key": "risk_and_loss",
+            "questions": [
+                "q11_permanent_loss_impact",
+                "q12_drawdown_10",
+                "q13_drawdown_20",
+                "q14_drawdown_35",
+                "q15_max_drawdown",
+                "q16_risk_return"
+            ]
+        },
+        {
+            "number": 4,
+            "key": "investment_experience",
+            "questions": [
+                "q17_experience",
+                "q18_asset_classes",
+                "q19_diversification"
+            ]
+        },
+        {
+            "number": 5,
+            "key": "behavior",
+            "questions": ["q20_fomo", "q21_concentration"]
+        },
+        {
+            "number": 6,
+            "key": "return_expectations",
+            "questions": ["q22_target_return"]
+        },
+        {
+            "number": 7,
+            "key": "portfolio_preferences",
+            "questions": ["portfolio_preferences"]
+        },
+        {
+            "number": 8,
+            "key": "options_and_hedging",
+            "questions": ["options_capability"]
+        }
+    ],
+    "questions": {
+        "q1_age": {
+            "input": "single",
+            "options": ["18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"]
+        },
+        "q2_income_stability": {
+            "input": "single",
+            "options": [
+                "very_stable",
+                "mostly_stable",
+                "variable",
+                "unpredictable",
+                "no_regular_income"
+            ],
+            "scores": {
+                "very_stable": {
+                    "financial_resilience": 100,
+                    "risk_capacity": 100
+                },
+                "mostly_stable": {
+                    "financial_resilience": 80,
+                    "risk_capacity": 80
+                },
+                "variable": { "financial_resilience": 55, "risk_capacity": 55 },
+                "unpredictable": {
+                    "financial_resilience": 25,
+                    "risk_capacity": 25
+                },
+                "no_regular_income": {
+                    "financial_resilience": 10,
+                    "risk_capacity": 10
+                }
+            }
+        },
+        "q3_emergency_fund": {
+            "input": "single",
+            "options": ["under_1", "1_3", "3_6", "6_12", "over_12"],
+            "scores": {
+                "under_1": {
+                    "financial_resilience": 10,
+                    "risk_capacity": 10,
+                    "liquidity_need": 100
+                },
+                "1_3": {
+                    "financial_resilience": 35,
+                    "risk_capacity": 35,
+                    "liquidity_need": 80
+                },
+                "3_6": {
+                    "financial_resilience": 60,
+                    "risk_capacity": 60,
+                    "liquidity_need": 55
+                },
+                "6_12": {
+                    "financial_resilience": 80,
+                    "risk_capacity": 80,
+                    "liquidity_need": 25
+                },
+                "over_12": {
+                    "financial_resilience": 100,
+                    "risk_capacity": 100,
+                    "liquidity_need": 10
+                }
+            }
+        },
+        "q4_high_interest_debt": {
+            "input": "single",
+            "options": ["none", "manageable", "significant"],
+            "scores": {
+                "none": { "financial_resilience": 100, "risk_capacity": 100 },
+                "manageable": {
+                    "financial_resilience": 60,
+                    "risk_capacity": 55
+                },
+                "significant": {
+                    "financial_resilience": 10,
+                    "risk_capacity": 5
+                }
+            }
+        },
+        "q5_portfolio_wealth_share": {
+            "input": "single",
+            "options": ["under_10", "10_25", "25_50", "50_75", "over_75"],
+            "scores": {
+                "under_10": { "risk_capacity": 100 },
+                "10_25": { "risk_capacity": 85 },
+                "25_50": { "risk_capacity": 65 },
+                "50_75": { "risk_capacity": 40 },
+                "over_75": { "risk_capacity": 15 }
+            }
+        },
+        "q6_primary_goal": {
+            "input": "single",
+            "options": [
+                "purchasing_power",
+                "long_term_wealth",
+                "retirement",
+                "income",
+                "property",
+                "financial_independence",
+                "business",
+                "speculative_growth",
+                "other"
+            ],
+            "scores": {
+                "purchasing_power": { "return_ambition": 15 },
+                "long_term_wealth": { "return_ambition": 65 },
+                "retirement": { "return_ambition": 50 },
+                "income": { "return_ambition": 35 },
+                "property": { "return_ambition": 40 },
+                "financial_independence": { "return_ambition": 65 },
+                "business": { "return_ambition": 75 },
+                "speculative_growth": { "return_ambition": 100 },
+                "other": { "return_ambition": 50 }
+            }
+        },
+        "q7_goal_importance": {
+            "input": "single",
+            "options": ["optional", "important", "very_important", "essential"],
+            "scores": {
+                "optional": { "risk_capacity": 90 },
+                "important": { "risk_capacity": 70 },
+                "very_important": { "risk_capacity": 50 },
+                "essential": { "risk_capacity": 25 }
+            }
+        },
+        "q8_time_horizon": {
+            "input": "single",
+            "options": [
+                "under_1_year",
+                "1_3_years",
+                "3_5_years",
+                "5_10_years",
+                "10_plus",
+                "no_planned_withdrawal"
+            ],
+            "scores": {
+                "under_1_year": { "time_horizon": 5, "risk_capacity": 10 },
+                "1_3_years": { "time_horizon": 25, "risk_capacity": 30 },
+                "3_5_years": { "time_horizon": 45, "risk_capacity": 50 },
+                "5_10_years": { "time_horizon": 70, "risk_capacity": 75 },
+                "10_plus": { "time_horizon": 95, "risk_capacity": 95 },
+                "no_planned_withdrawal": {
+                    "time_horizon": 100,
+                    "risk_capacity": 100
+                }
+            }
+        },
+        "q9_early_withdrawal": {
+            "input": "single",
+            "options": [
+                "very_unlikely",
+                "unlikely",
+                "possible",
+                "likely",
+                "very_likely"
+            ],
+            "scores": {
+                "very_unlikely": { "liquidity_need": 10, "risk_capacity": 100 },
+                "unlikely": { "liquidity_need": 25, "risk_capacity": 80 },
+                "possible": { "liquidity_need": 50, "risk_capacity": 60 },
+                "likely": { "liquidity_need": 75, "risk_capacity": 35 },
+                "very_likely": { "liquidity_need": 95, "risk_capacity": 15 }
+            }
+        },
+        "q10_liquidity": {
+            "input": "liquidity",
+            "proportion_options": [
+                "almost_none",
+                "under_10",
+                "10_25",
+                "25_50",
+                "over_50"
+            ],
+            "speed_options": [
+                "same_day",
+                "within_week",
+                "within_month",
+                "several_months"
+            ]
+        },
+        "q11_permanent_loss_impact": {
+            "input": "single",
+            "options": [
+                "severe",
+                "significant",
+                "moderate",
+                "small",
+                "minimal"
+            ],
+            "scores": {
+                "severe": { "risk_capacity": 5 },
+                "significant": { "risk_capacity": 25 },
+                "moderate": { "risk_capacity": 50 },
+                "small": { "risk_capacity": 75 },
+                "minimal": { "risk_capacity": 100 }
+            }
+        },
+        "q12_drawdown_10": {
+            "input": "single",
+            "options": [
+                "sell_all",
+                "sell_part",
+                "hold",
+                "buy_some",
+                "buy_more"
+            ],
+            "scores": {
+                "sell_all": {
+                    "risk_willingness": 5,
+                    "behavioral_stability": 10,
+                    "loss_aversion": 100
+                },
+                "sell_part": {
+                    "risk_willingness": 25,
+                    "behavioral_stability": 35,
+                    "loss_aversion": 80
+                },
+                "hold": {
+                    "risk_willingness": 50,
+                    "behavioral_stability": 70,
+                    "loss_aversion": 50
+                },
+                "buy_some": {
+                    "risk_willingness": 70,
+                    "behavioral_stability": 85,
+                    "loss_aversion": 30
+                },
+                "buy_more": {
+                    "risk_willingness": 90,
+                    "behavioral_stability": 90,
+                    "loss_aversion": 10
+                }
+            }
+        },
+        "q13_drawdown_20": {
+            "input": "single",
+            "options": [
+                "sell_all",
+                "sell_part",
+                "hold",
+                "buy_some",
+                "buy_more"
+            ],
+            "scores": {
+                "sell_all": {
+                    "risk_willingness": 0,
+                    "behavioral_stability": 10,
+                    "loss_aversion": 100
+                },
+                "sell_part": {
+                    "risk_willingness": 20,
+                    "behavioral_stability": 30,
+                    "loss_aversion": 85
+                },
+                "hold": {
+                    "risk_willingness": 50,
+                    "behavioral_stability": 70,
+                    "loss_aversion": 50
+                },
+                "buy_some": {
+                    "risk_willingness": 75,
+                    "behavioral_stability": 85,
+                    "loss_aversion": 25
+                },
+                "buy_more": {
+                    "risk_willingness": 100,
+                    "behavioral_stability": 90,
+                    "loss_aversion": 5
+                }
+            }
+        },
+        "q14_drawdown_35": {
+            "input": "single",
+            "options": [
+                "cannot_tolerate",
+                "extremely_uncomfortable",
+                "uncomfortable_hold",
+                "normal",
+                "buying_opportunity"
+            ],
+            "scores": {
+                "cannot_tolerate": {
+                    "risk_willingness": 0,
+                    "behavioral_stability": 10,
+                    "loss_aversion": 100
+                },
+                "extremely_uncomfortable": {
+                    "risk_willingness": 20,
+                    "behavioral_stability": 35,
+                    "loss_aversion": 85
+                },
+                "uncomfortable_hold": {
+                    "risk_willingness": 50,
+                    "behavioral_stability": 65,
+                    "loss_aversion": 55
+                },
+                "normal": {
+                    "risk_willingness": 75,
+                    "behavioral_stability": 85,
+                    "loss_aversion": 25
+                },
+                "buying_opportunity": {
+                    "risk_willingness": 100,
+                    "behavioral_stability": 90,
+                    "loss_aversion": 5
+                }
+            }
+        },
+        "q15_max_drawdown": {
+            "input": "single",
+            "options": ["5", "10", "15", "20", "30", "40", "50"],
+            "willingness": {
+                "5": 5,
+                "10": 20,
+                "15": 35,
+                "20": 50,
+                "30": 70,
+                "40": 85,
+                "50": 100
+            }
+        },
+        "q16_risk_return": {
+            "input": "single",
+            "options": ["portfolio_a", "portfolio_b", "portfolio_c"],
+            "scores": {
+                "portfolio_a": { "risk_willingness": 25 },
+                "portfolio_b": { "risk_willingness": 65 },
+                "portfolio_c": { "risk_willingness": 100 }
+            }
+        },
+        "q17_experience": {
+            "input": "single",
+            "options": ["never", "under_1", "1_3", "3_5", "5_plus"],
+            "scores": {
+                "never": { "investment_knowledge": 5 },
+                "under_1": { "investment_knowledge": 20 },
+                "1_3": { "investment_knowledge": 40 },
+                "3_5": { "investment_knowledge": 65 },
+                "5_plus": { "investment_knowledge": 85 }
+            }
+        },
+        "q18_asset_classes": {
+            "input": "multi",
+            "options": [
+                "deposits",
+                "gold",
+                "silver",
+                "stocks",
+                "etfs",
+                "bonds",
+                "real_estate",
+                "bitcoin",
+                "crypto",
+                "derivatives"
+            ]
+        },
+        "q19_diversification": {
+            "input": "single",
+            "options": [
+                "guarantee_profit",
+                "reduce_specific_risk",
+                "eliminate_declines",
+                "increase_leverage"
+            ],
+            "scores": {
+                "guarantee_profit": { "investment_knowledge": 10 },
+                "reduce_specific_risk": { "investment_knowledge": 100 },
+                "eliminate_declines": { "investment_knowledge": 15 },
+                "increase_leverage": { "investment_knowledge": 5 }
+            }
+        },
+        "q20_fomo": {
+            "input": "single",
+            "options": [
+                "buy_immediately",
+                "research_small",
+                "evaluate_fundamentals",
+                "avoid_after_rise"
+            ],
+            "scores": {
+                "buy_immediately": { "behavioral_stability": 10 },
+                "research_small": { "behavioral_stability": 60 },
+                "evaluate_fundamentals": { "behavioral_stability": 95 },
+                "avoid_after_rise": { "behavioral_stability": 65 }
+            }
+        },
+        "q21_concentration": {
+            "input": "single",
+            "options": [
+                "keep_winner",
+                "add_more",
+                "leave",
+                "rebalance_part",
+                "rebalance_aggressively"
+            ],
+            "scores": {
+                "keep_winner": { "behavioral_stability": 25 },
+                "add_more": { "behavioral_stability": 10 },
+                "leave": { "behavioral_stability": 45 },
+                "rebalance_part": { "behavioral_stability": 85 },
+                "rebalance_aggressively": { "behavioral_stability": 95 }
+            }
+        },
+        "q22_target_return": {
+            "input": "single",
+            "options": [
+                "purchasing_power",
+                "5_8",
+                "8_12",
+                "12_18",
+                "18_plus",
+                "not_sure"
+            ],
+            "scores": {
+                "purchasing_power": { "return_ambition": 10 },
+                "5_8": { "return_ambition": 30 },
+                "8_12": { "return_ambition": 50 },
+                "12_18": { "return_ambition": 75 },
+                "18_plus": { "return_ambition": 100 },
+                "not_sure": { "return_ambition": 40 }
+            }
+        },
+        "portfolio_preferences": { "input": "portfolio_preferences" },
+        "options_capability": { "input": "options_capability" }
+    },
+    "weights": {
+        "risk_willingness": 0.35,
+        "time_horizon": 0.2,
+        "financial_resilience": 0.2,
+        "behavioral_stability": 0.1,
+        "investment_knowledge": 0.05,
+        "return_ambition": 0.1
+    },
+    "risk_envelopes": {
+        "very_conservative": {
+            "high_risk_max": 10,
+            "speculative_max": 0,
+            "single_asset_max": 25
+        },
+        "conservative": {
+            "high_risk_max": 30,
+            "speculative_max": 5,
+            "single_asset_max": 35
+        },
+        "balanced": {
+            "high_risk_max": 55,
+            "speculative_max": 15,
+            "single_asset_max": 50
+        },
+        "growth": {
+            "high_risk_max": 80,
+            "speculative_max": 30,
+            "single_asset_max": 65
+        },
+        "aggressive": {
+            "high_risk_max": 100,
+            "speculative_max": 50,
+            "single_asset_max": 80
+        }
+    }
+}

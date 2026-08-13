@@ -67,10 +67,10 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
         class="border-0 p-0"
     >
         <div
-            class="flex h-full w-full flex-col justify-between bg-[#353535] px-5 pb-11 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0"
+            class="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#353535] px-5 pb-11 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0"
         >
             <div
-                class="flex w-full flex-col gap-10 pt-6 group-data-[collapsible=icon]:items-center"
+                class="flex min-h-0 w-full flex-1 flex-col gap-10 pt-6 group-data-[collapsible=icon]:items-center"
             >
                 <!-- ── Menu toggle — full row is one button ───────── -->
                 <button
@@ -107,7 +107,8 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
 
                 <!-- ── Primary navigation ──────────────────────────── -->
                 <nav
-                    class="flex w-full flex-col gap-3 group-data-[collapsible=icon]:items-center"
+                    data-sidebar-scroll
+                    class="sidebar-nav-scroll flex min-h-0 w-full flex-1 touch-pan-y flex-col gap-3 overflow-x-hidden overflow-y-auto overscroll-contain pe-1 pb-3 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:pe-0"
                     :aria-label="t('navigation.primary')"
                 >
                     <Link
@@ -168,7 +169,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                                  aside now that the flight name leads. -->
                             <span
                                 v-if="item.subtitle"
-                                class="truncate text-[11px] lowercase text-white/35"
+                                class="truncate text-[11px] text-white/35 lowercase"
                             >
                                 {{ item.title }}
                             </span>
@@ -201,7 +202,8 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
 
             <!-- ── Settings / account dropdown ────────────────────── -->
             <nav
-                class="flex w-full flex-col gap-3 group-data-[collapsible=icon]:items-center"
+                data-sidebar-account
+                class="mt-4 flex w-full shrink-0 flex-col gap-3 group-data-[collapsible=icon]:items-center"
                 :aria-label="t('navigation.account')"
             >
                 <DropdownMenu>
@@ -229,7 +231,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                                     {{ t('navigation.settings_subtitle') }}
                                 </span>
                                 <span
-                                    class="truncate text-[11px] lowercase text-white/35"
+                                    class="truncate text-[11px] text-white/35 lowercase"
                                 >
                                     {{ t('settings.title') }}
                                 </span>
@@ -250,3 +252,27 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
     </Sidebar>
     <slot />
 </template>
+
+<style scoped>
+.sidebar-nav-scroll {
+    scrollbar-color: rgb(255 255 255 / 22%) transparent;
+    scrollbar-width: thin;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar {
+    width: 5px;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 22%);
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgb(255 255 255 / 34%);
+}
+</style>

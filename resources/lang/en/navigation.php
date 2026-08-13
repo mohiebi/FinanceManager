@@ -16,6 +16,8 @@ return [
     'budgets_subtitle' => 'Flight plan',
     'ai_assistant' => 'AI',
     'ai_assistant_subtitle' => 'Co-pilot',
+    'advisor' => 'Advisor',
+    'advisor_subtitle' => 'Portfolio co-pilot',
     'telegram_bot' => 'Telegram Bot',
     'settings_subtitle' => 'Controls Room',
     'primary' => 'Primary navigation',

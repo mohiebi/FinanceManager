@@ -18,6 +18,7 @@ class AdvisorRecommendationService
         private readonly AdvisorProposalValidator $validator,
         private readonly AdvisorRebalancingCalculator $rebalancingCalculator,
         private readonly AdvisorCanonicalJson $canonicalJson,
+        private readonly AdvisorExecutionTimeLimiter $executionTimeLimiter,
     ) {}
 
     /** @return array<string, mixed> */
@@ -119,6 +120,7 @@ class AdvisorRecommendationService
 
         try {
             $recommendation->increment('provider_calls');
+            $this->executionTimeLimiter->extendForProviderCall();
             $response = AdvisorRecommendationAgent::make()->prompt(
                 $prompt,
                 provider: (string) config('advisor.provider'),
@@ -189,6 +191,7 @@ class AdvisorRecommendationService
         try {
             $recommendation->increment('repair_attempts');
             $recommendation->increment('provider_calls');
+            $this->executionTimeLimiter->extendForProviderCall();
             $response = AdvisorRecommendationAgent::make()->prompt(
                 $prompt,
                 provider: (string) config('advisor.provider'),
@@ -204,6 +207,12 @@ class AdvisorRecommendationService
 
         $remainingViolations = $this->validator->validate($repaired, $context);
         if ($remainingViolations !== []) {
+            Log::warning('Advisor recommendation repair failed validation.', [
+                'recommendation_id' => $recommendation->id,
+                'violation_codes' => array_column($remainingViolations, 'code'),
+                'violation_paths' => array_column($remainingViolations, 'path'),
+            ]);
+
             return $this->fail($recommendation, 'validation_failed');
         }
 

@@ -9,7 +9,10 @@ use App\Models\InvestorAssessment;
 use App\Models\User;
 use App\Services\Advisor\AdvisorProposalValidator;
 use App\Support\Encryption\UserCrypto;
+use Illuminate\Cache\RateLimiting\Unlimited;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 
 function advisorRecommendationProfile(User $user): AdvisorProfile
@@ -35,7 +38,7 @@ function advisorRecommendationProfile(User $user): AdvisorProfile
             'maximum_tolerated_drawdown' => 30,
             'financial_context' => ['income_stability' => 'mostly_stable', 'emergency_fund' => '6_12', 'high_interest_debt' => 'none', 'portfolio_share_of_liquid_wealth' => '25_50'],
             'goals' => ['primary' => 'long_term_wealth', 'importance' => 'important', 'time_horizon' => '10_plus', 'early_withdrawal_likelihood' => 'unlikely', 'liquidity' => ['proportion' => 'under_10', 'speed' => 'within_month'], 'target_return' => '8_12'],
-            'portfolio_preferences' => ['scope' => 'both', 'primary_currency' => 'TOMAN', 'country' => 'US', 'markets' => ['Global'], 'tax_sensitive' => false, 'exclusions' => []],
+            'portfolio_preferences' => ['scope' => 'both', 'primary_currency' => 'TOMAN', 'country' => 'US', 'markets' => ['Global'], 'tax_sensitive' => false],
             'selected_assets' => [
                 ['asset_key' => 'cash', 'source' => 'cashpilot', 'investment_asset_id' => $usd->id, 'name' => 'US Dollar', 'ticker' => 'USD', 'identifier' => null, 'exchange_or_market' => null, 'country' => 'US', 'currency' => 'USD', 'category' => 'currency', 'risk_band' => 'defensive', 'liquidity' => 'same_day', 'perspective' => 'neutral', 'conviction' => 'medium', 'holding_period' => '10_plus', 'inclusion' => 'required'],
                 ['asset_key' => 'bitcoin', 'source' => 'cashpilot', 'investment_asset_id' => $bitcoin->id, 'name' => 'Bitcoin', 'ticker' => 'BTC', 'identifier' => null, 'exchange_or_market' => null, 'country' => null, 'currency' => 'USD', 'category' => 'crypto', 'risk_band' => 'speculative', 'liquidity' => 'same_day', 'perspective' => 'bullish', 'conviction' => 'medium', 'holding_period' => '10_plus', 'inclusion' => 'allowed'],
@@ -289,6 +292,33 @@ test('the validator rejects current market claims and exact option contracts in 
         ->and($codes)->toContain('live_options_detail');
 });
 
+test('model only limitations may explicitly say that current data was not used', function () {
+    $user = User::factory()->pro()->create();
+    $profile = advisorRecommendationProfile($user);
+    $proposal = advisorValidRecommendation();
+    $proposal['uncertainties'] = ['Model-only mode provides no current prices, market conditions, or trading costs.'];
+    $context = advisorContext($profile);
+    $context['knowledge_mode'] = 'model_only';
+
+    $codes = collect(app(AdvisorProposalValidator::class)->validate($proposal, $context))->pluck('code');
+
+    expect($codes)->not->toContain('unsupported_current_market_claim');
+});
+
+test('removing a small speculative sleeve is a meaningfully safer alternative', function () {
+    $user = User::factory()->pro()->create();
+    $profile = advisorRecommendationProfile($user);
+    $proposal = advisorValidRecommendation();
+    $proposal['primary']['allocations'][0]['target_percent'] = 95;
+    $proposal['primary']['allocations'][1]['target_percent'] = 5;
+    $proposal['safer_alternative']['allocations'][0]['target_percent'] = 100;
+    $proposal['safer_alternative']['allocations'][1]['target_percent'] = 0;
+
+    $codes = collect(app(AdvisorProposalValidator::class)->validate($proposal, advisorContext($profile)))->pluck('code');
+
+    expect($codes)->not->toContain('safer_not_meaningfully_safer');
+});
+
 test('the validator rejects unknown assets excessive risk and prohibited options', function () {
     $user = User::factory()->pro()->create();
     $profile = advisorRecommendationProfile($user);
@@ -355,6 +385,37 @@ test('clarification provider calls have an independent daily rate limit', functi
         ?->gatherMiddleware() ?? [];
 
     expect($middleware)->toContain('throttle:advisor-clarifications');
+});
+
+test('recommendation throttling waits for a response and returns a friendly message', function () {
+    $user = User::factory()->pro()->create();
+    $request = Request::create('/advisor/recommendations', 'POST');
+    $request->setUserResolver(fn (): User => $user);
+    $limit = RateLimiter::limiter('advisor-recommendations')($request);
+
+    expect($limit->afterCallback)->toBeCallable()
+        ->and(($limit->afterCallback)(response()->noContent()))->toBeTrue()
+        ->and(($limit->afterCallback)(response()->noContent(500)))->toBeFalse();
+
+    $response = ($limit->responseCallback)($request, ['Retry-After' => 60]);
+
+    expect($response->getStatusCode())->toBe(429)
+        ->and($response->getData(true)['message'])->toBe(__('advisor.validation.recommendation_rate_limited'));
+});
+
+test('advisor rate limits are disabled in the local environment', function () {
+    $originalEnvironment = app()->environment();
+    app()->detectEnvironment(fn (): string => 'local');
+
+    try {
+        $request = Request::create('/advisor/recommendations', 'POST');
+
+        expect(RateLimiter::limiter('advisor-recommendations')($request))->toBeInstanceOf(Unlimited::class)
+            ->and(RateLimiter::limiter('advisor-clarifications')($request))->toBeInstanceOf(Unlimited::class)
+            ->and(RateLimiter::limiter('advisor-consultations')($request))->toBeInstanceOf(Unlimited::class);
+    } finally {
+        app()->detectEnvironment(fn (): string => $originalEnvironment);
+    }
 });
 
 test('cross user recommendation identifiers return not found', function () {

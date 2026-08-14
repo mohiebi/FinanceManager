@@ -93,7 +93,7 @@ return [
     'portfolio' => [
         'scope' => 'What should this recommendation cover?', 'scope_current' => 'Current holdings', 'scope_new' => 'New capital', 'scope_both' => 'Both',
         'new_amount' => 'New investable amount', 'recurring' => 'Recurring contribution', 'currency' => 'Primary currency', 'country' => 'Country', 'markets' => 'Markets you can access',
-        'max_concentration' => 'Maximum desired allocation to one asset', 'tax_sensitive' => 'Prefer tax-sensitive rebalancing', 'exclusions' => 'Exclusions',
+        'max_concentration' => 'Maximum desired allocation to one asset', 'tax_sensitive' => 'Prefer tax-sensitive rebalancing',
         'assets' => 'Assets the AI may use', 'assets_help' => 'Select CashPilot assets for tracking, or add structured custom assets. The AI cannot silently introduce anything else.',
         'add_custom' => 'Add custom asset', 'required_asset' => 'Must be included', 'allowed_asset' => 'AI may include or exclude', 'perspective' => 'Your outlook', 'conviction' => 'Conviction', 'holding_period' => 'Holding period', 'remove' => 'Remove',
         'name' => 'Asset name', 'ticker' => 'Ticker', 'identifier' => 'ISIN or identifier', 'exchange' => 'Exchange / market', 'category' => 'Category', 'risk_band' => 'Estimated risk', 'liquidity' => 'Liquidity', 'notes' => 'Private notes (not sent to AI)',
@@ -118,6 +118,6 @@ return [
     ],
     'disclosure' => 'CashPilot Advisor provides personalized educational guidance based on the information you provide. Investment outcomes are uncertain, and historical performance does not guarantee future results.',
     'validation' => [
-        'invalid_section' => 'That assessment section does not exist.', 'custom_asset_identifier' => 'A custom asset needs a ticker or identifier.', 'missing_answers' => 'Complete every assessment section first.', 'completed_immutable' => 'Completed assessments cannot be changed.', 'ai_consent_required' => 'Enable AI consent before generating a recommendation.', 'output_hash_mismatch' => 'The encrypted recommendation does not match the generated result.', 'provider_failure' => 'The AI provider is unavailable right now. Your CashPilot profile remains available.',
+        'invalid_section' => 'That assessment section does not exist.', 'custom_asset_identifier' => 'A custom asset needs a ticker or identifier.', 'missing_answers' => 'Complete every assessment section first.', 'completed_immutable' => 'Completed assessments cannot be changed.', 'ai_consent_required' => 'Enable AI consent before generating a recommendation.', 'output_hash_mismatch' => 'The encrypted recommendation does not match the generated result.', 'provider_failure' => 'The AI provider is unavailable right now. Your CashPilot profile remains available.', 'recommendation_rate_limited' => 'You have reached the daily limit of five AI portfolio sessions. Please try again after the daily window resets.',
     ],
 ];

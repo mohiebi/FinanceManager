@@ -92,7 +92,6 @@ function advisorAnswers(int $investmentAssetId): array
             'markets' => ['NYSE', 'NASDAQ'],
             'maximum_single_asset_allocation' => 50,
             'tax_sensitive' => false,
-            'exclusions' => [],
             'assets' => [[
                 'asset_key' => 'cashpilot-'.$investmentAssetId,
                 'source' => 'cashpilot',

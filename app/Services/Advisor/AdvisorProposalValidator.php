@@ -44,7 +44,8 @@ class AdvisorProposalValidator
         if (is_array($proposal['safer_alternative'] ?? null) && ($proposal['safer_alternative']['allocations'] ?? []) !== []) {
             $violations = [...$violations, ...$this->validatePortfolio($proposal['safer_alternative'], $context, 'safer_alternative')];
             $saferRisk = $this->riskLoad($proposal['safer_alternative']['allocations'], $context);
-            if ($saferRisk >= $primaryRisk - 5) {
+            $minimumReduction = max(2.0, $primaryRisk * 0.1);
+            if (($primaryRisk - $saferRisk) < $minimumReduction) {
                 $violations[] = $this->violation('safer_not_meaningfully_safer', 'safer_alternative.allocations', 'The safer alternative must materially reduce the allocation risk load.');
             }
         } else {
@@ -114,9 +115,6 @@ class AdvisorProposalValidator
                 $violations[] = $this->violation('unknown_risk_too_large', "{$allocationPath}.target_percent", 'An unclassified custom asset may not exceed 10%.');
             }
 
-            if ($this->isExcluded($asset, (array) ($context['portfolio_preferences']['exclusions'] ?? []))) {
-                $violations[] = $this->violation('excluded_asset', "{$allocationPath}.asset_key", 'The allocation conflicts with an explicit user exclusion.');
-            }
         }
 
         if ($total !== 100) {
@@ -335,17 +333,6 @@ class AdvisorProposalValidator
             : 'unknown';
     }
 
-    /** @param array<string, mixed> $asset
-     * @param  array<int, string>  $exclusions
-     */
-    private function isExcluded(array $asset, array $exclusions): bool
-    {
-        $category = $asset['category'] ?? null;
-
-        return ($category === 'crypto' && in_array('crypto', $exclusions, true))
-            || ($category === 'private_asset' && in_array('private_assets', $exclusions, true));
-    }
-
     private function containsProhibitedStrategy(string $strategy): bool
     {
         foreach (self::PROHIBITED_STRATEGY_TERMS as $term) {
@@ -394,6 +381,10 @@ class AdvisorProposalValidator
                 return;
             }
 
+            if ($this->isKnowledgeLimitation($value)) {
+                return;
+            }
+
             foreach ($liveClaimPatterns as $pattern) {
                 if (preg_match($pattern, $value) === 1) {
                     $violations[] = $this->violation('unsupported_current_market_claim', $path, 'Model-only recommendations cannot assert current prices, news, market conditions, or option-chain data.');
@@ -406,6 +397,14 @@ class AdvisorProposalValidator
         $walk($proposal, '');
 
         return $violations;
+    }
+
+    private function isKnowledgeLimitation(string $value): bool
+    {
+        return preg_match(
+            '/\b(no|not|without|unknown|unavailable|cannot|can\'t|does not|do not|isn\'t|aren\'t)\b.{0,60}\b(today(?:\'s)?|current|latest|recent|prices?|news|market conditions?|option chains?)\b/iu',
+            $value,
+        ) === 1;
     }
 
     private function optionsCategory(string $category): ?string

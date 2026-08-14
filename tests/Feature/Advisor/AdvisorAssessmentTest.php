@@ -89,6 +89,7 @@ test('a complete assessment creates a readable normalized profile without raw no
         ->and($profile->profile_payload['persona'])->toBeString()
         ->and($profile->profile_payload['selected_assets'][0])->not->toHaveKey('notes')
         ->and($profile->profile_payload['portfolio_preferences'])->not->toHaveKey('new_investable_amount')
+        ->and($profile->profile_payload['portfolio_preferences'])->not->toHaveKey('exclusions')
         ->and($profile->profile_payload['options_capability']['allowed_strategy_families'])->toContain('protective_put');
 
     expect($profile->getRawOriginal('profile_payload'))->toContain('effective_risk');
@@ -120,6 +121,14 @@ test('custom assets require sufficient identifying metadata', function () {
 
     expect(fn () => $definition->validateSection(7, ['portfolio_preferences' => $preferences]))
         ->toThrow(ValidationException::class);
+});
+
+test('portfolio preferences do not require an exclusion policy', function () {
+    $definition = app(AdvisorAssessmentDefinition::class);
+    $preferences = advisorAnswers(advisorTestAsset()->id)['portfolio_preferences'];
+
+    expect($definition->validateSection(7, ['portfolio_preferences' => $preferences]))
+        ->toHaveKey('portfolio_preferences');
 });
 
 test('cross user assessment identifiers return not found', function () {

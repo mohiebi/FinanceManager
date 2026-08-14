@@ -17,6 +17,16 @@ function classesFor(attribute: string): string {
     return element[1];
 }
 
+function divClassesFor(attribute: string): string {
+    const element = sidebar.match(
+        new RegExp(`<div\\s+${attribute}\\s+class="([^"]+)"`),
+    );
+
+    assert.ok(element, `Could not find div with ${attribute}`);
+
+    return element[1];
+}
+
 test('the sidebar scrolls only its primary navigation region', () => {
     const scrollClasses = classesFor('data-sidebar-scroll');
 
@@ -30,4 +40,10 @@ test('the account navigation remains outside the scrolling region', () => {
     const accountClasses = classesFor('data-sidebar-account');
 
     assert.match(accountClasses, /\bshrink-0\b/);
+});
+
+test('the sidebar shell has no bottom spacing', () => {
+    const shellClasses = divClassesFor('data-sidebar-shell');
+
+    assert.doesNotMatch(shellClasses, /\b(?:p|m)b-/);
 });

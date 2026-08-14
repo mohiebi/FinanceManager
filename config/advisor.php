@@ -4,6 +4,7 @@ return [
     'provider' => env('ADVISOR_AI_PROVIDER', 'openai'),
     'model' => env('ADVISOR_AI_MODEL'),
     'timeout' => (int) env('ADVISOR_AI_TIMEOUT', 60),
+    'execution_time_buffer' => (int) env('ADVISOR_AI_EXECUTION_TIME_BUFFER', 10),
     'prompt_version' => 1,
     'max_clarification_questions' => 3,
     'max_clarification_rounds' => 1,

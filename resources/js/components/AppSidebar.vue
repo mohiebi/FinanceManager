@@ -67,7 +67,8 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
         class="border-0 p-0"
     >
         <div
-            class="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#353535] px-5 pb-11 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0"
+            data-sidebar-shell
+            class="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#353535] px-5 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0"
         >
             <div
                 class="flex min-h-0 w-full flex-1 flex-col gap-10 pt-6 group-data-[collapsible=icon]:items-center"

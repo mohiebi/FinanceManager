@@ -7,6 +7,7 @@ use App\Enums\AdvisorRecommendationStatus;
 use App\Http\Requests\Advisor\ConsultAdvisorRequest;
 use App\Models\AdvisorRecommendation;
 use App\Services\Advisor\AdvisorCanonicalJson;
+use App\Services\Advisor\AdvisorExecutionTimeLimiter;
 use App\Support\Encryption\EncryptedValue;
 use App\Support\Encryption\SealedField;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,7 @@ class AdvisorConsultationController extends Controller
         ConsultAdvisorRequest $request,
         AdvisorRecommendation $recommendation,
         AdvisorCanonicalJson $canonicalJson,
+        AdvisorExecutionTimeLimiter $executionTimeLimiter,
     ): JsonResponse {
         abort_unless((int) $recommendation->user_id === (int) $request->user()->id, 404);
         abort_unless($recommendation->status === AdvisorRecommendationStatus::Ready, 409);
@@ -61,6 +63,7 @@ class AdvisorConsultationController extends Controller
         ];
 
         try {
+            $executionTimeLimiter->extendForProviderCall();
             $response = AdvisorConsultationAgent::make()->prompt(
                 $canonicalJson->encode($context),
                 provider: (string) config('advisor.provider'),

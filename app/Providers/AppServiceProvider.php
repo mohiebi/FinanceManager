@@ -9,6 +9,7 @@ use App\Support\Encryption\UserKeyRing;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Passport\Passport;
+use Symfony\Component\HttpFoundation\Response;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -48,14 +50,36 @@ class AppServiceProvider extends ServiceProvider
 
     protected function configureAdvisorRateLimiting(): void
     {
-        RateLimiter::for('advisor-recommendations', fn (Request $request): Limit => Limit::perDay(5)
-            ->by('advisor-recommendations:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+        RateLimiter::for('advisor-recommendations', function (Request $request) {
+            if (app()->isLocal()) {
+                return Limit::none();
+            }
 
-        RateLimiter::for('advisor-clarifications', fn (Request $request): Limit => Limit::perDay(5)
-            ->by('advisor-clarifications:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+            return Limit::perDay(5)
+                ->by('advisor-recommendations:'.($request->user()?->getAuthIdentifier() ?? $request->ip()))
+                ->after(fn (Response $response): bool => $response->getStatusCode() < 500)
+                ->response(fn (Request $_request, array $headers): JsonResponse => response()->json([
+                    'message' => __('advisor.validation.recommendation_rate_limited'),
+                ], 429, $headers));
+        });
 
-        RateLimiter::for('advisor-consultations', fn (Request $request): Limit => Limit::perDay(30)
-            ->by('advisor-consultations:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+        RateLimiter::for('advisor-clarifications', function (Request $request) {
+            if (app()->isLocal()) {
+                return Limit::none();
+            }
+
+            return Limit::perDay(5)
+                ->by('advisor-clarifications:'.($request->user()?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        RateLimiter::for('advisor-consultations', function (Request $request) {
+            if (app()->isLocal()) {
+                return Limit::none();
+            }
+
+            return Limit::perDay(30)
+                ->by('advisor-consultations:'.($request->user()?->getAuthIdentifier() ?? $request->ip()));
+        });
     }
 
     /**

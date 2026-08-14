@@ -29,7 +29,6 @@ export type PortfolioPreferences = {
     markets: string[];
     maximum_single_asset_allocation: number;
     tax_sensitive: boolean;
-    exclusions: string[];
     assets: AdvisorAsset[];
 };
 

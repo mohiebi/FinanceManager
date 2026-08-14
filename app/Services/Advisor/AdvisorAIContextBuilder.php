@@ -10,6 +10,7 @@ use App\Enums\Currency;
 use App\Models\AdvisorProfile;
 use App\Models\User;
 use App\Support\CurrencyPreference;
+use Illuminate\Support\Arr;
 
 class AdvisorAIContextBuilder
 {
@@ -48,7 +49,7 @@ class AdvisorAIContextBuilder
             'financial_context' => $payload['financial_context'] ?? [],
             'loss_context' => $payload['loss_context'] ?? [],
             'goals' => $goals,
-            'portfolio_preferences' => $payload['portfolio_preferences'] ?? null,
+            'portfolio_preferences' => $this->portfolioPreferences($payload),
             'constraints' => $payload['constraints'] ?? null,
             'selected_assets' => $payload['selected_assets'] ?? null,
             'options_capability' => $payload['options_capability'] ?? null,
@@ -60,6 +61,24 @@ class AdvisorAIContextBuilder
         $context['knowledge_mode'] = $context['knowledge_context']['mode'];
 
         return $context;
+    }
+
+    /** @param array<string, mixed> $profilePayload
+     * @return array<string, mixed>
+     */
+    private function portfolioPreferences(array $profilePayload): array
+    {
+        $preferences = is_array($profilePayload['portfolio_preferences'] ?? null)
+            ? $profilePayload['portfolio_preferences']
+            : [];
+
+        return Arr::only($preferences, [
+            'scope',
+            'primary_currency',
+            'country',
+            'markets',
+            'tax_sensitive',
+        ]);
     }
 
     /**

@@ -5,6 +5,7 @@ import {
     ArrowRight,
     BrainCircuit,
     CheckCircle2,
+    LoaderCircle,
     LockKeyhole,
     ShieldCheck,
     Sparkles,
@@ -13,6 +14,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
 import { useVault } from '@/composables/useVault';
+import { advisorGenerationErrorKey } from '@/lib/advisor/http-errors';
 import { profile as advisorProfile } from '@/routes/advisor';
 import {
     seal as sealRecommendation,
@@ -112,10 +114,7 @@ async function generateRecommendation(): Promise<void> {
 
         router.visit(showRecommendation(response.recommendation_id).url);
     } catch (error) {
-        generationError.value =
-            error instanceof Error
-                ? error.message
-                : t('advisor.recommendation.failed');
+        generationError.value = t(advisorGenerationErrorKey(error));
     }
 }
 
@@ -382,8 +381,18 @@ defineOptions({
                     sealer.processing
                 "
                 @click="generateRecommendation"
-                >{{ t('advisor.profile.generate') }}<ArrowRight class="size-4"
-            /></Button>
+            >
+                {{
+                    generator.processing || sealer.processing
+                        ? t('advisor.recommendation.generating')
+                        : t('advisor.profile.generate')
+                }}
+                <LoaderCircle
+                    v-if="generator.processing || sealer.processing"
+                    class="size-4 animate-spin"
+                />
+                <ArrowRight v-else class="size-4" />
+            </Button>
         </section>
         <p
             v-if="!props.profile.ai_enabled"

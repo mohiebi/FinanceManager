@@ -192,9 +192,6 @@ export function buildAdvisorProfile(
                 ? preferences.markets.map((market) => cleanText(market, 80))
                 : [],
             tax_sensitive: Boolean(preferences.tax_sensitive),
-            exclusions: Array.isArray(preferences.exclusions)
-                ? preferences.exclusions.map((item) => cleanText(item, 80))
-                : [],
         },
         selected_assets: selectedAssets,
         options_capability: options,

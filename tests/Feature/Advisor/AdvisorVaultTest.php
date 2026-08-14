@@ -94,7 +94,6 @@ function advisorVaultProfile(User $user): AdvisorProfile
                 'country' => 'US',
                 'markets' => ['Global'],
                 'tax_sensitive' => false,
-                'exclusions' => [],
             ],
             'selected_assets' => [
                 [
@@ -212,6 +211,19 @@ test('vault target design excludes holdings and every monetary value from the AI
         ->and($encoded)->not->toContain('125000')
         ->and($encoded)->not->toContain('25000')
         ->and($encoded)->not->toContain($user->email);
+});
+
+test('the AI context strips exclusions from legacy advisor profiles', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    $profile = advisorVaultProfile($user);
+    $payload = $profile->profile_payload;
+    $payload['portfolio_preferences']['exclusions'] = ['alcohol', 'gambling'];
+    $profile->forceFill(['profile_payload' => $payload])->save();
+
+    $context = app(AdvisorAIContextBuilder::class)->build($user, $profile->fresh());
+
+    expect($context['portfolio_preferences'])->not->toHaveKey('exclusions')
+        ->and(json_encode($context, JSON_THROW_ON_ERROR))->not->toContain('alcohol', 'gambling');
 });
 
 test('vault recommendations remain transient until the browser seals the validated payload', function () {

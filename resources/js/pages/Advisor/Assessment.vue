@@ -137,7 +137,6 @@ function initializeSectionDefaults(): void {
             markets: [],
             maximum_single_asset_allocation: 50,
             tax_sensitive: false,
-            exclusions: [],
             assets: [],
         } satisfies PortfolioPreferences;
     }
@@ -693,41 +692,6 @@ defineOptions({
                             class="size-4 accent-[#02CD86]"
                         />{{ t('advisor.portfolio.tax_sensitive') }}</label
                     >
-                </div>
-
-                <div>
-                    <h2 class="text-base font-semibold">
-                        {{ t('advisor.portfolio.exclusions') }}
-                    </h2>
-                    <div class="mt-3 flex flex-wrap gap-2">
-                        <button
-                            v-for="item in [
-                                'crypto',
-                                'private_assets',
-                                'alcohol',
-                                'tobacco',
-                                'gambling',
-                                'weapons',
-                                'interest_based',
-                            ]"
-                            :key="item"
-                            type="button"
-                            class="cursor-pointer rounded-full border px-3 py-2 text-xs transition"
-                            :class="
-                                portfolioPreferences.exclusions.includes(item)
-                                    ? 'border-red-400/40 bg-red-400/10 text-red-200'
-                                    : 'border-white/10 text-white/45 hover:text-white'
-                            "
-                            @click="
-                                toggleList(
-                                    portfolioPreferences.exclusions,
-                                    item,
-                                )
-                            "
-                        >
-                            {{ item.replaceAll('_', ' ') }}
-                        </button>
-                    </div>
                 </div>
 
                 <div>

@@ -102,8 +102,6 @@ class AdvisorAssessmentDefinition
             'markets.*' => ['string', 'max:80', 'distinct'],
             'maximum_single_asset_allocation' => ['required', 'integer', 'between:5,100'],
             'tax_sensitive' => ['required', 'boolean'],
-            'exclusions' => ['present', 'array', 'max:20'],
-            'exclusions.*' => ['string', 'max:80', 'distinct'],
             'assets' => ['required', 'array', 'min:1', 'max:30'],
             'assets.*.asset_key' => ['required', 'string', 'max:80', 'distinct'],
             'assets.*.source' => ['required', 'in:cashpilot,custom'],

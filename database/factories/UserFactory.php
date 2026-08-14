@@ -86,6 +86,33 @@ class UserFactory extends Factory
     }
 
     /**
+     * Give the user a live Pro entitlement.
+     *
+     * Sets the column directly rather than going through GrantProAccess, so a test
+     * that only needs a Pro user does not also acquire a grant row it never asserts
+     * on. Tests covering the entitlement audit trail should call the action.
+     */
+    public function pro(?string $until = null): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'pro_until' => $until ?? now()->addMonthsNoOverflow(1),
+        ]);
+    }
+
+    /**
+     * A user whose Pro entitlement has lapsed.
+     *
+     * Distinct from a user who never paid: pro_until stays populated, which is what
+     * the renewal path and the expired notice both key off.
+     */
+    public function proExpired(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'pro_until' => now()->subDays(3),
+        ]);
+    }
+
+    /**
      * Indicate that the model's email address should be unverified.
      */
     public function unverified(): static

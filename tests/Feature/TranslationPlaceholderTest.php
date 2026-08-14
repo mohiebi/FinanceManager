@@ -14,7 +14,7 @@ use App\Support\FrontendLocalization;
 /** Files shipped to the browser via FrontendLocalization::messages(). */
 function clientRenderedGroups(): array
 {
-    return ['gamification'];
+    return ['gamification', 'billing'];
 }
 
 test('client-rendered translations use vue-i18n placeholder syntax', function () {
@@ -34,7 +34,7 @@ test('client-rendered translations use vue-i18n placeholder syntax', function ()
     }
 });
 
-test('every locale defines the same gamification keys', function () {
+test('every locale defines the same client-rendered keys', function () {
     $flatten = function (array $messages, string $prefix = '') use (&$flatten): array {
         $keys = [];
 
@@ -47,14 +47,18 @@ test('every locale defines the same gamification keys', function () {
         return $keys;
     };
 
-    $english = $flatten(require resource_path('lang/en/gamification.php'));
+    // Loops the same list as the placeholder check above rather than naming one
+    // group, so adding a browser-rendered file gets both guards at once.
+    foreach (clientRenderedGroups() as $group) {
+        $english = $flatten(require resource_path("lang/en/{$group}.php"));
 
-    foreach (['fa', 'de'] as $locale) {
-        $keys = $flatten(require resource_path("lang/{$locale}/gamification.php"));
+        foreach (['fa', 'de'] as $locale) {
+            $keys = $flatten(require resource_path("lang/{$locale}/{$group}.php"));
 
-        // A missing key falls back to English rather than failing, so a gap here
-        // is invisible until a Persian user reads an English sentence.
-        expect(array_diff($english, $keys))->toBeEmpty("{$locale} is missing gamification keys")
-            ->and(array_diff($keys, $english))->toBeEmpty("{$locale} has gamification keys English does not");
+            // A missing key falls back to English rather than failing, so a gap
+            // here is invisible until a Persian user reads an English sentence.
+            expect(array_diff($english, $keys))->toBeEmpty("{$locale} is missing {$group} keys")
+                ->and(array_diff($keys, $english))->toBeEmpty("{$locale} has {$group} keys English does not");
+        }
     }
 });

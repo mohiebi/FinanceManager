@@ -34,6 +34,23 @@ class User extends Authenticatable implements MustVerifyEmail
     use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     /**
+     * Column defaults present on a brand-new instance, before any round trip.
+     *
+     * Strict mode throws on reading an attribute the model never loaded, and
+     * isPro() runs on every authenticated request through the shared Inertia
+     * props — including on a User that was just created (or handed to actingAs)
+     * and so has only the attributes someone explicitly set. A database default
+     * does not exist in memory; this one does.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'pro_until' => null,
+        'pro_expiry_warned_for' => null,
+        'pro_expired_notified_for' => null,
+    ];
+
+    /**
      * Resolved once per instance. The auth guard memoizes the User, so middleware,
      * shared Inertia props, the nav and every dashboard check reuse a single query.
      */
@@ -160,6 +177,24 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Every movement of this user's Pro entitlement, newest last.
+     *
+     * @return HasMany<SubscriptionGrant, User>
+     */
+    public function subscriptionGrants(): HasMany
+    {
+        return $this->hasMany(SubscriptionGrant::class);
+    }
+
+    /**
+     * @return HasMany<SubscriptionPayment, User>
+     */
+    public function subscriptionPayments(): HasMany
+    {
+        return $this->hasMany(SubscriptionPayment::class);
+    }
+
+    /**
      * Get this user's key row, creating it if it is somehow missing.
      *
      * Normally the observer has already made one; this keeps records created
@@ -249,7 +284,9 @@ class User extends Authenticatable implements MustVerifyEmail
      * Plan entitlement — whether the user may use this feature at all.
      *
      * Distinct from {@see self::hasFeature()}, which also asks whether they turned
-     * it on. Every feature is free today; a paid tier plugs in here.
+     * it on. Every feature is free today, so this is true for everyone; the moment
+     * a case in {@see Feature::tier()} returns Pro, it starts depending on
+     * {@see self::isPro()} with no other change anywhere.
      */
     public function mayUse(Feature $feature): bool
     {
@@ -261,9 +298,19 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->mayUse($feature) && $this->featureSet()->enabled($feature);
     }
 
+    /**
+     * Whether the user currently holds a paid entitlement.
+     *
+     * Reads a column rather than a subscriptions relation on purpose: this runs on
+     * every authenticated request through the shared Inertia feature map, and the
+     * auth guard has already loaded the row, so it costs nothing.
+     *
+     * Expiry needs no job to enforce — the comparison stops being true on its own
+     * the instant the clock passes `pro_until`.
+     */
     public function isPro(): bool
     {
-        return false;
+        return $this->pro_until !== null && $this->pro_until->isFuture();
     }
 
     public function forgetFeatureSet(): void
@@ -369,6 +416,12 @@ class User extends Authenticatable implements MustVerifyEmail
             'bill_advance_reminder_enabled' => 'boolean',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            // Cast but deliberately absent from the #[Fillable] list above: any
+            // mass-assignment path reaching pro_until would be free Pro. Only
+            // App\Actions\Billing\GrantProAccess writes it, via forceFill.
+            'pro_until' => 'datetime',
+            'pro_expiry_warned_for' => 'datetime',
+            'pro_expired_notified_for' => 'datetime',
         ];
     }
 }

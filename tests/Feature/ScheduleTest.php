@@ -2,6 +2,7 @@
 
 use App\Jobs\BillReminderJob;
 use App\Jobs\CaptureDailyStatsJob;
+use App\Jobs\ReconcileSubscriptionsJob;
 use App\Jobs\RefreshAssetPricesJob;
 use App\Jobs\StreakReminderJob;
 use Illuminate\Support\Facades\Artisan;
@@ -29,11 +30,19 @@ test('every background job is registered with the scheduler', function () {
         BillReminderJob::class,
         StreakReminderJob::class,
         CaptureDailyStatsJob::class,
+        ReconcileSubscriptionsJob::class,
     ])->reject(fn (string $job): bool => str_contains($listing, $job))
         ->values()
         ->all();
 
     expect($missing)->toBe([]);
+});
+
+test('the subscription sweep is registered exactly once', function () {
+    // bootstrap/app.php and routes/console.php are merged, so a job named in both
+    // runs on two independent schedules. Two of the older jobs already do; this
+    // one must not join them.
+    expect(substr_count(scheduleListing(), ReconcileSubscriptionsJob::class))->toBe(1);
 });
 
 test('the streak nudge is checked often enough to catch every timezone', function () {

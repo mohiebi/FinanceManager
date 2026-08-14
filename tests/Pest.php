@@ -3,6 +3,8 @@
 use App\Models\Transaction;
 use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /*
@@ -49,6 +51,150 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Switch billing on for a test, with a payable Ethereum rail.
+ *
+ * Billing ships off, and the network ships off inside it, so nothing that
+ * exercises a payment works without this. The address and RPC endpoint are
+ * fabricated: no test ever reaches a real node, and the quote source is left
+ * disabled so a stablecoin test never touches the network at all.
+ *
+ * @param  array<string, mixed>  $overrides
+ */
+function enableBilling(array $overrides = []): void
+{
+    config()->set([
+        'billing.enabled' => true,
+        'billing.evm_address' => TEST_RECEIVING_ADDRESS,
+
+        // Pinned rather than inherited. Every one of these reads from .env in
+        // production, and a developer testing against real prices or a second
+        // chain would otherwise silently rewrite what these tests assert.
+        'billing.plans.monthly.price_usd' => '5.00',
+        'billing.plans.quarterly.price_usd' => '13.00',
+        'billing.plans.yearly.price_usd' => '45.00',
+
+        'billing.networks.ethereum.enabled' => true,
+        'billing.networks.ethereum.address' => TEST_RECEIVING_ADDRESS,
+        'billing.networks.ethereum.rpc_url' => 'https://ethereum.test/rpc',
+        'billing.networks.ethereum.confirmations' => 12,
+        'billing.networks.ethereum.assets.usdt.contract' => '0xdac17f958d2ee523a2206206994597c13d831ec7',
+        'billing.networks.ethereum.assets.usdc.contract' => '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+
+        // Off unless a test asks for them, so "one chain" and "no Etherscan"
+        // stay the baseline every assertion was written against.
+        'billing.networks.arbitrum.enabled' => false,
+        'billing.etherscan.enabled' => false,
+        'billing.quote.enabled' => false,
+        ...$overrides,
+    ]);
+}
+
+/**
+ * The address every billing test pays to.
+ */
+const TEST_RECEIVING_ADDRESS = '0x1111111111111111111111111111111111111111';
+
+/** keccak256("Transfer(address,address,uint256)"). */
+const TEST_TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+
+/**
+ * Stand in for an EVM JSON-RPC endpoint describing one transaction.
+ *
+ * No test ever reaches a real node. Amounts are given as hex, the way a chain
+ * actually reports them, and the expected decimal is derived from the same hex
+ * with TokenAmount — so a fixture and the payment it settles cannot drift.
+ *
+ * Etherscan is answered by this same closure rather than by a second
+ * Http::fake(). Stubs accumulate and the earliest match wins, so registering a
+ * broad fake alongside this one silently swallows every request meant for it.
+ * Pass `internal` for an execution trace, or `etherscan` for a callable that
+ * answers however the test needs.
+ *
+ * @param  array<string, mixed>  $options
+ */
+function fakeEvmChain(array $options = []): void
+{
+    $options = [
+        'found' => true,
+        'succeeded' => true,
+        'block' => 21_000_000,
+        'confirmations' => 12,
+        'chain_id' => 1,
+        'timestamp' => null,
+        'from' => '0x2222222222222222222222222222222222222222',
+        'tx_to' => TEST_RECEIVING_ADDRESS,
+        'value' => '0x0',
+        'logs' => [],
+        'internal' => [],
+        'etherscan' => null,
+        ...$options,
+    ];
+
+    $minedAt = $options['timestamp'] ?? now();
+
+    Http::fake(function (Request $request) use ($options, $minedAt) {
+        if (str_contains($request->url(), 'etherscan')) {
+            if (is_callable($options['etherscan'])) {
+                return ($options['etherscan'])($request);
+            }
+
+            // Etherscan reports "nothing found" with the same status it uses for
+            // real errors, so the fixture has to reproduce that quirk faithfully.
+            return Http::response($options['internal'] === []
+                ? ['status' => '0', 'message' => 'No transactions found', 'result' => []]
+                : ['status' => '1', 'message' => 'OK', 'result' => $options['internal']]);
+        }
+
+        $results = [];
+
+        foreach ($request->data() as $call) {
+            $results[] = [
+                'jsonrpc' => '2.0',
+                'id' => $call['id'],
+                'result' => match ($call['method']) {
+                    'eth_getTransactionByHash' => $options['found'] ? [
+                        'hash' => $call['params'][0],
+                        'from' => $options['from'],
+                        'to' => $options['tx_to'],
+                        'value' => $options['value'],
+                        'blockNumber' => '0x'.dechex($options['block']),
+                    ] : null,
+                    'eth_getTransactionReceipt' => $options['found'] ? [
+                        'status' => $options['succeeded'] ? '0x1' : '0x0',
+                        'blockNumber' => '0x'.dechex($options['block']),
+                        'logs' => $options['logs'],
+                    ] : null,
+                    'eth_blockNumber' => '0x'.dechex($options['block'] + max(0, $options['confirmations'] - 1)),
+                    'eth_chainId' => '0x'.dechex($options['chain_id']),
+                    'eth_getBlockByNumber' => ['timestamp' => '0x'.dechex($minedAt->getTimestamp())],
+                    default => null,
+                },
+            ];
+        }
+
+        return Http::response($results);
+    });
+}
+
+/**
+ * One ERC-20 Transfer log, as a receipt carries it.
+ */
+function evmTransferLog(string $contract, string $to, string $amountHex, ?string $from = null): array
+{
+    $pad = fn (string $address): string => '0x'.str_pad(mb_substr($address, 2), 64, '0', STR_PAD_LEFT);
+
+    return [
+        'address' => $contract,
+        'topics' => [
+            TEST_TRANSFER_TOPIC,
+            $pad($from ?? '0x2222222222222222222222222222222222222222'),
+            $pad($to),
+        ],
+        'data' => $amountHex,
+    ];
 }
 
 /**

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Deferred, Head, router, usePoll } from '@inertiajs/vue3';
+import { Deferred, Head, Link, router, usePoll } from '@inertiajs/vue3';
 import {
     Activity,
     Bot,
@@ -30,6 +30,7 @@ import {
     relativeActivity,
 } from '@/lib/adminFormat';
 import { dashboard as adminDashboard } from '@/routes/admin';
+import { billing as adminBilling } from '@/routes/admin';
 import adminCustomers from '@/routes/admin/customers';
 import type {
     AdminAnalytics,
@@ -321,6 +322,12 @@ function activityTone(user: AdminUser): string {
                         </p>
                     </div>
                     <div class="flex flex-wrap items-center gap-3">
+                        <Link
+                            :href="adminBilling().url"
+                            class="rounded-lg px-3 py-1.5 text-xs text-[#989898] ring-1 ring-white/10 transition hover:text-white"
+                        >
+                            Subscriptions
+                        </Link>
                         <div
                             class="flex items-center gap-2 text-xs text-[#686868]"
                         >

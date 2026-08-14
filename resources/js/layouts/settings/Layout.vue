@@ -5,6 +5,7 @@ import {
     Blocks,
     Bot,
     Coins,
+    CreditCard,
     ShieldCheck,
     SlidersHorizontal,
     Sparkles,
@@ -17,6 +18,7 @@ import { useI18n } from 'vue-i18n';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
 import { edit as editAiConnections } from '@/routes/ai-connections';
+import { edit as editBilling } from '@/routes/billing';
 import { edit as editCategories } from '@/routes/categories';
 import { edit as editInvestmentAssets } from '@/routes/investment-assets';
 import { edit as editModules } from '@/routes/modules';
@@ -38,6 +40,11 @@ const showTelegram = computed(
 );
 const showAiConnections = computed(
     () => page.props.features?.ai_assistant?.enabled !== false,
+);
+// Billing is not a module, so it is gated on the kill switch rather than on a
+// feature toggle: while there is nothing to sell there is nothing to show.
+const showBilling = computed(
+    () => page.props.subscription?.billing_enabled === true,
 );
 
 type SettingsNavItem = NavItem & { icon: Component };
@@ -77,6 +84,15 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
                     href: '/settings/preferences',
                     icon: SlidersHorizontal,
                 },
+                ...(showBilling.value
+                    ? [
+                          {
+                              title: t('settings.navigation.billing'),
+                              href: editBilling(),
+                              icon: CreditCard,
+                          },
+                      ]
+                    : []),
             ],
         },
         {

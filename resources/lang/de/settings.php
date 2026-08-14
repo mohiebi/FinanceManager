@@ -308,6 +308,7 @@ return [
         'notifications' => 'Benachrichtigungen',
         'security' => 'Datenschutz & Sicherheit',
         'preferences' => 'Einstellungen',
+        'billing' => 'Abrechnung',
         'modules' => 'Module',
         'categories' => 'Kategorien',
         'assets' => 'Assets',

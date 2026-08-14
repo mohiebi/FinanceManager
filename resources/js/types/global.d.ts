@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { SubscriptionState } from '@/types/billing';
 import type { FeatureMap } from '@/types/features';
 import type { NotificationData } from '@/types/notifications';
 import type { VaultDescriptor } from '@/types/vault';
@@ -29,6 +30,8 @@ declare module '@inertiajs/core' {
             features: FeatureMap | null;
             /** Null until a vault exists for this user; see Stage 6. */
             vault: VaultDescriptor | null;
+            /** Null for guests. */
+            subscription: SubscriptionState | null;
             seo: {
                 siteName: string;
                 title: string;

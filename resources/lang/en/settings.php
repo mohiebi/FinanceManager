@@ -308,6 +308,7 @@ return [
         'notifications' => 'Notifications',
         'security' => 'Privacy & security',
         'preferences' => 'Preferences',
+        'billing' => 'Billing',
         'modules' => 'Modules',
         'categories' => 'Categories',
         'assets' => 'Assets',

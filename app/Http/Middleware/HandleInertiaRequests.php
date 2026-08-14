@@ -61,6 +61,14 @@ class HandleInertiaRequests extends Middleware
             // Eager like the feature map: the unlock dialog is a layout-level gate,
             // and deferring it would flash unlocked-looking UI on every page load.
             'vault' => fn () => $request->user()?->vaultDescriptor(),
+            // Also eager, and also free: pro_until is a column on the already-loaded
+            // auth user, so isPro() costs no query. The settings nav is built from
+            // billing_enabled, which is the same reason `features` cannot be deferred.
+            'subscription' => fn (): ?array => $request->user() === null ? null : [
+                'is_pro' => $request->user()->isPro(),
+                'pro_until' => $request->user()->pro_until?->toIso8601String(),
+                'billing_enabled' => (bool) config('billing.enabled'),
+            ],
             'fallbackLocale' => FrontendLocalization::DEFAULT_LOCALE,
             'fallbackTranslations' => $locale === FrontendLocalization::DEFAULT_LOCALE
                 ? null

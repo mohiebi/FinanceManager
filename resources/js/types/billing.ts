@@ -1,0 +1,107 @@
+export type BillingPlanKey = 'monthly' | 'quarterly' | 'yearly';
+export type PaymentNetworkKey = 'ethereum';
+export type SettlementAssetKey = 'eth' | 'usdt' | 'usdc';
+
+export type PaymentStatusKey =
+    | 'pending'
+    | 'submitted'
+    | 'confirmed'
+    | 'failed'
+    | 'expired'
+    | 'refunded';
+
+export type PaymentTone = 'positive' | 'pending' | 'negative' | 'neutral';
+
+/**
+ * The user's paid-plan state, shared on every authenticated page.
+ *
+ * Kept separate from the `features` map on purpose: that answers "which modules
+ * may this user use", which stays true for everyone while no module is Pro.
+ * This answers "has this user paid", which the billing page and any upgrade
+ * prompt need regardless.
+ */
+export type SubscriptionState = {
+    is_pro: boolean;
+    /** ISO 8601. Stays populated after lapsing, so it also reads as "was Pro until". */
+    pro_until: string | null;
+    /** False switches the billing page and its settings nav entry off entirely. */
+    billing_enabled: boolean;
+};
+
+export type PlanCard = {
+    key: BillingPlanKey;
+    label: string;
+    description: string;
+    months: number;
+    /** Decimal strings throughout — never numbers. See App\Support\Billing\TokenAmount. */
+    price_usd: string;
+    per_month_usd: string;
+    highlighted: boolean;
+    /** Null on the plan that sets the baseline. */
+    savings_percent: number | null;
+};
+
+export type AssetOption = {
+    key: SettlementAssetKey;
+    label: string;
+    symbol: string;
+    /** Null for the chain's native currency, which has no contract. */
+    contract: string | null;
+    decimals: number;
+    display_precision: number;
+    is_stable: boolean;
+};
+
+export type NetworkOption = {
+    key: PaymentNetworkKey;
+    label: string;
+    chain_id: number;
+    address: string | null;
+    confirmations_required: number;
+    assets: AssetOption[];
+};
+
+/**
+ * The rail this buyer used last, derived from their payment history rather than
+ * stored as a setting. Null for somebody who has never opened an intent, and
+ * ignored by the page if either side is no longer on offer.
+ */
+export type PreferredRail = {
+    network: PaymentNetworkKey;
+    asset: SettlementAssetKey;
+};
+
+export type PaymentRecord = {
+    id: string;
+    status: PaymentStatusKey;
+    status_label: string;
+    tone: PaymentTone;
+    plan: BillingPlanKey;
+    plan_label: string;
+    months: number;
+    price_usd: string;
+    /** Null on a payment an admin created by hand, where no chain was involved. */
+    network: PaymentNetworkKey | null;
+    network_label: string | null;
+    chain_id: number | null;
+    asset: SettlementAssetKey;
+    asset_symbol: string;
+    asset_decimals: number;
+    token_contract: string | null;
+    pay_to_address: string | null;
+    expected_amount: string;
+    received_amount: string | null;
+    quote_rate: string;
+    quote_expires_at: string | null;
+    tx_hash: string | null;
+    explorer_url: string | null;
+    confirmations: number | null;
+    confirmations_required: number | null;
+    failure_reason: string | null;
+    failure_message: string | null;
+    /** An EIP-681 request a wallet can open with the amount already filled in. */
+    payment_uri: string | null;
+    created_at: string;
+    expires_at: string;
+    verified_at: string | null;
+};

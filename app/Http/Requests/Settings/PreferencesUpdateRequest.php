@@ -24,6 +24,7 @@ class PreferencesUpdateRequest extends FormRequest
             'calendar' => ['required', 'string', Rule::in(FrontendLocalization::calendars())],
             'timezone' => ['required', 'string', Rule::in(FrontendLocalization::timezones())],
             'default_currency' => ['nullable', 'string', Rule::in(array_column(Currency::cases(), 'value'))],
+            'flight_terminology_enabled' => ['required', 'boolean'],
         ];
     }
 }

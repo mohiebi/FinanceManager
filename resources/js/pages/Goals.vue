@@ -1,5 +1,7 @@
 <template>
-    <Head :title="t('gamification.goals.page_title')" />
+    <Head
+        :title="navigationName('navigation.goals', 'navigation.goals_subtitle')"
+    />
 
     <div
         class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
@@ -20,10 +22,12 @@
                     <h1
                         class="mt-1 text-2xl font-semibold tracking-tight text-white"
                     >
-                        {{ t('navigation.goals_subtitle') }}
-                        <span class="text-sm font-normal lowercase text-white/35">
-                            ({{ t('gamification.goals.page_title') }})
-                        </span>
+                        {{
+                            navigationName(
+                                'navigation.goals',
+                                'navigation.goals_subtitle',
+                            )
+                        }}
                     </h1>
                     <p class="mt-1 max-w-lg text-sm text-[#989898]">
                         {{ t('gamification.goals.page_description') }}
@@ -152,6 +156,7 @@ import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import GoalCard from '@/components/gamification/GoalCard.vue';
 import GoalDialog from '@/components/gamification/GoalDialog.vue';
 import { Button } from '@/components/ui/button';
+import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { useVault } from '@/composables/useVault';
 import { useVaultGoals } from '@/composables/useVaultGoals';
 import type { VaultGoalsPayload } from '@/composables/useVaultGoals';
@@ -170,6 +175,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { navigationName } = useNavigationNaming();
 const { revealAsync, trackKey } = useVault();
 
 // No holdings to pass: this page has no portfolio breakdown of its own, and the

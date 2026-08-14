@@ -3,6 +3,11 @@
 use App\Http\Controllers\AdminBillingController;
 use App\Http\Controllers\AdminCustomerExportController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AdvisorAssessmentController;
+use App\Http\Controllers\AdvisorConsultationController;
+use App\Http\Controllers\AdvisorController;
+use App\Http\Controllers\AdvisorProfileController;
+use App\Http\Controllers\AdvisorRecommendationController;
 use App\Http\Controllers\AssetPriceSyncController;
 use App\Http\Controllers\Auth\EmailAuthPageController;
 use App\Http\Controllers\Auth\WebEmailAuthController;
@@ -121,6 +126,22 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     });
 
     Route::get('dashboard', [TransactionController::class, 'dashboard'])->name('dashboard');
+
+    Route::middleware(EnsureFeatureEnabled::class.':advisor')->prefix('advisor')->name('advisor.')->group(function () {
+        Route::get('/', [AdvisorController::class, 'index'])->name('index');
+        Route::post('assessments', [AdvisorController::class, 'store'])->name('assessments.store');
+        Route::get('assessment/{assessment}', [AdvisorAssessmentController::class, 'show'])->name('assessments.show');
+        Route::patch('assessment/{assessment}/sections/{section}', [AdvisorAssessmentController::class, 'updateSection'])->whereNumber('section')->name('assessments.sections.update');
+        Route::post('assessment/{assessment}/complete', [AdvisorAssessmentController::class, 'complete'])->name('assessments.complete');
+        Route::get('profile', AdvisorProfileController::class)->name('profile');
+
+        Route::post('recommendations', [AdvisorRecommendationController::class, 'store'])->middleware('throttle:advisor-recommendations')->name('recommendations.store');
+        Route::post('recommendations/{recommendation}/clarifications', [AdvisorRecommendationController::class, 'clarify'])->middleware('throttle:advisor-clarifications')->name('recommendations.clarify');
+        Route::patch('recommendations/{recommendation}/seal', [AdvisorRecommendationController::class, 'seal'])->name('recommendations.seal');
+        Route::get('recommendations/{recommendation}', [AdvisorRecommendationController::class, 'show'])->name('recommendations.show');
+        Route::post('recommendations/{recommendation}/consult', [AdvisorConsultationController::class, 'store'])->middleware('throttle:advisor-consultations')->name('recommendations.consult');
+        Route::post('recommendations/{recommendation}/messages/seal', [AdvisorConsultationController::class, 'seal'])->name('recommendations.messages.seal');
+    });
     Route::get('transactions/import-template', [TransactionImportController::class, 'template'])->name('transactions.import-template');
 
     // Spreadsheets are built and parsed server-side, so neither survives a server

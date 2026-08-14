@@ -4,7 +4,7 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 
-test('users can update language, calendar and timezone preferences', function () {
+test('users can update language, calendar, timezone and naming preferences', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
@@ -12,12 +12,14 @@ test('users can update language, calendar and timezone preferences', function ()
             'locale' => 'de',
             'calendar' => 'gregorian',
             'timezone' => 'Europe/Berlin',
+            'flight_terminology_enabled' => false,
         ])
         ->assertRedirect();
 
     expect($user->refresh()->locale)->toBe('de')
         ->and($user->calendar)->toBe('gregorian')
-        ->and($user->timezone)->toBe('Europe/Berlin');
+        ->and($user->timezone)->toBe('Europe/Berlin')
+        ->and($user->flight_terminology_enabled)->toBeFalse();
 });
 
 test('the timezone decides when a user\'s day starts', function () {
@@ -55,6 +57,7 @@ test('preference props are shared with inertia pages', function () {
             ->where('locale', 'fa')
             ->where('dir', 'rtl')
             ->where('calendar', 'jalali')
+            ->where('flightTerminologyEnabled', true)
             ->where('translations.settings.title', 'تنظیمات'),
         );
 });
@@ -84,6 +87,18 @@ test('invalid preferences are rejected', function () {
             'locale' => 'es',
             'calendar' => 'lunar',
             'timezone' => 'Mars/Olympus_Mons',
+            'flight_terminology_enabled' => 'sometimes',
         ])
-        ->assertSessionHasErrors(['locale', 'calendar', 'timezone']);
+        ->assertSessionHasErrors(['locale', 'calendar', 'timezone', 'flight_terminology_enabled']);
+});
+
+test('standard terminology preference is shared with inertia pages', function () {
+    $user = User::factory()->create(['flight_terminology_enabled' => false]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('flightTerminologyEnabled', false),
+        );
 });

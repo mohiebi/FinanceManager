@@ -54,6 +54,134 @@ function something()
 }
 
 /**
+ * Complete Advisor V1 answers suitable for request and profile-building tests.
+ *
+ * @return array<string, mixed>
+ */
+function advisorAnswers(int $investmentAssetId): array
+{
+    return [
+        'q1_age' => '35_44',
+        'q2_income_stability' => 'mostly_stable',
+        'q3_emergency_fund' => '6_12',
+        'q4_high_interest_debt' => 'none',
+        'q5_portfolio_wealth_share' => '25_50',
+        'q6_primary_goal' => 'long_term_wealth',
+        'q7_goal_importance' => 'important',
+        'q8_time_horizon' => '10_plus',
+        'q9_early_withdrawal' => 'unlikely',
+        'q10_liquidity' => ['proportion' => '10_25', 'speed' => 'within_month'],
+        'q11_permanent_loss_impact' => 'moderate',
+        'q12_drawdown_10' => 'hold',
+        'q13_drawdown_20' => 'hold',
+        'q14_drawdown_35' => 'uncomfortable_hold',
+        'q15_max_drawdown' => '20',
+        'q16_risk_return' => 'portfolio_b',
+        'q17_experience' => '3_5',
+        'q18_asset_classes' => ['gold', 'stocks', 'etfs'],
+        'q19_diversification' => 'reduce_specific_risk',
+        'q20_fomo' => 'evaluate_fundamentals',
+        'q21_concentration' => 'rebalance_part',
+        'q22_target_return' => '8_12',
+        'portfolio_preferences' => [
+            'scope' => 'both',
+            'new_investable_amount' => 10000,
+            'recurring_contribution' => 500,
+            'primary_currency' => 'USD',
+            'country' => 'US',
+            'markets' => ['NYSE', 'NASDAQ'],
+            'maximum_single_asset_allocation' => 50,
+            'tax_sensitive' => false,
+            'assets' => [[
+                'asset_key' => 'cashpilot-'.$investmentAssetId,
+                'source' => 'cashpilot',
+                'investment_asset_id' => $investmentAssetId,
+                'name' => 'US Dollar',
+                'ticker' => 'USD',
+                'identifier' => null,
+                'exchange_or_market' => null,
+                'country' => 'US',
+                'currency' => 'USD',
+                'category' => 'currency',
+                'risk_band' => 'defensive',
+                'liquidity' => 'same_day',
+                'perspective' => 'neutral',
+                'conviction' => 'medium',
+                'holding_period' => '10_plus',
+                'inclusion' => 'required',
+                'notes' => null,
+            ]],
+        ],
+        'options_capability' => [
+            'willingness' => 'yes',
+            'broker_access' => true,
+            'approved_underlyings' => ['stocks', 'etfs'],
+            'experience_years' => '1_3',
+            'trade_count' => '11_50',
+            'strategies_used' => ['protective_put'],
+            'knowledge_answers' => [true, true, true],
+            'objective' => 'downside_hedging',
+            'maximum_risk_budget_percent' => 3,
+            'recurring_premium' => true,
+            'cap_upside' => true,
+            'assignment_tolerance' => true,
+            'monitoring' => 'weekly',
+        ],
+    ];
+}
+
+/** @return array<string, mixed> */
+function advisorValidRecommendation(): array
+{
+    $portfolio = fn (string $name, int $cash, int $bitcoin): array => [
+        'name' => $name,
+        'allocations' => [
+            ['asset_key' => 'cash', 'target_percent' => $cash, 'role' => 'Liquidity reserve', 'rationale' => 'Provides resilience and optionality.'],
+            ['asset_key' => 'bitcoin', 'target_percent' => $bitcoin, 'role' => 'Long-term growth satellite', 'rationale' => 'Limited by the speculative risk envelope.'],
+        ],
+        'options_overlays' => [],
+        'risks' => ['Bitcoin can experience severe drawdowns.'],
+        'tradeoffs' => ['Cash reduces expected upside.'],
+        'what_would_change_this_plan' => ['A shorter time horizon.'],
+    ];
+
+    return [
+        'status' => 'recommendation_ready',
+        'questions' => [],
+        'suggested_additional_assets' => [],
+        'summary' => 'A liquid core with a capped speculative satellite.',
+        'primary' => $portfolio('Controlled growth', 70, 30),
+        'safer_alternative' => $portfolio('Lower volatility', 95, 5),
+        'higher_risk_alternative' => ['available' => false, 'reason_if_unavailable' => 'Capacity ceiling reached.', 'name' => null, 'allocations' => [], 'options_overlays' => [], 'risks' => [], 'tradeoffs' => [], 'what_would_change_this_plan' => []],
+        'uncertainties' => [],
+        'knowledge_limitations' => ['No live market data.'],
+        'cannot_recommend_reason' => null,
+        'fit_status' => 'fits',
+        'fit_warning' => null,
+        'next_steps' => [],
+        'response_warnings' => [],
+    ];
+}
+
+/** @return array<string, mixed> */
+function advisorGuidanceResponse(): array
+{
+    return [
+        ...advisorValidRecommendation(),
+        'status' => 'guidance_only',
+        'summary' => 'The current risk and return goals cannot be reconciled responsibly.',
+        'primary' => null,
+        'safer_alternative' => null,
+        'higher_risk_alternative' => null,
+        'cannot_recommend_reason' => 'The requested return requires more risk or more time than the profile permits.',
+        'fit_status' => 'guidance_only',
+        'fit_warning' => 'The requested return is outside the assessed capacity.',
+        'next_steps' => ['Lower the return target or extend the time horizon.'],
+        'response_warnings' => ['guidance_only'],
+    ];
+}
+
+/**
  * Switch billing on for a test, with a payable Ethereum rail.
  *
  * Billing ships off, and the network ships off inside it, so nothing that

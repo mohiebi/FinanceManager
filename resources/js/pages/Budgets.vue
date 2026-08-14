@@ -1,5 +1,9 @@
 <template>
-    <Head :title="t('budgets.title')" />
+    <Head
+        :title="
+            navigationName('navigation.budgets', 'navigation.budgets_subtitle')
+        "
+    />
 
     <div
         class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-auto bg-[#111111]"
@@ -20,10 +24,12 @@
                     <h1
                         class="mt-1 text-2xl font-semibold tracking-tight text-white"
                     >
-                        {{ t('budgets.title') }}
-                        <span class="text-sm font-normal lowercase text-white/35">
-                            ({{ t('navigation.budgets') }})
-                        </span>
+                        {{
+                            navigationName(
+                                'navigation.budgets',
+                                'navigation.budgets_subtitle',
+                            )
+                        }}
                     </h1>
                     <p class="mt-1 max-w-lg text-sm text-[#989898]">
                         {{ t('budgets.description') }}
@@ -512,6 +518,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { useVault } from '@/composables/useVault';
 import { useVaultBudget } from '@/composables/useVaultBudget';
 import type { VaultBudgetPayload } from '@/composables/useVaultBudget';
@@ -543,6 +550,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { navigationName } = useNavigationNaming();
 const { revealAsync, sealForSubmit } = useVault();
 
 const { progress: vaultProgress } = useVaultBudget(() => props.vaultBudget);
@@ -850,7 +858,7 @@ defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Dashboard', href: dashboard() },
-            { title: 'Flight plan', href: budgetsIndex() },
+            { title: 'Budgets', href: budgetsIndex() },
         ],
     },
 });

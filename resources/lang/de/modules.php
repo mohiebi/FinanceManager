@@ -72,6 +72,10 @@ return [
         'label' => 'KI-Assistent',
         'description' => 'Verbinde KI-Tools, die deine Finanzdaten lesen und Aenderungen zur Freigabe vorschlagen koennen.',
     ],
+    'advisor' => [
+        'label' => 'KI-Portfolio-Berater',
+        'description' => 'Erstellt dein CashPilot-Risikoprofil und ein klar begrenztes KI-Zielportfolio.',
+    ],
     'telegram_bot' => [
         'label' => 'Telegram-Bot',
         'description' => 'Nutze CashPilot in Telegram, um Eintraege zu erfassen, Zusammenfassungen zu pruefen und Erinnerungen zu erhalten.',

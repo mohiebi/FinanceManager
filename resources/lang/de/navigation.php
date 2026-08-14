@@ -30,5 +30,7 @@ return [
     'logout' => 'Abmelden',
     'ai_assistant' => 'KI',
     'ai_assistant_subtitle' => 'Co-Pilot',
+    'advisor' => 'Berater',
+    'advisor_subtitle' => 'Portfolio-Co-Pilot',
     'telegram_bot' => 'Telegram-Bot',
 ];

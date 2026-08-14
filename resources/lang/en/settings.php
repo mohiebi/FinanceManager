@@ -297,6 +297,26 @@ return [
         'timezone_hint' => 'Decides when your day starts and ends, and when reminders reach you.',
         'default_currency' => 'Currency',
         'no_default_currency' => 'Not set',
+        'terminology' => [
+            'title' => 'Navigation naming',
+            'description' => 'Choose whether CashPilot uses its flight-themed vocabulary or standard financial app names. Only one naming style is shown outside this explanation.',
+            'field_label' => 'Vocabulary',
+            'checkbox_label' => 'Use flight-themed names',
+            'checkbox_help' => 'Turn this off to use familiar names such as Dashboard, Investments, and Settings throughout the app.',
+            'standard_heading' => 'Standard name',
+            'flight_heading' => 'Flight name',
+            'mappings' => [
+                'dashboard' => ['standard' => 'Dashboard', 'flight' => 'Flight deck'],
+                'report' => ['standard' => 'Report', 'flight' => 'Flight recap'],
+                'investments' => ['standard' => 'Investments', 'flight' => 'Cargo Flight'],
+                'goals' => ['standard' => 'Goals', 'flight' => 'Flight path'],
+                'budgets' => ['standard' => 'Budgets', 'flight' => 'Flight plan'],
+                'advisor' => ['standard' => 'Advisor', 'flight' => 'Portfolio co-pilot'],
+                'ai' => ['standard' => 'AI', 'flight' => 'Co-pilot'],
+                'settings' => ['standard' => 'Settings', 'flight' => 'Controls Room'],
+                'admin' => ['standard' => 'Admin', 'flight' => 'Control tower'],
+            ],
+        ],
     ],
     'navigation' => [
         'groups' => [
@@ -314,6 +334,8 @@ return [
         'assets' => 'Assets',
         'telegram' => 'Telegram',
         'ai' => 'AI connections',
+        'admin' => 'Admin',
+        'admin_subtitle' => 'Control tower',
     ],
     'ai' => [
         'title' => 'AI connections',

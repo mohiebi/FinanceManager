@@ -11,7 +11,9 @@
                 class="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between"
             >
                 <div class="flex flex-wrap items-end gap-3">
-                    <div class="grid min-w-[160px] flex-1 gap-1.5 sm:max-w-[220px]">
+                    <div
+                        class="grid min-w-[160px] flex-1 gap-1.5 sm:max-w-[220px]"
+                    >
                         <Label for="transaction_search" class="text-xs">{{
                             t('finance.fields.search')
                         }}</Label>
@@ -24,7 +26,9 @@
                         />
                     </div>
 
-                    <div class="grid min-w-[130px] flex-1 gap-1.5 sm:max-w-[170px]">
+                    <div
+                        class="grid min-w-[130px] flex-1 gap-1.5 sm:max-w-[170px]"
+                    >
                         <Label for="transaction_category" class="text-xs">{{
                             t('finance.fields.category')
                         }}</Label>
@@ -60,7 +64,9 @@
                         </Select>
                     </div>
 
-                    <div class="grid min-w-[210px] flex-1 gap-1.5 sm:max-w-[260px]">
+                    <div
+                        class="grid min-w-[210px] flex-1 gap-1.5 sm:max-w-[260px]"
+                    >
                         <Label for="transaction_from" class="text-xs">{{
                             t('finance.fields.from')
                         }}</Label>
@@ -74,7 +80,9 @@
                         />
                     </div>
 
-                    <div class="grid min-w-[210px] flex-1 gap-1.5 sm:max-w-[260px]">
+                    <div
+                        class="grid min-w-[210px] flex-1 gap-1.5 sm:max-w-[260px]"
+                    >
                         <Label for="transaction_to" class="text-xs">{{
                             t('finance.fields.to')
                         }}</Label>
@@ -109,7 +117,7 @@
                     </div>
                 </div>
 
-                <div class="flex flex-wrap shrink-0 gap-2">
+                <div class="flex shrink-0 flex-wrap gap-2">
                     <Button
                         class="h-9 shrink-0 rounded-full bg-white/5 px-4 text-xs text-white shadow-none ring-1 ring-white/15 hover:bg-white/10 sm:text-sm"
                         @click="openImportDialog"
@@ -125,33 +133,6 @@
                         {{ t('finance.actions.export_transactions') }}
                     </a>
                 </div>
-            </div>
-        </section>
-
-        <section
-            v-if="hasGroupSelection"
-            class="mx-[18px] mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[18px] bg-[#21191a] px-5 py-3 ring-1 ring-[#E94E50]/25"
-        >
-            <span class="text-sm font-medium text-white">
-                {{ totalSelected }}
-                {{ totalSelected === 1 ? 'item' : 'items' }} selected
-            </span>
-
-            <div class="flex items-center gap-2">
-                <Button
-                    class="h-9 rounded-full bg-[#E94E50] px-4 text-sm font-semibold text-white shadow-none hover:bg-[#d43e40]"
-                    @click="requestBulkDelete"
-                >
-                    <Trash2 class="size-4" />
-                    {{ t('finance.actions.bulk_delete') }}
-                </Button>
-                <Button
-                    variant="outline"
-                    class="h-9 rounded-full border-white/10 bg-white/5 px-4 text-sm text-[#989898] shadow-none hover:bg-white/10 hover:text-white"
-                    @click="clearSelection"
-                >
-                    {{ t('common.clear') }}
-                </Button>
             </div>
         </section>
 
@@ -241,7 +222,9 @@
                                 :key="transaction.id"
                                 class="group"
                             >
-                                <td class="finance-cell-tight px-2 py-3 text-center">
+                                <td
+                                    class="finance-cell-tight px-2 py-3 text-center"
+                                >
                                     <Checkbox
                                         :checked="
                                             selectedCostIds.has(transaction.id)
@@ -471,7 +454,9 @@
                                 :key="transaction.id"
                                 class="group"
                             >
-                                <td class="finance-cell-tight px-2 py-3 text-center">
+                                <td
+                                    class="finance-cell-tight px-2 py-3 text-center"
+                                >
                                     <Checkbox
                                         :checked="
                                             selectedIncomeIds.has(

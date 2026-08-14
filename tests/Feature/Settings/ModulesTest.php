@@ -14,7 +14,7 @@ test('the modules page lists every toggleable module at its default state', func
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/Modules')
-            ->has('modules', 9)
+            ->has('modules', 10)
             ->has('coreModules', 2)
             ->where('modules.0.key', Feature::Bills->value)
             ->where('modules.0.enabled', false)
@@ -43,13 +43,17 @@ test('the modules page lists every toggleable module at its default state', func
             ->where('modules.5.requires', [])
             ->where('modules.6.key', Feature::AiAssistant->value)
             ->where('modules.6.enabled', false)
-            ->where('modules.7.key', Feature::TelegramBot->value)
+            ->where('modules.7.key', Feature::Advisor->value)
             ->where('modules.7.enabled', false)
+            ->where('modules.7.tier', 'pro')
+            ->where('modules.7.may_use', false)
+            ->where('modules.8.key', Feature::TelegramBot->value)
+            ->where('modules.8.enabled', false)
             // Advertised on the page, but switched from its own — the card is a
             // link rather than a toggle.
-            ->where('modules.8.key', Feature::Vault->value)
-            ->where('modules.8.enabled', false)
-            ->where('modules.8.manage_url', route('security.edit'))
+            ->where('modules.9.key', Feature::Vault->value)
+            ->where('modules.9.enabled', false)
+            ->where('modules.9.manage_url', route('security.edit'))
         );
 });
 

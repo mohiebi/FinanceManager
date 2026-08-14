@@ -2,7 +2,9 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
     Bot,
+    BrainCircuit,
     ChartPie,
+    Crown,
     Lock,
     Plane,
     Receipt,
@@ -19,6 +21,7 @@ import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
+import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { update as updateModules } from '@/routes/modules';
 import type { CoreModuleCard, FeatureKey, ModuleCard } from '@/types/features';
 
@@ -29,6 +32,27 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { navigationName } = useNavigationNaming();
+
+const moduleNavigationKeys: Partial<
+    Record<FeatureKey, [standardKey: string, flightKey?: string]>
+> = {
+    reports: ['navigation.report', 'navigation.report_subtitle'],
+    investments: ['navigation.investments', 'navigation.investments_subtitle'],
+    goals: ['navigation.goals', 'navigation.goals_subtitle'],
+    budgets: ['navigation.budgets', 'navigation.budgets_subtitle'],
+    advisor: ['navigation.advisor', 'navigation.advisor_subtitle'],
+    ai_assistant: [
+        'navigation.ai_assistant',
+        'navigation.ai_assistant_subtitle',
+    ],
+};
+
+function moduleLabel(module: ModuleCard | CoreModuleCard): string {
+    const keys = moduleNavigationKeys[module.key];
+
+    return keys ? navigationName(keys[0], keys[1]) : module.label;
+}
 
 defineOptions({
     layout: {
@@ -44,6 +68,7 @@ defineOptions({
  */
 const icons: Record<string, Component> = {
     Bot,
+    BrainCircuit,
     ChartPie,
     Plane,
     Receipt,
@@ -135,7 +160,9 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
              clipping the description. Column count rather than card width
              does the work, so a card never stretches past the point where
              its description stops being scannable. -->
-        <ul class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4">
+        <ul
+            class="grid gap-4 min-[1800px]:grid-cols-4 sm:grid-cols-2 xl:grid-cols-3"
+        >
             <li
                 v-for="module in props.modules"
                 :key="module.key"
@@ -159,24 +186,26 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
 
                     <div class="min-w-0 flex-1">
                         <p class="text-sm font-medium break-words text-white">
-                            {{ module.label }}
+                            {{ moduleLabel(module) }}
                         </p>
                         <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                            <!-- Every module is free today, but that is only
-                                 obvious once it says so — a switched-off card
-                                 otherwise reads as something withheld. -->
                             <span
-                                v-if="!module.enabled"
-                                class="rounded-md px-2 py-0.5 text-[11px] font-medium"
-                                :class="
-                                    module.tier === 'free'
-                                        ? 'bg-[#02CD86]/10 text-[#02CD86]'
-                                        : 'bg-[#6C4EE9]/15 text-[#a89bf3]'
-                                "
+                                v-if="module.tier === 'pro'"
+                                class="inline-flex items-center gap-1 rounded-md bg-[#6C4EE9]/15 px-2 py-0.5 text-[11px] font-medium text-[#a89bf3]"
                             >
-                                {{ t(`modules.tiers.${module.tier}`) }}
+                                <Crown class="size-3" aria-hidden="true" />
+                                {{ t('modules.tiers.pro') }}
                             </span>
-                            <span v-else class="text-[11px] text-[#02CD86]">
+                            <span
+                                v-else-if="!module.enabled"
+                                class="rounded-md bg-[#02CD86]/10 px-2 py-0.5 text-[11px] font-medium text-[#02CD86]"
+                            >
+                                {{ t('modules.tiers.free') }}
+                            </span>
+                            <span
+                                v-if="module.enabled"
+                                class="text-[11px] text-[#02CD86]"
+                            >
                                 {{ t('modules.enabled') }}
                             </span>
                         </div>
@@ -190,7 +219,7 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                         v-if="!module.manage_url"
                         :checked="module.enabled"
                         :disabled="processing === module.key || !module.may_use"
-                        :aria-label="module.label"
+                        :aria-label="moduleLabel(module)"
                         @update:checked="toggle(module, $event)"
                     />
                     <Lock
@@ -253,7 +282,7 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                 {{ t('modules.core_badge') }}
             </p>
             <ul
-                class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1800px]:grid-cols-4"
+                class="grid gap-4 min-[1800px]:grid-cols-4 sm:grid-cols-2 xl:grid-cols-3"
             >
                 <li
                     v-for="module in props.coreModules"
@@ -272,7 +301,7 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                         <p
                             class="min-w-0 flex-1 text-sm font-medium break-words text-[#989898]"
                         >
-                            {{ module.label }}
+                            {{ moduleLabel(module) }}
                         </p>
                         <Lock class="mt-1 size-4 shrink-0 text-[#6f6f6f]" />
                     </div>
@@ -302,7 +331,7 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                     <p class="text-[17px] font-medium text-white">
                         {{
                             t('modules.confirm_disable_title', {
-                                module: pendingDisable.label,
+                                module: moduleLabel(pendingDisable),
                             })
                         }}
                     </p>

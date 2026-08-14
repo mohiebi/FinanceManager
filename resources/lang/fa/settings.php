@@ -299,6 +299,26 @@ return [
         'timezone_hint' => 'تعیین می‌کند روز شما کی شروع و کی تمام می‌شود و یادآوری‌ها کی به دستتان می‌رسد.',
         'default_currency' => 'ارز',
         'no_default_currency' => 'تنظیم نشده',
+        'terminology' => [
+            'title' => 'نام‌گذاری منوها',
+            'description' => 'انتخاب کنید CashPilot از واژه‌های پروازی استفاده کند یا نام‌های رایج برنامه‌های مالی. خارج از این راهنما فقط یک سبک نام‌گذاری نمایش داده می‌شود.',
+            'field_label' => 'واژگان',
+            'checkbox_label' => 'استفاده از نام‌های پروازی',
+            'checkbox_help' => 'برای استفاده از نام‌های آشنایی مثل داشبورد، سرمایه‌گذاری‌ها و تنظیمات در سراسر برنامه، این گزینه را خاموش کنید.',
+            'standard_heading' => 'نام اصلی',
+            'flight_heading' => 'نام پروازی',
+            'mappings' => [
+                'dashboard' => ['standard' => 'داشبورد', 'flight' => 'عرشه پرواز'],
+                'report' => ['standard' => 'گزارش', 'flight' => 'گزارش پرواز'],
+                'investments' => ['standard' => 'سرمایه‌گذاری‌ها', 'flight' => 'پرواز باری'],
+                'goals' => ['standard' => 'هدف‌ها', 'flight' => 'مسیر پرواز'],
+                'budgets' => ['standard' => 'بودجه‌ها', 'flight' => 'طرح پرواز'],
+                'advisor' => ['standard' => 'مشاور', 'flight' => 'کمک‌خلبان پرتفوی'],
+                'ai' => ['standard' => 'هوش مصنوعی', 'flight' => 'کمک‌خلبان'],
+                'settings' => ['standard' => 'تنظیمات', 'flight' => 'اتاق کنترل'],
+                'admin' => ['standard' => 'مدیر', 'flight' => 'برج کنترل'],
+            ],
+        ],
     ],
     'navigation' => [
         'groups' => [
@@ -316,6 +336,8 @@ return [
         'categories' => 'دسته‌بندی‌ها',
         'telegram' => 'تلگرام',
         'ai' => 'اتصال‌های هوش مصنوعی',
+        'admin' => 'مدیر',
+        'admin_subtitle' => 'برج کنترل',
     ],
     'ai' => [
         'title' => 'اتصال‌های هوش مصنوعی',

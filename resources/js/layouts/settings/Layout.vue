@@ -16,6 +16,7 @@ import { computed } from 'vue';
 import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
+import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { toUrl } from '@/lib/utils';
 import { edit as editAiConnections } from '@/routes/ai-connections';
 import { edit as editBilling } from '@/routes/billing';
@@ -30,6 +31,7 @@ import type { NavItem } from '@/types';
 
 const { t } = useI18n();
 const page = usePage();
+const { navigationName } = useNavigationNaming();
 
 // Custom assets only mean anything with the investments module switched on.
 const showAssets = computed(
@@ -155,10 +157,12 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
         <div class="w-full">
             <div class="mb-[18px]">
                 <h1 class="text-[22px] font-normal text-white">
-                    {{ t('navigation.settings_subtitle') }}
-                    <span class="text-sm font-normal lowercase text-white/35">
-                        ({{ t('settings.title') }})
-                    </span>
+                    {{
+                        navigationName(
+                            'settings.title',
+                            'navigation.settings_subtitle',
+                        )
+                    }}
                 </h1>
                 <p class="mt-1 text-sm text-[#989898]">
                     {{ t('settings.description') }}

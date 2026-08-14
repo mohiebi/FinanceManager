@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'advisor' => 'مشاور',
+    'advisor_subtitle' => 'کمک‌خلبان پرتفوی',
     'dashboard' => 'داشبورد',
     'dashboard_subtitle' => 'عرشه پرواز',
     'transactions' => 'تراکنش‌ها',

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
+    Crown,
     Lock,
     Menu,
     Plus,
@@ -26,6 +27,7 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useModuleNav } from '@/composables/useModuleNav';
 import type { ModuleNavItem } from '@/composables/useModuleNav';
+import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem } from '@/types';
@@ -50,27 +52,11 @@ const page = usePage();
 const { t } = useI18n();
 const { isCurrentUrl } = useCurrentUrl();
 const { navItems } = useModuleNav();
+const { navigationName } = useNavigationNaming();
 
 const isMenuOpen = ref(false);
 
 const user = computed(() => page.props.auth.user);
-
-const mainNavItems = computed<ModuleNavItem[]>(() => {
-    const items = [...navItems.value];
-
-    if (page.props.auth.isAdmin) {
-        items.push({
-            key: 'admin',
-            title: 'Admin',
-            subtitle: 'Control tower',
-            href: adminDashboard(),
-            icon: ShieldCheck,
-            state: 'enabled',
-        });
-    }
-
-    return items;
-});
 
 function isActive(item: ModuleNavItem): boolean {
     return item.state === 'enabled' && isCurrentUrl(item.href);
@@ -81,15 +67,38 @@ const pageTitle = computed(() => {
 
     return (
         {
-            Dashboard: t('finance.dashboard.title'),
-            Reports: t('finance.reports.title'),
-            Report: t('finance.reports.title'),
-            Transactions: t('finance.transactions.title'),
-            Transaction: t('finance.transactions.title'),
-            Investments: t('finance.investments.title'),
-            Portfolio: t('finance.portfolio.title'),
+            Dashboard: navigationName(
+                'navigation.dashboard',
+                'navigation.dashboard_subtitle',
+            ),
+            Reports: navigationName(
+                'navigation.report',
+                'navigation.report_subtitle',
+            ),
+            Report: navigationName(
+                'navigation.report',
+                'navigation.report_subtitle',
+            ),
+            Transactions: navigationName('navigation.transactions'),
+            Transaction: navigationName('navigation.transactions'),
+            Investments: navigationName(
+                'navigation.investments',
+                'navigation.investments_subtitle',
+            ),
+            Portfolio: navigationName('navigation.portfolio'),
+            Goals: navigationName(
+                'navigation.goals',
+                'navigation.goals_subtitle',
+            ),
+            Budgets: navigationName(
+                'navigation.budgets',
+                'navigation.budgets_subtitle',
+            ),
             Preferences: t('settings.preferences.title'),
-            Settings: t('settings.title'),
+            Settings: navigationName(
+                'settings.title',
+                'navigation.settings_subtitle',
+            ),
         }[title] ?? title
     );
 });
@@ -188,7 +197,7 @@ function changeCurrency(value: string) {
                                     :aria-label="t('navigation.primary')"
                                 >
                                     <Link
-                                        v-for="item in mainNavItems"
+                                        v-for="item in navItems"
                                         :key="item.key"
                                         :href="item.href"
                                         class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150"
@@ -214,81 +223,100 @@ function changeCurrency(value: string) {
                                                  rather than the free "+", so it
                                                  doesn't promise a tap turns it on. -->
                                             <Lock
-                                                v-else-if="item.state === 'locked'"
+                                                v-else-if="
+                                                    item.state === 'locked'
+                                                "
                                                 class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#6C4EE9] p-px text-white rtl:-left-1"
                                             />
                                         </span>
-                                        <span
-                                            class="flex min-w-0 flex-col items-center"
-                                        >
-                                            <span class="truncate">{{
-                                                item.subtitle ?? item.title
-                                            }}</span>
-                                            <!-- The plain functional name, kept
-                                                 as a quiet aside now that the
-                                                 flight name leads. -->
-                                            <span
-                                                v-if="item.subtitle"
-                                                class="truncate text-[11px] font-normal lowercase text-white/35"
-                                            >
-                                                {{ item.title }}
-                                            </span>
+                                        <span class="min-w-0 truncate">
+                                            {{ item.title }}
                                         </span>
 
-                                        <!-- Off is never "you have to pay" —
-                                             it just is not switched on yet. -->
                                         <span
-                                            v-if="item.state !== 'enabled'"
+                                            v-if="
+                                                item.tier === 'pro' ||
+                                                item.state !== 'enabled'
+                                            "
                                             :class="[
-                                                'ml-auto shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium',
-                                                item.state === 'locked'
+                                                'ml-auto inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium',
+                                                item.tier === 'pro'
                                                     ? 'bg-[#6C4EE9]/15 text-[#a89bf3]'
                                                     : 'bg-[#02CD86]/10 text-[#02CD86]',
                                             ]"
                                         >
+                                            <Crown
+                                                v-if="item.tier === 'pro'"
+                                                class="size-3"
+                                                aria-hidden="true"
+                                            />
                                             {{
-                                                t(
-                                                    `modules.tiers.${item.state === 'locked' ? 'pro' : 'free'}`,
-                                                )
+                                                t(`modules.tiers.${item.tier}`)
                                             }}
                                         </span>
                                     </Link>
                                 </nav>
 
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger as-child>
-                                        <button
-                                            type="button"
-                                            class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-white/70 transition-colors duration-150 hover:bg-[#454545] hover:text-white focus-visible:outline-none"
-                                        >
-                                            <Settings
-                                                class="size-[18px] shrink-0"
-                                            />
-                                            <span
-                                                class="flex min-w-0 flex-col items-center"
-                                            >
-                                                <span class="truncate">{{
-                                                    t(
-                                                        'navigation.settings_subtitle',
-                                                    )
-                                                }}</span>
-                                                <span
-                                                    class="truncate text-[11px] font-normal lowercase text-white/35"
-                                                >
-                                                    {{ t('settings.title') }}
-                                                </span>
-                                            </span>
-                                        </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                        class="w-64"
-                                        side="top"
-                                        align="start"
-                                        :side-offset="8"
+                                <div class="flex flex-col gap-3">
+                                    <Link
+                                        v-if="page.props.auth.isAdmin"
+                                        data-mobile-sidebar-admin
+                                        :href="adminDashboard()"
+                                        :aria-current="
+                                            isCurrentUrl(adminDashboard())
+                                                ? 'page'
+                                                : undefined
+                                        "
+                                        class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none"
+                                        :class="
+                                            isCurrentUrl(adminDashboard())
+                                                ? 'bg-[#454545] text-[#02cd86]'
+                                                : 'text-white/70 hover:bg-[#454545] hover:text-white'
+                                        "
+                                        @click="isMenuOpen = false"
                                     >
-                                        <UserMenuContent :user="user" />
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                        <ShieldCheck
+                                            class="size-[18px] shrink-0"
+                                        />
+                                        <span class="min-w-0 truncate">
+                                            {{
+                                                navigationName(
+                                                    'settings.navigation.admin',
+                                                    'settings.navigation.admin_subtitle',
+                                                )
+                                            }}
+                                        </span>
+                                    </Link>
+
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger as-child>
+                                            <button
+                                                type="button"
+                                                class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-white/70 transition-colors duration-150 hover:bg-[#454545] hover:text-white focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none"
+                                            >
+                                                <Settings
+                                                    class="size-[18px] shrink-0"
+                                                />
+                                                <span class="min-w-0 truncate">
+                                                    {{
+                                                        navigationName(
+                                                            'settings.title',
+                                                            'navigation.settings_subtitle',
+                                                        )
+                                                    }}
+                                                </span>
+                                            </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                            class="w-64"
+                                            side="top"
+                                            align="start"
+                                            :side-offset="8"
+                                        >
+                                            <UserMenuContent :user="user" />
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
                             </div>
                         </SheetContent>
                     </Sheet>

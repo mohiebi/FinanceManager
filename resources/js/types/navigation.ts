@@ -8,8 +8,6 @@ export type BreadcrumbItem = {
 
 export type NavItem = {
     title: string;
-    /** Small, muted flight-themed aside shown under the title — e.g. "Flight deck" under "Dashboard". */
-    subtitle?: string;
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon;
     isActive?: boolean;

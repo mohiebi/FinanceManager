@@ -130,13 +130,14 @@ test('pro_until cannot be mass assigned', function () {
     expect($user->fresh()->isPro())->toBeFalse();
 });
 
-test('no feature is pro yet, so a paying user gains no entitlement they lacked', function () {
+test('advisor is the pro feature while all existing modules remain free', function () {
     $free = User::factory()->create();
     $pro = User::factory()->pro()->create();
 
     foreach (Feature::cases() as $feature) {
-        expect($feature->tier())->toBe(FeatureTier::Free)
-            ->and($free->mayUse($feature))->toBeTrue()
+        $expectedTier = $feature === Feature::Advisor ? FeatureTier::Pro : FeatureTier::Free;
+        expect($feature->tier())->toBe($expectedTier)
+            ->and($free->mayUse($feature))->toBe($feature !== Feature::Advisor)
             ->and($pro->mayUse($feature))->toBeTrue();
     }
 
@@ -145,8 +146,8 @@ test('no feature is pro yet, so a paying user gains no entitlement they lacked',
         $map = $user->featureSet()->toArray($user->isPro());
 
         foreach (Feature::cases() as $feature) {
-            expect($map[$feature->value]['tier'])->toBe('free')
-                ->and($map[$feature->value]['may_use'])->toBeTrue();
+            expect($map[$feature->value]['tier'])->toBe($feature->tier()->value)
+                ->and($map[$feature->value]['may_use'])->toBe($user->mayUse($feature));
         }
     }
 });

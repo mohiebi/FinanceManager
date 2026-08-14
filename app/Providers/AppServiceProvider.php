@@ -42,7 +42,20 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureAdvisorRateLimiting();
         $this->configurePassport();
+    }
+
+    protected function configureAdvisorRateLimiting(): void
+    {
+        RateLimiter::for('advisor-recommendations', fn (Request $request): Limit => Limit::perDay(5)
+            ->by('advisor-recommendations:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
+        RateLimiter::for('advisor-clarifications', fn (Request $request): Limit => Limit::perDay(5)
+            ->by('advisor-clarifications:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
+        RateLimiter::for('advisor-consultations', fn (Request $request): Limit => Limit::perDay(30)
+            ->by('advisor-consultations:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
     }
 
     /**

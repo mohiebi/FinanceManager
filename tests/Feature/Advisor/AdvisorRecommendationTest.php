@@ -9,6 +9,8 @@ use App\Models\InvestorAssessment;
 use App\Models\User;
 use App\Services\Advisor\AdvisorProposalValidator;
 use App\Support\Encryption\UserCrypto;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 
 function advisorRecommendationProfile(User $user): AdvisorProfile
 {
@@ -110,6 +112,7 @@ test('a second invalid response fails safely', function () {
 test('provider failures fail safely without persisting a plaintext response', function () {
     $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
     advisorRecommendationProfile($user);
+    Log::spy();
     AdvisorRecommendationAgent::fake(fn () => throw new RuntimeException('Provider timeout.'));
 
     $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
@@ -121,6 +124,50 @@ test('provider failures fail safely without persisting a plaintext response', fu
     expect($recommendation->status)->toBe(AdvisorRecommendationStatus::Failed)
         ->and($recommendation->recommendation_payload)->toBeNull()
         ->and($recommendation->provider_calls)->toBe(1);
+
+    Log::shouldHaveReceived('warning')
+        ->once()
+        ->withArgs(fn (string $message, array $context): bool => $message === 'Advisor AI provider call failed.'
+            && $context['recommendation_id'] === $recommendation->id
+            && $context['stage'] === 'recommendation'
+            && $context['exception_class'] === RuntimeException::class
+            && ! array_key_exists('exception_message', $context));
+});
+
+test('a blocked repair does not consume an unused repair attempt', function () {
+    config()->set('advisor.max_provider_calls', 1);
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorRecommendationProfile($user);
+    $invalid = advisorValidRecommendation();
+    $invalid['primary']['allocations'][0]['target_percent'] = 60;
+    AdvisorRecommendationAgent::fake([$invalid])->preventStrayPrompts();
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertOk()
+        ->assertJsonPath('status', 'failed')
+        ->assertJsonPath('failure_code', 'provider_call_limit_reached');
+
+    $recommendation = $user->advisorRecommendations()->sole();
+    expect($recommendation->provider_calls)->toBe(1)
+        ->and($recommendation->repair_attempts)->toBe(0);
+});
+
+test('an incomplete legacy profile fails before spending a provider call', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    $profile = advisorRecommendationProfile($user);
+    $payload = $profile->profile_payload;
+    unset($payload['constraints']['maximum_single_asset_allocation'], $payload['options_capability']);
+    $profile->forceFill(['profile_payload' => $payload])->save();
+    AdvisorRecommendationAgent::fake()->preventStrayPrompts();
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertOk()
+        ->assertJsonPath('status', 'failed')
+        ->assertJsonPath('failure_code', 'invalid_advisor_context');
+
+    $recommendation = $user->advisorRecommendations()->sole();
+    expect($recommendation->provider_calls)->toBe(0)
+        ->and($recommendation->status)->toBe(AdvisorRecommendationStatus::Failed);
 });
 
 test('clarification is limited to three questions and one round', function () {
@@ -263,6 +310,51 @@ test('the validator rejects unknown assets excessive risk and prohibited options
     expect($codes)->toContain('unselected_asset')
         ->and($codes)->toContain('prohibited_options_strategy')
         ->and($codes)->toContain('options_risk_budget');
+});
+
+test('the validator treats an unmapped legacy risk band as unknown', function () {
+    $user = User::factory()->pro()->create();
+    $profile = advisorRecommendationProfile($user);
+    $context = advisorContext($profile);
+    $context['selected_assets'][1]['risk_band'] = 'legacy_conservative';
+
+    $codes = collect(app(AdvisorProposalValidator::class)->validate(advisorValidRecommendation(), $context))->pluck('code');
+
+    expect($codes)->toContain('unknown_risk_too_large');
+});
+
+test('missing context sections produce violations instead of runtime errors', function () {
+    $user = User::factory()->pro()->create();
+    $profile = advisorRecommendationProfile($user);
+    $context = advisorContext($profile);
+    unset($context['options_capability'], $context['constraints']['minimum_liquid_allocation']);
+
+    $violations = app(AdvisorProposalValidator::class)->validate(advisorValidRecommendation(), $context);
+
+    expect(collect($violations)->pluck('code'))->toContain('invalid_context')
+        ->and(collect($violations)->pluck('path'))->toContain('options_capability', 'constraints.minimum_liquid_allocation');
+});
+
+test('recommendation generation deterministically uses the newest profile id when timestamps tie', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    $first = advisorRecommendationProfile($user);
+    $second = advisorRecommendationProfile($user);
+    $createdAt = now()->startOfSecond();
+    $first->forceFill(['created_at' => $createdAt])->save();
+    $second->forceFill(['created_at' => $createdAt])->save();
+    AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))->assertOk();
+
+    expect($user->advisorRecommendations()->sole()->advisor_profile_id)->toBe($second->id);
+});
+
+test('clarification provider calls have an independent daily rate limit', function () {
+    $middleware = Route::getRoutes()
+        ->getByName('advisor.recommendations.clarify')
+        ?->gatherMiddleware() ?? [];
+
+    expect($middleware)->toContain('throttle:advisor-clarifications');
 });
 
 test('cross user recommendation identifiers return not found', function () {

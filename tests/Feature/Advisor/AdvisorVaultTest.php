@@ -227,6 +227,8 @@ test('vault recommendations remain transient until the browser seals the validat
 
     $recommendation = $user->advisorRecommendations()->sole();
     expect($recommendation->status)->toBe(AdvisorRecommendationStatus::AwaitingVaultSeal)
+        ->and($recommendation->pending_status)->toBe(AdvisorRecommendationStatus::Ready)
+        ->and($recommendation->failure_code)->toBeNull()
         ->and($recommendation->getRawOriginal('recommendation_payload'))->toBeNull()
         ->and($recommendation->getRawOriginal('current_portfolio_snapshot'))->toBeNull();
 
@@ -235,16 +237,17 @@ test('vault recommendations remain transient until the browser seals the validat
 
     $this->actingAs($user)->patchJson(route('advisor.recommendations.seal', $recommendation), [
         'recommendation_payload' => $ciphertext,
-        'output_hash' => $response->json('output_hash'),
     ])->assertOk()->assertJsonPath('status', 'ready');
 
     $stored = DB::table('advisor_recommendations')->where('id', $recommendation->id)->sole();
     expect(UserCrypto::looksEncrypted($stored->recommendation_payload))->toBeTrue()
         ->and($stored->recommendation_payload)->not->toContain('Controlled growth')
-        ->and($recommendation->fresh()->recommendation_payload)->toBeInstanceOf(EncryptedValue::class);
+        ->and($recommendation->fresh()->recommendation_payload)->toBeInstanceOf(EncryptedValue::class)
+        ->and($recommendation->fresh()->pending_status)->toBeNull()
+        ->and($recommendation->fresh()->output_hash)->toBe($response->json('output_hash'));
 });
 
-test('vault sealing rejects an output hash that does not match the transient AI response', function () {
+test('vault sealing preserves the server hash instead of trusting an echoed client hash', function () {
     $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
     advisorVaultProfile($user);
     $dek = armAdvisorVault($user);
@@ -257,7 +260,26 @@ test('vault sealing rejects an output hash that does not match the transient AI 
     $this->actingAs($user)->patchJson(route('advisor.recommendations.seal', $recommendation), [
         'recommendation_payload' => $ciphertext,
         'output_hash' => str_repeat('0', 64),
-    ])->assertUnprocessable();
+    ])->assertOk();
+
+    expect($recommendation->fresh()->status)->toBe(AdvisorRecommendationStatus::Ready)
+        ->and($recommendation->fresh()->output_hash)->toBe($response->json('output_hash'));
+});
+
+test('vault sealing requires the original server generated digest', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorVaultProfile($user);
+    $dek = armAdvisorVault($user);
+    AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
+
+    $response = $this->actingAs($user)->postJson(route('advisor.recommendations.store'))->assertOk();
+    $recommendation = $user->advisorRecommendations()->sole();
+    $recommendation->forceFill(['output_hash' => null])->save();
+    $ciphertext = advisorClientEncrypt($dek, 'advisor_recommendations', 'recommendation_payload', $response->json('payload'));
+
+    $this->actingAs($user)->patchJson(route('advisor.recommendations.seal', $recommendation), [
+        'recommendation_payload' => $ciphertext,
+    ])->assertConflict();
 
     expect($recommendation->fresh()->status)->toBe(AdvisorRecommendationStatus::AwaitingVaultSeal);
 });

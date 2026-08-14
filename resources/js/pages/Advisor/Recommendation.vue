@@ -76,10 +76,9 @@ const clarificationForm = useHttp<
 const recommendationSealer = useHttp<
     {
         recommendation_payload: AdvisorRecommendationPayload | string | null;
-        output_hash: string;
     },
     { status: string }
->({ recommendation_payload: null, output_hash: '' });
+>({ recommendation_payload: null });
 const consultationForm = useHttp<
     {
         message: string;
@@ -204,7 +203,6 @@ async function sealGeneratedResponse(
     );
     recommendationSealer.recommendation_payload =
         sealed.recommendation_payload as unknown as string;
-    recommendationSealer.output_hash = response.output_hash ?? '';
     await recommendationSealer.patch(seal(response.recommendation_id).url);
 }
 

@@ -23,7 +23,9 @@ class AdvisorAIContextBuilder
     public function build(User $user, AdvisorProfile $profile): array
     {
         $profile->loadMissing('assessment.answers');
-        $payload = $profile->profile_payload;
+        $payload = is_array($profile->profile_payload) ? $profile->profile_payload : [];
+        $scores = is_array($payload['scores'] ?? null) ? $payload['scores'] : [];
+        $goals = is_array($payload['goals'] ?? null) ? $payload['goals'] : [];
         $vaultArmed = $user->vaultIsArmed();
         $mode = $vaultArmed ? AdvisorRecommendationMode::TargetOnly : AdvisorRecommendationMode::Rebalance;
         $currentPortfolio = null;
@@ -37,22 +39,22 @@ class AdvisorAIContextBuilder
             'context_version' => 1,
             'recommendation_mode' => $mode->value,
             'investor_profile' => [
-                'persona' => $payload['persona'],
-                'risk_band' => $payload['risk_band'],
-                ...$payload['scores'],
-                'time_horizon' => $payload['goals']['time_horizon'],
-                'maximum_tolerated_drawdown' => $payload['maximum_tolerated_drawdown'],
+                'persona' => $payload['persona'] ?? null,
+                'risk_band' => $payload['risk_band'] ?? null,
+                ...$scores,
+                'time_horizon' => $goals['time_horizon'] ?? null,
+                'maximum_tolerated_drawdown' => $payload['maximum_tolerated_drawdown'] ?? null,
             ],
-            'financial_context' => $payload['financial_context'],
+            'financial_context' => $payload['financial_context'] ?? [],
             'loss_context' => $payload['loss_context'] ?? [],
-            'goals' => $payload['goals'],
-            'portfolio_preferences' => $payload['portfolio_preferences'],
-            'constraints' => $payload['constraints'],
-            'selected_assets' => $payload['selected_assets'],
-            'options_capability' => $payload['options_capability'],
+            'goals' => $goals,
+            'portfolio_preferences' => $payload['portfolio_preferences'] ?? null,
+            'constraints' => $payload['constraints'] ?? null,
+            'selected_assets' => $payload['selected_assets'] ?? null,
+            'options_capability' => $payload['options_capability'] ?? null,
             'current_portfolio' => $currentPortfolio,
             'new_capital' => $newCapital,
-            'warnings' => $payload['warnings'],
+            'warnings' => $payload['warnings'] ?? [],
         ];
         $context['knowledge_context'] = $this->knowledgeProvider->contextFor($context);
         $context['knowledge_mode'] = $context['knowledge_context']['mode'];
@@ -66,12 +68,12 @@ class AdvisorAIContextBuilder
      */
     private function readablePortfolioContext(User $user, AdvisorProfile $profile, array $profilePayload): array
     {
-        $requestedCurrency = Currency::tryFrom(mb_strtolower((string) $profilePayload['portfolio_preferences']['primary_currency']));
+        $requestedCurrency = Currency::tryFrom(mb_strtolower((string) ($profilePayload['portfolio_preferences']['primary_currency'] ?? '')));
         $currency = $requestedCurrency ?? CurrencyPreference::resolveFor($user);
         $breakdown = $this->portfolioBreakdown->handle($this->portfolioBreakdown->entriesFor($user), $currency);
         $totalValue = (float) $breakdown['summary']['total_current_value'];
-        $selectedAssetsById = collect($profilePayload['selected_assets'])
-            ->filter(fn (array $asset): bool => filled($asset['investment_asset_id'] ?? null))
+        $selectedAssetsById = collect($profilePayload['selected_assets'] ?? [])
+            ->filter(fn (mixed $asset): bool => is_array($asset) && filled($asset['investment_asset_id'] ?? null))
             ->keyBy('investment_asset_id');
         $holdings = collect($breakdown['assets'])->map(function (array $asset) use ($currency, $selectedAssetsById, $totalValue): array {
             $selected = $selectedAssetsById->get($asset['id']);

@@ -8,6 +8,7 @@ use App\Enums\AdvisorRecommendationStatus;
 use App\Models\AdvisorProfile;
 use App\Models\AdvisorRecommendation;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class AdvisorRecommendationService
@@ -62,15 +63,15 @@ class AdvisorRecommendationService
                 'identifier' => null,
                 'exchange_or_market' => null,
                 'country' => null,
-                'currency' => $context['portfolio_preferences']['primary_currency'],
+                'currency' => $context['portfolio_preferences']['primary_currency'] ?? null,
                 'category' => $asset['category'],
                 'risk_band' => 'unknown',
                 'liquidity' => 'within_week',
                 'perspective' => 'neutral',
                 'conviction' => 'low',
-                'holding_period' => $context['goals']['time_horizon'] === 'no_planned_withdrawal'
+                'holding_period' => ($context['goals']['time_horizon'] ?? null) === 'no_planned_withdrawal'
                     ? '10_plus'
-                    : $context['goals']['time_horizon'],
+                    : ($context['goals']['time_horizon'] ?? '10_plus'),
                 'inclusion' => 'allowed',
             ];
         }
@@ -85,6 +86,8 @@ class AdvisorRecommendationService
             'clarification_answers' => $user->vaultIsArmed() ? null : $safeAnswers,
             'clarification_rounds' => $recommendation->clarification_rounds + 1,
             'status' => AdvisorRecommendationStatus::Generating,
+            'pending_status' => null,
+            'failure_code' => null,
         ])->save();
 
         $prompt = "Create the final recommendation using the original context and these clarification answers.\n\nContext:\n"
@@ -100,6 +103,16 @@ class AdvisorRecommendationService
      */
     private function request(User $user, AdvisorRecommendation $recommendation, array $context, string $prompt): array
     {
+        $contextViolations = $this->validator->validateContext($context);
+        if ($contextViolations !== []) {
+            Log::warning('Advisor recommendation rejected an invalid profile context.', [
+                'recommendation_id' => $recommendation->id,
+                'violation_paths' => array_column($contextViolations, 'path'),
+            ]);
+
+            return $this->fail($recommendation, 'invalid_advisor_context');
+        }
+
         if ($recommendation->provider_calls >= (int) config('advisor.max_provider_calls')) {
             return $this->fail($recommendation, 'provider_call_limit_reached');
         }
@@ -113,7 +126,9 @@ class AdvisorRecommendationService
                 timeout: (int) config('advisor.timeout'),
             );
             $payload = $response->toArray();
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            $this->logProviderFailure($recommendation, $exception, 'recommendation');
+
             return $this->fail($recommendation, 'provider_failure');
         }
 
@@ -164,15 +179,15 @@ class AdvisorRecommendationService
             return $this->fail($recommendation, 'validation_failed');
         }
 
-        $recommendation->increment('repair_attempts');
-        $prompt = "Correct the invalid recommendation once. Preserve good reasoning but satisfy every violation. Return the complete structured response.\n\nContext:\n"
-            .$this->encode($context)."\n\nInvalid response:\n".$this->encode($invalidPayload)."\n\nViolations:\n".$this->encode($violations);
-
         if ($recommendation->provider_calls >= (int) config('advisor.max_provider_calls')) {
             return $this->fail($recommendation, 'provider_call_limit_reached');
         }
 
+        $prompt = "Correct the invalid recommendation once. Preserve good reasoning but satisfy every violation. Return the complete structured response.\n\nContext:\n"
+            .$this->encode($context)."\n\nInvalid response:\n".$this->encode($invalidPayload)."\n\nViolations:\n".$this->encode($violations);
+
         try {
+            $recommendation->increment('repair_attempts');
             $recommendation->increment('provider_calls');
             $response = AdvisorRecommendationAgent::make()->prompt(
                 $prompt,
@@ -181,7 +196,9 @@ class AdvisorRecommendationService
                 timeout: (int) config('advisor.timeout'),
             );
             $repaired = $response->toArray();
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            $this->logProviderFailure($recommendation, $exception, 'repair');
+
             return $this->fail($recommendation, 'provider_failure');
         }
 
@@ -202,13 +219,15 @@ class AdvisorRecommendationService
     private function persist(User $user, AdvisorRecommendation $recommendation, array $payload, AdvisorRecommendationStatus $status, ?string $failureCode = null): array
     {
         $outputHash = $this->hash($payload);
-        $vaultSealRequired = $user->vaultIsArmed();
+        $vaultArmed = $user->vaultIsArmed();
+        $vaultSealRequired = $vaultArmed && $status !== AdvisorRecommendationStatus::Failed;
         $storedStatus = $vaultSealRequired ? AdvisorRecommendationStatus::AwaitingVaultSeal : $status;
         $recommendation->forceFill([
             'status' => $storedStatus,
-            'recommendation_payload' => $vaultSealRequired ? null : $payload,
+            'pending_status' => $vaultSealRequired ? $status : null,
+            'recommendation_payload' => $vaultArmed ? null : $payload,
             'output_hash' => $outputHash,
-            'failure_code' => $vaultSealRequired ? 'pending_'.$status->value : $failureCode,
+            'failure_code' => $failureCode,
             'generated_at' => now(),
         ])->save();
 
@@ -226,6 +245,9 @@ class AdvisorRecommendationService
     {
         $recommendation->forceFill([
             'status' => AdvisorRecommendationStatus::Failed,
+            'pending_status' => null,
+            'recommendation_payload' => null,
+            'output_hash' => null,
             'failure_code' => $failureCode,
             'generated_at' => now(),
         ])->save();
@@ -255,5 +277,16 @@ class AdvisorRecommendationService
     private function encode(array $value): string
     {
         return $this->canonicalJson->encode($value);
+    }
+
+    private function logProviderFailure(AdvisorRecommendation $recommendation, Throwable $exception, string $stage): void
+    {
+        Log::warning('Advisor AI provider call failed.', [
+            'recommendation_id' => $recommendation->id,
+            'provider' => $recommendation->provider,
+            'model' => $recommendation->model,
+            'stage' => $stage,
+            'exception_class' => $exception::class,
+        ]);
     }
 }

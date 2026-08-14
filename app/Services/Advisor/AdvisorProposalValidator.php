@@ -8,6 +8,21 @@ class AdvisorProposalValidator
 {
     private const PROHIBITED_STRATEGY_TERMS = ['naked', 'uncovered', 'ratio', 'unlimited', 'undefined_loss', 'short_straddle', 'short_strangle'];
 
+    private const REQUIRED_CONSTRAINTS = [
+        'minimum_liquid_allocation',
+        'maximum_single_asset_allocation',
+        'maximum_high_risk_allocation',
+        'maximum_speculative_allocation',
+    ];
+
+    private const RISK_WEIGHTS = [
+        'defensive' => 0.1,
+        'moderate' => 0.35,
+        'growth' => 0.7,
+        'speculative' => 1.0,
+        'unknown' => 0.8,
+    ];
+
     /**
      * @param  array<string, mixed>  $proposal
      * @param  array<string, mixed>  $context
@@ -19,7 +34,10 @@ class AdvisorProposalValidator
             return [['code' => 'invalid_status', 'path' => 'status', 'message' => 'A completed proposal must use recommendation_ready.']];
         }
 
-        $violations = $this->validateKnowledgeBoundaries($proposal, $context);
+        $violations = [
+            ...$this->validateContext($context),
+            ...$this->validateKnowledgeBoundaries($proposal, $context),
+        ];
         $violations = [...$violations, ...$this->validatePortfolio((array) ($proposal['primary'] ?? []), $context, 'primary')];
         $primaryRisk = $this->riskLoad((array) ($proposal['primary']['allocations'] ?? []), $context);
 
@@ -52,12 +70,18 @@ class AdvisorProposalValidator
     private function validatePortfolio(array $portfolio, array $context, string $path): array
     {
         $violations = [];
-        $selected = collect($context['selected_assets'] ?? [])->keyBy('asset_key');
+        $selected = $this->selectedAssets($context);
         $allocations = (array) ($portfolio['allocations'] ?? []);
         $seen = [];
         $total = 0;
 
         foreach ($allocations as $index => $allocation) {
+            if (! is_array($allocation)) {
+                $violations[] = $this->violation('invalid_allocation', "{$path}.allocations.{$index}", 'Every allocation must be an object.');
+
+                continue;
+            }
+
             $assetKey = $allocation['asset_key'] ?? null;
             $percent = $allocation['target_percent'] ?? null;
             $allocationPath = "{$path}.allocations.{$index}";
@@ -80,13 +104,13 @@ class AdvisorProposalValidator
             }
 
             $total += $percent;
-            $maximum = (int) $context['constraints']['maximum_single_asset_allocation'];
+            $maximum = $this->constraint($context, 'maximum_single_asset_allocation', 0);
             if ($percent > $maximum) {
                 $violations[] = $this->violation('excessive_concentration', "{$allocationPath}.target_percent", "No asset may exceed {$maximum}%.");
             }
 
             $asset = $selected->get($assetKey);
-            if (($asset['risk_band'] ?? null) === 'unknown' && $percent > 10) {
+            if ($this->riskBand($asset) === 'unknown' && $percent > 10) {
                 $violations[] = $this->violation('unknown_risk_too_large', "{$allocationPath}.target_percent", 'An unclassified custom asset may not exceed 10%.');
             }
 
@@ -106,19 +130,19 @@ class AdvisorProposalValidator
         }
 
         $liquidPercent = $this->sumBy($allocations, $selected, fn (array $asset): bool => ($asset['liquidity'] ?? null) === 'same_day' || ($asset['category'] ?? null) === 'currency');
-        $minimumLiquid = (int) $context['constraints']['minimum_liquid_allocation'];
+        $minimumLiquid = $this->constraint($context, 'minimum_liquid_allocation', 100);
         if ($liquidPercent < $minimumLiquid) {
             $violations[] = $this->violation('insufficient_liquidity', "{$path}.allocations", "Liquid assets must total at least {$minimumLiquid}%.");
         }
 
         $highRiskPercent = $this->sumBy($allocations, $selected, fn (array $asset): bool => in_array($asset['risk_band'] ?? null, ['growth', 'speculative'], true));
-        $maximumHighRisk = (int) $context['constraints']['maximum_high_risk_allocation'];
+        $maximumHighRisk = $this->constraint($context, 'maximum_high_risk_allocation', 0);
         if ($highRiskPercent > $maximumHighRisk) {
             $violations[] = $this->violation('high_risk_envelope', "{$path}.allocations", "Growth and speculative assets may not exceed {$maximumHighRisk}%.");
         }
 
         $speculativePercent = $this->sumBy($allocations, $selected, fn (array $asset): bool => ($asset['risk_band'] ?? null) === 'speculative');
-        $maximumSpeculative = (int) $context['constraints']['maximum_speculative_allocation'];
+        $maximumSpeculative = $this->constraint($context, 'maximum_speculative_allocation', 0);
         if ($speculativePercent > $maximumSpeculative) {
             $violations[] = $this->violation('speculative_envelope', "{$path}.allocations", "Speculative assets may not exceed {$maximumSpeculative}%.");
         }
@@ -136,7 +160,7 @@ class AdvisorProposalValidator
     private function validateOptions(array $overlays, array $allocations, $selected, array $context, string $path): array
     {
         $violations = [];
-        $capability = (array) $context['options_capability'];
+        $capability = (array) ($context['options_capability'] ?? []);
 
         if ($overlays !== [] && (($capability['willingness'] ?? 'no') === 'no' || ! ($capability['broker_access'] ?? false))) {
             return [$this->violation('options_not_permitted', "{$path}.options_overlays", 'Options may only be used when the user is willing and has broker access.')];
@@ -144,6 +168,13 @@ class AdvisorProposalValidator
 
         foreach ($overlays as $index => $overlay) {
             $overlayPath = "{$path}.options_overlays.{$index}";
+
+            if (! is_array($overlay)) {
+                $violations[] = $this->violation('invalid_options_overlay', $overlayPath, 'Every options overlay must be an object.');
+
+                continue;
+            }
+
             $strategy = (string) ($overlay['strategy'] ?? '');
             $coveragePercent = $overlay['coverage_percent'] ?? null;
 
@@ -173,14 +204,14 @@ class AdvisorProposalValidator
             }
 
             foreach ((array) ($overlay['underlying_asset_keys'] ?? []) as $assetKey) {
-                $asset = $selected->get($assetKey);
+                $asset = is_string($assetKey) ? $selected->get($assetKey) : null;
                 if ($asset === null) {
                     $violations[] = $this->violation('unknown_options_underlying', "{$overlayPath}.underlying_asset_keys", 'Options underlyings must be selected assets.');
 
                     continue;
                 }
 
-                $category = $this->optionsCategory((string) $asset['category']);
+                $category = $this->optionsCategory((string) ($asset['category'] ?? ''));
                 if ($category === null || ! in_array($category, (array) ($capability['allowed_underlying_categories'] ?? []), true)) {
                     $violations[] = $this->violation('options_category_not_allowed', "{$overlayPath}.underlying_asset_keys", 'The underlying category is not approved by the user.');
                 }
@@ -198,6 +229,10 @@ class AdvisorProposalValidator
     private function percentFor(array $allocations, string $assetKey): int
     {
         foreach ($allocations as $allocation) {
+            if (! is_array($allocation)) {
+                continue;
+            }
+
             if (($allocation['asset_key'] ?? null) === $assetKey) {
                 return is_int($allocation['target_percent'] ?? null) ? $allocation['target_percent'] : 0;
             }
@@ -212,7 +247,11 @@ class AdvisorProposalValidator
      */
     private function sumBy(array $allocations, $selected, callable $predicate): int
     {
-        return array_reduce($allocations, function (int $total, array $allocation) use ($predicate, $selected): int {
+        return array_reduce($allocations, function (int $total, mixed $allocation) use ($predicate, $selected): int {
+            if (! is_array($allocation)) {
+                return $total;
+            }
+
             $asset = $selected->get($allocation['asset_key'] ?? '');
 
             return $asset !== null && $predicate($asset) ? $total + (int) ($allocation['target_percent'] ?? 0) : $total;
@@ -224,14 +263,76 @@ class AdvisorProposalValidator
      */
     private function riskLoad(array $allocations, array $context): float
     {
-        $weights = ['defensive' => 0.1, 'moderate' => 0.35, 'growth' => 0.7, 'speculative' => 1.0, 'unknown' => 0.8];
-        $selected = collect($context['selected_assets'] ?? [])->keyBy('asset_key');
+        $selected = $this->selectedAssets($context);
 
-        return array_reduce($allocations, function (float $total, array $allocation) use ($selected, $weights): float {
-            $riskBand = $selected->get($allocation['asset_key'] ?? '')['risk_band'] ?? 'unknown';
+        return array_reduce($allocations, function (float $total, mixed $allocation) use ($selected): float {
+            if (! is_array($allocation)) {
+                return $total;
+            }
 
-            return $total + ((int) ($allocation['target_percent'] ?? 0) * $weights[$riskBand]);
+            $asset = $selected->get($allocation['asset_key'] ?? '');
+            $weight = self::RISK_WEIGHTS[$this->riskBand($asset ?? [])];
+
+            return $total + ((int) ($allocation['target_percent'] ?? 0) * $weight);
         }, 0.0);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array<int, array{code: string, path: string, message: string}>
+     */
+    public function validateContext(array $context): array
+    {
+        $violations = [];
+
+        foreach (['selected_assets', 'portfolio_preferences', 'options_capability', 'constraints'] as $key) {
+            if (! is_array($context[$key] ?? null)) {
+                $violations[] = $this->violation('invalid_context', $key, "Advisor context must contain a valid {$key} object or list.");
+            }
+        }
+
+        $constraints = is_array($context['constraints'] ?? null) ? $context['constraints'] : [];
+
+        foreach (self::REQUIRED_CONSTRAINTS as $key) {
+            $value = $constraints[$key] ?? null;
+
+            if (! is_numeric($value) || (float) $value < 0 || (float) $value > 100) {
+                $violations[] = $this->violation('invalid_context', "constraints.{$key}", "Advisor context must contain a {$key} percentage from 0 through 100.");
+            }
+        }
+
+        return $violations;
+    }
+
+    /** @param array<string, mixed> $context */
+    private function constraint(array $context, string $key, int $fallback): int
+    {
+        $value = is_array($context['constraints'] ?? null)
+            ? ($context['constraints'][$key] ?? null)
+            : null;
+
+        return is_numeric($value) ? (int) $value : $fallback;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return Collection<string, array<string, mixed>>
+     */
+    private function selectedAssets(array $context): Collection
+    {
+        return collect(is_array($context['selected_assets'] ?? null) ? $context['selected_assets'] : [])
+            ->filter(fn (mixed $asset): bool => is_array($asset) && is_string($asset['asset_key'] ?? null))
+            ->keyBy('asset_key');
+    }
+
+    /** @param array<string, mixed> $asset */
+    private function riskBand(array $asset): string
+    {
+        $riskBand = $asset['risk_band'] ?? null;
+
+        return is_string($riskBand) && array_key_exists($riskBand, self::RISK_WEIGHTS)
+            ? $riskBand
+            : 'unknown';
     }
 
     /** @param array<string, mixed> $asset

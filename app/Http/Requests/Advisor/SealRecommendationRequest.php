@@ -25,7 +25,6 @@ class SealRecommendationRequest extends FormRequest
     {
         return [
             'recommendation_payload' => SealedField::rules(),
-            'output_hash' => ['required', 'string', 'size:64'],
         ];
     }
 }

@@ -135,11 +135,11 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
         Route::post('assessment/{assessment}/complete', [AdvisorAssessmentController::class, 'complete'])->name('assessments.complete');
         Route::get('profile', AdvisorProfileController::class)->name('profile');
 
-        Route::post('recommendations', [AdvisorRecommendationController::class, 'store'])->middleware('throttle:5,1440')->name('recommendations.store');
-        Route::post('recommendations/{recommendation}/clarifications', [AdvisorRecommendationController::class, 'clarify'])->name('recommendations.clarify');
+        Route::post('recommendations', [AdvisorRecommendationController::class, 'store'])->middleware('throttle:advisor-recommendations')->name('recommendations.store');
+        Route::post('recommendations/{recommendation}/clarifications', [AdvisorRecommendationController::class, 'clarify'])->middleware('throttle:advisor-clarifications')->name('recommendations.clarify');
         Route::patch('recommendations/{recommendation}/seal', [AdvisorRecommendationController::class, 'seal'])->name('recommendations.seal');
         Route::get('recommendations/{recommendation}', [AdvisorRecommendationController::class, 'show'])->name('recommendations.show');
-        Route::post('recommendations/{recommendation}/consult', [AdvisorConsultationController::class, 'store'])->middleware('throttle:30,1440')->name('recommendations.consult');
+        Route::post('recommendations/{recommendation}/consult', [AdvisorConsultationController::class, 'store'])->middleware('throttle:advisor-consultations')->name('recommendations.consult');
         Route::post('recommendations/{recommendation}/messages/seal', [AdvisorConsultationController::class, 'seal'])->name('recommendations.messages.seal');
     });
     Route::get('transactions/import-template', [TransactionImportController::class, 'template'])->name('transactions.import-template');

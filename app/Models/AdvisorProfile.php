@@ -37,6 +37,9 @@ class AdvisorProfile extends Model
     protected function casts(): array
     {
         return [
+            // This minimized derived context is intentionally server-readable,
+            // with explicit consent, so Advisor still works while Vault is armed.
+            // Raw assessment answers and holdings remain encrypted elsewhere.
             'profile_payload' => 'array',
             'ai_consent_at' => 'datetime',
         ];

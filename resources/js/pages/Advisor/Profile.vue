@@ -65,10 +65,9 @@ const generator = useHttp<Record<string, never>, RecommendationResponse>({});
 const sealer = useHttp<
     {
         recommendation_payload: AdvisorRecommendationPayload | string | null;
-        output_hash: string;
     },
     { status: string }
->({ recommendation_payload: null, output_hash: '' });
+>({ recommendation_payload: null });
 const riskScore = computed(
     () => props.profile.payload.scores.effective_risk ?? 0,
 );
@@ -106,7 +105,6 @@ async function generateRecommendation(): Promise<void> {
             );
             sealer.recommendation_payload =
                 sealed.recommendation_payload as unknown as string;
-            sealer.output_hash = response.output_hash ?? '';
             await sealer.patch(
                 sealRecommendation(response.recommendation_id).url,
             );

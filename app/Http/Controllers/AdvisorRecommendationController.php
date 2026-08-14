@@ -18,7 +18,11 @@ class AdvisorRecommendationController extends Controller
 {
     public function store(GenerateRecommendationRequest $request, AdvisorRecommendationService $service): JsonResponse
     {
-        $profile = $request->user()->advisorProfiles()->with('assessment.answers')->latest()->firstOrFail();
+        $profile = $request->user()->advisorProfiles()
+            ->with('assessment.answers')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->firstOrFail();
         abort_if($profile->ai_consent_at === null, 422, __('advisor.validation.ai_consent_required'));
 
         return response()->json($service->start($request->user(), $profile));
@@ -43,17 +47,29 @@ class AdvisorRecommendationController extends Controller
         abort_unless((int) $recommendation->user_id === (int) $request->user()->id, 404);
         abort_unless($request->user()->vaultIsArmed(), 409);
         abort_unless($recommendation->status === AdvisorRecommendationStatus::AwaitingVaultSeal, 409);
-        abort_unless(hash_equals((string) $recommendation->output_hash, $request->validated('output_hash')), 422, __('advisor.validation.output_hash_mismatch'));
 
-        $finalStatus = match ($recommendation->failure_code) {
-            'pending_ready' => AdvisorRecommendationStatus::Ready,
-            'pending_needs_clarification' => AdvisorRecommendationStatus::NeedsClarification,
-            default => AdvisorRecommendationStatus::Failed,
-        };
+        $finalStatus = $recommendation->pending_status;
+        abort_unless($finalStatus instanceof AdvisorRecommendationStatus
+            && in_array($finalStatus, [
+                AdvisorRecommendationStatus::Ready,
+                AdvisorRecommendationStatus::NeedsClarification,
+                AdvisorRecommendationStatus::Failed,
+            ], true), 409);
+        abort_unless(is_string($recommendation->output_hash)
+            && preg_match('/\A[a-f0-9]{64}\z/', $recommendation->output_hash) === 1, 409);
+
+        /*
+         * The server deliberately cannot decrypt this Vault ciphertext. Its
+         * server-generated output_hash remains unchanged so the browser can
+         * verify the plaintext immediately after decrypting saved history.
+         */
         $recommendation->forceFill([
             'recommendation_payload' => new EncryptedValue($request->validated('recommendation_payload'), 'recommendation_payload'),
             'status' => $finalStatus,
-            'failure_code' => $finalStatus === AdvisorRecommendationStatus::Failed ? 'cannot_recommend' : null,
+            'pending_status' => null,
+            'failure_code' => $finalStatus === AdvisorRecommendationStatus::Failed
+                ? ($recommendation->failure_code ?? 'cannot_recommend')
+                : null,
         ])->save();
 
         return response()->json(['status' => $finalStatus->value]);

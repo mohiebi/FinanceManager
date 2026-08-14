@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['user_id', 'advisor_profile_id', 'status', 'mode', 'profile_version', 'scoring_version', 'prompt_version', 'provider', 'model', 'knowledge_version', 'context_hash', 'output_hash', 'current_portfolio_included', 'current_portfolio_snapshot', 'clarification_answers', 'recommendation_payload', 'failure_code', 'clarification_rounds', 'repair_attempts', 'provider_calls', 'generated_at'])]
+#[Fillable(['user_id', 'advisor_profile_id', 'status', 'pending_status', 'mode', 'profile_version', 'scoring_version', 'prompt_version', 'provider', 'model', 'knowledge_version', 'context_hash', 'output_hash', 'current_portfolio_included', 'current_portfolio_snapshot', 'clarification_answers', 'recommendation_payload', 'failure_code', 'clarification_rounds', 'repair_attempts', 'provider_calls', 'generated_at'])]
 class AdvisorRecommendation extends Model implements HasEncryptionOwner
 {
     /** @use HasFactory<AdvisorRecommendationFactory> */
@@ -44,6 +44,7 @@ class AdvisorRecommendation extends Model implements HasEncryptionOwner
     {
         return [
             'status' => AdvisorRecommendationStatus::class,
+            'pending_status' => AdvisorRecommendationStatus::class,
             'mode' => AdvisorRecommendationMode::class,
             'current_portfolio_included' => 'boolean',
             'current_portfolio_snapshot' => UserEncrypted::class.':json',

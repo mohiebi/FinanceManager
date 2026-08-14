@@ -428,7 +428,8 @@ defineOptions({
     <Head :title="t('advisor.assessment.title')" />
 
     <div
-        class="min-h-[calc(100vh-92px)] bg-[#0d0f0f] px-[18px] py-5 text-white"
+        data-app-flush-bottom
+        class="min-h-[calc(100svh-72px)] bg-background px-[18px] py-5 text-white lg:min-h-[calc(100svh-92px)]"
     >
         <header class="mx-auto max-w-5xl">
             <div class="flex items-center justify-between gap-4">

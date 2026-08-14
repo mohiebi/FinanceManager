@@ -1,10 +1,7 @@
 <template>
     <Head
         :title="
-            navigationName(
-                'navigation.budgets',
-                'navigation.budgets_subtitle',
-            )
+            navigationName('navigation.budgets', 'navigation.budgets_subtitle')
         "
     />
 

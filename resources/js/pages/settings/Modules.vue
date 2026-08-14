@@ -37,10 +37,7 @@ const moduleNavigationKeys: Partial<
     Record<FeatureKey, [standardKey: string, flightKey?: string]>
 > = {
     reports: ['navigation.report', 'navigation.report_subtitle'],
-    investments: [
-        'navigation.investments',
-        'navigation.investments_subtitle',
-    ],
+    investments: ['navigation.investments', 'navigation.investments_subtitle'],
     goals: ['navigation.goals', 'navigation.goals_subtitle'],
     budgets: ['navigation.budgets', 'navigation.budgets_subtitle'],
     advisor: ['navigation.advisor', 'navigation.advisor_subtitle'],

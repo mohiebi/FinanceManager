@@ -1,11 +1,6 @@
 <template>
     <Head
-        :title="
-            navigationName(
-                'navigation.goals',
-                'navigation.goals_subtitle',
-            )
-        "
+        :title="navigationName('navigation.goals', 'navigation.goals_subtitle')"
     />
 
     <div

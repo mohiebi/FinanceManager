@@ -135,7 +135,7 @@ function submit(): void {
                 >
                     <Select id="timezone" v-model="form.timezone">
                         <SelectTrigger
-                            class="finance-dialog-field finance-dialog-field-income w-full sm:w-[320px]"
+                            class="finance-dialog-field finance-dialog-field-income w-full sm:w-[220px]"
                         >
                             <SelectValue />
                         </SelectTrigger>

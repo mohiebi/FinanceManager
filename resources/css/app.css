@@ -252,6 +252,12 @@ html[dir='rtl'] body {
 }
 
 @layer components {
+    /* Pages that own their complete bottom spacing opt out of the shared
+       scroller padding, preventing an extra strip after their background. */
+    .app-page-scroll:has(> [data-app-flush-bottom]) {
+        padding-bottom: 0;
+    }
+
     .auth-theme {
         font-family: var(--font-sans);
     }

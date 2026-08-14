@@ -21,7 +21,7 @@ withDefaults(defineProps<Props>(), {
         </div>
         <AppContent
             variant="sidebar"
-            class="h-svh min-h-0 overflow-x-hidden overflow-y-auto pb-4"
+            class="app-page-scroll h-svh min-h-0 overflow-x-hidden overflow-y-auto pb-4"
         >
             <AppSidebarHeader :breadcrumbs="breadcrumbs" />
             <slot />

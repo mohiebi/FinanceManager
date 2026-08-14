@@ -127,7 +127,7 @@ class BillingController extends Controller
     private function pendingFor(Request $request): ?array
     {
         $pending = $request->user()->subscriptionPayments()
-            ->open()
+            ->inFlight()
             ->latest('created_at')
             ->first();
 

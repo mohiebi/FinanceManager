@@ -139,8 +139,15 @@ watch(
 
         if (status === 'submitted') {
             poll = setInterval(
-                () => router.reload({ only: ['pending', 'payments'] }),
-                15000,
+                () =>
+                    router.reload({
+                        // `subscription` has to be named too. It is a shared
+                        // prop, but a partial reload filters those the same as
+                        // any other — leaving it out is what would show a
+                        // settled payment beside a stale "Free" badge.
+                        only: ['pending', 'payments', 'subscription'],
+                    }),
+                10000,
             );
         }
     },

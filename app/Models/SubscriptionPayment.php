@@ -118,6 +118,29 @@ class SubscriptionPayment extends Model
     }
 
     /**
+     * The payment a buyer is currently in the middle of.
+     *
+     * Wider than {@see self::open()} on purpose: that one means "still unpaid
+     * and reusable", which is the right question when deciding whether to hand
+     * back an existing intent. This one means "still on screen" — an intent
+     * waiting to be paid, or one already claimed and being checked. Using the
+     * narrower scope here would make the payment vanish from the page the
+     * instant its hash was submitted, which is precisely when the buyer most
+     * wants to watch it.
+     *
+     * @param  Builder<static>  $query
+     */
+    #[Scope]
+    protected function inFlight(Builder $query): void
+    {
+        $query->where(fn (Builder $inner) => $inner
+            ->where(fn (Builder $unpaid) => $unpaid
+                ->where('status', PaymentStatus::Pending->value)
+                ->where('expires_at', '>', now()))
+            ->orWhere('status', PaymentStatus::Submitted->value));
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

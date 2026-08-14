@@ -182,6 +182,55 @@ test('the billing page offers both chains and their own contracts', function () 
         );
 });
 
+test('the page opens on the rail the buyer used last', function () {
+    $user = User::factory()->create();
+
+    // Their history is the record of the choice — nothing extra is stored.
+    SubscriptionPayment::factory()->create([
+        'user_id' => $user->id,
+        'network' => PaymentNetwork::Arbitrum,
+        'chain_id' => 42161,
+        'asset' => SettlementAsset::Usdc,
+        'token_contract' => ARBITRUM_USDC,
+        'status' => PaymentStatus::Expired,
+    ]);
+
+    $this->actingAs($user)->get(route('billing.edit'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('preferred.network', 'arbitrum')
+            ->where('preferred.asset', 'usdc')
+        );
+});
+
+test('a buyer with no history is given no preference to honour', function () {
+    $this->actingAs(User::factory()->create())
+        ->get(route('billing.edit'))
+        ->assertInertia(fn (Assert $page) => $page->where('preferred', null));
+});
+
+test('a remembered chain that is no longer on offer is simply ignored', function () {
+    $user = User::factory()->create();
+
+    SubscriptionPayment::factory()->create([
+        'user_id' => $user->id,
+        'network' => PaymentNetwork::Arbitrum,
+        'chain_id' => 42161,
+        'status' => PaymentStatus::Expired,
+    ]);
+
+    enableBothChains(['billing.networks.arbitrum.enabled' => false]);
+
+    // Still reported, because the page decides for itself whether it can be
+    // honoured — and here it falls back rather than stranding the buyer on a
+    // chain that no longer takes payments.
+    $this->actingAs($user)->get(route('billing.edit'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('preferred.network', 'arbitrum')
+            ->has('networks', 1)
+            ->where('networks.0.key', 'ethereum')
+        );
+});
+
 test('a chain the config does not offer is refused at the door', function () {
     enableBothChains(['billing.networks.arbitrum.enabled' => false]);
 

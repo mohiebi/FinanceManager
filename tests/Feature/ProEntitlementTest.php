@@ -167,14 +167,28 @@ test('the shared subscription prop reports entitlement without an extra query', 
     $props = $response->viewData('page')['props'];
 
     expect($props['subscription']['is_pro'])->toBeTrue()
-        ->and($props['subscription']['pro_until'])->toBe($user->pro_until->toIso8601String())
-        ->and($props['subscription']['billing_enabled'])->toBeFalse();
+        ->and($props['subscription']['pro_until'])->toBe($user->pro_until->toIso8601String());
 
     // Reading it again must not touch the database: pro_until rides along on the
     // auth user, which is the whole reason it is a column.
     $before = $withSubscription;
     expect($user->isPro())->toBeTrue()
         ->and($queries)->toBe($before);
+});
+
+test('the shared prop mirrors the billing kill switch', function () {
+    $user = User::factory()->create();
+
+    // Both directions asserted from config set here rather than inherited from
+    // .env — a developer testing against a live billing setup must not change
+    // what this proves.
+    config()->set('billing.enabled', false);
+    expect($this->actingAs($user)->get(route('dashboard'))
+        ->viewData('page')['props']['subscription']['billing_enabled'])->toBeFalse();
+
+    config()->set('billing.enabled', true);
+    expect($this->actingAs($user)->get(route('dashboard'))
+        ->viewData('page')['props']['subscription']['billing_enabled'])->toBeTrue();
 });
 
 test('guests get no subscription prop at all', function () {

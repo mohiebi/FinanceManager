@@ -34,6 +34,7 @@ class BillingController extends Controller
             'plans' => $this->catalog->plans(),
             'networks' => $this->catalog->networks(),
             'pending' => $this->pendingFor($request),
+            'preferred' => $this->preferredRail($request),
             'payments' => $user->subscriptionPayments()
                 ->latest('created_at')
                 ->limit(20)
@@ -92,6 +93,32 @@ class BillingController extends Controller
         $payment->forceFill(['status' => PaymentStatus::Expired])->save();
 
         return back()->with('status', __('billing.pay.cancelled'));
+    }
+
+    /**
+     * The chain and asset this buyer reached for last time.
+     *
+     * Read from their own payment history rather than stored as a preference:
+     * choosing a rail and opening an intent already records the choice, so
+     * there is nothing to keep in sync, and it follows them to another device
+     * the way a browser-local setting would not.
+     *
+     * The page falls back on its own if either is no longer on offer, so a
+     * network switched off since does not leave somebody stuck on it.
+     *
+     * @return array<string, string>|null
+     */
+    private function preferredRail(Request $request): ?array
+    {
+        $last = $request->user()->subscriptionPayments()
+            ->whereNotNull('network')
+            ->latest('created_at')
+            ->first();
+
+        return $last === null ? null : [
+            'network' => $last->network->value,
+            'asset' => $last->asset->value,
+        ];
     }
 
     /**

@@ -18,6 +18,7 @@ import type {
     NetworkOption,
     PaymentRecord,
     PlanCard,
+    PreferredRail,
     SettlementAssetKey,
 } from '@/types/billing';
 
@@ -26,6 +27,7 @@ const props = defineProps<{
     networks: NetworkOption[];
     pending: PaymentRecord | null;
     payments: PaymentRecord[];
+    preferred: PreferredRail | null;
     status: string | null;
 }>();
 
@@ -41,9 +43,21 @@ defineOptions({
 const subscription = computed(() => page.props.subscription);
 const calendar = computed(() => page.props.calendar);
 
-const network = ref<NetworkOption | undefined>(props.networks[0]);
+/**
+ * Open on whatever the buyer used last, falling back to the first thing on
+ * offer. Both sides are checked against what is actually available, so a
+ * network or asset withdrawn since cannot strand somebody on a rail that no
+ * longer takes payments.
+ */
+const initialNetwork =
+    props.networks.find((option) => option.key === props.preferred?.network) ??
+    props.networks[0];
+
+const network = ref<NetworkOption | undefined>(initialNetwork);
 const asset = ref<SettlementAssetKey | undefined>(
-    props.networks[0]?.assets[0]?.key,
+    initialNetwork?.assets.find(
+        (option) => option.key === props.preferred?.asset,
+    )?.key ?? initialNetwork?.assets[0]?.key,
 );
 
 const selectedAsset = computed<AssetOption | undefined>(() =>
@@ -319,12 +333,14 @@ const toneClasses: Record<string, string> = {
                         v-for="option in networks"
                         :key="option.key"
                         type="button"
-                        class="rounded-xl px-4 py-2 text-sm ring-1 transition"
-                        :class="
+                        :aria-pressed="option.key === network?.key"
+                        :class="[
+                            'cursor-pointer rounded-xl px-4 py-2 text-sm ring-1 transition-colors duration-200',
+                            'focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none',
                             option.key === network?.key
-                                ? 'bg-white/10 text-white ring-white/25'
-                                : 'text-[#989898] ring-white/10 hover:text-white'
-                        "
+                                ? 'bg-[#02CD86]/10 font-medium text-[#02CD86] ring-[#02CD86]/30'
+                                : 'text-[#989898] ring-white/10 hover:bg-white/5 hover:text-white',
+                        ]"
                         @click="chooseNetwork(option)"
                     >
                         {{ option.label }}
@@ -337,18 +353,26 @@ const toneClasses: Record<string, string> = {
                     v-for="option in network?.assets ?? []"
                     :key="option.key"
                     type="button"
-                    class="rounded-xl px-4 py-2 text-sm ring-1 transition"
-                    :class="
+                    :aria-pressed="option.key === asset"
+                    :class="[
+                        'cursor-pointer rounded-xl px-4 py-2 text-sm ring-1 transition-colors duration-200',
+                        'focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none',
                         option.key === asset
-                            ? 'bg-white/10 text-white ring-white/25'
-                            : 'text-[#989898] ring-white/10 hover:text-white'
-                    "
+                            ? 'bg-[#02CD86]/10 font-medium text-[#02CD86] ring-[#02CD86]/30'
+                            : 'text-[#989898] ring-white/10 hover:bg-white/5 hover:text-white',
+                    ]"
                     @click="asset = option.key"
                 >
                     {{ option.symbol }}
-                    <span class="ml-1 text-xs text-[#6f6f6f]">{{
-                        option.label
-                    }}</span>
+                    <span
+                        class="ml-1 text-xs"
+                        :class="
+                            option.key === asset
+                                ? 'text-[#02CD86]/60'
+                                : 'text-[#6f6f6f]'
+                        "
+                        >{{ option.label }}</span
+                    >
                 </button>
             </div>
 

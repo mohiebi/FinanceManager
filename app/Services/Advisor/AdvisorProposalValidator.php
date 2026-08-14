@@ -30,15 +30,11 @@ class AdvisorProposalValidator
      */
     public function validate(array $proposal, array $context): array
     {
+        $violations = $this->validateCore($proposal, $context);
         if (($proposal['status'] ?? null) !== 'recommendation_ready') {
-            return [['code' => 'invalid_status', 'path' => 'status', 'message' => 'A completed proposal must use recommendation_ready.']];
+            return $violations;
         }
 
-        $violations = [
-            ...$this->validateContext($context),
-            ...$this->validateKnowledgeBoundaries($proposal, $context),
-        ];
-        $violations = [...$violations, ...$this->validatePortfolio((array) ($proposal['primary'] ?? []), $context, 'primary')];
         $primaryRisk = $this->riskLoad((array) ($proposal['primary']['allocations'] ?? []), $context);
 
         if (is_array($proposal['safer_alternative'] ?? null) && ($proposal['safer_alternative']['allocations'] ?? []) !== []) {
@@ -58,6 +54,60 @@ class AdvisorProposalValidator
             if ($this->riskLoad((array) ($higherRisk['allocations'] ?? []), $context) <= $primaryRisk) {
                 $violations[] = $this->violation('higher_not_higher_risk', 'higher_risk_alternative.allocations', 'The higher-risk alternative must have a greater risk load than the primary plan.');
             }
+        }
+
+        return $violations;
+    }
+
+    /**
+     * Validate the required primary recommendation independently from optional alternatives.
+     *
+     * @param  array<string, mixed>  $proposal
+     * @param  array<string, mixed>  $context
+     * @return array<int, array{code: string, path: string, message: string}>
+     */
+    public function validateCore(array $proposal, array $context): array
+    {
+        if (($proposal['status'] ?? null) !== 'recommendation_ready') {
+            return [$this->violation('invalid_status', 'status', 'A completed proposal must use recommendation_ready.')];
+        }
+
+        return [
+            ...$this->validateContext($context),
+            ...$this->validateKnowledgeBoundaries($proposal, $context),
+            ...$this->validatePortfolio((array) ($proposal['primary'] ?? []), $context, 'primary'),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $proposal
+     * @param  array<string, mixed>  $context
+     * @return array<int, array{code: string, path: string, message: string}>
+     */
+    public function validateGuidance(array $proposal, array $context): array
+    {
+        $violations = [
+            ...$this->validateContext($context),
+            ...$this->validateKnowledgeBoundaries($proposal, $context),
+        ];
+
+        if (! in_array($proposal['status'] ?? null, ['guidance_only', 'cannot_recommend'], true)) {
+            $violations[] = $this->violation('invalid_guidance_status', 'status', 'A guidance response must use guidance_only.');
+        }
+
+        foreach (['primary', 'safer_alternative', 'higher_risk_alternative'] as $key) {
+            if (is_array($proposal[$key] ?? null) && (array) ($proposal[$key]['allocations'] ?? []) !== []) {
+                $violations[] = $this->violation('guidance_contains_allocations', $key.'.allocations', 'Guidance-only responses may not contain portfolio percentages.');
+            }
+        }
+
+        $reason = trim((string) ($proposal['cannot_recommend_reason'] ?? $proposal['fit_warning'] ?? $proposal['summary'] ?? ''));
+        if ($reason === '') {
+            $violations[] = $this->violation('missing_guidance_reason', 'cannot_recommend_reason', 'Guidance must explain why an allocation is not being presented.');
+        }
+
+        if ((array) ($proposal['next_steps'] ?? []) === []) {
+            $violations[] = $this->violation('missing_guidance_next_steps', 'next_steps', 'Guidance must provide at least one actionable next step.');
         }
 
         return $violations;

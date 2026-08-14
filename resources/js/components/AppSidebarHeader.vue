@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import {
-    Lock,
-    Menu,
-    Plus,
-    Settings,
-    ShieldCheck,
-    User,
-} from 'lucide-vue-next';
+import { Lock, Menu, Plus, Settings, ShieldCheck, User } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import NotificationBell from '@/components/NotificationBell.vue';
@@ -54,23 +47,6 @@ const { navItems } = useModuleNav();
 const isMenuOpen = ref(false);
 
 const user = computed(() => page.props.auth.user);
-
-const mainNavItems = computed<ModuleNavItem[]>(() => {
-    const items = [...navItems.value];
-
-    if (page.props.auth.isAdmin) {
-        items.push({
-            key: 'admin',
-            title: 'Admin',
-            subtitle: 'Control tower',
-            href: adminDashboard(),
-            icon: ShieldCheck,
-            state: 'enabled',
-        });
-    }
-
-    return items;
-});
 
 function isActive(item: ModuleNavItem): boolean {
     return item.state === 'enabled' && isCurrentUrl(item.href);
@@ -188,7 +164,7 @@ function changeCurrency(value: string) {
                                     :aria-label="t('navigation.primary')"
                                 >
                                     <Link
-                                        v-for="item in mainNavItems"
+                                        v-for="item in navItems"
                                         :key="item.key"
                                         :href="item.href"
                                         class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150"
@@ -214,7 +190,9 @@ function changeCurrency(value: string) {
                                                  rather than the free "+", so it
                                                  doesn't promise a tap turns it on. -->
                                             <Lock
-                                                v-else-if="item.state === 'locked'"
+                                                v-else-if="
+                                                    item.state === 'locked'
+                                                "
                                                 class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#6C4EE9] p-px text-white rtl:-left-1"
                                             />
                                         </span>
@@ -229,7 +207,7 @@ function changeCurrency(value: string) {
                                                  flight name leads. -->
                                             <span
                                                 v-if="item.subtitle"
-                                                class="truncate text-[11px] font-normal lowercase text-white/35"
+                                                class="truncate text-[11px] font-normal text-white/35 lowercase"
                                             >
                                                 {{ item.title }}
                                             </span>
@@ -255,40 +233,84 @@ function changeCurrency(value: string) {
                                     </Link>
                                 </nav>
 
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger as-child>
-                                        <button
-                                            type="button"
-                                            class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-white/70 transition-colors duration-150 hover:bg-[#454545] hover:text-white focus-visible:outline-none"
-                                        >
-                                            <Settings
-                                                class="size-[18px] shrink-0"
-                                            />
-                                            <span
-                                                class="flex min-w-0 flex-col items-center"
-                                            >
-                                                <span class="truncate">{{
-                                                    t(
-                                                        'navigation.settings_subtitle',
-                                                    )
-                                                }}</span>
-                                                <span
-                                                    class="truncate text-[11px] font-normal lowercase text-white/35"
-                                                >
-                                                    {{ t('settings.title') }}
-                                                </span>
-                                            </span>
-                                        </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                        class="w-64"
-                                        side="top"
-                                        align="start"
-                                        :side-offset="8"
+                                <div class="flex flex-col gap-3">
+                                    <Link
+                                        v-if="page.props.auth.isAdmin"
+                                        data-mobile-sidebar-admin
+                                        :href="adminDashboard()"
+                                        :aria-current="
+                                            isCurrentUrl(adminDashboard())
+                                                ? 'page'
+                                                : undefined
+                                        "
+                                        class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none"
+                                        :class="
+                                            isCurrentUrl(adminDashboard())
+                                                ? 'bg-[#454545] text-[#02cd86]'
+                                                : 'text-white/70 hover:bg-[#454545] hover:text-white'
+                                        "
+                                        @click="isMenuOpen = false"
                                     >
-                                        <UserMenuContent :user="user" />
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                        <ShieldCheck
+                                            class="size-[18px] shrink-0"
+                                        />
+                                        <span
+                                            class="flex min-w-0 flex-col items-center"
+                                        >
+                                            <span class="truncate">{{
+                                                t(
+                                                    'settings.navigation.admin_subtitle',
+                                                )
+                                            }}</span>
+                                            <span
+                                                class="truncate text-[11px] font-normal text-white/35 lowercase"
+                                            >
+                                                {{
+                                                    t(
+                                                        'settings.navigation.admin',
+                                                    )
+                                                }}
+                                            </span>
+                                        </span>
+                                    </Link>
+
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger as-child>
+                                            <button
+                                                type="button"
+                                                class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-white/70 transition-colors duration-150 hover:bg-[#454545] hover:text-white focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none"
+                                            >
+                                                <Settings
+                                                    class="size-[18px] shrink-0"
+                                                />
+                                                <span
+                                                    class="flex min-w-0 flex-col items-center"
+                                                >
+                                                    <span class="truncate">{{
+                                                        t(
+                                                            'navigation.settings_subtitle',
+                                                        )
+                                                    }}</span>
+                                                    <span
+                                                        class="truncate text-[11px] font-normal text-white/35 lowercase"
+                                                    >
+                                                        {{
+                                                            t('settings.title')
+                                                        }}
+                                                    </span>
+                                                </span>
+                                            </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                            class="w-64"
+                                            side="top"
+                                            align="start"
+                                            :side-offset="8"
+                                        >
+                                            <UserMenuContent :user="user" />
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
                             </div>
                         </SheetContent>
                     </Sheet>

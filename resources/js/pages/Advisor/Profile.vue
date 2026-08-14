@@ -14,7 +14,10 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
 import { useVault } from '@/composables/useVault';
-import { advisorGenerationErrorKey } from '@/lib/advisor/http-errors';
+import {
+    advisorGenerationErrorKey,
+    advisorRecommendationFailureKey,
+} from '@/lib/advisor/http-errors';
 import { profile as advisorProfile } from '@/routes/advisor';
 import {
     seal as sealRecommendation,
@@ -94,7 +97,9 @@ async function generateRecommendation(): Promise<void> {
         const response = await generator.post(storeRecommendation().url);
 
         if (response.status === 'failed' || !response.payload) {
-            generationError.value = t('advisor.recommendation.failed');
+            generationError.value = t(
+                advisorRecommendationFailureKey(response.failure_code),
+            );
 
             return;
         }
@@ -253,6 +258,56 @@ defineOptions({
             </div>
         </section>
 
+        <section
+            class="mx-auto mt-[18px] max-w-6xl rounded-[24px] border border-[#02CD86]/20 bg-[linear-gradient(135deg,rgba(2,205,134,0.09),rgba(23,26,25,1)_50%)] p-6 md:flex md:items-center md:justify-between md:gap-8"
+        >
+            <div>
+                <h2 class="flex items-center gap-2 text-lg font-semibold">
+                    <Sparkles class="size-5 text-[#a78bfa]" />{{
+                        t('advisor.ai_role')
+                    }}
+                </h2>
+                <p class="mt-2 max-w-2xl text-sm leading-6 text-white/45">
+                    The AI receives this frozen profile and your selected
+                    assets. CashPilot validates its complete response before you
+                    see it.
+                </p>
+            </div>
+            <Button
+                class="mt-5 h-12 shrink-0 rounded-full bg-[#02CD86] px-6 font-semibold text-[#07130f] hover:bg-[#19d897] md:mt-0"
+                :disabled="
+                    !props.profile.ai_enabled ||
+                    generator.processing ||
+                    sealer.processing
+                "
+                @click="generateRecommendation"
+            >
+                {{
+                    generator.processing || sealer.processing
+                        ? t('advisor.recommendation.generating')
+                        : t('advisor.profile.generate')
+                }}
+                <LoaderCircle
+                    v-if="generator.processing || sealer.processing"
+                    class="size-4 animate-spin"
+                />
+                <ArrowRight v-else class="size-4" />
+            </Button>
+        </section>
+        <p
+            v-if="!props.profile.ai_enabled"
+            class="mx-auto mt-4 max-w-6xl text-sm text-amber-200/70"
+        >
+            {{ t('advisor.profile.ai_disabled') }}
+        </p>
+        <p
+            v-if="generationError"
+            class="mx-auto mt-4 max-w-6xl rounded-xl bg-red-400/10 px-4 py-3 text-sm text-red-200"
+            role="alert"
+        >
+            {{ generationError }}
+        </p>
+
         <div class="mx-auto mt-[18px] grid max-w-6xl gap-[18px] lg:grid-cols-2">
             <section
                 class="rounded-[22px] border border-white/10 bg-[#171a19] p-6"
@@ -358,55 +413,6 @@ defineOptions({
             </div>
         </section>
 
-        <section
-            class="mx-auto mt-[18px] max-w-6xl rounded-[24px] border border-[#02CD86]/20 bg-[linear-gradient(135deg,rgba(2,205,134,0.09),rgba(23,26,25,1)_50%)] p-6 md:flex md:items-center md:justify-between md:gap-8"
-        >
-            <div>
-                <h2 class="flex items-center gap-2 text-lg font-semibold">
-                    <Sparkles class="size-5 text-[#a78bfa]" />{{
-                        t('advisor.ai_role')
-                    }}
-                </h2>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-white/45">
-                    The AI receives this frozen profile and your selected
-                    assets. CashPilot validates its complete response before you
-                    see it.
-                </p>
-            </div>
-            <Button
-                class="mt-5 h-12 shrink-0 rounded-full bg-[#02CD86] px-6 font-semibold text-[#07130f] hover:bg-[#19d897] md:mt-0"
-                :disabled="
-                    !props.profile.ai_enabled ||
-                    generator.processing ||
-                    sealer.processing
-                "
-                @click="generateRecommendation"
-            >
-                {{
-                    generator.processing || sealer.processing
-                        ? t('advisor.recommendation.generating')
-                        : t('advisor.profile.generate')
-                }}
-                <LoaderCircle
-                    v-if="generator.processing || sealer.processing"
-                    class="size-4 animate-spin"
-                />
-                <ArrowRight v-else class="size-4" />
-            </Button>
-        </section>
-        <p
-            v-if="!props.profile.ai_enabled"
-            class="mx-auto mt-4 max-w-6xl text-sm text-amber-200/70"
-        >
-            {{ t('advisor.profile.ai_disabled') }}
-        </p>
-        <p
-            v-if="generationError"
-            class="mx-auto mt-4 max-w-6xl rounded-xl bg-red-400/10 px-4 py-3 text-sm text-red-200"
-            role="alert"
-        >
-            {{ generationError }}
-        </p>
         <p
             class="mx-auto mt-5 max-w-3xl text-center text-xs leading-5 text-white/28"
         >

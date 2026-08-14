@@ -173,20 +173,6 @@
                     </article>
                 </div>
 
-                <!-- ── Flight log ── -->
-                <!-- Plain prop rather than deferred: one indexed query, and a
-                     <Deferred> key that never arrives would skeleton forever. -->
-                <div
-                    v-if="props.streak && props.logbook"
-                    class="grid items-stretch gap-[18px] xl:grid-cols-2"
-                >
-                    <StreakCard
-                        :streak="props.streak"
-                        @add-transaction="openCreateForm('cost')"
-                    />
-                    <CompletenessRing :logbook="props.logbook" />
-                </div>
-
                 <div class="grid items-stretch gap-[18px] xl:grid-cols-3">
                     <!-- ── Spending by category (donut) ── -->
                     <div
@@ -745,7 +731,28 @@
                 </div>
             </div>
         </div>
-        <div class="grid gap-[18px] px-[18px] pb-[38px] xl:grid-cols-2">
+
+        <!-- ── Flight log ── -->
+        <!-- Plain props rather than deferred: one indexed query, and a
+             <Deferred> key that never arrives would skeleton forever. Kept
+             outside the constrained dashboard/rail grid so both cards use
+             the same full-width geometry as the recent transaction cards. -->
+        <div
+            v-if="props.streak && props.logbook"
+            data-dashboard-flight-log
+            class="grid items-stretch gap-[18px] px-[18px] pb-[18px] xl:grid-cols-2"
+        >
+            <StreakCard
+                :streak="props.streak"
+                @add-transaction="openCreateForm('cost')"
+            />
+            <CompletenessRing :logbook="props.logbook" />
+        </div>
+
+        <div
+            data-dashboard-recent-transactions
+            class="grid gap-[18px] px-[18px] pb-[38px] xl:grid-cols-2"
+        >
             <!-- ── Recently Costs ── -->
             <section
                 class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"

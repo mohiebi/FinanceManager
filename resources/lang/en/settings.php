@@ -314,6 +314,8 @@ return [
         'assets' => 'Assets',
         'telegram' => 'Telegram',
         'ai' => 'AI connections',
+        'admin' => 'Admin',
+        'admin_subtitle' => 'Control tower',
     ],
     'ai' => [
         'title' => 'AI connections',

@@ -99,17 +99,80 @@ test('one invalid response receives one repair request', function () {
         ->and($recommendation->status)->toBe(AdvisorRecommendationStatus::Ready);
 });
 
-test('a second invalid response fails safely', function () {
+test('a second invalid response returns useful guidance instead of a validation failure', function () {
     $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
     advisorRecommendationProfile($user);
     $invalid = advisorValidRecommendation();
     $invalid['primary']['allocations'][0]['target_percent'] = 60;
+    AdvisorRecommendationAgent::fake([$invalid, $invalid, advisorGuidanceResponse()])->preventStrayPrompts();
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertOk()
+        ->assertJsonPath('status', 'ready')
+        ->assertJsonPath('payload.status', 'guidance_only')
+        ->assertJsonPath('payload.primary', null);
+
+    $recommendation = $user->advisorRecommendations()->sole();
+    expect($recommendation->recommendation_payload['next_steps'])->not->toBeEmpty()
+        ->and($recommendation->provider_calls)->toBe(3)
+        ->and($recommendation->status)->toBe(AdvisorRecommendationStatus::Ready);
+});
+
+test('an invalid optional higher risk alternative does not discard a valid primary portfolio', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorRecommendationProfile($user);
+    $invalid = advisorValidRecommendation();
+    $invalid['higher_risk_alternative'] = [
+        ...$invalid['primary'],
+        'available' => true,
+        'reason_if_unavailable' => null,
+    ];
     AdvisorRecommendationAgent::fake([$invalid, $invalid])->preventStrayPrompts();
 
     $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertOk()->assertJsonPath('status', 'failed')->assertJsonPath('failure_code', 'validation_failed');
+        ->assertOk()
+        ->assertJsonPath('status', 'ready')
+        ->assertJsonPath('payload.status', 'recommendation_ready')
+        ->assertJsonPath('payload.higher_risk_alternative.available', false)
+        ->assertJsonPath('payload.response_warnings.0', 'higher_risk_alternative_omitted');
 
-    expect($user->advisorRecommendations()->sole()->recommendation_payload)->toBeNull();
+    $recommendation = $user->advisorRecommendations()->sole();
+    expect($recommendation->recommendation_payload['primary'])->not->toBeNull()
+        ->and($recommendation->repair_attempts)->toBe(1)
+        ->and($recommendation->status)->toBe(AdvisorRecommendationStatus::Ready);
+});
+
+test('a risk and return conflict presents the portfolio as a closest fit', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    $profile = advisorRecommendationProfile($user);
+    $profilePayload = $profile->profile_payload;
+    $profilePayload['warnings'] = ['return_expectation_exceeds_risk_capacity'];
+    $profile->forceFill(['profile_payload' => $profilePayload])->save();
+    AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertOk()
+        ->assertJsonPath('status', 'ready')
+        ->assertJsonPath('payload.fit_status', 'closest_fit')
+        ->assertJsonPath('payload.primary.name', 'Controlled growth');
+
+    expect($user->advisorRecommendations()->sole()->recommendation_payload['next_steps'])->not->toBeEmpty();
+});
+
+test('an AI cannot recommend response is saved as actionable guidance', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorRecommendationProfile($user);
+    $guidance = advisorGuidanceResponse();
+    $guidance['status'] = 'cannot_recommend';
+    AdvisorRecommendationAgent::fake([$guidance])->preventStrayPrompts();
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertOk()
+        ->assertJsonPath('status', 'ready')
+        ->assertJsonPath('payload.status', 'guidance_only')
+        ->assertJsonPath('payload.fit_status', 'guidance_only');
+
+    expect($user->advisorRecommendations()->sole()->status)->toBe(AdvisorRecommendationStatus::Ready);
 });
 
 test('provider failures fail safely without persisting a plaintext response', function () {
@@ -126,10 +189,10 @@ test('provider failures fail safely without persisting a plaintext response', fu
     $recommendation = $user->advisorRecommendations()->sole();
     expect($recommendation->status)->toBe(AdvisorRecommendationStatus::Failed)
         ->and($recommendation->recommendation_payload)->toBeNull()
-        ->and($recommendation->provider_calls)->toBe(1);
+        ->and($recommendation->provider_calls)->toBe(2);
 
     Log::shouldHaveReceived('warning')
-        ->once()
+        ->twice()
         ->withArgs(fn (string $message, array $context): bool => $message === 'Advisor AI provider call failed.'
             && $context['recommendation_id'] === $recommendation->id
             && $context['stage'] === 'recommendation'
@@ -137,7 +200,7 @@ test('provider failures fail safely without persisting a plaintext response', fu
             && ! array_key_exists('exception_message', $context));
 });
 
-test('a blocked repair does not consume an unused repair attempt', function () {
+test('a blocked repair returns deterministic guidance without consuming an unused repair attempt', function () {
     config()->set('advisor.max_provider_calls', 1);
     $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
     advisorRecommendationProfile($user);
@@ -147,12 +210,13 @@ test('a blocked repair does not consume an unused repair attempt', function () {
 
     $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
         ->assertOk()
-        ->assertJsonPath('status', 'failed')
-        ->assertJsonPath('failure_code', 'provider_call_limit_reached');
+        ->assertJsonPath('status', 'ready')
+        ->assertJsonPath('payload.status', 'guidance_only');
 
     $recommendation = $user->advisorRecommendations()->sole();
     expect($recommendation->provider_calls)->toBe(1)
-        ->and($recommendation->repair_attempts)->toBe(0);
+        ->and($recommendation->repair_attempts)->toBe(0)
+        ->and($recommendation->status)->toBe(AdvisorRecommendationStatus::Ready);
 });
 
 test('an incomplete legacy profile fails before spending a provider call', function () {
@@ -265,7 +329,9 @@ test('model only agent instructions prohibit current market and live option clai
     $instructions = (string) app(AdvisorRecommendationAgent::class)->instructions();
 
     expect($instructions)->toContain("do not claim knowledge of today's prices")
-        ->and($instructions)->toContain('never invent strikes, expirations, premiums, Greeks');
+        ->and($instructions)->toContain('never invent strikes, expirations, premiums, Greeks')
+        ->and($instructions)->toContain('closest valid allocation')
+        ->and($instructions)->toContain('return guidance_only with no allocations');
 });
 
 test('the validator rejects current market claims and exact option contracts in model only mode', function () {

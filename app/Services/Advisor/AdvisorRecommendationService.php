@@ -118,19 +118,8 @@ class AdvisorRecommendationService
             return $this->fail($recommendation, 'provider_call_limit_reached');
         }
 
-        try {
-            $recommendation->increment('provider_calls');
-            $this->executionTimeLimiter->extendForProviderCall();
-            $response = AdvisorRecommendationAgent::make()->prompt(
-                $prompt,
-                provider: (string) config('advisor.provider'),
-                model: config('advisor.model'),
-                timeout: (int) config('advisor.timeout'),
-            );
-            $payload = $response->toArray();
-        } catch (Throwable $exception) {
-            $this->logProviderFailure($recommendation, $exception, 'recommendation');
-
+        $payload = $this->promptAgent($recommendation, $prompt, 'recommendation', 2);
+        if ($payload === null) {
             return $this->fail($recommendation, 'provider_failure');
         }
 
@@ -138,18 +127,23 @@ class AdvisorRecommendationService
             return $this->handleClarification($user, $recommendation, $payload);
         }
 
-        if (($payload['status'] ?? null) === 'cannot_recommend') {
-            return $this->persist($user, $recommendation, $payload, AdvisorRecommendationStatus::Failed, 'cannot_recommend');
+        if ($this->isGuidance($payload)) {
+            return $this->persistGuidance($user, $recommendation, $context, $payload);
         }
 
+        $payload = $this->applyFitAssessment($payload, $context);
         $violations = $this->validator->validate($payload, $context);
         if ($violations !== []) {
+            Log::info('Advisor recommendation requires correction.', [
+                'recommendation_id' => $recommendation->id,
+                'violation_codes' => array_column($violations, 'code'),
+                'violation_paths' => array_column($violations, 'path'),
+            ]);
+
             return $this->repair($user, $recommendation, $context, $payload, $violations);
         }
 
-        $payload['transition_plan'] = $this->rebalancingCalculator->calculate($context, $payload);
-
-        return $this->persist($user, $recommendation, $payload, AdvisorRecommendationStatus::Ready);
+        return $this->finalizeRecommendation($user, $recommendation, $context, $payload);
     }
 
     /**
@@ -178,33 +172,27 @@ class AdvisorRecommendationService
     private function repair(User $user, AdvisorRecommendation $recommendation, array $context, array $invalidPayload, array $violations): array
     {
         if ($recommendation->repair_attempts >= (int) config('advisor.max_repair_attempts')) {
-            return $this->fail($recommendation, 'validation_failed');
+            return $this->guidance($user, $recommendation, $context, $invalidPayload, $violations);
         }
 
         if ($recommendation->provider_calls >= (int) config('advisor.max_provider_calls')) {
-            return $this->fail($recommendation, 'provider_call_limit_reached');
+            return $this->persistGuidance($user, $recommendation, $context, $this->fallbackGuidance($context));
         }
 
         $prompt = "Correct the invalid recommendation once. Preserve good reasoning but satisfy every violation. Return the complete structured response.\n\nContext:\n"
             .$this->encode($context)."\n\nInvalid response:\n".$this->encode($invalidPayload)."\n\nViolations:\n".$this->encode($violations);
 
-        try {
-            $recommendation->increment('repair_attempts');
-            $recommendation->increment('provider_calls');
-            $this->executionTimeLimiter->extendForProviderCall();
-            $response = AdvisorRecommendationAgent::make()->prompt(
-                $prompt,
-                provider: (string) config('advisor.provider'),
-                model: config('advisor.model'),
-                timeout: (int) config('advisor.timeout'),
-            );
-            $repaired = $response->toArray();
-        } catch (Throwable $exception) {
-            $this->logProviderFailure($recommendation, $exception, 'repair');
-
-            return $this->fail($recommendation, 'provider_failure');
+        $recommendation->increment('repair_attempts');
+        $repaired = $this->promptAgent($recommendation, $prompt, 'repair');
+        if ($repaired === null) {
+            return $this->guidance($user, $recommendation, $context, $invalidPayload, $violations);
         }
 
+        if ($this->isGuidance($repaired)) {
+            return $this->persistGuidance($user, $recommendation, $context, $repaired);
+        }
+
+        $repaired = $this->applyFitAssessment($repaired, $context);
         $remainingViolations = $this->validator->validate($repaired, $context);
         if ($remainingViolations !== []) {
             Log::warning('Advisor recommendation repair failed validation.', [
@@ -213,12 +201,270 @@ class AdvisorRecommendationService
                 'violation_paths' => array_column($remainingViolations, 'path'),
             ]);
 
-            return $this->fail($recommendation, 'validation_failed');
+            $recoverable = $this->recoverValidPrimary($repaired, $context, $remainingViolations);
+            if ($recoverable !== null) {
+                return $this->finalizeRecommendation($user, $recommendation, $context, $recoverable);
+            }
+
+            return $this->guidance($user, $recommendation, $context, $repaired, $remainingViolations);
         }
 
-        $repaired['transition_plan'] = $this->rebalancingCalculator->calculate($context, $repaired);
+        return $this->finalizeRecommendation($user, $recommendation, $context, $repaired);
+    }
 
-        return $this->persist($user, $recommendation, $repaired, AdvisorRecommendationStatus::Ready);
+    /**
+     * @param  array<string, mixed>  $context
+     * @param  array<string, mixed>  $invalidPayload
+     * @param  array<int, array<string, string>>  $violations
+     * @return array<string, mixed>
+     */
+    private function guidance(User $user, AdvisorRecommendation $recommendation, array $context, array $invalidPayload, array $violations): array
+    {
+        if ($recommendation->provider_calls < (int) config('advisor.max_provider_calls')) {
+            $prompt = "No allocation from the previous response can be safely presented. Return guidance_only with no portfolio percentages. Explain the closest feasible direction and the specific changes that could make a portfolio fit. Never say CashPilot blocked the answer or failed safety checks.\n\nContext:\n"
+                .$this->encode($context)."\n\nPrevious response:\n".$this->encode($invalidPayload)."\n\nUnresolved violations:\n".$this->encode($violations);
+            $advice = $this->promptAgent($recommendation, $prompt, 'guidance');
+
+            if ($advice !== null && $this->isGuidance($advice)) {
+                $normalized = $this->normalizeGuidance($advice, $context);
+                $guidanceViolations = $this->validator->validateGuidance($normalized, $context);
+
+                if ($guidanceViolations === []) {
+                    return $this->persist($user, $recommendation, $normalized, AdvisorRecommendationStatus::Ready);
+                }
+
+                Log::warning('Advisor guidance response failed validation.', [
+                    'recommendation_id' => $recommendation->id,
+                    'violation_codes' => array_column($guidanceViolations, 'code'),
+                    'violation_paths' => array_column($guidanceViolations, 'path'),
+                ]);
+            }
+        }
+
+        return $this->persistGuidance($user, $recommendation, $context, $this->fallbackGuidance($context));
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $context
+     * @param  array<int, array<string, string>>  $violations
+     * @return array<string, mixed>|null
+     */
+    private function recoverValidPrimary(array $payload, array $context, array $violations): ?array
+    {
+        $omitSafer = false;
+        $omitHigher = false;
+
+        foreach ($violations as $violation) {
+            $path = (string) ($violation['path'] ?? '');
+
+            if ($path === 'safer_alternative' || str_starts_with($path, 'safer_alternative.')) {
+                $omitSafer = true;
+
+                continue;
+            }
+
+            if ($path === 'higher_risk_alternative' || str_starts_with($path, 'higher_risk_alternative.')) {
+                $omitHigher = true;
+
+                continue;
+            }
+
+            return null;
+        }
+
+        $responseWarnings = array_values(array_filter((array) ($payload['response_warnings'] ?? []), 'is_string'));
+
+        if ($omitSafer) {
+            $payload['safer_alternative'] = null;
+            $responseWarnings[] = 'safer_alternative_omitted';
+        }
+
+        if ($omitHigher) {
+            $payload['higher_risk_alternative'] = [
+                'available' => false,
+                'reason_if_unavailable' => __('advisor.recommendation.higher_unavailable'),
+                'name' => null,
+                'allocations' => [],
+                'options_overlays' => [],
+                'risks' => [],
+                'tradeoffs' => [],
+                'what_would_change_this_plan' => [],
+            ];
+            $responseWarnings[] = 'higher_risk_alternative_omitted';
+        }
+
+        $payload['response_warnings'] = array_values(array_unique($responseWarnings));
+
+        return $this->validator->validateCore($payload, $context) === [] ? $payload : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function finalizeRecommendation(User $user, AdvisorRecommendation $recommendation, array $context, array $payload): array
+    {
+        $payload = $this->applyFitAssessment($payload, $context);
+        $payload['transition_plan'] = $this->rebalancingCalculator->calculate($context, $payload);
+
+        return $this->persist($user, $recommendation, $payload, AdvisorRecommendationStatus::Ready);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>
+     */
+    private function applyFitAssessment(array $payload, array $context): array
+    {
+        $hasRiskReturnConflict = in_array('return_expectation_exceeds_risk_capacity', (array) ($context['warnings'] ?? []), true);
+        $aiIdentifiedClosestFit = ($payload['fit_status'] ?? null) === 'closest_fit';
+        $payload['fit_status'] = $hasRiskReturnConflict || $aiIdentifiedClosestFit ? 'closest_fit' : 'fits';
+        $payload['response_warnings'] = array_values(array_filter((array) ($payload['response_warnings'] ?? []), 'is_string'));
+        $payload['next_steps'] = array_values(array_filter((array) ($payload['next_steps'] ?? []), 'is_string'));
+
+        if ($hasRiskReturnConflict) {
+            $payload['fit_warning'] = trim((string) ($payload['fit_warning'] ?? '')) !== ''
+                ? $payload['fit_warning']
+                : __('advisor.recommendation.closest_fit_body');
+            $payload['next_steps'] = array_values(array_unique([
+                ...$payload['next_steps'],
+                __('advisor.recommendation.next_step_return'),
+                __('advisor.recommendation.next_step_horizon'),
+                __('advisor.recommendation.next_step_assets'),
+                __('advisor.recommendation.next_step_reassess'),
+            ]));
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>
+     */
+    private function normalizeGuidance(array $payload, array $context): array
+    {
+        $fallback = $this->fallbackGuidance($context);
+        $reason = trim((string) ($payload['cannot_recommend_reason'] ?? $payload['fit_warning'] ?? $payload['summary'] ?? ''));
+        $nextSteps = array_values(array_filter((array) ($payload['next_steps'] ?? []), 'is_string'));
+
+        return [
+            ...$payload,
+            'status' => 'guidance_only',
+            'summary' => trim((string) ($payload['summary'] ?? '')) !== '' ? $payload['summary'] : $fallback['summary'],
+            'primary' => null,
+            'safer_alternative' => null,
+            'higher_risk_alternative' => null,
+            'cannot_recommend_reason' => $reason !== '' ? $reason : $fallback['cannot_recommend_reason'],
+            'fit_status' => 'guidance_only',
+            'fit_warning' => $reason !== '' ? $reason : $fallback['fit_warning'],
+            'next_steps' => $nextSteps !== [] ? $nextSteps : $fallback['next_steps'],
+            'response_warnings' => array_values(array_unique([
+                ...array_filter((array) ($payload['response_warnings'] ?? []), 'is_string'),
+                'guidance_only',
+            ])),
+        ];
+    }
+
+    /** @param array<string, mixed> $context
+     * @return array<string, mixed>
+     */
+    private function fallbackGuidance(array $context): array
+    {
+        $hasRiskReturnConflict = in_array('return_expectation_exceeds_risk_capacity', (array) ($context['warnings'] ?? []), true);
+        $reason = $hasRiskReturnConflict
+            ? __('advisor.recommendation.closest_fit_body')
+            : __('advisor.recommendation.guidance_body');
+        $nextSteps = $hasRiskReturnConflict
+            ? [
+                __('advisor.recommendation.next_step_return'),
+                __('advisor.recommendation.next_step_horizon'),
+                __('advisor.recommendation.next_step_assets'),
+                __('advisor.recommendation.next_step_reassess'),
+            ]
+            : [
+                __('advisor.recommendation.next_step_review_assets'),
+                __('advisor.recommendation.next_step_assets'),
+                __('advisor.recommendation.next_step_retry'),
+            ];
+
+        return [
+            'status' => 'guidance_only',
+            'questions' => [],
+            'suggested_additional_assets' => [],
+            'summary' => __('advisor.recommendation.guidance_title'),
+            'primary' => null,
+            'safer_alternative' => null,
+            'higher_risk_alternative' => null,
+            'uncertainties' => [],
+            'knowledge_limitations' => [__('advisor.recommendation.model_only')],
+            'cannot_recommend_reason' => $reason,
+            'fit_status' => 'guidance_only',
+            'fit_warning' => $reason,
+            'next_steps' => $nextSteps,
+            'response_warnings' => ['guidance_only'],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function persistGuidance(User $user, AdvisorRecommendation $recommendation, array $context, array $payload): array
+    {
+        $normalized = $this->normalizeGuidance($payload, $context);
+        $violations = $this->validator->validateGuidance($normalized, $context);
+
+        if ($violations !== []) {
+            Log::warning('Advisor guidance could not be normalized.', [
+                'recommendation_id' => $recommendation->id,
+                'violation_codes' => array_column($violations, 'code'),
+                'violation_paths' => array_column($violations, 'path'),
+            ]);
+
+            $normalized = $this->fallbackGuidance($context);
+        }
+
+        return $this->persist($user, $recommendation, $normalized, AdvisorRecommendationStatus::Ready);
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function isGuidance(array $payload): bool
+    {
+        return in_array($payload['status'] ?? null, ['guidance_only', 'cannot_recommend'], true);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function promptAgent(AdvisorRecommendation $recommendation, string $prompt, string $stage, int $maximumAttempts = 1): ?array
+    {
+        for ($attempt = 1; $attempt <= $maximumAttempts; $attempt++) {
+            if ($recommendation->provider_calls >= (int) config('advisor.max_provider_calls')) {
+                return null;
+            }
+
+            try {
+                $recommendation->increment('provider_calls');
+                $this->executionTimeLimiter->extendForProviderCall();
+
+                return AdvisorRecommendationAgent::make()->prompt(
+                    $prompt,
+                    provider: (string) config('advisor.provider'),
+                    model: config('advisor.model'),
+                    timeout: (int) config('advisor.timeout'),
+                )->toArray();
+            } catch (Throwable $exception) {
+                $this->logProviderFailure($recommendation, $exception, $stage, $attempt);
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -288,13 +534,14 @@ class AdvisorRecommendationService
         return $this->canonicalJson->encode($value);
     }
 
-    private function logProviderFailure(AdvisorRecommendation $recommendation, Throwable $exception, string $stage): void
+    private function logProviderFailure(AdvisorRecommendation $recommendation, Throwable $exception, string $stage, int $attempt): void
     {
         Log::warning('Advisor AI provider call failed.', [
             'recommendation_id' => $recommendation->id,
             'provider' => $recommendation->provider,
             'model' => $recommendation->model,
             'stage' => $stage,
+            'attempt' => $attempt,
             'exception_class' => $exception::class,
         ]);
     }

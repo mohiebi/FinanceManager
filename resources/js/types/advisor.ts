@@ -84,7 +84,11 @@ export type ClarificationQuestion = {
 };
 
 export type AdvisorRecommendationPayload = {
-    status: 'needs_clarification' | 'recommendation_ready' | 'cannot_recommend';
+    status:
+        | 'needs_clarification'
+        | 'recommendation_ready'
+        | 'guidance_only'
+        | 'cannot_recommend';
     questions: ClarificationQuestion[];
     suggested_additional_assets: {
         key: string;
@@ -104,6 +108,10 @@ export type AdvisorRecommendationPayload = {
     uncertainties: string[];
     knowledge_limitations: string[];
     cannot_recommend_reason: string | null;
+    fit_status?: 'fits' | 'closest_fit' | 'guidance_only';
+    fit_warning?: string | null;
+    next_steps?: string[];
+    response_warnings?: string[];
     transition_plan?: {
         base_currency: string;
         combined_capital: number | null;

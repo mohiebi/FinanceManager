@@ -7,6 +7,7 @@ import {
     Bot,
     CheckCircle2,
     HelpCircle,
+    LoaderCircle,
     LockKeyhole,
     Send,
     ShieldCheck,
@@ -16,6 +17,7 @@ import { computed, reactive, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
 import { useVault } from '@/composables/useVault';
+import { advisorRecommendationFailureKey } from '@/lib/advisor/http-errors';
 import { clarify, consult, seal } from '@/routes/advisor/recommendations';
 import { seal as sealMessage } from '@/routes/advisor/recommendations/messages';
 import type {
@@ -61,6 +63,20 @@ const acceptedAssetKeys = ref<string[]>([]);
 const actionError = ref('');
 const integrityError = ref(false);
 const chatMessage = ref('');
+const isConsulting = ref(false);
+const isGuidance = computed(
+    () =>
+        payload.value?.status === 'guidance_only' ||
+        payload.value?.status === 'cannot_recommend',
+);
+const hasOmittedAlternative = computed(() =>
+    (payload.value?.response_warnings ?? []).some((warning) =>
+        [
+            'safer_alternative_omitted',
+            'higher_risk_alternative_omitted',
+        ].includes(warning),
+    ),
+);
 
 const clarificationForm = useHttp<
     {
@@ -209,10 +225,11 @@ async function sealGeneratedResponse(
 async function sendMessage(): Promise<void> {
     const text = chatMessage.value.trim();
 
-    if (!text || !payload.value) {
+    if (!text || !payload.value || isConsulting.value) {
         return;
     }
 
+    isConsulting.value = true;
     actionError.value = '';
     consultationForm.message = text;
     consultationForm.recommendation_context = props.vaultArmed
@@ -258,6 +275,8 @@ async function sendMessage(): Promise<void> {
             error instanceof Error
                 ? error.message
                 : t('advisor.validation.provider_failure');
+    } finally {
+        isConsulting.value = false;
     }
 }
 
@@ -327,9 +346,20 @@ defineOptions({
                 </p>
             </div>
             <div
-                class="mt-4 flex items-center gap-2 rounded-full border border-[#02CD86]/20 bg-[#02CD86]/8 px-4 py-2 text-xs text-[#8ff0cd] md:mt-0"
+                class="mt-4 flex items-center gap-2 rounded-full border px-4 py-2 text-xs md:mt-0"
+                :class="
+                    isGuidance
+                        ? 'border-amber-300/20 bg-amber-300/8 text-amber-100'
+                        : 'border-[#02CD86]/20 bg-[#02CD86]/8 text-[#8ff0cd]'
+                "
             >
-                <ShieldCheck class="size-4" />CashPilot validated
+                <AlertTriangle v-if="isGuidance" class="size-4" />
+                <ShieldCheck v-else class="size-4" />
+                {{
+                    isGuidance
+                        ? t('advisor.recommendation.guidance_badge')
+                        : 'CashPilot validated'
+                }}
             </div>
         </header>
 
@@ -362,10 +392,7 @@ defineOptions({
         </section>
 
         <section
-            v-else-if="
-                props.recommendation.status === 'failed' ||
-                payload?.status === 'cannot_recommend'
-            "
+            v-else-if="props.recommendation.status === 'failed'"
             class="mx-auto mt-[18px] max-w-6xl rounded-[24px] border border-red-400/15 bg-[#171a19] p-8 text-center"
         >
             <AlertTriangle class="mx-auto size-7 text-red-300" />
@@ -374,10 +401,65 @@ defineOptions({
             </h2>
             <p class="mt-2 text-sm text-white/40">
                 {{
-                    payload?.cannot_recommend_reason ??
-                    props.recommendation.failure_code
+                    t(
+                        advisorRecommendationFailureKey(
+                            props.recommendation.failure_code ?? undefined,
+                        ),
+                    )
                 }}
             </p>
+        </section>
+
+        <section
+            v-else-if="isGuidance && payload"
+            class="mx-auto mt-[18px] max-w-4xl rounded-[24px] border border-amber-300/20 bg-[linear-gradient(135deg,rgba(245,158,11,0.1),rgba(23,26,25,1)_48%)] p-6 md:p-8"
+            role="status"
+        >
+            <div class="flex items-start gap-4">
+                <span
+                    class="grid size-11 shrink-0 place-items-center rounded-2xl border border-amber-300/20 bg-amber-300/10 text-amber-200"
+                >
+                    <AlertTriangle class="size-5" />
+                </span>
+                <div class="min-w-0">
+                    <p
+                        class="text-[11px] font-semibold tracking-[0.24em] text-amber-200/75 uppercase"
+                    >
+                        {{ t('advisor.recommendation.guidance_badge') }}
+                    </p>
+                    <h2 class="mt-2 text-xl leading-tight font-semibold">
+                        {{
+                            payload.summary ??
+                            t('advisor.recommendation.guidance_title')
+                        }}
+                    </h2>
+                    <p class="mt-3 max-w-3xl text-sm leading-6 text-white/55">
+                        {{
+                            payload.fit_warning ??
+                            payload.cannot_recommend_reason ??
+                            t('advisor.recommendation.guidance_body')
+                        }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-7 rounded-2xl border border-white/8 bg-black/15 p-5">
+                <h3 class="text-sm font-semibold">
+                    {{ t('advisor.recommendation.next_steps') }}
+                </h3>
+                <ul class="mt-4 space-y-3 text-sm leading-6 text-white/55">
+                    <li
+                        v-for="step in payload.next_steps ?? []"
+                        :key="step"
+                        class="flex gap-3"
+                    >
+                        <CheckCircle2
+                            class="mt-1 size-4 shrink-0 text-amber-200/80"
+                        />
+                        <span>{{ step }}</span>
+                    </li>
+                </ul>
+            </div>
         </section>
 
         <section
@@ -487,6 +569,55 @@ defineOptions({
                 payload?.status === 'recommendation_ready' && payload.primary
             "
         >
+            <section
+                v-if="payload.fit_status === 'closest_fit'"
+                class="mx-auto mt-[18px] max-w-6xl rounded-[22px] border border-amber-300/20 bg-amber-300/[0.07] p-5"
+                role="status"
+            >
+                <div class="flex items-start gap-3">
+                    <AlertTriangle
+                        class="mt-0.5 size-5 shrink-0 text-amber-200"
+                    />
+                    <div>
+                        <h2 class="font-semibold text-amber-50">
+                            {{ t('advisor.recommendation.closest_fit_title') }}
+                        </h2>
+                        <p
+                            class="mt-2 max-w-4xl text-sm leading-6 text-amber-50/65"
+                        >
+                            {{
+                                payload.fit_warning ??
+                                t('advisor.recommendation.closest_fit_body')
+                            }}
+                        </p>
+                        <ul
+                            v-if="payload.next_steps?.length"
+                            class="mt-3 grid gap-2 text-xs leading-5 text-amber-50/55 md:grid-cols-2"
+                        >
+                            <li
+                                v-for="step in payload.next_steps"
+                                :key="step"
+                                class="flex gap-2"
+                            >
+                                <CheckCircle2
+                                    class="mt-0.5 size-3.5 shrink-0"
+                                />
+                                <span>{{ step }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <p
+                v-if="hasOmittedAlternative"
+                class="mx-auto mt-[18px] max-w-6xl rounded-xl border border-white/8 bg-white/[0.035] px-4 py-3 text-sm leading-6 text-white/55"
+                role="status"
+            >
+                <ShieldCheck class="me-2 inline size-4 text-[#02CD86]" />
+                {{ t('advisor.recommendation.alternative_omitted') }}
+            </p>
+
             <section
                 class="mx-auto mt-[18px] max-w-6xl rounded-[26px] border border-white/10 bg-[#171a19] p-6 md:p-8"
             >
@@ -726,7 +857,10 @@ defineOptions({
                         t('advisor.recommendation.ask')
                     }}
                 </h2>
-                <div class="mt-5 max-h-96 space-y-3 overflow-y-auto">
+                <div
+                    class="mt-5 max-h-96 space-y-3 overflow-y-auto"
+                    :aria-busy="isConsulting"
+                >
                     <div
                         v-for="(message, index) in conversation"
                         :key="message.id ?? index"
@@ -739,21 +873,42 @@ defineOptions({
                     >
                         {{ message.payload.content ?? message.payload.answer }}
                     </div>
+                    <div
+                        v-if="isConsulting"
+                        role="status"
+                        aria-live="polite"
+                        class="flex max-w-[88%] items-center gap-3 rounded-2xl border border-[#a78bfa]/20 bg-[#a78bfa]/[0.06] px-4 py-3 text-sm text-white/65"
+                    >
+                        <LoaderCircle
+                            aria-hidden="true"
+                            class="size-4 shrink-0 animate-spin text-[#a78bfa] motion-reduce:animate-none"
+                        />
+                        <span>{{
+                            t('advisor.recommendation.consulting')
+                        }}</span>
+                    </div>
                 </div>
                 <form class="mt-4 flex gap-2" @submit.prevent="sendMessage">
                     <input
                         v-model="chatMessage"
                         maxlength="1500"
                         class="h-12 min-w-0 flex-1 rounded-full border border-white/10 bg-[#222625] px-5 text-sm outline-none placeholder:text-white/25 focus:border-[#a78bfa]/50"
+                        :disabled="isConsulting"
                         :placeholder="
                             t('advisor.recommendation.ask_placeholder')
                         "
                     /><Button
                         type="submit"
                         class="size-12 rounded-full bg-[#a78bfa] p-0 text-[#140c25] hover:bg-[#b99dfd]"
-                        :disabled="consultationForm.processing"
-                        ><Send class="size-4" /><span class="sr-only">{{
-                            t('advisor.recommendation.send')
+                        :disabled="isConsulting || !chatMessage.trim()"
+                        ><LoaderCircle
+                            v-if="isConsulting"
+                            aria-hidden="true"
+                            class="size-4 animate-spin motion-reduce:animate-none"
+                        /><Send v-else class="size-4" /><span class="sr-only">{{
+                            isConsulting
+                                ? t('advisor.recommendation.consulting')
+                                : t('advisor.recommendation.send')
                         }}</span></Button
                     >
                 </form>

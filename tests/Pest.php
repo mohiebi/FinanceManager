@@ -156,6 +156,28 @@ function advisorValidRecommendation(): array
         'uncertainties' => [],
         'knowledge_limitations' => ['No live market data.'],
         'cannot_recommend_reason' => null,
+        'fit_status' => 'fits',
+        'fit_warning' => null,
+        'next_steps' => [],
+        'response_warnings' => [],
+    ];
+}
+
+/** @return array<string, mixed> */
+function advisorGuidanceResponse(): array
+{
+    return [
+        ...advisorValidRecommendation(),
+        'status' => 'guidance_only',
+        'summary' => 'The current risk and return goals cannot be reconciled responsibly.',
+        'primary' => null,
+        'safer_alternative' => null,
+        'higher_risk_alternative' => null,
+        'cannot_recommend_reason' => 'The requested return requires more risk or more time than the profile permits.',
+        'fit_status' => 'guidance_only',
+        'fit_warning' => 'The requested return is outside the assessed capacity.',
+        'next_steps' => ['Lower the return target or extend the time horizon.'],
+        'response_warnings' => ['guidance_only'],
     ];
 }
 

@@ -27,23 +27,6 @@ const page = usePage();
 const { navItems } = useModuleNav();
 const { isCurrentUrl } = useCurrentUrl();
 
-const mainNavItems = computed<ModuleNavItem[]>(() => {
-    const items = [...navItems.value];
-
-    if (page.props.auth.isAdmin) {
-        items.push({
-            key: 'admin',
-            title: 'Admin',
-            subtitle: 'Control tower',
-            href: adminDashboard(),
-            icon: ShieldCheck,
-            state: 'enabled',
-        });
-    }
-
-    return items;
-});
-
 // Promo items should not appear active while they are only discovery prompts.
 function isActive(item: ModuleNavItem): boolean {
     return item.state === 'enabled' && isCurrentUrl(item.href);
@@ -68,7 +51,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
     >
         <div
             data-sidebar-shell
-            class="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#353535] px-5 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0"
+            class="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#353535] px-5 pr-1 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0"
         >
             <div
                 class="flex min-h-0 w-full flex-1 flex-col gap-10 pt-6 group-data-[collapsible=icon]:items-center"
@@ -113,7 +96,7 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                     :aria-label="t('navigation.primary')"
                 >
                     <Link
-                        v-for="item in mainNavItems"
+                        v-for="item in navItems"
                         :key="item.key"
                         :href="item.href"
                         class="flex w-full items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#353535] focus-visible:outline-none"
@@ -207,6 +190,50 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                 class="mt-4 flex w-full shrink-0 flex-col gap-3 group-data-[collapsible=icon]:items-center"
                 :aria-label="t('navigation.account')"
             >
+                <Link
+                    v-if="page.props.auth.isAdmin"
+                    data-sidebar-admin
+                    :href="adminDashboard()"
+                    :aria-current="
+                        isCurrentUrl(adminDashboard()) ? 'page' : undefined
+                    "
+                    class="flex w-full items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#353535] focus-visible:outline-none"
+                    :title="t('settings.navigation.admin')"
+                >
+                    <span
+                        :class="[
+                            isCurrentUrl(adminDashboard())
+                                ? iconBoxActive
+                                : iconBoxDefault,
+                            'hover:bg-[#3a3a3a]',
+                            isCurrentUrl(adminDashboard())
+                                ? 'text-[#02cd86]'
+                                : 'text-white',
+                        ]"
+                    >
+                        <ShieldCheck class="size-[18px] shrink-0" />
+                    </span>
+                    <span
+                        class="flex min-w-0 flex-col items-center group-data-[collapsible=icon]:sr-only"
+                    >
+                        <span
+                            :class="[
+                                'truncate text-sm font-medium',
+                                isCurrentUrl(adminDashboard())
+                                    ? 'text-[#02cd86]'
+                                    : 'text-white',
+                            ]"
+                        >
+                            {{ t('settings.navigation.admin_subtitle') }}
+                        </span>
+                        <span
+                            class="truncate text-[11px] text-white/35 lowercase"
+                        >
+                            {{ t('settings.navigation.admin') }}
+                        </span>
+                    </span>
+                </Link>
+
                 <DropdownMenu>
                     <DropdownMenuTrigger as-child>
                         <button

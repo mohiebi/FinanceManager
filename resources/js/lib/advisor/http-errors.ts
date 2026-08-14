@@ -2,8 +2,10 @@ export function advisorGenerationErrorKey(error: unknown): string {
     if (typeof error === 'object' && error !== null) {
         const response = 'response' in error ? error.response : null;
         const status =
-            typeof response === 'object' && response !== null &&
-            'status' in response && typeof response.status === 'number'
+            typeof response === 'object' &&
+            response !== null &&
+            'status' in response &&
+            typeof response.status === 'number'
                 ? response.status
                 : null;
 
@@ -21,4 +23,12 @@ export function advisorGenerationErrorKey(error: unknown): string {
     }
 
     return 'advisor.recommendation.failed';
+}
+
+export function advisorRecommendationFailureKey(
+    failureCode: string | undefined,
+): string {
+    return failureCode === 'provider_failure'
+        ? 'advisor.validation.provider_failure'
+        : 'advisor.recommendation.failed';
 }

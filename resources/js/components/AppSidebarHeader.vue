@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Lock, Menu, Plus, Settings, ShieldCheck, User } from 'lucide-vue-next';
+import {
+    Crown,
+    Lock,
+    Menu,
+    Plus,
+    Settings,
+    ShieldCheck,
+    User,
+} from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import NotificationBell from '@/components/NotificationBell.vue';
@@ -225,21 +233,25 @@ function changeCurrency(value: string) {
                                             {{ item.title }}
                                         </span>
 
-                                        <!-- Off is never "you have to pay" —
-                                             it just is not switched on yet. -->
                                         <span
-                                            v-if="item.state !== 'enabled'"
+                                            v-if="
+                                                item.tier === 'pro' ||
+                                                item.state !== 'enabled'
+                                            "
                                             :class="[
-                                                'ml-auto shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium',
-                                                item.state === 'locked'
+                                                'ml-auto inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium',
+                                                item.tier === 'pro'
                                                     ? 'bg-[#6C4EE9]/15 text-[#a89bf3]'
                                                     : 'bg-[#02CD86]/10 text-[#02CD86]',
                                             ]"
                                         >
+                                            <Crown
+                                                v-if="item.tier === 'pro'"
+                                                class="size-3"
+                                                aria-hidden="true"
+                                            />
                                             {{
-                                                t(
-                                                    `modules.tiers.${item.state === 'locked' ? 'pro' : 'free'}`,
-                                                )
+                                                t(`modules.tiers.${item.tier}`)
                                             }}
                                         </span>
                                     </Link>

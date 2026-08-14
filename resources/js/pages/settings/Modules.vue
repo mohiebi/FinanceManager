@@ -4,6 +4,7 @@ import {
     Bot,
     BrainCircuit,
     ChartPie,
+    Crown,
     Lock,
     Plane,
     Receipt,
@@ -188,21 +189,23 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                             {{ moduleLabel(module) }}
                         </p>
                         <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                            <!-- Every module is free today, but that is only
-                                 obvious once it says so — a switched-off card
-                                 otherwise reads as something withheld. -->
                             <span
-                                v-if="!module.enabled"
-                                class="rounded-md px-2 py-0.5 text-[11px] font-medium"
-                                :class="
-                                    module.tier === 'free'
-                                        ? 'bg-[#02CD86]/10 text-[#02CD86]'
-                                        : 'bg-[#6C4EE9]/15 text-[#a89bf3]'
-                                "
+                                v-if="module.tier === 'pro'"
+                                class="inline-flex items-center gap-1 rounded-md bg-[#6C4EE9]/15 px-2 py-0.5 text-[11px] font-medium text-[#a89bf3]"
                             >
-                                {{ t(`modules.tiers.${module.tier}`) }}
+                                <Crown class="size-3" aria-hidden="true" />
+                                {{ t('modules.tiers.pro') }}
                             </span>
-                            <span v-else class="text-[11px] text-[#02CD86]">
+                            <span
+                                v-else-if="!module.enabled"
+                                class="rounded-md bg-[#02CD86]/10 px-2 py-0.5 text-[11px] font-medium text-[#02CD86]"
+                            >
+                                {{ t('modules.tiers.free') }}
+                            </span>
+                            <span
+                                v-if="module.enabled"
+                                class="text-[11px] text-[#02CD86]"
+                            >
                                 {{ t('modules.enabled') }}
                             </span>
                         </div>

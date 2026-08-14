@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import {
+    Crown,
     Lock,
     PanelLeftClose,
     PanelLeftOpen,
@@ -129,6 +130,11 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                                 v-else-if="item.state === 'locked'"
                                 class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#6C4EE9] p-px text-white rtl:-left-1"
                             />
+                            <Crown
+                                v-if="item.tier === 'pro'"
+                                class="absolute -right-1 -bottom-1 hidden size-3 rounded-full bg-[#6C4EE9] p-px text-white group-data-[collapsible=icon]:block"
+                                aria-hidden="true"
+                            />
                         </span>
 
                         <!-- Text — one naming vocabulary at a time. -->
@@ -145,26 +151,26 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                             {{ item.title }}
                         </span>
 
-                        <!-- Off is never "you have to pay" — it just is not
-                             switched on yet. Spelling that out here is the
-                             only thing that stops the dimmed "+" items from
-                             reading as a paywall. ml-auto rather than the text
-                             column stretching, so the label stays put next to
-                             the icon and only the badge floats to the edge. -->
+                        <!-- Product tier persists independently of whether the
+                             module is enabled. Free modules only need a badge
+                             while they are being promoted. -->
                         <span
-                            v-if="item.state !== 'enabled'"
+                            v-if="
+                                item.tier === 'pro' || item.state !== 'enabled'
+                            "
                             :class="[
-                                'ml-auto shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium group-data-[collapsible=icon]:hidden',
-                                item.state === 'locked'
+                                'ml-auto inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium group-data-[collapsible=icon]:hidden',
+                                item.tier === 'pro'
                                     ? 'bg-[#6C4EE9]/15 text-[#a89bf3]'
                                     : 'bg-[#02CD86]/10 text-[#02CD86]',
                             ]"
                         >
-                            {{
-                                t(
-                                    `modules.tiers.${item.state === 'locked' ? 'pro' : 'free'}`,
-                                )
-                            }}
+                            <Crown
+                                v-if="item.tier === 'pro'"
+                                class="size-3"
+                                aria-hidden="true"
+                            />
+                            {{ t(`modules.tiers.${item.tier}`) }}
                         </span>
                     </Link>
                 </nav>

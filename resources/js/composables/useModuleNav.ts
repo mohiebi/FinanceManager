@@ -24,7 +24,7 @@ import { index as investmentsIndex } from '@/routes/investments';
 import { edit as editModules } from '@/routes/modules';
 import { edit as editTelegram } from '@/routes/telegram';
 import { index as transactionsIndex } from '@/routes/transactions';
-import type { FeatureKey } from '@/types/features';
+import type { FeatureKey, ModuleState } from '@/types/features';
 import type { NavItem } from '@/types/navigation';
 
 /**
@@ -38,6 +38,7 @@ export type ModuleNavState = 'enabled' | 'promo' | 'locked';
 export type ModuleNavItem = NavItem & {
     key: string;
     state: ModuleNavState;
+    tier: ModuleState['tier'];
 };
 
 export type UseModuleNavReturn = {
@@ -165,7 +166,7 @@ export function useModuleNav(): UseModuleNavReturn {
 
         return entries.flatMap<ModuleNavItem>((entry) => {
             if (entry.feature === null) {
-                return [{ ...entry, state: 'enabled' }];
+                return [{ ...entry, state: 'enabled', tier: 'free' }];
             }
 
             const state = features?.[entry.feature];
@@ -173,7 +174,13 @@ export function useModuleNav(): UseModuleNavReturn {
             // Missing prop means an unauthenticated or partial page — fall back to
             // showing the item rather than rendering an empty menu.
             if (state === undefined || state.enabled) {
-                return [{ ...entry, state: 'enabled' }];
+                return [
+                    {
+                        ...entry,
+                        state: 'enabled',
+                        tier: state?.tier ?? 'free',
+                    },
+                ];
             }
 
             if (!state.show_promo) {
@@ -188,6 +195,7 @@ export function useModuleNav(): UseModuleNavReturn {
                     ...entry,
                     href: editModules(),
                     state: state.may_use ? 'promo' : 'locked',
+                    tier: state.tier,
                 },
             ];
         });

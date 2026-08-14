@@ -297,6 +297,26 @@ return [
         'timezone_hint' => 'Bestimmt, wann dein Tag beginnt und endet und wann dich Erinnerungen erreichen.',
         'default_currency' => 'Währung',
         'no_default_currency' => 'Nicht festgelegt',
+        'terminology' => [
+            'title' => 'Navigationsbezeichnungen',
+            'description' => 'Wähle zwischen der Flug-Terminologie von CashPilot und den üblichen Bezeichnungen einer Finanz-App. Außerhalb dieser Erklärung wird nur ein Stil angezeigt.',
+            'field_label' => 'Vokabular',
+            'checkbox_label' => 'Flugbezogene Namen verwenden',
+            'checkbox_help' => 'Deaktiviere dies, um überall vertraute Namen wie Dashboard, Investitionen und Einstellungen zu verwenden.',
+            'standard_heading' => 'Standardname',
+            'flight_heading' => 'Flugname',
+            'mappings' => [
+                'dashboard' => ['standard' => 'Dashboard', 'flight' => 'Cockpit'],
+                'report' => ['standard' => 'Bericht', 'flight' => 'Flugbericht'],
+                'investments' => ['standard' => 'Investitionen', 'flight' => 'Frachtflug'],
+                'goals' => ['standard' => 'Ziele', 'flight' => 'Flugroute'],
+                'budgets' => ['standard' => 'Budgets', 'flight' => 'Flugplan'],
+                'advisor' => ['standard' => 'Berater', 'flight' => 'Portfolio-Co-Pilot'],
+                'ai' => ['standard' => 'KI', 'flight' => 'Co-Pilot'],
+                'settings' => ['standard' => 'Einstellungen', 'flight' => 'Kontrollraum'],
+                'admin' => ['standard' => 'Admin', 'flight' => 'Kontrollturm'],
+            ],
+        ],
     ],
     'navigation' => [
         'groups' => [
@@ -314,6 +334,8 @@ return [
         'assets' => 'Assets',
         'telegram' => 'Telegram',
         'ai' => 'KI-Verbindungen',
+        'admin' => 'Admin',
+        'admin_subtitle' => 'Kontrollturm',
     ],
     'ai' => [
         'title' => 'KI-Verbindungen',

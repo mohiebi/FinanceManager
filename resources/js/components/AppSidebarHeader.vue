@@ -19,6 +19,7 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useModuleNav } from '@/composables/useModuleNav';
 import type { ModuleNavItem } from '@/composables/useModuleNav';
+import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem } from '@/types';
@@ -43,6 +44,7 @@ const page = usePage();
 const { t } = useI18n();
 const { isCurrentUrl } = useCurrentUrl();
 const { navItems } = useModuleNav();
+const { navigationName } = useNavigationNaming();
 
 const isMenuOpen = ref(false);
 
@@ -57,15 +59,38 @@ const pageTitle = computed(() => {
 
     return (
         {
-            Dashboard: t('finance.dashboard.title'),
-            Reports: t('finance.reports.title'),
-            Report: t('finance.reports.title'),
-            Transactions: t('finance.transactions.title'),
-            Transaction: t('finance.transactions.title'),
-            Investments: t('finance.investments.title'),
-            Portfolio: t('finance.portfolio.title'),
+            Dashboard: navigationName(
+                'navigation.dashboard',
+                'navigation.dashboard_subtitle',
+            ),
+            Reports: navigationName(
+                'navigation.report',
+                'navigation.report_subtitle',
+            ),
+            Report: navigationName(
+                'navigation.report',
+                'navigation.report_subtitle',
+            ),
+            Transactions: navigationName('navigation.transactions'),
+            Transaction: navigationName('navigation.transactions'),
+            Investments: navigationName(
+                'navigation.investments',
+                'navigation.investments_subtitle',
+            ),
+            Portfolio: navigationName('navigation.portfolio'),
+            Goals: navigationName(
+                'navigation.goals',
+                'navigation.goals_subtitle',
+            ),
+            Budgets: navigationName(
+                'navigation.budgets',
+                'navigation.budgets_subtitle',
+            ),
             Preferences: t('settings.preferences.title'),
-            Settings: t('settings.title'),
+            Settings: navigationName(
+                'settings.title',
+                'navigation.settings_subtitle',
+            ),
         }[title] ?? title
     );
 });
@@ -196,21 +221,8 @@ function changeCurrency(value: string) {
                                                 class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#6C4EE9] p-px text-white rtl:-left-1"
                                             />
                                         </span>
-                                        <span
-                                            class="flex min-w-0 flex-col items-center"
-                                        >
-                                            <span class="truncate">{{
-                                                item.subtitle ?? item.title
-                                            }}</span>
-                                            <!-- The plain functional name, kept
-                                                 as a quiet aside now that the
-                                                 flight name leads. -->
-                                            <span
-                                                v-if="item.subtitle"
-                                                class="truncate text-[11px] font-normal text-white/35 lowercase"
-                                            >
-                                                {{ item.title }}
-                                            </span>
+                                        <span class="min-w-0 truncate">
+                                            {{ item.title }}
                                         </span>
 
                                         <!-- Off is never "you have to pay" —
@@ -254,23 +266,13 @@ function changeCurrency(value: string) {
                                         <ShieldCheck
                                             class="size-[18px] shrink-0"
                                         />
-                                        <span
-                                            class="flex min-w-0 flex-col items-center"
-                                        >
-                                            <span class="truncate">{{
-                                                t(
+                                        <span class="min-w-0 truncate">
+                                            {{
+                                                navigationName(
+                                                    'settings.navigation.admin',
                                                     'settings.navigation.admin_subtitle',
                                                 )
-                                            }}</span>
-                                            <span
-                                                class="truncate text-[11px] font-normal text-white/35 lowercase"
-                                            >
-                                                {{
-                                                    t(
-                                                        'settings.navigation.admin',
-                                                    )
-                                                }}
-                                            </span>
+                                            }}
                                         </span>
                                     </Link>
 
@@ -283,21 +285,13 @@ function changeCurrency(value: string) {
                                                 <Settings
                                                     class="size-[18px] shrink-0"
                                                 />
-                                                <span
-                                                    class="flex min-w-0 flex-col items-center"
-                                                >
-                                                    <span class="truncate">{{
-                                                        t(
+                                                <span class="min-w-0 truncate">
+                                                    {{
+                                                        navigationName(
+                                                            'settings.title',
                                                             'navigation.settings_subtitle',
                                                         )
-                                                    }}</span>
-                                                    <span
-                                                        class="truncate text-[11px] font-normal text-white/35 lowercase"
-                                                    >
-                                                        {{
-                                                            t('settings.title')
-                                                        }}
-                                                    </span>
+                                                    }}
                                                 </span>
                                             </button>
                                         </DropdownMenuTrigger>

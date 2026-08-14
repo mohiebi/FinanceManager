@@ -14,7 +14,7 @@ import {
 } from 'lucide-vue-next';
 import type { ComputedRef } from 'vue';
 import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { dashboard, goals, portfolio, report } from '@/routes';
 import { index as advisorIndex } from '@/routes/advisor';
 import { edit as editAiConnections } from '@/routes/ai-connections';
@@ -49,7 +49,7 @@ export type UseModuleNavReturn = {
  * bar so the two can't drift apart.
  */
 export function useModuleNav(): UseModuleNavReturn {
-    const { t } = useI18n();
+    const { navigationName } = useNavigationNaming();
     const page = usePage();
 
     const navItems = computed<ModuleNavItem[]>(() => {
@@ -60,91 +60,104 @@ export function useModuleNav(): UseModuleNavReturn {
             key: string;
             feature: FeatureKey | null;
             title: string;
-            subtitle?: string;
             href: NavItem['href'];
             icon: NavItem['icon'];
         }[] = [
             {
                 key: 'dashboard',
                 feature: null,
-                title: t('navigation.dashboard'),
-                subtitle: t('navigation.dashboard_subtitle'),
+                title: navigationName(
+                    'navigation.dashboard',
+                    'navigation.dashboard_subtitle',
+                ),
                 href: dashboard(),
                 icon: LayoutGrid,
             },
             {
                 key: 'transactions',
                 feature: null,
-                title: t('navigation.transactions'),
+                title: navigationName('navigation.transactions'),
                 href: transactionsIndex(),
                 icon: ReceiptText,
             },
             {
                 key: 'reports',
                 feature: null,
-                title: t('navigation.report'),
-                subtitle: t('navigation.report_subtitle'),
+                title: navigationName(
+                    'navigation.report',
+                    'navigation.report_subtitle',
+                ),
                 href: report(),
                 icon: ChartPie,
             },
             {
                 key: 'investments',
                 feature: 'investments',
-                title: t('navigation.investments'),
-                subtitle: t('navigation.investments_subtitle'),
+                title: navigationName(
+                    'navigation.investments',
+                    'navigation.investments_subtitle',
+                ),
                 href: investmentsIndex(),
                 icon: TrendingUp,
             },
             {
                 key: 'portfolio',
                 feature: 'portfolio',
-                title: t('navigation.portfolio'),
+                title: navigationName('navigation.portfolio'),
                 href: portfolio(),
                 icon: Wallet,
             },
             {
                 key: 'goals',
                 feature: 'goals',
-                title: t('navigation.goals'),
-                subtitle: t('navigation.goals_subtitle'),
+                title: navigationName(
+                    'navigation.goals',
+                    'navigation.goals_subtitle',
+                ),
                 href: goals(),
                 icon: Trophy,
             },
             {
                 key: 'bills',
                 feature: 'bills',
-                title: t('navigation.bills'),
+                title: navigationName('navigation.bills'),
                 href: billsIndex(),
                 icon: Receipt,
             },
             {
                 key: 'budgets',
                 feature: 'budgets',
-                title: t('navigation.budgets'),
-                subtitle: t('navigation.budgets_subtitle'),
+                title: navigationName(
+                    'navigation.budgets',
+                    'navigation.budgets_subtitle',
+                ),
                 href: budgetsIndex(),
                 icon: Target,
             },
             {
                 key: 'advisor',
                 feature: 'advisor',
-                title: t('navigation.advisor'),
-                subtitle: t('navigation.advisor_subtitle'),
+                title: navigationName(
+                    'navigation.advisor',
+                    'navigation.advisor_subtitle',
+                ),
                 href: advisorIndex(),
                 icon: BrainCircuit,
             },
             {
                 key: 'ai_assistant',
                 feature: 'ai_assistant',
-                title: t('navigation.ai_assistant'),
-                subtitle: t('navigation.ai_assistant_subtitle'),
+                title: navigationName(
+                    'navigation.ai_assistant',
+                    'navigation.ai_assistant_subtitle',
+                ),
                 href: editAiConnections(),
                 icon: Sparkles,
             },
             {
                 key: 'telegram_bot',
                 feature: 'telegram_bot',
-                title: t('navigation.telegram_bot'),
+                title: navigationName('navigation.telegram_bot'),
                 href: editTelegram(),
                 icon: Bot,
             },

@@ -35,6 +35,7 @@ import {
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { getInitials } from '@/composables/useInitials';
+import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { toUrl } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem, NavItem } from '@/types';
@@ -50,6 +51,7 @@ const props = withDefaults(defineProps<Props>(), {
 const page = usePage();
 const auth = computed(() => page.props.auth);
 const { t } = useI18n();
+const { navigationName } = useNavigationNaming();
 const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
 
 const activeItemStyles =
@@ -57,7 +59,10 @@ const activeItemStyles =
 
 const mainNavItems = computed<NavItem[]>(() => [
     {
-        title: t('navigation.dashboard'),
+        title: navigationName(
+            'navigation.dashboard',
+            'navigation.dashboard_subtitle',
+        ),
         href: dashboard(),
         icon: LayoutGrid,
     },

@@ -26,7 +26,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
 #[ObservedBy([UserEncryptionKeyObserver::class])]
-#[Fillable(['name', 'email', 'birthdate', 'locale', 'calendar', 'timezone', 'streak_nudge_enabled', 'bill_advance_reminder_enabled', 'default_currency', 'password', 'email_verified_at', 'last_active_at', 'signup_source', 'telegram_chat_id', 'telegram_connect_token'])]
+#[Fillable(['name', 'email', 'birthdate', 'locale', 'calendar', 'timezone', 'streak_nudge_enabled', 'bill_advance_reminder_enabled', 'default_currency', 'flight_terminology_enabled', 'password', 'email_verified_at', 'last_active_at', 'signup_source', 'telegram_chat_id', 'telegram_connect_token'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'telegram_chat_id', 'telegram_connect_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -45,6 +45,7 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var array<string, mixed>
      */
     protected $attributes = [
+        'flight_terminology_enabled' => true,
         'pro_until' => null,
         'pro_expiry_warned_for' => null,
         'pro_expired_notified_for' => null,
@@ -432,6 +433,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'last_active_at' => 'datetime',
             'streak_nudge_enabled' => 'boolean',
             'bill_advance_reminder_enabled' => 'boolean',
+            'flight_terminology_enabled' => 'boolean',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             // Cast but deliberately absent from the #[Fillable] list above: any

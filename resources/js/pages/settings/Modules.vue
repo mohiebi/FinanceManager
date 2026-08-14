@@ -20,6 +20,7 @@ import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
+import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { update as updateModules } from '@/routes/modules';
 import type { CoreModuleCard, FeatureKey, ModuleCard } from '@/types/features';
 
@@ -30,6 +31,30 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { navigationName } = useNavigationNaming();
+
+const moduleNavigationKeys: Partial<
+    Record<FeatureKey, [standardKey: string, flightKey?: string]>
+> = {
+    reports: ['navigation.report', 'navigation.report_subtitle'],
+    investments: [
+        'navigation.investments',
+        'navigation.investments_subtitle',
+    ],
+    goals: ['navigation.goals', 'navigation.goals_subtitle'],
+    budgets: ['navigation.budgets', 'navigation.budgets_subtitle'],
+    advisor: ['navigation.advisor', 'navigation.advisor_subtitle'],
+    ai_assistant: [
+        'navigation.ai_assistant',
+        'navigation.ai_assistant_subtitle',
+    ],
+};
+
+function moduleLabel(module: ModuleCard | CoreModuleCard): string {
+    const keys = moduleNavigationKeys[module.key];
+
+    return keys ? navigationName(keys[0], keys[1]) : module.label;
+}
 
 defineOptions({
     layout: {
@@ -163,7 +188,7 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
 
                     <div class="min-w-0 flex-1">
                         <p class="text-sm font-medium break-words text-white">
-                            {{ module.label }}
+                            {{ moduleLabel(module) }}
                         </p>
                         <div class="mt-1 flex flex-wrap items-center gap-1.5">
                             <!-- Every module is free today, but that is only
@@ -194,7 +219,7 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                         v-if="!module.manage_url"
                         :checked="module.enabled"
                         :disabled="processing === module.key || !module.may_use"
-                        :aria-label="module.label"
+                        :aria-label="moduleLabel(module)"
                         @update:checked="toggle(module, $event)"
                     />
                     <Lock
@@ -276,7 +301,7 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                         <p
                             class="min-w-0 flex-1 text-sm font-medium break-words text-[#989898]"
                         >
-                            {{ module.label }}
+                            {{ moduleLabel(module) }}
                         </p>
                         <Lock class="mt-1 size-4 shrink-0 text-[#6f6f6f]" />
                     </div>
@@ -306,7 +331,7 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                     <p class="text-[17px] font-medium text-white">
                         {{
                             t('modules.confirm_disable_title', {
-                                module: pendingDisable.label,
+                                module: moduleLabel(pendingDisable),
                             })
                         }}
                     </p>

@@ -26,6 +26,7 @@ declare module '@inertiajs/core' {
             dir: 'ltr' | 'rtl';
             calendar: 'gregorian' | 'jalali';
             timezone: string;
+            flightTerminologyEnabled: boolean;
             translations: Record<string, unknown>;
             features: FeatureMap | null;
             /** Null until a vault exists for this user; see Stage 6. */

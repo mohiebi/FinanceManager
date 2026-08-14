@@ -20,11 +20,13 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useModuleNav } from '@/composables/useModuleNav';
 import type { ModuleNavItem } from '@/composables/useModuleNav';
+import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { dashboard as adminDashboard } from '@/routes/admin';
 
 const { t } = useI18n();
 const page = usePage();
 const { navItems } = useModuleNav();
+const { navigationName } = useNavigationNaming();
 const { isCurrentUrl } = useCurrentUrl();
 
 // Promo items should not appear active while they are only discovery prompts.
@@ -129,34 +131,18 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                             />
                         </span>
 
-                        <!-- Text — plain, no background. Not flex-1: sized to
-                             its own content so `items-center` centers the
-                             shorter line under the longer one, title or
-                             subtitle, instead of centering in whatever room
-                             is left in the row. -->
+                        <!-- Text — one naming vocabulary at a time. -->
                         <span
-                            class="flex min-w-0 flex-col items-center group-data-[collapsible=icon]:sr-only"
+                            class="min-w-0 truncate text-sm font-medium group-data-[collapsible=icon]:sr-only"
+                            :class="[
+                                isActive(item)
+                                    ? 'text-[#02cd86]'
+                                    : item.state !== 'enabled'
+                                      ? 'text-white/40'
+                                      : 'text-white',
+                            ]"
                         >
-                            <span
-                                :class="[
-                                    'truncate text-sm font-medium',
-                                    isActive(item)
-                                        ? 'text-[#02cd86]'
-                                        : item.state !== 'enabled'
-                                          ? 'text-white/40'
-                                          : 'text-white',
-                                ]"
-                            >
-                                {{ item.subtitle ?? item.title }}
-                            </span>
-                            <!-- The plain functional name, kept as a quiet
-                                 aside now that the flight name leads. -->
-                            <span
-                                v-if="item.subtitle"
-                                class="truncate text-[11px] text-white/35 lowercase"
-                            >
-                                {{ item.title }}
-                            </span>
+                            {{ item.title }}
                         </span>
 
                         <!-- Off is never "you have to pay" — it just is not
@@ -198,7 +184,12 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                         isCurrentUrl(adminDashboard()) ? 'page' : undefined
                     "
                     class="flex w-full items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#353535] focus-visible:outline-none"
-                    :title="t('settings.navigation.admin')"
+                    :title="
+                        navigationName(
+                            'settings.navigation.admin',
+                            'settings.navigation.admin_subtitle',
+                        )
+                    "
                 >
                     <span
                         :class="[
@@ -224,12 +215,12 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                                     : 'text-white',
                             ]"
                         >
-                            {{ t('settings.navigation.admin_subtitle') }}
-                        </span>
-                        <span
-                            class="truncate text-[11px] text-white/35 lowercase"
-                        >
-                            {{ t('settings.navigation.admin') }}
+                            {{
+                                navigationName(
+                                    'settings.navigation.admin',
+                                    'settings.navigation.admin_subtitle',
+                                )
+                            }}
                         </span>
                     </span>
                 </Link>
@@ -238,7 +229,12 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                     <DropdownMenuTrigger as-child>
                         <button
                             class="flex w-full cursor-pointer items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#353535] focus-visible:outline-none"
-                            :title="t('settings.title')"
+                            :title="
+                                navigationName(
+                                    'settings.title',
+                                    'navigation.settings_subtitle',
+                                )
+                            "
                             type="button"
                             data-test="sidebar-menu-button"
                         >
@@ -256,12 +252,12 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                                 <span
                                     class="truncate text-sm font-medium text-white"
                                 >
-                                    {{ t('navigation.settings_subtitle') }}
-                                </span>
-                                <span
-                                    class="truncate text-[11px] text-white/35 lowercase"
-                                >
-                                    {{ t('settings.title') }}
+                                    {{
+                                        navigationName(
+                                            'settings.title',
+                                            'navigation.settings_subtitle',
+                                        )
+                                    }}
                                 </span>
                             </span>
                         </button>

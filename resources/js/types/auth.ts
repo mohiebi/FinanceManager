@@ -5,6 +5,7 @@ export type User = {
     birthdate: string | null;
     locale: 'en' | 'fa' | 'de';
     calendar: 'gregorian' | 'jalali';
+    flight_terminology_enabled: boolean;
     avatar?: string;
     email_verified_at: string | null;
     created_at: string;

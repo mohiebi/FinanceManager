@@ -61,6 +61,16 @@ export type NetworkOption = {
     assets: AssetOption[];
 };
 
+/**
+ * The rail this buyer used last, derived from their payment history rather than
+ * stored as a setting. Null for somebody who has never opened an intent, and
+ * ignored by the page if either side is no longer on offer.
+ */
+export type PreferredRail = {
+    network: PaymentNetworkKey;
+    asset: SettlementAssetKey;
+};
+
 export type PaymentRecord = {
     id: string;
     status: PaymentStatusKey;

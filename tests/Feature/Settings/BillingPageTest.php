@@ -1,5 +1,7 @@
 <?php
 
+use App\Actions\Billing\GrantProAccess;
+use App\Enums\GrantReason;
 use App\Enums\PaymentStatus;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
@@ -164,6 +166,43 @@ test('nobody can claim a transaction against somebody else\'s payment', function
         ->assertNotFound();
 
     expect($payment->fresh()->status)->toBe(PaymentStatus::Pending);
+});
+
+test('a payment being checked stays on the page so it can be watched', function () {
+    $user = User::factory()->create();
+    $payment = SubscriptionPayment::factory()->submitted()->create(['user_id' => $user->id]);
+
+    // The narrower "still unpaid" scope would drop it here, and the page would
+    // stop polling the moment there was something to poll for.
+    $this->actingAs($user)->get(route('billing.edit'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('pending.id', $payment->id)
+            ->where('pending.status', 'submitted')
+        );
+});
+
+test('a settled payment leaves the panel and the badge turns Pro together', function () {
+    $user = User::factory()->create();
+    $payment = SubscriptionPayment::factory()->submitted()->create(['user_id' => $user->id]);
+
+    $this->actingAs($user)->get(route('billing.edit'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('pending.status', 'submitted')
+            ->where('subscription.is_pro', false)
+        );
+
+    // Settle it exactly as the verification job does.
+    $payment->forceFill(['status' => PaymentStatus::Confirmed, 'verified_at' => now()])->save();
+    app(GrantProAccess::class)($user, 1, GrantReason::Payment, $payment->id);
+
+    // Both flip in the same response, which is what the page's poll picks up:
+    // the panel disappears (also ending the polling) and the badge turns Pro.
+    $this->actingAs($user)->get(route('billing.edit'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('pending', null)
+            ->where('subscription.is_pro', true)
+            ->where('payments.0.status', 'confirmed')
+        );
 });
 
 test('an unpaid intent can be withdrawn, a claimed one cannot', function () {

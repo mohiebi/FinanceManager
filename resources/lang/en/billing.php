@@ -54,6 +54,9 @@ return [
 
     'networks' => [
         'ethereum' => ['label' => 'Ethereum'],
+        'arbitrum' => ['label' => 'Arbitrum One'],
+        'heading' => 'Network',
+        'rollup_hint' => 'A layer 2 — the same assets, at a fraction of the network fee.',
         'chain_id' => 'Chain ID {id}',
     ],
 

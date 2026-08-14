@@ -155,7 +155,12 @@ test('admin analytics expose growth adoption authentication and locale data as d
                     ->where('analytics.funnel.values', [2, 2, 2, 1, 0])
                     ->where('analytics.acquisition.labels', ['Direct / unknown'])
                     ->where('analytics.acquisition.values', [2])
-                    ->where('analytics.retention_segments.labels', ['Persian', 'Telegram linked'])
+                    // Pro and "AI assistant connected" are absent rather than
+                    // zero: a segment with nobody in it is skipped entirely, so
+                    // only their complements appear for this fixture.
+                    ->where('analytics.retention_segments.labels', [
+                        'Persian', 'Telegram linked', 'Free', 'No AI assistant',
+                    ])
                     ->where('analytics.engagement_trend.labels', [])
                 )
             );

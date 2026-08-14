@@ -68,9 +68,25 @@ function enableBilling(array $overrides = []): void
     config()->set([
         'billing.enabled' => true,
         'billing.evm_address' => TEST_RECEIVING_ADDRESS,
+
+        // Pinned rather than inherited. Every one of these reads from .env in
+        // production, and a developer testing against real prices or a second
+        // chain would otherwise silently rewrite what these tests assert.
+        'billing.plans.monthly.price_usd' => '5.00',
+        'billing.plans.quarterly.price_usd' => '13.00',
+        'billing.plans.yearly.price_usd' => '45.00',
+
         'billing.networks.ethereum.enabled' => true,
         'billing.networks.ethereum.address' => TEST_RECEIVING_ADDRESS,
         'billing.networks.ethereum.rpc_url' => 'https://ethereum.test/rpc',
+        'billing.networks.ethereum.confirmations' => 12,
+        'billing.networks.ethereum.assets.usdt.contract' => '0xdac17f958d2ee523a2206206994597c13d831ec7',
+        'billing.networks.ethereum.assets.usdc.contract' => '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+
+        // Off unless a test asks for them, so "one chain" and "no Etherscan"
+        // stay the baseline every assertion was written against.
+        'billing.networks.arbitrum.enabled' => false,
+        'billing.etherscan.enabled' => false,
         'billing.quote.enabled' => false,
         ...$overrides,
     ]);

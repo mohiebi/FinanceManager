@@ -98,6 +98,50 @@ return [
             ],
         ],
 
+        'arbitrum' => [
+            'enabled' => env('BILLING_ARBITRUM_ENABLED', false),
+            'chain_id' => 42161,
+            'address' => env('BILLING_ARBITRUM_ADDRESS', env('BILLING_EVM_ADDRESS')),
+            'rpc_url' => env('BILLING_ARBITRUM_RPC_URL', 'https://arb1.arbitrum.io/rpc'),
+
+            /*
+            | Blocks arrive roughly four times a second and are sequenced rather
+            | than mined, so this number does not mean what it means on Ethereum:
+            | it says the sequencer has accepted the transaction, not that the
+            | transaction has settled on the base chain. For subscription-sized
+            | amounts that is the right trade — twenty blocks is about five
+            | seconds, against several minutes on layer one.
+            */
+            'confirmations' => env('BILLING_ARBITRUM_CONFIRMATIONS', 20),
+
+            'explorer_tx_url' => env('BILLING_ARBITRUM_EXPLORER_TX_URL', 'https://arbiscan.io/tx/'),
+
+            'timeout' => env('BILLING_ARBITRUM_TIMEOUT', 8),
+            'connect_timeout' => env('BILLING_ARBITRUM_CONNECT_TIMEOUT', 4),
+
+            /*
+            | VERIFY BOTH ON ARBISCAN BEFORE ENABLING. These are not the same
+            | contracts as on Ethereum, and USDC in particular has two of them
+            | in circulation: the native issue below, and a bridged USDC.e at
+            | 0xff970a61a04b1ca14834a43f5de4533ebddb5cc8 which is a different
+            | token. Accepting the wrong one means refusing real payments.
+            */
+            'assets' => [
+                'eth' => [
+                    'contract' => null,
+                    'decimals' => 18,
+                ],
+                'usdt' => [
+                    'contract' => env('BILLING_ARBITRUM_USDT_CONTRACT', '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9'),
+                    'decimals' => 6,
+                ],
+                'usdc' => [
+                    'contract' => env('BILLING_ARBITRUM_USDC_CONTRACT', '0xaf88d065e77c8cc2239327c5edb3a432268e5831'),
+                    'decimals' => 6,
+                ],
+            ],
+        ],
+
     ],
 
     /*

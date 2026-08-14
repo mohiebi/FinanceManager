@@ -50,6 +50,20 @@ const selectedAsset = computed<AssetOption | undefined>(() =>
     network.value?.assets.find((option) => option.key === asset.value),
 );
 
+/**
+ * Switching chain re-picks the asset, because the same symbol is a different
+ * contract on each one and an asset offered here may not be offered there.
+ * Keeping the current choice where it still exists avoids resetting a
+ * deliberate selection for no reason.
+ */
+function chooseNetwork(option: NetworkOption): void {
+    network.value = option;
+
+    if (!option.assets.some((candidate) => candidate.key === asset.value)) {
+        asset.value = option.assets[0]?.key;
+    }
+}
+
 const startForm = useForm({ plan: '', network: '', asset: '' });
 const proofForm = useForm({ tx_hash: '' });
 
@@ -294,6 +308,30 @@ const toneClasses: Record<string, string> = {
                     : t('billing.assets.volatile_hint')
             "
         >
+            <!-- Only shown once there is a choice to make. A single-chain
+                 install should not have to answer a question with one answer. -->
+            <div v-if="networks.length > 1" class="mb-5">
+                <p class="mb-2 text-xs text-[#989898]">
+                    {{ t('billing.networks.heading') }}
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        v-for="option in networks"
+                        :key="option.key"
+                        type="button"
+                        class="rounded-xl px-4 py-2 text-sm ring-1 transition"
+                        :class="
+                            option.key === network?.key
+                                ? 'bg-white/10 text-white ring-white/25'
+                                : 'text-[#989898] ring-white/10 hover:text-white'
+                        "
+                        @click="chooseNetwork(option)"
+                    >
+                        {{ option.label }}
+                    </button>
+                </div>
+            </div>
+
             <div class="flex flex-wrap gap-2">
                 <button
                     v-for="option in network?.assets ?? []"

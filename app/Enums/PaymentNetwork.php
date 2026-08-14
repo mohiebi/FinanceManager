@@ -17,6 +17,7 @@ namespace App\Enums;
 enum PaymentNetwork: string
 {
     case Ethereum = 'ethereum';
+    case Arbitrum = 'arbitrum';
 
     public function label(): string
     {
@@ -29,6 +30,7 @@ enum PaymentNetwork: string
 
         return match ($this) {
             self::Ethereum => 'Ethereum',
+            self::Arbitrum => 'Arbitrum One',
         };
     }
 
@@ -36,6 +38,7 @@ enum PaymentNetwork: string
     {
         return (int) config("billing.networks.{$this->value}.chain_id", match ($this) {
             self::Ethereum => 1,
+            self::Arbitrum => 42161,
         });
     }
 
@@ -43,8 +46,24 @@ enum PaymentNetwork: string
     public function nativeAsset(): SettlementAsset
     {
         return match ($this) {
-            self::Ethereum => SettlementAsset::Eth,
+            // Arbitrum settles gas and value in ether, same as the chain it
+            // rolls up to.
+            self::Ethereum, self::Arbitrum => SettlementAsset::Eth,
         };
+    }
+
+    /**
+     * Whether this chain rolls its transactions up to another one.
+     *
+     * Only used to explain confirmations honestly. A rollup's blocks arrive in
+     * a fraction of a second and are sequenced rather than mined, so a
+     * confirmation count here is not the same measure of settlement it is on a
+     * layer one — it says the sequencer has accepted the transaction, not that
+     * it has reached the base chain.
+     */
+    public function isRollup(): bool
+    {
+        return $this === self::Arbitrum;
     }
 
     public function receivingAddress(): ?string

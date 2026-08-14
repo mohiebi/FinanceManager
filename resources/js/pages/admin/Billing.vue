@@ -1,11 +1,25 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
-import { AlertTriangle, ExternalLink } from 'lucide-vue-next';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { AlertTriangle, ExternalLink, Ticket } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { PaymentRecord, PaymentTone } from '@/types/billing';
+import { Label } from '@/components/ui/label';
+import {
+    destroy as destroyCoupon,
+    disable as disableCoupon,
+    enable as enableCoupon,
+    store as storeCoupon,
+} from '@/routes/admin/coupons';
+import type {
+    AdminCoupon,
+    CouponKindKey,
+    PaymentRecord,
+    PaymentTone,
+} from '@/types/billing';
 
 type AdminPayment = PaymentRecord & {
     user: { id: number | null; name: string | null; email: string | null };
@@ -29,10 +43,80 @@ defineProps<{
     needsAttention: AdminPayment[];
     recent: AdminPayment[];
     proUsers: ProUser[];
+    coupons: AdminCoupon[];
     status: string | null;
 }>();
 
 const { t } = useI18n();
+
+/**
+ * The create-coupon form.
+ *
+ * This page has never rendered a form before, so it follows the settings-page
+ * convention instead: a useForm, InputError for field errors, and the kind
+ * field switching which amount input is shown.
+ */
+const couponForm = useForm({
+    code: '',
+    kind: 'percent' as CouponKindKey,
+    // Empty rather than null throughout: the Input component takes no null, and
+    // Laravel's ConvertEmptyStringsToNull turns a blank back into null before
+    // validation sees it, so the optional limits arrive as the nulls they mean.
+    percent_off: 50 as number | string,
+    amount_off_usd: '' as number | string,
+    user_email: '',
+    max_redemptions: '' as number | string,
+    max_per_user: '' as number | string,
+    valid_until: '',
+    note: '',
+});
+
+function createCoupon(): void {
+    couponForm.post(storeCoupon().url, {
+        preserveScroll: true,
+        onSuccess: () => couponForm.reset('code', 'user_email', 'note'),
+    });
+}
+
+const couponToDelete = ref<AdminCoupon | null>(null);
+
+function confirmDeleteCoupon(): void {
+    const coupon = couponToDelete.value;
+
+    if (coupon === null) {
+        return;
+    }
+
+    couponToDelete.value = null;
+    router.delete(destroyCoupon(coupon.id).url, { preserveScroll: true });
+}
+
+function couponStatus(coupon: AdminCoupon): string {
+    if (coupon.disabled) {
+        return t('billing.admin.coupons.status_disabled');
+    }
+
+    return coupon.expired
+        ? t('billing.admin.coupons.status_expired')
+        : t('billing.admin.coupons.status_active');
+}
+
+function couponUsage(coupon: AdminCoupon): string {
+    return coupon.max_redemptions === null
+        ? t('billing.admin.coupons.used_unlimited', {
+              used: coupon.claimed_count,
+          })
+        : t('billing.admin.coupons.used', {
+              used: coupon.claimed_count,
+              total: coupon.max_redemptions,
+          });
+}
+
+function couponValue(coupon: AdminCoupon): string {
+    return coupon.kind === 'percent'
+        ? `${coupon.percent_off}%`
+        : `$${coupon.amount_off_usd}`;
+}
 
 const noteFor = ref<Record<string, string>>({});
 const grantMonths = ref<Record<number, number>>({});
@@ -343,6 +427,259 @@ function shortHash(value: string | null): string {
             </ul>
         </section>
 
+        <!-- Coupons -->
+        <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
+            <h2 class="mb-4 flex items-center gap-2 text-[17px] text-white">
+                <Ticket class="size-4 text-[#02CD86]" />
+                {{ t('billing.admin.coupons.heading') }}
+            </h2>
+
+            <form
+                class="grid gap-3 rounded-2xl bg-black/30 p-4 ring-1 ring-white/5 sm:grid-cols-2 lg:grid-cols-4"
+                @submit.prevent="createCoupon"
+            >
+                <div class="space-y-1.5">
+                    <Label for="coupon_code">{{
+                        t('billing.admin.coupons.code')
+                    }}</Label>
+                    <Input
+                        id="coupon_code"
+                        v-model="couponForm.code"
+                        dir="ltr"
+                        class="font-mono uppercase [unicode-bidi:isolate]"
+                        :placeholder="
+                            t('billing.admin.coupons.code_placeholder')
+                        "
+                    />
+                </div>
+
+                <div class="space-y-1.5">
+                    <Label for="coupon_kind">{{
+                        t('billing.admin.coupons.kind')
+                    }}</Label>
+                    <select
+                        id="coupon_kind"
+                        v-model="couponForm.kind"
+                        class="finance-dialog-field finance-dialog-field-income"
+                    >
+                        <option value="percent">
+                            {{ t('billing.coupon.kinds.percent') }}
+                        </option>
+                        <option value="fixed">
+                            {{ t('billing.coupon.kinds.fixed') }}
+                        </option>
+                    </select>
+                </div>
+
+                <!-- The discriminator decides which amount is asked for, so a
+                     coupon can never carry two contradictory values. -->
+                <div v-if="couponForm.kind === 'percent'" class="space-y-1.5">
+                    <Label for="coupon_percent">{{
+                        t('billing.admin.coupons.percent')
+                    }}</Label>
+                    <Input
+                        id="coupon_percent"
+                        v-model.number="couponForm.percent_off"
+                        type="number"
+                        min="1"
+                        max="100"
+                    />
+                </div>
+
+                <div v-else class="space-y-1.5">
+                    <Label for="coupon_amount">{{
+                        t('billing.admin.coupons.amount')
+                    }}</Label>
+                    <Input
+                        id="coupon_amount"
+                        v-model="couponForm.amount_off_usd"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                    />
+                </div>
+
+                <div class="space-y-1.5">
+                    <Label for="coupon_user">{{
+                        t('billing.admin.coupons.user_email')
+                    }}</Label>
+                    <Input
+                        id="coupon_user"
+                        v-model="couponForm.user_email"
+                        type="email"
+                        dir="ltr"
+                        class="[unicode-bidi:isolate]"
+                        :placeholder="
+                            t('billing.admin.coupons.user_email_placeholder')
+                        "
+                    />
+                </div>
+
+                <div class="space-y-1.5">
+                    <Label for="coupon_max">{{
+                        t('billing.admin.coupons.max_redemptions')
+                    }}</Label>
+                    <Input
+                        id="coupon_max"
+                        v-model.number="couponForm.max_redemptions"
+                        type="number"
+                        min="1"
+                        :placeholder="t('billing.admin.coupons.unlimited')"
+                    />
+                </div>
+
+                <div class="space-y-1.5">
+                    <Label for="coupon_max_user">{{
+                        t('billing.admin.coupons.max_per_user')
+                    }}</Label>
+                    <Input
+                        id="coupon_max_user"
+                        v-model.number="couponForm.max_per_user"
+                        type="number"
+                        min="1"
+                        :placeholder="t('billing.admin.coupons.unlimited')"
+                    />
+                </div>
+
+                <div class="space-y-1.5">
+                    <Label for="coupon_until">{{
+                        t('billing.admin.coupons.valid_until')
+                    }}</Label>
+                    <Input
+                        id="coupon_until"
+                        v-model="couponForm.valid_until"
+                        type="datetime-local"
+                    />
+                </div>
+
+                <div class="space-y-1.5 sm:col-span-2 lg:col-span-3">
+                    <Label for="coupon_note">{{
+                        t('billing.admin.note')
+                    }}</Label>
+                    <Input
+                        id="coupon_note"
+                        v-model="couponForm.note"
+                        :placeholder="t('billing.admin.note_placeholder')"
+                    />
+                </div>
+
+                <div class="flex items-end">
+                    <Button
+                        type="submit"
+                        class="w-full"
+                        :disabled="couponForm.processing"
+                    >
+                        {{ t('billing.admin.coupons.create') }}
+                    </Button>
+                </div>
+
+                <div class="sm:col-span-2 lg:col-span-4">
+                    <InputError
+                        :message="
+                            couponForm.errors.code ||
+                            couponForm.errors.kind ||
+                            couponForm.errors.percent_off ||
+                            couponForm.errors.amount_off_usd ||
+                            couponForm.errors.user_email ||
+                            couponForm.errors.max_redemptions ||
+                            couponForm.errors.max_per_user ||
+                            couponForm.errors.valid_until ||
+                            couponForm.errors.note
+                        "
+                    />
+                </div>
+            </form>
+
+            <p v-if="coupons.length === 0" class="mt-4 text-sm text-[#989898]">
+                {{ t('billing.admin.coupons.empty') }}
+            </p>
+
+            <ul v-else class="mt-4 divide-y divide-white/5">
+                <li
+                    v-for="coupon in coupons"
+                    :key="coupon.id"
+                    class="flex flex-wrap items-center justify-between gap-3 py-3"
+                >
+                    <div class="min-w-0">
+                        <p class="text-sm text-white">
+                            <code
+                                dir="ltr"
+                                class="font-mono [unicode-bidi:isolate]"
+                                >{{ coupon.code }}</code
+                            >
+                            <span class="text-[#6f6f6f]" dir="ltr">
+                                · {{ couponValue(coupon) }}</span
+                            >
+                        </p>
+                        <p class="mt-0.5 text-xs text-[#6f6f6f]">
+                            {{
+                                coupon.user_email ??
+                                t('billing.admin.coupons.anyone')
+                            }}
+                            · {{ couponUsage(coupon) }}
+                            ·
+                            {{
+                                coupon.valid_until
+                                    ? coupon.valid_until.slice(0, 10)
+                                    : t('billing.admin.coupons.never_expires')
+                            }}
+                        </p>
+                        <p
+                            v-if="coupon.note"
+                            class="mt-0.5 text-xs text-[#6f6f6f]"
+                        >
+                            {{ coupon.note }}
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="rounded-full px-3 py-1 text-xs ring-1"
+                            :class="
+                                coupon.disabled || coupon.expired
+                                    ? toneClasses.neutral
+                                    : toneClasses.positive
+                            "
+                        >
+                            {{ couponStatus(coupon) }}
+                        </span>
+
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            @click="
+                                router.post(
+                                    coupon.disabled
+                                        ? enableCoupon(coupon.id).url
+                                        : disableCoupon(coupon.id).url,
+                                    {},
+                                    { preserveScroll: true },
+                                )
+                            "
+                        >
+                            {{
+                                coupon.disabled
+                                    ? t('billing.admin.coupons.enable')
+                                    : t('billing.admin.coupons.disable')
+                            }}
+                        </Button>
+
+                        <!-- Offered only for a code nobody ever used. Anything
+                             redeemed is disabled instead, so the ledger keeps
+                             pointing at something. -->
+                        <Button
+                            v-if="coupon.deletable"
+                            size="sm"
+                            variant="ghost"
+                            @click="couponToDelete = coupon"
+                        >
+                            {{ t('billing.admin.coupons.delete') }}
+                        </Button>
+                    </div>
+                </li>
+            </ul>
+        </section>
+
         <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
             <h2 class="mb-4 text-[17px] text-white">
                 {{ t('billing.admin.recent') }}
@@ -375,5 +712,17 @@ function shortHash(value: string | null): string {
                 </li>
             </ul>
         </section>
+
+        <ConfirmDeleteModal
+            :open="couponToDelete !== null"
+            :title="
+                t('billing.admin.coupons.delete_title', {
+                    code: couponToDelete?.code ?? '',
+                })
+            "
+            :description="t('billing.admin.coupons.delete_description')"
+            @update:open="couponToDelete = null"
+            @confirm="confirmDeleteCoupon"
+        />
     </div>
 </template>

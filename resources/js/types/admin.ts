@@ -13,6 +13,12 @@ export type AdminSummary = {
     telegram_customers: number;
     telegram_adoption: number;
     telegram_customers_change: number | null;
+    pro_customers: number;
+    pro_adoption: number;
+    pro_customers_change: number | null;
+    mcp_customers: number;
+    mcp_adoption: number;
+    mcp_customers_change: number | null;
     verified_customers: number;
     verification_rate: number;
     verified_customers_change: number | null;
@@ -58,6 +64,9 @@ export type AdminUser = {
     is_verified: boolean;
     profile_complete: boolean;
     telegram_connected: boolean;
+    pro: boolean;
+    pro_until: string | null;
+    mcp_connected: boolean;
     auth_method: string;
     transaction_count: number;
     investment_count: number;
@@ -78,6 +87,8 @@ export type AdminFilters = {
     search: string;
     activity: 'all' | 'online' | '7d' | '30d' | 'inactive' | 'never';
     telegram: 'all' | 'connected' | 'disconnected';
+    pro: 'all' | 'active' | 'inactive';
+    mcp: 'all' | 'connected' | 'disconnected';
     verification: 'all' | 'verified' | 'unverified';
     sort:
         | 'newest'

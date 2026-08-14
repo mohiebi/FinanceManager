@@ -4,13 +4,14 @@ namespace App\Actions\Admin;
 
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Admin\McpTokenQuery;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class BuildCustomerDirectoryQuery
 {
     /**
-     * @return array{search: string, activity: string, telegram: string, verification: string, sort: string}
+     * @return array{search: string, activity: string, telegram: string, pro: string, mcp: string, verification: string, sort: string}
      */
     public function filters(Request $request): array
     {
@@ -18,13 +19,15 @@ class BuildCustomerDirectoryQuery
             'search' => mb_substr(trim((string) $request->query('search')), 0, 100),
             'activity' => $this->allowedValue((string) $request->query('activity'), ['all', 'online', '7d', '30d', 'inactive', 'never']),
             'telegram' => $this->allowedValue((string) $request->query('telegram'), ['all', 'connected', 'disconnected']),
+            'pro' => $this->allowedValue((string) $request->query('pro'), ['all', 'active', 'inactive']),
+            'mcp' => $this->allowedValue((string) $request->query('mcp'), ['all', 'connected', 'disconnected']),
             'verification' => $this->allowedValue((string) $request->query('verification'), ['all', 'verified', 'unverified']),
             'sort' => $this->allowedValue((string) $request->query('sort'), ['newest', 'oldest', 'last_active', 'transactions', 'investments', 'bills']),
         ];
     }
 
     /**
-     * @param  array{search: string, activity: string, telegram: string, verification: string, sort: string}  $filters
+     * @param  array{search: string, activity: string, telegram: string, pro: string, mcp: string, verification: string, sort: string}  $filters
      * @return Builder<User>
      */
     public function query(array $filters): Builder
@@ -44,12 +47,19 @@ class BuildCustomerDirectoryQuery
                 'created_at',
                 'last_active_at',
                 'telegram_chat_id',
+                'pro_until',
             ])
             ->withCount(['transactions', 'investments', 'bills'])
             ->withExists([
                 'socialAccounts as has_google_account' => fn (Builder $query): Builder => $query
                     ->where('provider', SocialAccount::ProviderGoogle),
             ])
+            // A subquery rather than a loaded relation: the directory shows a
+            // yes/no badge per row and must not issue a query for each one.
+            ->addSelect(['has_mcp_connection' => McpTokenQuery::live()
+                ->selectRaw('1')
+                ->whereColumn('oauth_access_tokens.user_id', 'users.id')
+                ->limit(1)])
             ->when($filters['search'] !== '', function (Builder $query) use ($filters): void {
                 $query->where(function (Builder $query) use ($filters): void {
                     $query->where('name', 'like', "%{$filters['search']}%")
@@ -70,6 +80,14 @@ class BuildCustomerDirectoryQuery
                 ->whereNotNull('telegram_chat_id'))
             ->when($filters['telegram'] === 'disconnected', fn (Builder $query): Builder => $query
                 ->whereNull('telegram_chat_id'))
+            ->when($filters['pro'] === 'active', fn (Builder $query): Builder => $query
+                ->where('pro_until', '>', $now))
+            ->when($filters['pro'] === 'inactive', fn (Builder $query): Builder => $query
+                ->where(fn (Builder $inner) => $inner
+                    ->whereNull('pro_until')
+                    ->orWhere('pro_until', '<=', $now)))
+            ->when($filters['mcp'] === 'connected', fn (Builder $query) => $query->tap(McpTokenQuery::connected(...)))
+            ->when($filters['mcp'] === 'disconnected', fn (Builder $query) => $query->tap(McpTokenQuery::disconnected(...)))
             ->when($filters['verification'] === 'verified', fn (Builder $query): Builder => $query
                 ->whereNotNull('email_verified_at'))
             ->when($filters['verification'] === 'unverified', fn (Builder $query): Builder => $query

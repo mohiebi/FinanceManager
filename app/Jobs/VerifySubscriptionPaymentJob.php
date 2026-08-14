@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Actions\Billing\GrantProAccess;
+use App\Actions\Billing\SettleCouponRedemption;
 use App\Actions\Billing\VerifyPaymentOnChain;
 use App\Enums\GrantReason;
 use App\Enums\PaymentFailureReason;
@@ -211,12 +212,16 @@ class VerifySubscriptionPaymentJob implements ShouldBeUnique, ShouldQueue
 
             // Same transaction as the status write, so there is no instant where
             // a payment reads as paid without the months behind it.
-            $grant = $grant($locked->user, (int) $locked->months, GrantReason::Payment, $locked->getKey());
+            $subscriptionGrant = $grant($locked->user, (int) $locked->months, GrantReason::Payment, $locked->getKey());
+
+            // Inside the same locked transaction as the status write, so a
+            // coupon claim can never be spent by a payment that did not settle.
+            app(SettleCouponRedemption::class)->consume($locked, $subscriptionGrant);
 
             // After commit, deliberately: a mail provider having a bad minute
             // must never be able to roll back somebody's entitlement.
             DB::afterCommit(fn () => $locked->user->notify(
-                new SubscriptionActivatedNotification($locked, $grant->pro_until_after)
+                new SubscriptionActivatedNotification($locked, $subscriptionGrant->pro_until_after)
             ));
         });
     }

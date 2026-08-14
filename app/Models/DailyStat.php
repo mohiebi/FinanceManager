@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Model;
     'active_customers_7d',
     'active_customers_30d',
     'telegram_customers',
+    'pro_customers',
+    'mcp_customers',
     'verified_customers',
     'completed_profiles',
 ])]
@@ -31,6 +33,8 @@ class DailyStat extends Model
             'active_customers_7d' => 'integer',
             'active_customers_30d' => 'integer',
             'telegram_customers' => 'integer',
+            'pro_customers' => 'integer',
+            'mcp_customers' => 'integer',
             'verified_customers' => 'integer',
             'completed_profiles' => 'integer',
         ];

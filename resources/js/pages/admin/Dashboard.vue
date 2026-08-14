@@ -2,6 +2,7 @@
 import { Deferred, Head, Link, router, usePoll } from '@inertiajs/vue3';
 import {
     Activity,
+    BadgeCheck,
     Bot,
     ChevronLeft,
     ChevronRight,
@@ -10,6 +11,7 @@ import {
     Download,
     Rocket,
     Search,
+    Sparkles,
     SlidersHorizontal,
     UserCheck,
     Users,
@@ -58,6 +60,8 @@ defineOptions({
 const search = ref(props.filters.search);
 const activity = ref<AdminFilters['activity']>(props.filters.activity);
 const telegram = ref<AdminFilters['telegram']>(props.filters.telegram);
+const pro = ref<AdminFilters['pro']>(props.filters.pro);
+const mcp = ref<AdminFilters['mcp']>(props.filters.mcp);
 const verification = ref<AdminFilters['verification']>(
     props.filters.verification,
 );
@@ -137,6 +141,8 @@ const hasFilters = computed(
         search.value !== '' ||
         activity.value !== 'all' ||
         telegram.value !== 'all' ||
+        pro.value !== 'all' ||
+        mcp.value !== 'all' ||
         verification.value !== 'all' ||
         sort.value !== 'newest',
 );
@@ -156,6 +162,14 @@ const exportUrl = computed(() => {
         query.telegram = telegram.value;
     }
 
+    if (pro.value !== 'all') {
+        query.pro = pro.value;
+    }
+
+    if (mcp.value !== 'all') {
+        query.mcp = mcp.value;
+    }
+
     if (verification.value !== 'all') {
         query.verification = verification.value;
     }
@@ -173,6 +187,8 @@ watch(
         search.value = filters.search;
         activity.value = filters.activity;
         telegram.value = filters.telegram;
+        pro.value = filters.pro;
+        mcp.value = filters.mcp;
         verification.value = filters.verification;
         sort.value = filters.sort;
     },
@@ -209,6 +225,8 @@ function queryPayload(page = 1): Record<string, string | number | null> {
         search: search.value || null,
         activity: activity.value === 'all' ? null : activity.value,
         telegram: telegram.value === 'all' ? null : telegram.value,
+        pro: pro.value === 'all' ? null : pro.value,
+        mcp: mcp.value === 'all' ? null : mcp.value,
         verification: verification.value === 'all' ? null : verification.value,
         sort: sort.value === 'newest' ? null : sort.value,
         range: range.value === '12m' ? null : range.value,
@@ -259,6 +277,16 @@ function toggleActivityFilter(value: AdminFilters['activity']): void {
 
 function toggleTelegramFilter(): void {
     telegram.value = telegram.value === 'connected' ? 'all' : 'connected';
+    applyFilters();
+}
+
+function toggleProFilter(): void {
+    pro.value = pro.value === 'active' ? 'all' : 'active';
+    applyFilters();
+}
+
+function toggleMcpFilter(): void {
+    mcp.value = mcp.value === 'connected' ? 'all' : 'connected';
     applyFilters();
 }
 
@@ -488,6 +516,50 @@ function activityTone(user: AdminUser): string {
                                 class="flex size-9 items-center justify-center rounded-xl bg-[#201d31]"
                             >
                                 <Bot class="size-[18px] text-[#947bff]" />
+                            </span>
+                        </template>
+                    </AdminKpiCard>
+
+                    <AdminKpiCard
+                        label="Pro accounts"
+                        :value="formatAdminNumber(summary.pro_customers)"
+                        :caption="formatAdminPercentage(summary.pro_adoption)"
+                        caption-tone="green"
+                        :delta="summary.pro_customers_change"
+                        delta-label="vs 30 days ago"
+                        footnote="Customers with paid access right now"
+                        clickable
+                        :active="filters.pro === 'active'"
+                        @select="toggleProFilter"
+                    >
+                        <template #icon>
+                            <span
+                                class="flex size-9 items-center justify-center rounded-xl bg-[#12251c]"
+                            >
+                                <BadgeCheck
+                                    class="size-[18px] text-[#02CD86]"
+                                />
+                            </span>
+                        </template>
+                    </AdminKpiCard>
+
+                    <AdminKpiCard
+                        label="AI assistant"
+                        :value="formatAdminNumber(summary.mcp_customers)"
+                        :caption="formatAdminPercentage(summary.mcp_adoption)"
+                        caption-tone="purple"
+                        :delta="summary.mcp_customers_change"
+                        delta-label="vs 30 days ago"
+                        footnote="Customers with a live MCP connection"
+                        clickable
+                        :active="filters.mcp === 'connected'"
+                        @select="toggleMcpFilter"
+                    >
+                        <template #icon>
+                            <span
+                                class="flex size-9 items-center justify-center rounded-xl bg-[#201d31]"
+                            >
+                                <Sparkles class="size-[18px] text-[#947bff]" />
                             </span>
                         </template>
                     </AdminKpiCard>
@@ -1037,6 +1109,21 @@ function activityTone(user: AdminUser): string {
                                             <span
                                                 class="rounded-lg bg-white/5 px-2 py-1 text-xs text-[#989898]"
                                                 >{{ user.auth_method }}</span
+                                            >
+                                            <!-- Grouped with the other status
+                                                 chips rather than given columns
+                                                 of their own: the table is
+                                                 already wide, and three yes/no
+                                                 columns scan worse than this. -->
+                                            <span
+                                                v-if="user.pro"
+                                                class="rounded-lg bg-[#12251c] px-2 py-1 text-xs text-[#02CD86]"
+                                                >Pro</span
+                                            >
+                                            <span
+                                                v-if="user.mcp_connected"
+                                                class="rounded-lg bg-[#201d31] px-2 py-1 text-xs text-[#b8aaff]"
+                                                >AI</span
                                             >
                                         </div>
                                     </td>

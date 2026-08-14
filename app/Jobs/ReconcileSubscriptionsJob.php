@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Actions\Billing\SettleCouponRedemption;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentStatus;
 use App\Models\SubscriptionPayment;
@@ -58,14 +59,24 @@ class ReconcileSubscriptionsJob implements ShouldQueue
      */
     private function expireStaleIntents(): void
     {
-        SubscriptionPayment::query()
+        $stale = SubscriptionPayment::query()
             ->where('status', PaymentStatus::Pending->value)
-            ->where('expires_at', '<=', now())
-            ->update([
-                'status' => PaymentStatus::Expired->value,
-                'failure_reason' => PaymentFailureReason::Expired->value,
-                'updated_at' => now(),
-            ]);
+            ->where('expires_at', '<=', now());
+
+        // Collected before the update, because afterwards nothing identifies
+        // which rows this run expired.
+        $expiredIds = $stale->clone()->pluck('id')->all();
+
+        $stale->update([
+            'status' => PaymentStatus::Expired->value,
+            'failure_reason' => PaymentFailureReason::Expired->value,
+            'updated_at' => now(),
+        ]);
+
+        // Any coupon those intents were holding goes back into the pool.
+        // Without this a single-use code would be spent by the first person who
+        // opened an intent and wandered off, not by the first who paid.
+        app(SettleCouponRedemption::class)->releaseMany($expiredIds);
     }
 
     /**

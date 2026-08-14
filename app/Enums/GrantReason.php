@@ -26,6 +26,14 @@ enum GrantReason: string
     /** An admin ended an entitlement early. */
     case AdminRevoke = 'admin_revoke';
 
+    /**
+     * A coupon covered the whole price, so there was nothing to pay.
+     *
+     * Distinct from AdminGrant because nobody decided this case by hand — the
+     * buyer redeemed a code themselves and the discount happened to reach zero.
+     */
+    case Coupon = 'coupon';
+
     public function label(): string
     {
         $translationKey = "billing.grant_reasons.{$this->value}";
@@ -40,12 +48,13 @@ enum GrantReason: string
             self::AdminApprovePayment => 'Payment approved by admin',
             self::AdminGrant => 'Granted by admin',
             self::AdminRevoke => 'Revoked by admin',
+            self::Coupon => 'Coupon redeemed',
         };
     }
 
     /** Whether an administrator, rather than the chain, produced this grant. */
     public function isManual(): bool
     {
-        return $this !== self::Payment;
+        return $this !== self::Payment && $this !== self::Coupon;
     }
 }

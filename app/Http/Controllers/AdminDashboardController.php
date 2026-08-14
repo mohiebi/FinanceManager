@@ -29,7 +29,7 @@ class AdminDashboardController extends Controller
     }
 
     /**
-     * @param  array{search: string, activity: string, telegram: string, verification: string, sort: string}  $filters
+     * @param  array{search: string, activity: string, telegram: string, pro: string, mcp: string, verification: string, sort: string}  $filters
      * @return array<string, mixed>
      */
     private function users(BuildCustomerDirectoryQuery $directory, array $filters): array
@@ -48,6 +48,10 @@ class AdminDashboardController extends Controller
                 'is_verified' => $user->email_verified_at !== null,
                 'profile_complete' => $user->birthdate !== null,
                 'telegram_connected' => $user->hasTelegram(),
+                'pro' => $user->isPro(),
+                'pro_until' => $user->pro_until?->toIso8601String(),
+                // Set by the addSelect subquery in BuildCustomerDirectoryQuery.
+                'mcp_connected' => (bool) $user->has_mcp_connection,
                 'auth_method' => $directory->authenticationMethod($user),
                 'transaction_count' => (int) $user->transactions_count,
                 'investment_count' => (int) $user->investments_count,

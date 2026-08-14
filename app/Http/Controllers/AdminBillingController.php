@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Admin\BuildBillingOverview;
+use App\Actions\Admin\BuildCouponOverview;
 use App\Actions\Billing\GrantProAccess;
 use App\Actions\Billing\RevokeProAccess;
+use App\Actions\Billing\SettleCouponRedemption;
 use App\Enums\GrantReason;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentStatus;
@@ -32,12 +34,14 @@ class AdminBillingController extends Controller
     public function __construct(
         private readonly GrantProAccess $grantProAccess,
         private readonly RevokeProAccess $revokeProAccess,
+        private readonly SettleCouponRedemption $settleCouponRedemption,
     ) {}
 
-    public function index(BuildBillingOverview $overview): Response
+    public function index(BuildBillingOverview $overview, BuildCouponOverview $coupons): Response
     {
         return Inertia::render('admin/Billing', [
             ...$overview(),
+            'coupons' => $coupons(),
             'status' => request()->session()->get('status'),
         ]);
     }
@@ -64,7 +68,7 @@ class AdminBillingController extends Controller
             'failure_reason' => null,
         ])->save();
 
-        ($this->grantProAccess)(
+        $grant = ($this->grantProAccess)(
             user: $payment->user,
             months: (int) $payment->months,
             reason: GrantReason::AdminApprovePayment,
@@ -72,6 +76,10 @@ class AdminBillingController extends Controller
             admin: $request->user(),
             note: $note,
         );
+
+        // An approved payment is a paid one, so any coupon it reserved is spent
+        // exactly as it would have been had the chain settled it.
+        $this->settleCouponRedemption->consume($payment, $grant);
 
         return back()->with('status', __('billing.admin.approved'));
     }
@@ -88,6 +96,9 @@ class AdminBillingController extends Controller
             'approved_by_admin_id' => $request->user()->getKey(),
             'admin_note' => $note,
         ])->save();
+
+        // Nothing was paid for, so the coupon claim goes back into the pool.
+        $this->settleCouponRedemption->release($payment);
 
         return back()->with('status', __('billing.admin.rejected'));
     }

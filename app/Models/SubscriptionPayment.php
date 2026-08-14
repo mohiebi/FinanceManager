@@ -8,6 +8,7 @@ use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentNetwork;
 use App\Enums\PaymentStatus;
 use App\Enums\SettlementAsset;
+use App\Support\Billing\CouponDiscount;
 use App\Support\Billing\TokenAmount;
 use Database\Factories\SubscriptionPaymentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * One attempt to buy a span of Pro access.
@@ -40,6 +42,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'plan',
     'months',
     'price_usd',
+    'coupon_id',
+    'list_price_usd',
     'network',
     'chain_id',
     'asset',
@@ -70,6 +74,30 @@ class SubscriptionPayment extends Model
     public function approvedByAdmin(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by_admin_id');
+    }
+
+    /**
+     * @return BelongsTo<Coupon, SubscriptionPayment>
+     */
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
+    }
+
+    /**
+     * @return HasOne<CouponRedemption, SubscriptionPayment>
+     */
+    public function couponRedemption(): HasOne
+    {
+        return $this->hasOne(CouponRedemption::class);
+    }
+
+    /** What the coupon took off, or null when none was used. */
+    public function discountUsd(): ?string
+    {
+        return $this->list_price_usd === null
+            ? null
+            : CouponDiscount::money((float) $this->list_price_usd - (float) $this->price_usd);
     }
 
     /** The amount this payment expects, in the asset's smallest on-chain unit. */

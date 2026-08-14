@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminBillingController;
+use App\Http\Controllers\AdminCouponController;
 use App\Http\Controllers\AdminCustomerExportController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdvisorAssessmentController;
@@ -122,6 +123,13 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
             Route::post('admin/billing/payments/{payment}/recheck', [AdminBillingController::class, 'recheck'])->name('admin.billing.recheck');
             Route::post('admin/billing/users/{user}/grant', [AdminBillingController::class, 'grant'])->name('admin.billing.grant');
             Route::post('admin/billing/users/{user}/revoke', [AdminBillingController::class, 'revoke'])->name('admin.billing.revoke');
+
+            // Coupons give away paid access, so they sit behind the same second
+            // factor as granting it directly.
+            Route::post('admin/billing/coupons', [AdminCouponController::class, 'store'])->name('admin.coupons.store');
+            Route::post('admin/billing/coupons/{coupon}/disable', [AdminCouponController::class, 'disable'])->name('admin.coupons.disable');
+            Route::post('admin/billing/coupons/{coupon}/enable', [AdminCouponController::class, 'enable'])->name('admin.coupons.enable');
+            Route::delete('admin/billing/coupons/{coupon}', [AdminCouponController::class, 'destroy'])->name('admin.coupons.destroy');
         });
     });
 

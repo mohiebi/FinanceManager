@@ -6,6 +6,7 @@ use App\Models\DailyStat;
 use App\Models\SocialAccount;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Support\Admin\McpTokenQuery;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -70,6 +71,10 @@ class BuildAdminAnalytics
                 ->where('last_active_at', '>=', $now->copy()->subDays(30))
                 ->count(),
             'telegram_customers' => $this->customers()->whereNotNull('telegram_chat_id')->count(),
+            // Captured daily so the period-over-period deltas above have a
+            // baseline; without a stored history they could only ever read null.
+            'pro_customers' => $this->customers()->where('pro_until', '>', $now)->count(),
+            'mcp_customers' => $this->customers()->tap(McpTokenQuery::connected(...))->count(),
             'verified_customers' => $this->customers()->whereNotNull('email_verified_at')->count(),
             'completed_profiles' => $this->customers()->whereNotNull('birthdate')->count(),
         ];
@@ -101,6 +106,8 @@ class BuildAdminAnalytics
             ->where('last_active_at', '>=', $now->copy()->subDays(30))
             ->count();
         $telegramCustomers = $this->customers()->whereNotNull('telegram_chat_id')->count();
+        $proCustomers = $this->customers()->where('pro_until', '>', $now)->count();
+        $mcpCustomers = $this->customers()->tap(McpTokenQuery::connected(...))->count();
         $verifiedCustomers = $this->customers()->whereNotNull('email_verified_at')->count();
         $completedProfiles = $this->customers()->whereNotNull('birthdate')->count();
         $cohort = $this->signupCohort($rangeStart);
@@ -126,6 +133,19 @@ class BuildAdminAnalytics
             'telegram_adoption' => $this->percentage($telegramCustomers, $totalCustomers),
             'telegram_customers_change' => $baseline instanceof DailyStat
                 ? $this->percentChange($telegramCustomers, $baseline->telegram_customers)
+                : null,
+            // Scoped to customers(), which excludes the configured admin — so
+            // this figure is deliberately narrower than the one on the billing
+            // console, which counts every Pro account including the operator's.
+            'pro_customers' => $proCustomers,
+            'pro_adoption' => $this->percentage($proCustomers, $totalCustomers),
+            'pro_customers_change' => $baseline instanceof DailyStat
+                ? $this->percentChange($proCustomers, $baseline->pro_customers)
+                : null,
+            'mcp_customers' => $mcpCustomers,
+            'mcp_adoption' => $this->percentage($mcpCustomers, $totalCustomers),
+            'mcp_customers_change' => $baseline instanceof DailyStat
+                ? $this->percentChange($mcpCustomers, $baseline->mcp_customers)
                 : null,
             'verified_customers' => $verifiedCustomers,
             'verification_rate' => $this->percentage($verifiedCustomers, $totalCustomers),
@@ -379,6 +399,12 @@ class BuildAdminAnalytics
         $telegramSegments = [
             'Telegram linked' => fn (Builder $query): Builder => $query->whereNotNull('telegram_chat_id'),
             'No Telegram' => fn (Builder $query): Builder => $query->whereNull('telegram_chat_id'),
+            'Pro' => fn (Builder $query): Builder => $query->where('pro_until', '>', now()),
+            'Free' => fn (Builder $query): Builder => $query->where(fn (Builder $inner) => $inner
+                ->whereNull('pro_until')
+                ->orWhere('pro_until', '<=', now())),
+            'AI assistant connected' => fn (Builder $query): Builder => $query->tap(McpTokenQuery::connected(...)),
+            'No AI assistant' => fn (Builder $query): Builder => $query->tap(McpTokenQuery::disconnected(...)),
         ];
 
         foreach ($telegramSegments as $label => $constraint) {

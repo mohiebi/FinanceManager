@@ -71,6 +71,32 @@ export type PreferredRail = {
     asset: SettlementAssetKey;
 };
 
+export type CouponKindKey = 'percent' | 'fixed';
+
+export type AdminCoupon = {
+    id: number;
+    code: string;
+    kind: CouponKindKey;
+    kind_label: string;
+    percent_off: number | null;
+    /** Decimal string, like every other money value here. */
+    amount_off_usd: string | null;
+    /** Null means anybody may redeem it. */
+    user_email: string | null;
+    max_redemptions: number | null;
+    max_per_user: number | null;
+    /** Reserved plus consumed — released claims went back into the pool. */
+    claimed_count: number;
+    consumed_count: number;
+    /** Only a code nobody ever touched may be deleted rather than disabled. */
+    deletable: boolean;
+    valid_until: string | null;
+    disabled: boolean;
+    expired: boolean;
+    note: string | null;
+    created_at: string;
+};
+
 export type PaymentRecord = {
     id: string;
     status: PaymentStatusKey;
@@ -91,6 +117,9 @@ export type PaymentRecord = {
     pay_to_address: string | null;
     expected_amount: string;
     received_amount: string | null;
+    /** The undiscounted price, or null when no coupon was used. */
+    list_price_usd: string | null;
+    coupon_code: string | null;
     quote_rate: string;
     quote_expires_at: string | null;
     tx_hash: string | null;

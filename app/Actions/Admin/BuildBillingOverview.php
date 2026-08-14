@@ -35,7 +35,7 @@ final readonly class BuildBillingOverview
             'needsAttention' => $this->present($this->needsAttention()),
             'recent' => $this->present(
                 SubscriptionPayment::query()
-                    ->with('user:id,name,email')
+                    ->with(['user:id,name,email', 'coupon:id,code'])
                     ->latest('created_at')
                     ->limit(50)
                     ->get()
@@ -78,7 +78,7 @@ final readonly class BuildBillingOverview
         $reviewable = array_column(PaymentFailureReason::needingReview(), 'value');
 
         return SubscriptionPayment::query()
-            ->with('user:id,name,email')
+            ->with(['user:id,name,email', 'coupon:id,code'])
             ->where(fn ($query) => $query
                 ->whereIn('failure_reason', $reviewable)
                 ->orWhere(fn ($stalled) => $stalled

@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Actions\Billing\RedeemFreeCoupon;
+use App\Actions\Billing\ResolveCoupon;
+use App\Actions\Billing\SettleCouponRedemption;
 use App\Actions\Billing\StartSubscriptionPayment;
 use App\Actions\Billing\SubmitPaymentProof;
 use App\Enums\PaymentStatus;
+use App\Exceptions\CouponUnavailable;
 use App\Exceptions\QuoteUnavailable;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\StartPaymentRequest;
@@ -22,6 +26,9 @@ class BillingController extends Controller
         private readonly StartSubscriptionPayment $startPayment,
         private readonly SubmitPaymentProof $submitProof,
         private readonly BillingCatalog $catalog,
+        private readonly ResolveCoupon $resolveCoupon,
+        private readonly RedeemFreeCoupon $redeemFreeCoupon,
+        private readonly SettleCouponRedemption $settleCoupon,
     ) {}
 
     public function edit(Request $request): Response
@@ -36,6 +43,9 @@ class BillingController extends Controller
             'pending' => $this->pendingFor($request),
             'preferred' => $this->preferredRail($request),
             'payments' => $user->subscriptionPayments()
+                // presentPayment() reads the coupon's code, so eager load it
+                // rather than issuing a query per row of the history.
+                ->with('coupon:id,code')
                 ->latest('created_at')
                 ->limit(20)
                 ->get()
@@ -49,17 +59,41 @@ class BillingController extends Controller
     {
         $this->assertBillingIsAvailable();
 
+        $user = $request->user();
+        $plan = $request->plan();
+        $code = $request->couponCode();
+        $coupon = null;
+
+        if ($code !== null) {
+            $resolution = ($this->resolveCoupon)($user, $code, $plan);
+
+            if (! $resolution->accepted) {
+                return back()->withErrors(['coupon' => $resolution->rejection->label()]);
+            }
+
+            // A coupon covering the whole price has nothing to settle on-chain —
+            // a zero transfer is not something a chain can carry — so it grants
+            // the months outright instead of opening an intent nobody could pay.
+            if ($resolution->coversEverything) {
+                $rejection = ($this->redeemFreeCoupon)($user, $resolution->coupon, $plan);
+
+                return $rejection === null
+                    ? back()->with('status', __('billing.coupon.redeemed'))
+                    : back()->withErrors(['coupon' => $rejection->label()]);
+            }
+
+            $coupon = $resolution->coupon;
+        }
+
         try {
-            ($this->startPayment)(
-                $request->user(),
-                $request->plan(),
-                $request->network(),
-                $request->asset(),
-            );
+            ($this->startPayment)($user, $plan, $request->network(), $request->asset(), $coupon);
         } catch (QuoteUnavailable) {
             // Never fall through to a default rate. Quoting a plan at a stale or
             // zero price is worse than telling the buyer to come back.
             return back()->withErrors(['plan' => __('billing.errors.quote_unavailable')]);
+        } catch (CouponUnavailable $exception) {
+            // Somebody took the last use between resolving and claiming.
+            return back()->withErrors(['coupon' => $exception->rejection->label()]);
         }
 
         return back()->with('status', __('billing.pay.created'));
@@ -91,6 +125,10 @@ class BillingController extends Controller
         abort_unless($payment->status === PaymentStatus::Pending, 404);
 
         $payment->forceFill(['status' => PaymentStatus::Expired])->save();
+
+        // Withdrawing an intent hands back any coupon it was holding, so a
+        // single-use code is not spent by somebody who changed their mind.
+        $this->settleCoupon->release($payment);
 
         return back()->with('status', __('billing.pay.cancelled'));
     }
@@ -127,6 +165,7 @@ class BillingController extends Controller
     private function pendingFor(Request $request): ?array
     {
         $pending = $request->user()->subscriptionPayments()
+            ->with('coupon:id,code')
             ->inFlight()
             ->latest('created_at')
             ->first();

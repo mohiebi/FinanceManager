@@ -87,6 +87,10 @@ final readonly class BillingCatalog
             'plan_label' => $payment->plan->label(),
             'months' => $payment->months,
             'price_usd' => $payment->price_usd,
+            // Both null unless a coupon was applied, which is what the page uses
+            // to decide whether to show a struck-through original price.
+            'list_price_usd' => $payment->list_price_usd,
+            'coupon_code' => $payment->coupon?->code,
             'network' => $payment->network?->value,
             'network_label' => $payment->network?->label(),
             'chain_id' => $payment->chain_id,

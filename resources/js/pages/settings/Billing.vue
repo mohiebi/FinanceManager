@@ -78,7 +78,7 @@ function chooseNetwork(option: NetworkOption): void {
     }
 }
 
-const startForm = useForm({ plan: '', network: '', asset: '' });
+const startForm = useForm({ plan: '', network: '', asset: '', coupon: '' });
 const proofForm = useForm({ tx_hash: '' });
 
 function choosePlan(plan: PlanCard): void {
@@ -462,6 +462,28 @@ const toneClasses: Record<string, string> = {
                 </div>
             </div>
 
+            <!-- Submitted with the plan choice rather than checked up front: a
+                 bad code is a field error, and a code covering the whole price
+                 grants the months outright instead of opening an intent. -->
+            <div class="mt-5 max-w-sm space-y-1.5">
+                <label for="coupon" class="block text-xs text-[#989898]">
+                    {{ t('billing.coupon.label') }}
+                </label>
+                <Input
+                    id="coupon"
+                    v-model="startForm.coupon"
+                    dir="ltr"
+                    class="font-mono uppercase [unicode-bidi:isolate]"
+                    :placeholder="t('billing.coupon.placeholder')"
+                />
+                <p
+                    v-if="startForm.errors.coupon"
+                    class="text-sm text-[#E94E50]"
+                >
+                    {{ startForm.errors.coupon }}
+                </p>
+            </div>
+
             <p v-if="startForm.errors.plan" class="mt-3 text-sm text-[#E94E50]">
                 {{ startForm.errors.plan }}
             </p>
@@ -512,6 +534,24 @@ const toneClasses: Record<string, string> = {
                     </div>
                     <p class="mt-1 text-xs text-[#6f6f6f]">
                         {{ t('billing.pay.exact_amount') }}
+                    </p>
+
+                    <p
+                        v-if="pending.list_price_usd && pending.coupon_code"
+                        class="mt-1 text-xs text-[#02CD86]"
+                    >
+                        {{
+                            t('billing.coupon.applied', {
+                                code: pending.coupon_code,
+                            })
+                        }}
+                        <span class="text-[#6f6f6f] line-through" dir="ltr">
+                            {{
+                                t('billing.coupon.was', {
+                                    amount: `$${pending.list_price_usd}`,
+                                })
+                            }}
+                        </span>
                     </p>
                 </div>
 

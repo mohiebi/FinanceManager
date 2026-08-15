@@ -73,6 +73,24 @@ export type PreferredRail = {
 
 export type CouponKindKey = 'percent' | 'fixed';
 
+/** What a coupon is worth against one plan. */
+export type CouponPlanPrice = {
+    list_price_usd: string;
+    discount_usd: string;
+    final_price_usd: string;
+    /** True when nothing is left to pay, so redeeming skips the chain entirely. */
+    covers_everything: boolean;
+};
+
+export type CouponPreview = {
+    code: string;
+    plans: Record<string, CouponPlanPrice>;
+};
+
+export type CouponPreviewResponse =
+    | { accepted: true; code: string; plans: Record<string, CouponPlanPrice> }
+    | { accepted: false; message: string };
+
 export type AdminCoupon = {
     id: number;
     code: string;

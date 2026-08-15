@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { Head, router, useForm, useHttp, usePage } from '@inertiajs/vue3';
 import { Check, Copy, ExternalLink, Wallet } from 'lucide-vue-next';
 import QRCode from 'qrcode';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -8,6 +8,7 @@ import SettingsSection from '@/components/settings/SettingsSection.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatAppDate } from '@/lib/date';
+import { preview as previewCoupon } from '@/routes/billing/coupon';
 import {
     cancel as cancelPayment,
     proof as submitProof,
@@ -15,6 +16,8 @@ import {
 } from '@/routes/billing/payments';
 import type {
     AssetOption,
+    CouponPreview,
+    CouponPreviewResponse,
     NetworkOption,
     PaymentRecord,
     PlanCard,
@@ -79,6 +82,90 @@ function chooseNetwork(option: NetworkOption): void {
 }
 
 const startForm = useForm({ plan: '', network: '', asset: '', coupon: '' });
+
+/**
+ * The coupon the buyer has checked, and what it is worth against each plan.
+ *
+ * Checked before committing to a plan rather than discovered afterwards: a code
+ * that silently does nothing until you have already picked something is
+ * indistinguishable from a broken one. The preview claims no use, so it costs
+ * nothing to call — the authoritative check still happens under a lock when the
+ * intent is opened.
+ */
+const appliedCoupon = ref<CouponPreview | null>(null);
+const couponError = ref<string | null>(null);
+const checkingCoupon = ref(false);
+
+const couponCheck = useHttp<{ coupon: string }, CouponPreviewResponse>({
+    coupon: '',
+});
+
+async function applyCoupon(): Promise<void> {
+    const code = startForm.coupon.trim();
+
+    couponError.value = null;
+    appliedCoupon.value = null;
+
+    if (code === '') {
+        return;
+    }
+
+    couponCheck.coupon = code;
+    checkingCoupon.value = true;
+
+    try {
+        const result = await couponCheck.post(previewCoupon.url());
+
+        if (result.accepted) {
+            appliedCoupon.value = { code: result.code, plans: result.plans };
+        } else {
+            couponError.value = result.message;
+        }
+    } catch {
+        couponError.value = t('billing.errors.generic');
+    } finally {
+        checkingCoupon.value = false;
+    }
+}
+
+function clearCoupon(): void {
+    startForm.coupon = '';
+    appliedCoupon.value = null;
+    couponError.value = null;
+}
+
+/** What a plan costs once the checked coupon is taken into account. */
+function pricedPlan(plan: PlanCard): {
+    price: string;
+    was: string | null;
+    free: boolean;
+} {
+    const discounted = appliedCoupon.value?.plans[plan.key];
+
+    if (discounted === undefined) {
+        return { price: plan.price_usd, was: null, free: false };
+    }
+
+    return {
+        price: discounted.final_price_usd,
+        was: discounted.list_price_usd,
+        free: discounted.covers_everything,
+    };
+}
+
+/**
+ * True only when no plan is left with anything to pay.
+ *
+ * A fixed-amount code can zero the monthly plan and still leave the yearly one
+ * owing, and saying "nothing to pay" then would be a lie — those cards carry
+ * their own "free" line instead.
+ */
+const couponCoversEveryPlan = computed<boolean>(
+    () =>
+        appliedCoupon.value !== null &&
+        props.plans.every((plan) => pricedPlan(plan).free),
+);
+
 const proofForm = useForm({ tx_hash: '' });
 
 function choosePlan(plan: PlanCard): void {
@@ -426,14 +513,44 @@ const toneClasses: Record<string, string> = {
                         {{ plan.description }}
                     </p>
 
-                    <p class="mt-3 text-2xl font-medium text-white" dir="ltr">
-                        ${{ plan.price_usd }}
+                    <!-- Reprices in place once a code is checked, so the saving
+                         is visible on the card the buyer is about to click. -->
+                    <p class="mt-3 flex items-baseline gap-2" dir="ltr">
+                        <span
+                            class="text-2xl font-medium"
+                            :class="
+                                pricedPlan(plan).was
+                                    ? 'text-[#02CD86]'
+                                    : 'text-white'
+                            "
+                        >
+                            ${{ pricedPlan(plan).price }}
+                        </span>
+                        <span
+                            v-if="pricedPlan(plan).was"
+                            class="text-sm text-[#6f6f6f] line-through"
+                        >
+                            ${{ pricedPlan(plan).was }}
+                        </span>
                     </p>
-                    <p class="text-xs text-[#6f6f6f]" dir="ltr">
+                    <p
+                        v-if="!pricedPlan(plan).was"
+                        class="text-xs text-[#6f6f6f]"
+                        dir="ltr"
+                    >
                         {{
                             t('billing.plans.per_month', {
                                 amount: `$${plan.per_month_usd}`,
                             })
+                        }}
+                    </p>
+                    <p v-else class="text-xs text-[#02CD86]">
+                        {{
+                            pricedPlan(plan).free
+                                ? t('billing.coupon.free')
+                                : t('billing.coupon.discount', {
+                                      amount: `$${appliedCoupon?.plans[plan.key]?.discount_usd}`,
+                                  })
                         }}
                     </p>
 
@@ -462,20 +579,63 @@ const toneClasses: Record<string, string> = {
                 </div>
             </div>
 
-            <!-- Submitted with the plan choice rather than checked up front: a
-                 bad code is a field error, and a code covering the whole price
-                 grants the months outright instead of opening an intent. -->
-            <div class="mt-5 max-w-sm space-y-1.5">
+            <!-- Checked on its own, before a plan is picked. A code that shows
+                 no sign of having worked is indistinguishable from a broken
+                 one, so applying it reprices the cards above immediately. The
+                 code still travels with the plan choice, where it is resolved
+                 again under a lock. -->
+            <div class="mt-5 max-w-md space-y-1.5">
                 <label for="coupon" class="block text-xs text-[#989898]">
                     {{ t('billing.coupon.label') }}
                 </label>
-                <Input
-                    id="coupon"
-                    v-model="startForm.coupon"
-                    dir="ltr"
-                    class="font-mono uppercase [unicode-bidi:isolate]"
-                    :placeholder="t('billing.coupon.placeholder')"
-                />
+
+                <form class="flex gap-2" @submit.prevent="applyCoupon">
+                    <Input
+                        id="coupon"
+                        v-model="startForm.coupon"
+                        dir="ltr"
+                        class="font-mono uppercase [unicode-bidi:isolate]"
+                        :placeholder="t('billing.coupon.placeholder')"
+                        @input="
+                            appliedCoupon = null;
+                            couponError = null;
+                        "
+                    />
+                    <Button
+                        type="submit"
+                        variant="ghost"
+                        :disabled="checkingCoupon || startForm.coupon === ''"
+                    >
+                        {{ t('billing.coupon.apply') }}
+                    </Button>
+                    <Button
+                        v-if="appliedCoupon"
+                        type="button"
+                        variant="ghost"
+                        @click="clearCoupon"
+                    >
+                        {{ t('billing.coupon.remove') }}
+                    </Button>
+                </form>
+
+                <!-- The whole point of the check: say plainly that the code
+                     worked and what it is worth, before a plan is chosen. -->
+                <p v-if="appliedCoupon" class="text-sm text-[#02CD86]">
+                    {{
+                        t('billing.coupon.applied', { code: appliedCoupon.code })
+                    }}
+                    <template v-if="couponCoversEveryPlan">
+                        {{ t('billing.coupon.covers_everything') }}
+                    </template>
+                </p>
+
+                <p
+                    v-if="couponError"
+                    class="text-sm text-[#E94E50]"
+                >
+                    {{ couponError }}
+                </p>
+
                 <p
                     v-if="startForm.errors.coupon"
                     class="text-sm text-[#E94E50]"

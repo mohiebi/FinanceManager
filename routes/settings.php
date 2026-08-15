@@ -58,6 +58,12 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     // with nothing to generate.
     Route::get('settings/billing', [BillingController::class, 'edit'])->name('billing.edit');
 
+    // Read-only: it prices a code without claiming a use, so it can be called
+    // as often as somebody retypes one.
+    Route::post('settings/billing/coupon', [BillingController::class, 'previewCoupon'])
+        ->middleware('throttle:20,1')
+        ->name('billing.coupon.preview');
+
     Route::post('settings/billing/payments', [BillingController::class, 'store'])
         ->middleware('throttle:10,1')
         ->name('billing.payments.store');

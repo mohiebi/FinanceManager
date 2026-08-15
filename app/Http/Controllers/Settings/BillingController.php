@@ -7,14 +7,17 @@ use App\Actions\Billing\ResolveCoupon;
 use App\Actions\Billing\SettleCouponRedemption;
 use App\Actions\Billing\StartSubscriptionPayment;
 use App\Actions\Billing\SubmitPaymentProof;
+use App\Enums\BillingPlan;
 use App\Enums\PaymentStatus;
 use App\Exceptions\CouponUnavailable;
 use App\Exceptions\QuoteUnavailable;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\StartPaymentRequest;
 use App\Http\Requests\Settings\SubmitPaymentProofRequest;
+use App\Models\Coupon;
 use App\Models\SubscriptionPayment;
 use App\Support\Billing\BillingCatalog;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -97,6 +100,56 @@ class BillingController extends Controller
         }
 
         return back()->with('status', __('billing.pay.created'));
+    }
+
+    /**
+     * Check a code and price every plan against it, without claiming anything.
+     *
+     * Exists so the buyer can see what a code is worth before committing to a
+     * plan. ResolveCoupon takes no use and has no side effects, so this is safe
+     * to call as somebody types; the authoritative check still happens under a
+     * lock when the intent is actually opened.
+     */
+    public function previewCoupon(Request $request): JsonResponse
+    {
+        $this->assertBillingIsAvailable();
+
+        $code = Coupon::normalizeCode((string) $request->input('coupon'));
+
+        if ($code === '') {
+            return response()->json([
+                'accepted' => false,
+                'message' => __('billing.coupon.rejections.not_found'),
+            ]);
+        }
+
+        $plans = [];
+
+        foreach (BillingPlan::available() as $plan) {
+            $resolution = ($this->resolveCoupon)($request->user(), $code, $plan);
+
+            // A code is valid or not on its own terms, so the first refusal is
+            // the answer for all of them.
+            if (! $resolution->accepted) {
+                return response()->json([
+                    'accepted' => false,
+                    'message' => $resolution->rejection->label(),
+                ]);
+            }
+
+            $plans[$plan->value] = [
+                'list_price_usd' => $resolution->listPriceUsd,
+                'discount_usd' => $resolution->discountUsd,
+                'final_price_usd' => $resolution->finalPriceUsd,
+                'covers_everything' => $resolution->coversEverything,
+            ];
+        }
+
+        return response()->json([
+            'accepted' => true,
+            'code' => $code,
+            'plans' => $plans,
+        ]);
     }
 
     public function submitProof(SubmitPaymentProofRequest $request, SubscriptionPayment $payment): RedirectResponse

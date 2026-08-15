@@ -301,3 +301,83 @@ test('asking twice with the same code reuses the one intent', function () {
         // And only one use was claimed, not two.
         ->and(CouponRedemption::query()->count())->toBe(1);
 });
+
+test('checking a code prices every plan without claiming a use', function () {
+    $user = User::factory()->create();
+    $coupon = Coupon::factory()->percent(50)->create(['code' => 'HALF']);
+
+    $this->actingAs($user)->postJson(route('billing.coupon.preview'), ['coupon' => 'half'])
+        ->assertOk()
+        ->assertJson([
+            'accepted' => true,
+            'code' => 'HALF',
+            'plans' => [
+                'monthly' => [
+                    'list_price_usd' => '5.00',
+                    'discount_usd' => '2.50',
+                    'final_price_usd' => '2.50',
+                    'covers_everything' => false,
+                ],
+                'yearly' => ['final_price_usd' => '22.50'],
+            ],
+        ]);
+
+    // The whole point of a preview: nothing was reserved, so checking a code
+    // over and over cannot burn through a limited one.
+    expect(CouponRedemption::query()->count())->toBe(0)
+        ->and($coupon->fresh()->claimedCount())->toBe(0);
+});
+
+test('checking a code the buyer cannot use says why', function () {
+    $user = User::factory()->create();
+    Coupon::factory()->percent(50)->create([
+        'code' => 'GONE',
+        'valid_until' => now()->subDay(),
+    ]);
+
+    $this->actingAs($user)->postJson(route('billing.coupon.preview'), ['coupon' => 'GONE'])
+        ->assertOk()
+        ->assertJson([
+            'accepted' => false,
+            'message' => CouponRejection::Expired->label(),
+        ]);
+});
+
+test('checking a code issued to somebody else gives nothing away', function () {
+    $owner = User::factory()->create();
+    $stranger = User::factory()->create();
+    Coupon::factory()->percent(50)->issuedTo($owner)->create(['code' => 'MINE']);
+
+    // The same message an unknown code gets, so a stranger cannot tell a real
+    // code from a made-up one by probing this endpoint.
+    $this->actingAs($stranger)->postJson(route('billing.coupon.preview'), ['coupon' => 'MINE'])
+        ->assertOk()
+        ->assertJson([
+            'accepted' => false,
+            'message' => CouponRejection::NotFound->label(),
+        ]);
+});
+
+test('checking a code that covers a plan outright says so', function () {
+    $user = User::factory()->create();
+    Coupon::factory()->percent(100)->create(['code' => 'FREE']);
+
+    $this->actingAs($user)->postJson(route('billing.coupon.preview'), ['coupon' => 'FREE'])
+        ->assertOk()
+        ->assertJson([
+            'accepted' => true,
+            'plans' => [
+                'monthly' => [
+                    'final_price_usd' => '0.00',
+                    'covers_everything' => true,
+                ],
+            ],
+        ]);
+});
+
+test('a guest cannot probe codes', function () {
+    Coupon::factory()->percent(50)->create(['code' => 'HALF']);
+
+    $this->postJson(route('billing.coupon.preview'), ['coupon' => 'HALF'])
+        ->assertUnauthorized();
+});

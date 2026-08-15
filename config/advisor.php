@@ -10,4 +10,11 @@ return [
     'max_clarification_rounds' => 1,
     'max_repair_attempts' => 1,
     'max_provider_calls' => 3,
+
+    /*
+     * How long a Vault-armed browser has to collect and seal a recommendation
+     * its queued job already produced. Long enough to survive a closed laptop,
+     * short enough that the plaintext is not sitting around.
+     */
+    'pending_payload_lifetime' => (int) env('ADVISOR_PENDING_PAYLOAD_LIFETIME', 60),
 ];

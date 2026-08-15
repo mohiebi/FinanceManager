@@ -4,6 +4,7 @@ import {
     ArrowLeft,
     ArrowRight,
     Check,
+    ChevronDown,
     LockKeyhole,
     Plus,
     Trash2,
@@ -12,8 +13,9 @@ import { computed, reactive, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
 import { useVault } from '@/composables/useVault';
+import { useAdvisorLabels } from '@/lib/advisor/labels';
 import { buildAdvisorProfile } from '@/lib/advisor/profile';
-import { complete, show as showAssessment } from '@/routes/advisor/assessments';
+import { complete } from '@/routes/advisor/assessments';
 import { update as updateSection } from '@/routes/advisor/assessments/sections';
 import type {
     OptionsCapabilityAnswer,
@@ -60,12 +62,15 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { label } = useAdvisorLabels();
 const { revealAsync, sealForSubmit, trackKey } = useVault();
 const fullAnswers = reactive<Record<string, unknown>>({});
 const hydrated = ref(false);
 const processing = ref(false);
 const clientError = ref('');
 const aiConsent = ref(true);
+/** Questions the last attempt found blank, marked in place rather than summarized. */
+const missingKeys = ref<string[]>([]);
 
 const section = computed(
     () =>
@@ -165,7 +170,7 @@ function initializeSectionDefaults(): void {
 
 function selectSingle(key: string, value: string): void {
     fullAnswers[key] = value;
-    clientError.value = '';
+    clearMissing(key);
 }
 
 function toggleMulti(key: string, value: string): void {
@@ -175,6 +180,20 @@ function toggleMulti(key: string, value: string): void {
     fullAnswers[key] = values.includes(value)
         ? values.filter((item) => item !== value)
         : [...values, value];
+    clearMissing(key);
+}
+
+/** Answering a marked question drops its mark straight away, not on next submit. */
+function clearMissing(key: string): void {
+    if (isBlank(fullAnswers[key])) {
+        return;
+    }
+
+    missingKeys.value = missingKeys.value.filter((item) => item !== key);
+
+    if (missingKeys.value.length === 0) {
+        clientError.value = '';
+    }
 }
 
 function selected(key: string, value: string): boolean {
@@ -226,8 +245,11 @@ function toggleSupportedAsset(asset: SupportedAsset): void {
 }
 
 function addCustomAsset(): void {
+    const assetKey = `custom-${crypto.randomUUID()}`;
+    // A blank custom asset has nothing to collapse — open it ready to fill in.
+    expandedAssets.value = [...expandedAssets.value, assetKey];
     portfolioPreferences.value.assets.push({
-        asset_key: `custom-${crypto.randomUUID()}`,
+        asset_key: assetKey,
         source: 'custom',
         investment_asset_id: null,
         name: '',
@@ -254,67 +276,192 @@ function removeAsset(assetKey: string): void {
         );
 }
 
+/**
+ * The option lists section 7 offers, named once.
+ *
+ * They were inlined in the template and rendered by swapping underscores for
+ * spaces, which put English identifiers — `private_asset`, `5_10_years` — in
+ * front of every reader regardless of locale. useAdvisorLabels translates them.
+ */
+const assetCategories = [
+    'stock',
+    'etf',
+    'bond',
+    'currency',
+    'metal',
+    'crypto',
+    'commodity',
+    'real_estate',
+    'private_asset',
+    'other',
+] as const;
+const assetRiskBands = [
+    'defensive',
+    'moderate',
+    'growth',
+    'speculative',
+    'unknown',
+] as const;
+const assetLiquidities = [
+    'same_day',
+    'within_week',
+    'within_month',
+    'illiquid',
+] as const;
+const assetPerspectives = ['bearish', 'neutral', 'bullish'] as const;
+const assetConvictions = ['low', 'medium', 'high'] as const;
+const assetHoldingPeriods = [
+    'under_1_year',
+    '1_3_years',
+    '3_5_years',
+    '5_10_years',
+    '10_plus',
+] as const;
+
+/**
+ * Which asset cards are showing their full settings.
+ *
+ * Every card used to render eight unlabelled dropdowns at once — at the cap of
+ * thirty assets, 240 of them on one page. The settings that matter for entry are
+ * the name and the ticker; the rest have workable defaults and belong behind a
+ * disclosure.
+ */
+const expandedAssets = ref<string[]>([]);
+
+function toggleAssetDetails(assetKey: string): void {
+    expandedAssets.value = expandedAssets.value.includes(assetKey)
+        ? expandedAssets.value.filter((item) => item !== assetKey)
+        : [...expandedAssets.value, assetKey];
+}
+
+/** The collapsed card still has to say what it is, in words. */
+function assetSummary(asset: PortfolioPreferences['assets'][number]): string {
+    return [
+        label('categories', asset.category),
+        label('risk_bands', asset.risk_band),
+        label('perspectives', asset.perspective),
+        label('holding_periods', asset.holding_period),
+    ].join(' · ');
+}
+
 function isSupportedSelected(asset: SupportedAsset): boolean {
     return portfolioPreferences.value.assets.some(
         (item) => item.asset_key === `cashpilot-${asset.id}`,
     );
 }
 
+function isBlank(value: unknown): boolean {
+    return (
+        value === undefined ||
+        value === null ||
+        value === '' ||
+        (Array.isArray(value) && value.length === 0)
+    );
+}
+
+/**
+ * Collect every unanswered question, not just the first.
+ *
+ * A single "Choose an answer to continue." under six questions makes the reader
+ * re-check all of them. Naming which ones are missing — and how many — is the
+ * whole difference between a hint and an instruction.
+ */
 function validateCurrentSection(): boolean {
-    for (const key of questionKeys.value) {
-        const value = fullAnswers[key];
-
-        if (
-            value === undefined ||
-            value === null ||
-            value === '' ||
-            (Array.isArray(value) && value.length === 0)
-        ) {
-            clientError.value = t('advisor.assessment.required');
-
-            return false;
-        }
-    }
+    missingKeys.value = questionKeys.value.filter((key) =>
+        isBlank(fullAnswers[key]),
+    );
 
     if (props.currentSection === 2) {
         const liquidity = fullAnswers.q10_liquidity as Record<string, unknown>;
 
-        if (!liquidity.proportion || !liquidity.speed) {
-            return failRequired();
+        if (
+            (isBlank(liquidity?.proportion) || isBlank(liquidity?.speed)) &&
+            !missingKeys.value.includes('q10_liquidity')
+        ) {
+            missingKeys.value = [...missingKeys.value, 'q10_liquidity'];
         }
+    }
+
+    if (missingKeys.value.length > 0) {
+        clientError.value =
+            missingKeys.value.length === 1
+                ? t('advisor.assessment.missing_one')
+                : t('advisor.assessment.missing_many', {
+                      count: missingKeys.value.length,
+                  });
+        focusFirstMissing();
+
+        return false;
     }
 
     if (props.currentSection === 7) {
-        const preferences = portfolioPreferences.value;
-
-        if (
-            !preferences.country.trim() ||
-            preferences.markets.length === 0 ||
-            preferences.assets.length === 0
-        ) {
-            return failRequired();
-        }
-
-        if (
-            preferences.assets.some(
-                (asset) =>
-                    !asset.name.trim() ||
-                    (asset.source === 'custom' &&
-                        !asset.ticker &&
-                        !asset.identifier),
-            )
-        ) {
-            return failRequired();
-        }
+        return validatePortfolioSection();
     }
+
+    clientError.value = '';
 
     return true;
 }
 
-function failRequired(): false {
-    clientError.value = t('advisor.assessment.required');
+/**
+ * Section 7 is one composite answer, so a per-question mark says nothing useful.
+ * Name the field that is actually blocking instead.
+ */
+function validatePortfolioSection(): boolean {
+    const preferences = portfolioPreferences.value;
+
+    if (!preferences.country.trim()) {
+        return failWith(t('advisor.assessment.missing_country'));
+    }
+
+    if (preferences.markets.length === 0) {
+        return failWith(t('advisor.assessment.missing_markets'));
+    }
+
+    if (preferences.assets.length === 0) {
+        return failWith(t('advisor.assessment.missing_assets'));
+    }
+
+    const unnamed = preferences.assets.find((asset) => !asset.name.trim());
+
+    if (unnamed !== undefined) {
+        return failWith(t('advisor.assessment.missing_asset_name'));
+    }
+
+    const unidentified = preferences.assets.find(
+        (asset) =>
+            asset.source === 'custom' && !asset.ticker && !asset.identifier,
+    );
+
+    if (unidentified !== undefined) {
+        return failWith(
+            t('advisor.assessment.missing_asset_ticker', {
+                name: unidentified.name,
+            }),
+        );
+    }
+
+    clientError.value = '';
+
+    return true;
+}
+
+function failWith(message: string): false {
+    clientError.value = message;
 
     return false;
+}
+
+function focusFirstMissing(): void {
+    const first = missingKeys.value[0];
+
+    if (first === undefined) {
+        return;
+    }
+
+    document
+        .getElementById(`question-${first}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 async function save(): Promise<void> {
@@ -322,6 +469,25 @@ async function save(): Promise<void> {
         return;
     }
 
+    await submitSection(false);
+}
+
+/**
+ * Keep what has been answered, then step back.
+ *
+ * Back used to navigate without saving, so checking something on the previous
+ * page quietly cost you everything typed on this one. Validation is skipped —
+ * a draft is allowed to be incomplete, that is the point.
+ */
+async function saveAndGoBack(): Promise<void> {
+    if (props.currentSection <= 1 || processing.value) {
+        return;
+    }
+
+    await submitSection(true);
+}
+
+async function submitSection(partial: boolean): Promise<void> {
     processing.value = true;
     clientError.value = '';
 
@@ -330,6 +496,12 @@ async function save(): Promise<void> {
 
         for (const key of questionKeys.value) {
             const value = fullAnswers[key];
+
+            // A draft carries only what exists; a completed section carries all
+            // of it, and has already been checked by validateCurrentSection().
+            if (partial && isBlank(value)) {
+                continue;
+            }
 
             if (props.vaultArmed) {
                 const sealed = await sealForSubmit(
@@ -348,21 +520,21 @@ async function save(): Promise<void> {
                 assessment: props.assessment.id,
                 section: props.currentSection,
             }).url,
-            { answers } as never,
+            { answers, partial } as never,
             {
                 preserveScroll: true,
                 onSuccess: () => {
-                    if (props.currentSection === 8) {
+                    if (!partial && props.currentSection === 8) {
                         finish();
                     }
                 },
                 onError: (errors) => {
                     clientError.value =
                         Object.values(errors)[0] ??
-                        t('advisor.assessment.required');
+                        t('advisor.assessment.save_failed');
                 },
                 onFinish: () => {
-                    if (props.currentSection !== 8) {
+                    if (partial || props.currentSection !== 8) {
                         processing.value = false;
                     }
                 },
@@ -372,7 +544,7 @@ async function save(): Promise<void> {
         clientError.value =
             error instanceof Error
                 ? error.message
-                : t('advisor.assessment.required');
+                : t('advisor.assessment.save_failed');
         processing.value = false;
     }
 }
@@ -391,24 +563,14 @@ function finish(): void {
             onError: (errors) => {
                 clientError.value =
                     Object.values(errors)[0] ??
-                    t('advisor.assessment.required');
+                    t('advisor.assessment.save_failed');
             },
             onFinish: () => (processing.value = false),
         },
     );
 }
 
-function goBack(): void {
-    if (props.currentSection <= 1) {
-        return;
-    }
 
-    router.visit(
-        showAssessment(props.assessment.id, {
-            query: { section: props.currentSection - 1 },
-        }).url,
-    );
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -483,32 +645,51 @@ defineOptions({
                 {{
                     props.vaultArmed
                         ? t('advisor.assessment.vault_notice')
-                        : 'Loading…'
+                        : t('advisor.assessment.loading')
                 }}
             </div>
 
             <div v-else-if="props.currentSection <= 6" class="space-y-8">
                 <article
                     v-for="(key, questionIndex) in questionKeys"
+                    :id="`question-${key}`"
                     :key="key"
-                    class="border-b border-white/8 pb-8 last:border-0 last:pb-0"
+                    class="scroll-mt-24 border-b border-white/8 pb-8 last:border-0 last:pb-0"
                 >
-                    <p class="text-xs font-medium text-white/30">
+                    <p
+                        class="text-xs font-medium"
+                        :class="
+                            missingKeys.includes(key)
+                                ? 'text-[#E94E50]'
+                                : 'text-white/30'
+                        "
+                    >
                         {{ String(questionIndex + 1).padStart(2, '0') }}
                     </p>
                     <h2 class="mt-2 text-base leading-7 font-medium md:text-lg">
                         {{ t(`advisor.questions.${key}`) }}
                     </h2>
+                    <!-- Marked where the question is, rather than summarized at
+                         the foot of the page where it names nothing. -->
+                    <p
+                        v-if="missingKeys.includes(key)"
+                        class="mt-2 text-xs text-[#E94E50]"
+                    >
+                        {{ t('advisor.assessment.needs_answer') }}
+                    </p>
 
                     <div
                         v-if="definition.questions[key].input === 'liquidity'"
                         class="mt-4 grid gap-4 md:grid-cols-2"
                     >
                         <div>
-                            <label class="mb-2 block text-xs text-white/40"
-                                >Amount</label
+                            <label
+                                :for="`${key}-proportion`"
+                                class="mb-2 block text-xs text-white/40"
+                                >{{ t('advisor.questions.liquidity_amount') }}</label
                             >
                             <select
+                                :id="`${key}-proportion`"
                                 v-model="
                                     (
                                         fullAnswers.q10_liquidity as Record<
@@ -519,7 +700,9 @@ defineOptions({
                                 "
                                 class="advisor-input"
                             >
-                                <option value="" disabled>Select amount</option>
+                                <option value="" disabled>
+                                    {{ t('advisor.questions.liquidity_amount_placeholder') }}
+                                </option>
                                 <option
                                     v-for="option in definition.questions[key]
                                         .proportion_options"
@@ -531,10 +714,13 @@ defineOptions({
                             </select>
                         </div>
                         <div>
-                            <label class="mb-2 block text-xs text-white/40"
-                                >Access speed</label
+                            <label
+                                :for="`${key}-speed`"
+                                class="mb-2 block text-xs text-white/40"
+                                >{{ t('advisor.questions.liquidity_speed') }}</label
                             >
                             <select
+                                :id="`${key}-speed`"
                                 v-model="
                                     (
                                         fullAnswers.q10_liquidity as Record<
@@ -545,7 +731,9 @@ defineOptions({
                                 "
                                 class="advisor-input"
                             >
-                                <option value="" disabled>Select speed</option>
+                                <option value="" disabled>
+                                    {{ t('advisor.questions.liquidity_speed_placeholder') }}
+                                </option>
                                 <option
                                     v-for="option in definition.questions[key]
                                         .speed_options"
@@ -595,9 +783,7 @@ defineOptions({
                         v-if="key === 'q15_max_drawdown'"
                         class="mt-3 text-xs leading-5 text-white/35"
                     >
-                        Assume you do not need the money immediately and the
-                        decline is market-wide, not fraud or failure of one
-                        asset.
+                        {{ t('advisor.questions.q15_max_drawdown_hint') }}
                     </p>
                 </article>
             </div>
@@ -732,6 +918,9 @@ defineOptions({
                     </div>
 
                     <div class="mt-5 space-y-3">
+                        <!-- Collapsed to a name and a plain-English summary. The
+                             eight settings behind Details all have defaults that
+                             work, so entry is name and ticker only. -->
                         <article
                             v-for="asset in portfolioPreferences.assets"
                             :key="asset.asset_key"
@@ -751,178 +940,240 @@ defineOptions({
                                     <h3 v-else class="font-medium">
                                         {{ asset.name }}
                                     </h3>
-                                    <p
-                                        class="mt-1 text-[11px] tracking-wide text-white/30 uppercase"
-                                    >
-                                        {{ asset.source }} ·
-                                        {{ asset.asset_key }}
+                                    <p class="mt-1.5 text-xs text-white/40">
+                                        {{ assetSummary(asset) }}
                                     </p>
                                 </div>
-                                <button
-                                    type="button"
-                                    class="grid size-9 cursor-pointer place-items-center rounded-full text-white/35 transition hover:bg-red-400/10 hover:text-red-300"
-                                    :aria-label="t('advisor.portfolio.remove')"
-                                    @click="removeAsset(asset.asset_key)"
-                                >
-                                    <Trash2 class="size-4" />
-                                </button>
-                            </div>
-                            <div
-                                class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-                            >
-                                <input
-                                    v-if="asset.source === 'custom'"
-                                    v-model="asset.ticker"
-                                    maxlength="30"
-                                    class="advisor-input"
-                                    :placeholder="t('advisor.portfolio.ticker')"
-                                />
-                                <input
-                                    v-if="asset.source === 'custom'"
-                                    v-model="asset.exchange_or_market"
-                                    maxlength="80"
-                                    class="advisor-input"
-                                    :placeholder="
-                                        t('advisor.portfolio.exchange')
-                                    "
-                                />
-                                <select
-                                    v-model="asset.category"
-                                    class="advisor-input"
-                                    :disabled="asset.source === 'cashpilot'"
-                                >
-                                    <option
-                                        v-for="value in [
-                                            'stock',
-                                            'etf',
-                                            'bond',
-                                            'currency',
-                                            'metal',
-                                            'crypto',
-                                            'commodity',
-                                            'real_estate',
-                                            'private_asset',
-                                            'other',
-                                        ]"
-                                        :key="value"
-                                        :value="value"
-                                    >
-                                        {{ value.replaceAll('_', ' ') }}
-                                    </option>
-                                </select>
-                                <select
-                                    v-model="asset.risk_band"
-                                    class="advisor-input"
-                                    :disabled="asset.source === 'cashpilot'"
-                                >
-                                    <option
-                                        v-for="value in [
-                                            'defensive',
-                                            'moderate',
-                                            'growth',
-                                            'speculative',
-                                            'unknown',
-                                        ]"
-                                        :key="value"
-                                        :value="value"
-                                    >
-                                        {{ value }}
-                                    </option>
-                                </select>
-                                <select
-                                    v-model="asset.liquidity"
-                                    class="advisor-input"
-                                    :disabled="asset.source === 'cashpilot'"
-                                >
-                                    <option
-                                        v-for="value in [
-                                            'same_day',
-                                            'within_week',
-                                            'within_month',
-                                            'illiquid',
-                                        ]"
-                                        :key="value"
-                                        :value="value"
-                                    >
-                                        {{ value.replaceAll('_', ' ') }}
-                                    </option>
-                                </select>
-                                <select
-                                    v-model="asset.perspective"
-                                    class="advisor-input"
-                                >
-                                    <option
-                                        v-for="value in [
-                                            'bearish',
-                                            'neutral',
-                                            'bullish',
-                                        ]"
-                                        :key="value"
-                                        :value="value"
-                                    >
-                                        {{ value }}
-                                    </option>
-                                </select>
-                                <select
-                                    v-model="asset.conviction"
-                                    class="advisor-input"
-                                >
-                                    <option
-                                        v-for="value in [
-                                            'low',
-                                            'medium',
-                                            'high',
-                                        ]"
-                                        :key="value"
-                                        :value="value"
-                                    >
-                                        {{ value }} conviction
-                                    </option>
-                                </select>
-                                <select
-                                    v-model="asset.holding_period"
-                                    class="advisor-input"
-                                >
-                                    <option
-                                        v-for="value in [
-                                            'under_1_year',
-                                            '1_3_years',
-                                            '3_5_years',
-                                            '5_10_years',
-                                            '10_plus',
-                                        ]"
-                                        :key="value"
-                                        :value="value"
-                                    >
-                                        {{ value.replaceAll('_', ' ') }}
-                                    </option>
-                                </select>
-                                <select
-                                    v-model="asset.inclusion"
-                                    class="advisor-input"
-                                >
-                                    <option value="allowed">
-                                        {{
-                                            t('advisor.portfolio.allowed_asset')
-                                        }}
-                                    </option>
-                                    <option value="required">
-                                        {{
-                                            t(
-                                                'advisor.portfolio.required_asset',
+                                <div class="flex shrink-0 items-center gap-1">
+                                    <button
+                                        type="button"
+                                        class="cursor-pointer rounded-full px-3 py-2 text-xs text-white/45 transition hover:bg-white/5 hover:text-white focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:outline-none"
+                                        :aria-expanded="
+                                            expandedAssets.includes(
+                                                asset.asset_key,
                                             )
-                                        }}
-                                    </option>
-                                </select>
+                                        "
+                                        @click="
+                                            toggleAssetDetails(asset.asset_key)
+                                        "
+                                    >
+                                        {{ t('advisor.portfolio.details') }}
+                                        <ChevronDown
+                                            class="ms-1 inline size-3.5 transition-transform"
+                                            :class="
+                                                expandedAssets.includes(
+                                                    asset.asset_key,
+                                                )
+                                                    ? 'rotate-180'
+                                                    : ''
+                                            "
+                                        />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="grid size-9 cursor-pointer place-items-center rounded-full text-white/35 transition hover:bg-red-400/10 hover:text-red-300 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:outline-none"
+                                        :aria-label="
+                                            t('advisor.portfolio.remove')
+                                        "
+                                        @click="removeAsset(asset.asset_key)"
+                                    >
+                                        <Trash2 class="size-4" />
+                                    </button>
+                                </div>
                             </div>
-                            <textarea
-                                v-if="asset.source === 'custom'"
-                                v-model="asset.notes"
-                                maxlength="300"
-                                rows="2"
-                                class="advisor-input mt-3 resize-none"
-                                :placeholder="t('advisor.portfolio.notes')"
-                            />
+
+                            <div
+                                v-if="expandedAssets.includes(asset.asset_key)"
+                                class="mt-4 border-t border-white/8 pt-4"
+                            >
+                                <p class="text-xs leading-5 text-white/35">
+                                    {{ t('advisor.portfolio.details_hint') }}
+                                </p>
+                                <div
+                                    class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+                                >
+                                    <label
+                                        v-if="asset.source === 'custom'"
+                                        class="advisor-field"
+                                        ><span>{{
+                                            t('advisor.portfolio.ticker')
+                                        }}</span
+                                        ><input
+                                            v-model="asset.ticker"
+                                            maxlength="30"
+                                            class="advisor-input"
+                                    /></label>
+                                    <label
+                                        v-if="asset.source === 'custom'"
+                                        class="advisor-field"
+                                        ><span>{{
+                                            t('advisor.portfolio.exchange')
+                                        }}</span
+                                        ><input
+                                            v-model="asset.exchange_or_market"
+                                            maxlength="80"
+                                            class="advisor-input"
+                                    /></label>
+                                    <label class="advisor-field"
+                                        ><span>{{
+                                            t('advisor.portfolio.category')
+                                        }}</span
+                                        ><select
+                                            v-model="asset.category"
+                                            class="advisor-input"
+                                            :disabled="
+                                                asset.source === 'cashpilot'
+                                            "
+                                        >
+                                            <option
+                                                v-for="value in assetCategories"
+                                                :key="value"
+                                                :value="value"
+                                            >
+                                                {{ label('categories', value) }}
+                                            </option>
+                                        </select></label
+                                    >
+                                    <label class="advisor-field"
+                                        ><span>{{
+                                            t('advisor.portfolio.risk_band')
+                                        }}</span
+                                        ><select
+                                            v-model="asset.risk_band"
+                                            class="advisor-input"
+                                            :disabled="
+                                                asset.source === 'cashpilot'
+                                            "
+                                        >
+                                            <option
+                                                v-for="value in assetRiskBands"
+                                                :key="value"
+                                                :value="value"
+                                            >
+                                                {{ label('risk_bands', value) }}
+                                            </option>
+                                        </select></label
+                                    >
+                                    <label class="advisor-field"
+                                        ><span>{{
+                                            t('advisor.portfolio.liquidity')
+                                        }}</span
+                                        ><select
+                                            v-model="asset.liquidity"
+                                            class="advisor-input"
+                                            :disabled="
+                                                asset.source === 'cashpilot'
+                                            "
+                                        >
+                                            <option
+                                                v-for="value in assetLiquidities"
+                                                :key="value"
+                                                :value="value"
+                                            >
+                                                {{
+                                                    label('liquidities', value)
+                                                }}
+                                            </option>
+                                        </select></label
+                                    >
+                                    <label class="advisor-field"
+                                        ><span>{{
+                                            t('advisor.portfolio.perspective')
+                                        }}</span
+                                        ><select
+                                            v-model="asset.perspective"
+                                            class="advisor-input"
+                                        >
+                                            <option
+                                                v-for="value in assetPerspectives"
+                                                :key="value"
+                                                :value="value"
+                                            >
+                                                {{
+                                                    label('perspectives', value)
+                                                }}
+                                            </option>
+                                        </select></label
+                                    >
+                                    <label class="advisor-field"
+                                        ><span>{{
+                                            t('advisor.portfolio.conviction')
+                                        }}</span
+                                        ><select
+                                            v-model="asset.conviction"
+                                            class="advisor-input"
+                                        >
+                                            <option
+                                                v-for="value in assetConvictions"
+                                                :key="value"
+                                                :value="value"
+                                            >
+                                                {{
+                                                    label('convictions', value)
+                                                }}
+                                            </option>
+                                        </select></label
+                                    >
+                                    <label class="advisor-field"
+                                        ><span>{{
+                                            t('advisor.portfolio.holding_period')
+                                        }}</span
+                                        ><select
+                                            v-model="asset.holding_period"
+                                            class="advisor-input"
+                                        >
+                                            <option
+                                                v-for="value in assetHoldingPeriods"
+                                                :key="value"
+                                                :value="value"
+                                            >
+                                                {{
+                                                    label(
+                                                        'holding_periods',
+                                                        value,
+                                                    )
+                                                }}
+                                            </option>
+                                        </select></label
+                                    >
+                                    <label class="advisor-field"
+                                        ><span>{{
+                                            t('advisor.portfolio.inclusion')
+                                        }}</span
+                                        ><select
+                                            v-model="asset.inclusion"
+                                            class="advisor-input"
+                                        >
+                                            <option value="allowed">
+                                                {{
+                                                    t(
+                                                        'advisor.portfolio.allowed_asset',
+                                                    )
+                                                }}
+                                            </option>
+                                            <option value="required">
+                                                {{
+                                                    t(
+                                                        'advisor.portfolio.required_asset',
+                                                    )
+                                                }}
+                                            </option>
+                                        </select></label
+                                    >
+                                </div>
+                                <label
+                                    v-if="asset.source === 'custom'"
+                                    class="advisor-field mt-3 block"
+                                    ><span>{{
+                                        t('advisor.portfolio.notes')
+                                    }}</span
+                                    ><textarea
+                                        v-model="asset.notes"
+                                        maxlength="300"
+                                        rows="2"
+                                        class="advisor-input resize-none"
+                                /></label>
+                            </div>
                         </article>
                     </div>
                 </div>
@@ -996,7 +1247,7 @@ defineOptions({
                                     )
                                 "
                             >
-                                {{ value }}
+                                {{ label('underlyings', value) }}
                             </button>
                         </div>
                     </div>
@@ -1019,7 +1270,7 @@ defineOptions({
                                     :key="value"
                                     :value="value"
                                 >
-                                    {{ value.replaceAll('_', ' ') }}
+                                    {{ label('options_experience_years', value) }}
                                 </option>
                             </select></label
                         >
@@ -1041,7 +1292,7 @@ defineOptions({
                                     :key="value"
                                     :value="value"
                                 >
-                                    {{ value.replaceAll('_', '–') }}
+                                    {{ label('options_trade_counts', value) }}
                                 </option>
                             </select></label
                         >
@@ -1063,7 +1314,7 @@ defineOptions({
                                     :key="value"
                                     :value="value"
                                 >
-                                    {{ value.replaceAll('_', ' ') }}
+                                    {{ label('options_objectives', value) }}
                                 </option>
                             </select></label
                         >
@@ -1085,7 +1336,7 @@ defineOptions({
                                     :key="value"
                                     :value="value"
                                 >
-                                    {{ value }}
+                                    {{ label('options_monitoring', value) }}
                                 </option>
                             </select></label
                         >
@@ -1191,7 +1442,7 @@ defineOptions({
                     variant="outline"
                     class="rounded-full border-white/10 bg-transparent text-white hover:bg-white/5"
                     :disabled="props.currentSection === 1 || processing"
-                    @click="goBack"
+                    @click="saveAndGoBack"
                     ><ArrowLeft class="size-4 rtl:rotate-180" />{{
                         t('advisor.assessment.back')
                     }}</Button

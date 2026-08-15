@@ -25,10 +25,16 @@ export function advisorGenerationErrorKey(error: unknown): string {
     return 'advisor.recommendation.failed';
 }
 
+const failureKeys: Record<string, string> = {
+    provider_failure: 'advisor.validation.provider_failure',
+    pending_payload_expired: 'advisor.validation.pending_payload_expired',
+};
+
 export function advisorRecommendationFailureKey(
     failureCode: string | undefined,
 ): string {
-    return failureCode === 'provider_failure'
-        ? 'advisor.validation.provider_failure'
-        : 'advisor.recommendation.failed';
+    return (
+        (failureCode !== undefined ? failureKeys[failureCode] : undefined) ??
+        'advisor.recommendation.failed'
+    );
 }

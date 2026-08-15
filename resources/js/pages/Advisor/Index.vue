@@ -11,6 +11,7 @@ import {
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
+import { useAdvisorLabels } from '@/lib/advisor/labels';
 import {
     index as advisorIndex,
     profile as advisorProfile,
@@ -47,11 +48,29 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { label } = useAdvisorLabels();
 const starting = ref(false);
+
+/**
+ * How far into the assessment a returning user actually is.
+ *
+ * last_completed_section was already being sent here and never shown, so
+ * "Resume" gave no clue whether two minutes of work remained or twenty — which
+ * is exactly the uncertainty that stops people clicking it.
+ */
+const resumeSection = computed(() =>
+    props.assessment?.status === 'in_progress'
+        ? Math.min(8, props.assessment.last_completed_section + 1)
+        : null,
+);
+
 const primaryAction = computed(() => {
     if (props.assessment?.status === 'in_progress') {
         return {
-            label: t('advisor.resume'),
+            label: t('advisor.resume_at', {
+                current: resumeSection.value,
+                total: 8,
+            }),
             href: showAssessment(props.assessment.id).url,
         };
     }
@@ -118,6 +137,29 @@ defineOptions({
                 >
                     {{ t('advisor.introduction') }}
                 </p>
+
+                <!-- The same eight-segment bar the assessment header uses, so
+                     picking up where you left off looks like the same journey. -->
+                <div
+                    v-if="resumeSection"
+                    class="mt-7 grid max-w-md grid-cols-8 gap-1.5"
+                    role="img"
+                    :aria-label="
+                        t('advisor.resume_at', {
+                            current: resumeSection,
+                            total: 8,
+                        })
+                    "
+                >
+                    <span
+                        v-for="step in 8"
+                        :key="step"
+                        class="h-1.5 rounded-full"
+                        :class="
+                            step < resumeSection ? 'bg-[#02CD86]' : 'bg-white/10'
+                        "
+                    />
+                </div>
 
                 <div class="mt-7 flex flex-wrap items-center gap-3">
                     <Button
@@ -228,7 +270,7 @@ defineOptions({
                             }}
                         </p>
                         <p class="mt-1 text-xs text-white/35">
-                            {{ item.status }} ·
+                            {{ label('recommendation_statuses', item.status) }} ·
                             {{
                                 item.generated_at
                                     ? new Date(

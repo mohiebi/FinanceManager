@@ -57,25 +57,41 @@ class AdvisorAssessmentController extends Controller
 
         $answers = $request->validated('answers');
         $expectedKeys = $definition->section($section)['questions'];
+        $isPartial = $request->boolean('partial');
 
         if ($request->user()->vaultIsArmed()) {
-            Validator::make($answers, array_fill_keys($expectedKeys, SealedField::rules()))->validate();
+            $sealedRules = array_fill_keys($expectedKeys, SealedField::rules());
+            $answers = $isPartial
+                // A draft only carries what has been answered so far, so only
+                // the keys actually present are validated and kept.
+                ? array_intersect_key($answers, $sealedRules)
+                : $answers;
+            Validator::make($answers, $isPartial ? array_intersect_key($sealedRules, $answers) : $sealedRules)->validate();
             $answers = collect($answers)->map(fn (string $ciphertext): EncryptedValue => new EncryptedValue($ciphertext, 'answer'))->all();
         } else {
-            $answers = $definition->validateSection($section, $answers);
+            $answers = $isPartial
+                ? $definition->validatePartialSection($section, $answers)
+                : $definition->validateSection($section, $answers);
         }
 
-        DB::transaction(function () use ($assessment, $answers, $section): void {
+        DB::transaction(function () use ($assessment, $answers, $section, $isPartial): void {
             foreach ($answers as $questionKey => $answer) {
                 $assessment->answers()->updateOrCreate(
                     ['question_key' => $questionKey],
                     ['user_id' => $assessment->user_id, 'answer' => $answer],
                 );
             }
-            $assessment->forceFill(['last_completed_section' => max($assessment->last_completed_section, $section)])->save();
+
+            // A draft has not finished the section, so it must not advance the
+            // resume marker — only a complete section does that.
+            if (! $isPartial) {
+                $assessment->forceFill(['last_completed_section' => max($assessment->last_completed_section, $section)])->save();
+            }
         });
 
-        return redirect()->route('advisor.assessments.show', ['assessment' => $assessment, 'section' => min(8, $section + 1)]);
+        $nextSection = $isPartial ? max(1, $section - 1) : min(8, $section + 1);
+
+        return redirect()->route('advisor.assessments.show', ['assessment' => $assessment, 'section' => $nextSection]);
     }
 
     public function complete(CompleteAssessmentRequest $request, InvestorAssessment $assessment, AdvisorAssessmentDefinition $definition, AdvisorProfileBuilder $profileBuilder): RedirectResponse

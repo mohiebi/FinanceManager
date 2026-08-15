@@ -6,10 +6,12 @@ use App\Enums\AdvisorRecommendationStatus;
 use App\Enums\AssetType;
 use App\Enums\Feature;
 use App\Models\AdvisorProfile;
+use App\Models\AdvisorRecommendation;
 use App\Models\InvestmentAsset;
 use App\Models\InvestorAssessment;
 use App\Models\User;
 use App\Services\Advisor\AdvisorAIContextBuilder;
+use App\Services\Advisor\AdvisorPendingPayloadStore;
 use App\Services\Advisor\AdvisorProfileBuilder;
 use App\Support\Encryption\EncryptedValue;
 use App\Support\Encryption\UserCrypto;
@@ -226,25 +228,45 @@ test('the AI context strips exclusions from legacy advisor profiles', function (
         ->and(json_encode($context, JSON_THROW_ON_ERROR))->not->toContain('alcohol', 'gambling');
 });
 
+/**
+ * Run a generation to completion and collect what the browser would collect.
+ *
+ * With Vault armed the server has nowhere to store the plaintext, so the queued
+ * job parks it and the browser claims it. These tests take the same two steps a
+ * real browser does.
+ *
+ * @return array{0: AdvisorRecommendation, 1: array<string, mixed>, 2: string}
+ */
+function claimVaultRecommendation(User $user): array
+{
+    test()->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertStatus(202)
+        ->assertJsonPath('status', 'generating');
+
+    $recommendation = $user->advisorRecommendations()->latest('id')->firstOrFail();
+
+    $claimed = test()->actingAs($user)
+        ->postJson(route('advisor.recommendations.claim', $recommendation))
+        ->assertOk()
+        ->assertJsonPath('vault_seal_required', true);
+
+    return [$recommendation, $claimed->json('payload'), $claimed->json('output_hash')];
+}
+
 test('vault recommendations remain transient until the browser seals the validated payload', function () {
     $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
     advisorVaultProfile($user);
     $dek = armAdvisorVault($user);
     AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
 
-    $response = $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertOk()
-        ->assertJsonPath('status', 'ready')
-        ->assertJsonPath('vault_seal_required', true);
+    [$recommendation, $payload, $outputHash] = claimVaultRecommendation($user);
 
-    $recommendation = $user->advisorRecommendations()->sole();
     expect($recommendation->status)->toBe(AdvisorRecommendationStatus::AwaitingVaultSeal)
         ->and($recommendation->pending_status)->toBe(AdvisorRecommendationStatus::Ready)
         ->and($recommendation->failure_code)->toBeNull()
         ->and($recommendation->getRawOriginal('recommendation_payload'))->toBeNull()
         ->and($recommendation->getRawOriginal('current_portfolio_snapshot'))->toBeNull();
 
-    $payload = $response->json('payload');
     $ciphertext = advisorClientEncrypt($dek, 'advisor_recommendations', 'recommendation_payload', $payload);
 
     $this->actingAs($user)->patchJson(route('advisor.recommendations.seal', $recommendation), [
@@ -256,7 +278,7 @@ test('vault recommendations remain transient until the browser seals the validat
         ->and($stored->recommendation_payload)->not->toContain('Controlled growth')
         ->and($recommendation->fresh()->recommendation_payload)->toBeInstanceOf(EncryptedValue::class)
         ->and($recommendation->fresh()->pending_status)->toBeNull()
-        ->and($recommendation->fresh()->output_hash)->toBe($response->json('output_hash'));
+        ->and($recommendation->fresh()->output_hash)->toBe($outputHash);
 });
 
 test('vault sealing preserves the server hash instead of trusting an echoed client hash', function () {
@@ -265,9 +287,8 @@ test('vault sealing preserves the server hash instead of trusting an echoed clie
     $dek = armAdvisorVault($user);
     AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
 
-    $response = $this->actingAs($user)->postJson(route('advisor.recommendations.store'))->assertOk();
-    $recommendation = $user->advisorRecommendations()->sole();
-    $ciphertext = advisorClientEncrypt($dek, 'advisor_recommendations', 'recommendation_payload', $response->json('payload'));
+    [$recommendation, $payload, $outputHash] = claimVaultRecommendation($user);
+    $ciphertext = advisorClientEncrypt($dek, 'advisor_recommendations', 'recommendation_payload', $payload);
 
     $this->actingAs($user)->patchJson(route('advisor.recommendations.seal', $recommendation), [
         'recommendation_payload' => $ciphertext,
@@ -275,7 +296,7 @@ test('vault sealing preserves the server hash instead of trusting an echoed clie
     ])->assertOk();
 
     expect($recommendation->fresh()->status)->toBe(AdvisorRecommendationStatus::Ready)
-        ->and($recommendation->fresh()->output_hash)->toBe($response->json('output_hash'));
+        ->and($recommendation->fresh()->output_hash)->toBe($outputHash);
 });
 
 test('vault sealing requires the original server generated digest', function () {
@@ -284,14 +305,77 @@ test('vault sealing requires the original server generated digest', function () 
     $dek = armAdvisorVault($user);
     AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
 
-    $response = $this->actingAs($user)->postJson(route('advisor.recommendations.store'))->assertOk();
-    $recommendation = $user->advisorRecommendations()->sole();
+    [$recommendation, $payload] = claimVaultRecommendation($user);
     $recommendation->forceFill(['output_hash' => null])->save();
-    $ciphertext = advisorClientEncrypt($dek, 'advisor_recommendations', 'recommendation_payload', $response->json('payload'));
+    $ciphertext = advisorClientEncrypt($dek, 'advisor_recommendations', 'recommendation_payload', $payload);
 
     $this->actingAs($user)->patchJson(route('advisor.recommendations.seal', $recommendation), [
         'recommendation_payload' => $ciphertext,
     ])->assertConflict();
 
     expect($recommendation->fresh()->status)->toBe(AdvisorRecommendationStatus::AwaitingVaultSeal);
+});
+
+test('the parked payload is dropped once the sealed ciphertext lands', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorVaultProfile($user);
+    $dek = armAdvisorVault($user);
+    AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
+
+    [$recommendation, $payload] = claimVaultRecommendation($user);
+    expect(app(AdvisorPendingPayloadStore::class)->peek($recommendation))->not->toBeNull();
+
+    $ciphertext = advisorClientEncrypt($dek, 'advisor_recommendations', 'recommendation_payload', $payload);
+    $this->actingAs($user)->patchJson(route('advisor.recommendations.seal', $recommendation), [
+        'recommendation_payload' => $ciphertext,
+    ])->assertOk();
+
+    // The browser now holds the only readable copy, which is the whole promise.
+    expect(app(AdvisorPendingPayloadStore::class)->peek($recommendation))->toBeNull();
+});
+
+test('a claim survives a browser that collected but never sealed', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorVaultProfile($user);
+    armAdvisorVault($user);
+    AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
+
+    [$recommendation, $payload] = claimVaultRecommendation($user);
+
+    // Refreshing mid-seal must not strand a recommendation that cost a real
+    // provider call, so claiming twice returns the same payload.
+    $this->actingAs($user)->postJson(route('advisor.recommendations.claim', $recommendation))
+        ->assertOk()
+        ->assertJsonPath('payload.primary.name', $payload['primary']['name']);
+});
+
+test('a claim after the holding window closed retires the recommendation', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorVaultProfile($user);
+    armAdvisorVault($user);
+    AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
+
+    [$recommendation] = claimVaultRecommendation($user);
+    app(AdvisorPendingPayloadStore::class)->forget($recommendation);
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.claim', $recommendation))
+        ->assertStatus(410)
+        ->assertJsonPath('failure_code', 'pending_payload_expired');
+
+    // Nothing can recover the plaintext, so the row must not sit unopenable.
+    expect($recommendation->fresh()->status)->toBe(AdvisorRecommendationStatus::Failed)
+        ->and($recommendation->fresh()->failure_code)->toBe('pending_payload_expired');
+});
+
+test('nobody else can claim your parked recommendation', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorVaultProfile($user);
+    armAdvisorVault($user);
+    AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
+
+    [$recommendation] = claimVaultRecommendation($user);
+    $stranger = User::factory()->pro()->withModules(Feature::Advisor)->create();
+
+    $this->actingAs($stranger)->postJson(route('advisor.recommendations.claim', $recommendation))
+        ->assertNotFound();
 });

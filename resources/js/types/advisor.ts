@@ -145,6 +145,16 @@ export type RecommendationResponse = {
     vault_seal_required: boolean;
 };
 
+/**
+ * What asking for a recommendation returns now that a job does the work: an
+ * identity to watch, not a result. The outcome arrives through the page's own
+ * polling.
+ */
+export type RecommendationAccepted = {
+    recommendation_id: string;
+    status: string;
+};
+
 export type RecommendationProp = {
     id: string;
     status: string;
@@ -153,4 +163,8 @@ export type RecommendationProp = {
     output_hash: string | null;
     failure_code: string | null;
     generated_at: string | null;
+    /** Both move before the work they describe, so together they read as a stage. */
+    provider_calls: number;
+    repair_attempts: number;
+    created_at: string;
 };

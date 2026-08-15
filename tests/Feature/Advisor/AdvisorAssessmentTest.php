@@ -141,3 +141,61 @@ test('cross user assessment identifiers return not found', function () {
         'answers' => ['q1_age' => '35_44'],
     ])->assertNotFound();
 });
+
+test('stepping back keeps a half-answered section instead of discarding it', function () {
+    $user = advisorTestUser();
+    $this->actingAs($user)->post(route('advisor.assessments.store'))->assertRedirect();
+    $assessment = $user->investorAssessments()->sole();
+
+    $answers = advisorAnswers(advisorTestAsset()->id);
+    $full = collect($answers)->only(['q6_primary_goal', 'q7_goal_importance', 'q8_time_horizon', 'q9_early_withdrawal', 'q10_liquidity'])->all();
+
+    $this->actingAs($user)
+        ->patch(route('advisor.assessments.sections.update', [$assessment, 1]), [
+            'answers' => collect($answers)->only(['q1_age', 'q2_income_stability', 'q3_emergency_fund', 'q4_high_interest_debt', 'q5_portfolio_wealth_share'])->all(),
+        ])->assertRedirect();
+
+    // Two of section 2's five questions answered, then Back.
+    $this->actingAs($user)
+        ->patch(route('advisor.assessments.sections.update', [$assessment, 2]), [
+            'answers' => collect($full)->only(['q6_primary_goal', 'q7_goal_importance'])->all(),
+            'partial' => true,
+        ])
+        ->assertRedirect(route('advisor.assessments.show', ['assessment' => $assessment, 'section' => 1]));
+
+    expect($assessment->answers()->where('question_key', 'q6_primary_goal')->firstOrFail()->answer)
+        ->toBe($full['q6_primary_goal'])
+        ->and($assessment->answers()->where('question_key', 'q7_goal_importance')->exists())->toBeTrue()
+        // A draft is not a finished section, so the resume marker stays put.
+        ->and($assessment->fresh()->last_completed_section)->toBe(1);
+});
+
+test('a draft never advances the resume marker past what was completed', function () {
+    $user = advisorTestUser();
+    $this->actingAs($user)->post(route('advisor.assessments.store'))->assertRedirect();
+    $assessment = $user->investorAssessments()->sole();
+    $answers = advisorAnswers(advisorTestAsset()->id);
+
+    $this->actingAs($user)
+        ->patch(route('advisor.assessments.sections.update', [$assessment, 3]), [
+            'answers' => ['q11_permanent_loss_impact' => $answers['q11_permanent_loss_impact']],
+            'partial' => true,
+        ])->assertRedirect();
+
+    expect($assessment->fresh()->last_completed_section)->toBe(0);
+});
+
+test('a draft still refuses an answer that is not a real option', function () {
+    $user = advisorTestUser();
+    $this->actingAs($user)->post(route('advisor.assessments.store'))->assertRedirect();
+    $assessment = $user->investorAssessments()->sole();
+
+    $this->actingAs($user)
+        ->patch(route('advisor.assessments.sections.update', [$assessment, 1]), [
+            'answers' => ['q1_age' => 'not_a_real_option'],
+            'partial' => true,
+        ])->assertRedirect();
+
+    // Dropping `required` must not mean dropping the shape rules with it.
+    expect($assessment->answers()->where('question_key', 'q1_age')->exists())->toBeFalse();
+});

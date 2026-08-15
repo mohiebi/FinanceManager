@@ -13,21 +13,14 @@ import {
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
-import { useVault } from '@/composables/useVault';
-import {
-    advisorGenerationErrorKey,
-    advisorRecommendationFailureKey,
-} from '@/lib/advisor/http-errors';
+import { advisorGenerationErrorKey } from '@/lib/advisor/http-errors';
+import { useAdvisorLabels } from '@/lib/advisor/labels';
 import { profile as advisorProfile } from '@/routes/advisor';
 import {
-    seal as sealRecommendation,
     show as showRecommendation,
     store as storeRecommendation,
 } from '@/routes/advisor/recommendations';
-import type {
-    AdvisorRecommendationPayload,
-    RecommendationResponse,
-} from '@/types/advisor';
+import type { RecommendationAccepted } from '@/types/advisor';
 
 type ProfilePayload = {
     persona: string;
@@ -64,15 +57,9 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const { sealForSubmit } = useVault();
+const { label } = useAdvisorLabels();
 const generationError = ref('');
-const generator = useHttp<Record<string, never>, RecommendationResponse>({});
-const sealer = useHttp<
-    {
-        recommendation_payload: AdvisorRecommendationPayload | string | null;
-    },
-    { status: string }
->({ recommendation_payload: null });
+const generator = useHttp<Record<string, never>, RecommendationAccepted>({});
 const riskScore = computed(
     () => props.profile.payload.scores.effective_risk ?? 0,
 );
@@ -90,32 +77,18 @@ const scoreRows = computed(
         ] as const,
 );
 
+/**
+ * Ask for a recommendation, then get out of the way.
+ *
+ * The provider call runs in a queued job, so all this waits for is the row that
+ * represents it. The recommendation page takes it from there — which is what
+ * makes closing the tab mid-generation survivable.
+ */
 async function generateRecommendation(): Promise<void> {
     generationError.value = '';
 
     try {
         const response = await generator.post(storeRecommendation().url);
-
-        if (response.status === 'failed' || !response.payload) {
-            generationError.value = t(
-                advisorRecommendationFailureKey(response.failure_code),
-            );
-
-            return;
-        }
-
-        if (response.vault_seal_required) {
-            const sealed = await sealForSubmit(
-                { recommendation_payload: response.payload },
-                'advisor_recommendations',
-                { recommendation_payload: 'json' },
-            );
-            sealer.recommendation_payload =
-                sealed.recommendation_payload as unknown as string;
-            await sealer.patch(
-                sealRecommendation(response.recommendation_id).url,
-            );
-        }
 
         router.visit(showRecommendation(response.recommendation_id).url);
     } catch (error) {
@@ -160,19 +133,11 @@ defineOptions({
                         <h1
                             class="mt-5 text-3xl font-semibold tracking-[-0.03em] md:text-4xl"
                         >
-                            {{
-                                props.profile.payload.persona.replaceAll(
-                                    '_',
-                                    ' ',
-                                )
-                            }}
+                            {{ label('personas', props.profile.payload.persona) }}
                         </h1>
-                        <p class="mt-2 text-sm text-white/40 capitalize">
+                        <p class="mt-2 text-sm text-white/40">
                             {{
-                                props.profile.payload.risk_band.replaceAll(
-                                    '_',
-                                    ' ',
-                                )
+                                label('risk_bands', props.profile.payload.risk_band)
                             }}
                         </p>
 
@@ -250,7 +215,7 @@ defineOptions({
                             class="flex gap-3 rounded-xl border border-amber-400/15 bg-amber-400/7 p-3 text-sm text-amber-100/80"
                         >
                             <AlertTriangle class="mt-0.5 size-4 shrink-0" />{{
-                                warning.replaceAll('_', ' ')
+                                label('profile_warnings', warning)
                             }}
                         </div>
                     </div>
@@ -268,28 +233,22 @@ defineOptions({
                     }}
                 </h2>
                 <p class="mt-2 max-w-2xl text-sm leading-6 text-white/45">
-                    The AI receives this frozen profile and your selected
-                    assets. CashPilot validates its complete response before you
-                    see it.
+                    {{ t('advisor.profile.ai_scope') }}
                 </p>
             </div>
             <Button
                 class="mt-5 h-12 shrink-0 rounded-full bg-[#02CD86] px-6 font-semibold text-[#07130f] hover:bg-[#19d897] md:mt-0"
-                :disabled="
-                    !props.profile.ai_enabled ||
-                    generator.processing ||
-                    sealer.processing
-                "
+                :disabled="!props.profile.ai_enabled || generator.processing"
                 @click="generateRecommendation"
             >
                 {{
-                    generator.processing || sealer.processing
-                        ? t('advisor.recommendation.generating')
+                    generator.processing
+                        ? t('advisor.recommendation.starting')
                         : t('advisor.profile.generate')
                 }}
                 <LoaderCircle
-                    v-if="generator.processing || sealer.processing"
-                    class="size-4 animate-spin"
+                    v-if="generator.processing"
+                    class="size-4 animate-spin motion-reduce:animate-none"
                 />
                 <ArrowRight v-else class="size-4" />
             </Button>
@@ -326,7 +285,7 @@ defineOptions({
                         class="flex items-center justify-between gap-4 py-3"
                     >
                         <span class="text-white/45">{{
-                            String(key).replaceAll('_', ' ')
+                            label('constraints_labels', String(key))
                         }}</span
                         ><strong>{{ value }}%</strong>
                     </div>
@@ -342,26 +301,33 @@ defineOptions({
                 </h2>
                 <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
                     <div class="rounded-xl bg-white/[0.025] p-3">
-                        <span class="block text-xs text-white/35"
-                            >Willingness</span
-                        ><strong class="mt-1 block capitalize">{{
-                            props.profile.payload.options_capability.willingness.replaceAll(
-                                '_',
-                                ' ',
+                        <span class="block text-xs text-white/35">{{
+                            t('advisor.profile.options_willingness')
+                        }}</span
+                        ><strong class="mt-1 block">{{
+                            label(
+                                'options_willingness',
+                                props.profile.payload.options_capability
+                                    .willingness,
                             )
                         }}</strong>
                     </div>
                     <div class="rounded-xl bg-white/[0.025] p-3">
-                        <span class="block text-xs text-white/35"
-                            >Capability</span
-                        ><strong class="mt-1 block capitalize">{{
-                            props.profile.payload.options_capability
-                                .experience_level
+                        <span class="block text-xs text-white/35">{{
+                            t('advisor.profile.options_capability_level')
+                        }}</span
+                        ><strong class="mt-1 block">{{
+                            label(
+                                'options_experience',
+                                props.profile.payload.options_capability
+                                    .experience_level,
+                            )
                         }}</strong>
                     </div>
                     <div class="rounded-xl bg-white/[0.025] p-3">
-                        <span class="block text-xs text-white/35"
-                            >Knowledge</span
+                        <span class="block text-xs text-white/35">{{
+                            t('advisor.profile.options_knowledge')
+                        }}</span
                         ><strong class="mt-1 block"
                             >{{
                                 props.profile.payload.options_capability
@@ -371,8 +337,9 @@ defineOptions({
                         >
                     </div>
                     <div class="rounded-xl bg-white/[0.025] p-3">
-                        <span class="block text-xs text-white/35"
-                            >Risk budget</span
+                        <span class="block text-xs text-white/35">{{
+                            t('advisor.profile.options_risk_budget')
+                        }}</span
                         ><strong class="mt-1 block"
                             >{{
                                 props.profile.payload.options_capability
@@ -398,7 +365,8 @@ defineOptions({
                         <div>
                             <h3 class="font-medium">{{ asset.name }}</h3>
                             <p class="mt-1 text-xs text-white/30">
-                                {{ asset.category }} · {{ asset.risk_band }}
+                                {{ label('categories', asset.category) }} ·
+                                {{ label('risk_bands', asset.risk_band) }}
                             </p>
                         </div>
                         <CheckCircle2
@@ -406,8 +374,9 @@ defineOptions({
                             class="size-4 text-[#02CD86]"
                         />
                     </div>
-                    <p class="mt-4 text-xs text-white/45 capitalize">
-                        {{ asset.perspective }} outlook · {{ asset.inclusion }}
+                    <p class="mt-4 text-xs text-white/45">
+                        {{ label('perspectives', asset.perspective) }} ·
+                        {{ label('inclusions', asset.inclusion) }}
                     </p>
                 </article>
             </div>

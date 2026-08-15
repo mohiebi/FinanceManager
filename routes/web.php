@@ -145,6 +145,7 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
 
         Route::post('recommendations', [AdvisorRecommendationController::class, 'store'])->middleware('throttle:advisor-recommendations')->name('recommendations.store');
         Route::post('recommendations/{recommendation}/clarifications', [AdvisorRecommendationController::class, 'clarify'])->middleware('throttle:advisor-clarifications')->name('recommendations.clarify');
+        Route::post('recommendations/{recommendation}/claim', [AdvisorRecommendationController::class, 'claim'])->name('recommendations.claim');
         Route::patch('recommendations/{recommendation}/seal', [AdvisorRecommendationController::class, 'seal'])->name('recommendations.seal');
         Route::get('recommendations/{recommendation}', [AdvisorRecommendationController::class, 'show'])->name('recommendations.show');
         Route::post('recommendations/{recommendation}/consult', [AdvisorConsultationController::class, 'store'])->middleware('throttle:advisor-consultations')->name('recommendations.consult');

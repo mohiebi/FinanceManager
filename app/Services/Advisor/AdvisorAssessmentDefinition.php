@@ -42,6 +42,77 @@ class AdvisorAssessmentDefinition
     }
 
     /**
+     * Validate a draft: only the answers present, and only their shape.
+     *
+     * Stepping back a section used to throw away whatever had been answered on
+     * the current one, because a half-filled section cannot pass the rules
+     * below. This keeps what is there and drops `required`, nothing else.
+     *
+     * Composite answers — liquidity, portfolio preferences, options capability —
+     * are only kept when they already satisfy their own validator. A half-built
+     * asset list has no meaningful draft form, so it is left out rather than
+     * stored in a shape the rest of the pipeline cannot read.
+     *
+     * @param  array<string, mixed>  $answers
+     * @return array<string, mixed>
+     */
+    public function validatePartialSection(int $number, array $answers): array
+    {
+        $section = $this->section($number);
+        $kept = [];
+
+        foreach ($section['questions'] as $questionKey) {
+            if (! array_key_exists($questionKey, $answers)) {
+                continue;
+            }
+
+            $question = $this->all()['questions'][$questionKey];
+            $value = $answers[$questionKey];
+
+            if (in_array($question['input'], ['liquidity', 'portfolio_preferences', 'options_capability'], true)) {
+                if (is_array($value) && $this->compositeIsComplete($number, $questionKey, $value)) {
+                    $kept[$questionKey] = $value;
+                }
+
+                continue;
+            }
+
+            $rules = [$questionKey => $question['input'] === 'multi'
+                ? ['array']
+                : ['string', 'in:'.implode(',', $question['options'])]];
+
+            if ($question['input'] === 'multi') {
+                $rules["{$questionKey}.*"] = ['string', 'distinct', 'in:'.implode(',', $question['options'])];
+            }
+
+            $validator = Validator::make([$questionKey => $value], $rules);
+
+            if ($validator->passes()) {
+                $kept[$questionKey] = $value;
+            }
+        }
+
+        return $kept;
+    }
+
+    /** @param array<string, mixed> $value */
+    private function compositeIsComplete(int $number, string $questionKey, array $value): bool
+    {
+        try {
+            match ($questionKey) {
+                'q10_liquidity' => $this->validateLiquidity($value),
+                'portfolio_preferences' => $this->validatePortfolioPreferences($value),
+                'options_capability' => $this->validateOptionsCapability($value),
+                default => null,
+            };
+        } catch (ValidationException) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * @param  array<string, mixed>  $answers
      * @return array<string, mixed>
      */

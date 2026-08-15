@@ -6,12 +6,12 @@ return [
     'tagline' => 'Your portfolio should fit your life — not just the market.',
     'introduction' => 'CashPilot assesses your financial resilience, capacity for loss, behavior, goals, and investment capabilities. AI then designs a portfolio only inside those boundaries.',
     'start' => 'Start assessment',
-    'resume' => 'Continue assessment',
+    'resume_at' => 'Resume — section {current} of {total}',
     'view_profile' => 'View risk profile',
     'reassess' => 'Start a new assessment',
     'pro_feature' => 'Pro feature',
-    'question_count' => '22 core questions',
-    'duration' => 'About 8 minutes',
+    'question_count' => '22 questions, then your portfolio',
+    'duration' => 'About 15 minutes',
     'cashpilot_role' => 'CashPilot sets the boundaries',
     'cashpilot_role_description' => 'Your risk capacity, liquidity needs, hard caps, asset access, and options capability are calculated deterministically.',
     'ai_role' => 'AI designs inside them',
@@ -25,13 +25,22 @@ return [
     'open' => 'Open recommendation',
     'assessment' => [
         'title' => 'Investor assessment',
-        'step' => 'Section :current of :total',
+        'step' => 'Section {current} of {total}',
         'saved' => 'Your answers are encrypted and saved after each section.',
         'continue' => 'Save and continue',
         'back' => 'Back',
         'finish' => 'Build my profile',
-        'required' => 'Choose an answer to continue.',
-        'vault_notice' => 'Your browser calculates the same canonical scores while your raw answers stay sealed.',
+        'loading' => 'Loading your answers…',
+        'vault_notice' => 'Unlocking your answers — they are decrypted here, never on our servers.',
+        'needs_answer' => 'Still needs an answer',
+        'missing_one' => '1 question still needs an answer.',
+        'missing_many' => '{count} questions still need an answer.',
+        'missing_country' => 'Add the country you invest from.',
+        'missing_markets' => 'Add at least one market you can access.',
+        'missing_assets' => 'Choose at least one asset the Advisor may use.',
+        'missing_asset_name' => 'One of your assets still needs a name.',
+        'missing_asset_ticker' => '{name} needs a ticker or identifier.',
+        'save_failed' => 'That did not save. Please try again.',
     ],
     'sections' => [
         'financial_foundation' => 'Financial foundation',
@@ -66,6 +75,11 @@ return [
         'q20_fomo' => 'An asset you do not own rises 80% in six months. What are you most likely to do?',
         'q21_concentration' => 'One asset grows to 45% of your portfolio. What would you prefer?',
         'q22_target_return' => 'What long-term annual return would make this portfolio successful?',
+        'liquidity_amount' => 'How much',
+        'liquidity_amount_placeholder' => 'Choose an amount',
+        'liquidity_speed' => 'How quickly',
+        'liquidity_speed_placeholder' => 'Choose a timeframe',
+        'q15_max_drawdown_hint' => 'Assume you do not need the money immediately, and that the decline is market-wide rather than fraud or the failure of one asset.',
     ],
     'options' => [
         '18_24' => '18–24', '25_34' => '25–34', '35_44' => '35–44', '45_54' => '45–54', '55_64' => '55–64', '65_plus' => '65+',
@@ -97,6 +111,7 @@ return [
         'assets' => 'Assets the AI may use', 'assets_help' => 'Select CashPilot assets for tracking, or add structured custom assets. The AI cannot silently introduce anything else.',
         'add_custom' => 'Add custom asset', 'required_asset' => 'Must be included', 'allowed_asset' => 'AI may include or exclude', 'perspective' => 'Your outlook', 'conviction' => 'Conviction', 'holding_period' => 'Holding period', 'remove' => 'Remove',
         'name' => 'Asset name', 'ticker' => 'Ticker', 'identifier' => 'ISIN or identifier', 'exchange' => 'Exchange / market', 'category' => 'Category', 'risk_band' => 'Estimated risk', 'liquidity' => 'Liquidity', 'notes' => 'Private notes (not sent to AI)',
+        'details' => 'Details', 'details_hint' => 'These start at sensible defaults. Change only what you already know about the asset.',
     ],
     'options_section' => [
         'willingness' => 'Are you willing and able to use options to manage portfolio risk?', 'no' => 'No', 'yes' => 'Yes', 'not_sure' => 'Not sure — explain whether it may suit me',
@@ -112,9 +127,28 @@ return [
     ],
     'profile' => [
         'title' => 'Your investor profile', 'risk_score' => 'Effective risk', 'risk_willingness' => 'Risk willingness', 'risk_capacity' => 'Risk capacity', 'financial_resilience' => 'Financial resilience', 'liquidity_need' => 'Liquidity need', 'investment_knowledge' => 'Investment knowledge', 'behavioral_stability' => 'Behavioral stability', 'loss_aversion' => 'Loss aversion', 'return_ambition' => 'Return ambition', 'max_drawdown' => 'Maximum tolerated drawdown', 'constraints' => 'CashPilot guardrails', 'assets' => 'Selected assets', 'options' => 'Options capability', 'generate' => 'Generate AI portfolio', 'ai_disabled' => 'AI recommendations are disabled because consent was declined.',
+        'ai_scope' => 'The AI sees this profile exactly as shown, and nothing else about you. CashPilot validates its complete response before you see it.',
+        'options_willingness' => 'Willingness', 'options_capability_level' => 'Capability', 'options_knowledge' => 'Knowledge', 'options_risk_budget' => 'Risk budget',
     ],
     'recommendation' => [
-        'generating' => 'Designing your portfolio…', 'primary' => 'Primary recommendation', 'safer' => 'Safer alternative', 'higher' => 'Higher-risk alternative', 'allocation' => 'Base allocation', 'overlay' => 'Options overlay', 'risks' => 'Risks', 'tradeoffs' => 'Tradeoffs', 'change' => 'What would change this plan', 'transition' => 'Current-to-target', 'increase' => 'Increase', 'reduce' => 'Reduce', 'clarification' => 'The Advisor needs a little more detail', 'submit_answers' => 'Continue recommendation', 'failed' => 'CashPilot Advisor could not complete this request. Please try again.', 'ask' => 'Ask CashPilot Advisor', 'ask_placeholder' => 'Why does this allocation fit me?', 'send' => 'Send', 'consulting' => 'CashPilot Advisor is reviewing your profile…', 'model_only' => 'No live market data is used in this version.',
+        'generating' => 'Designing your portfolio', 'primary' => 'Primary recommendation', 'safer' => 'Safer alternative', 'higher' => 'Higher-risk alternative', 'allocation' => 'Base allocation', 'overlay' => 'Options overlay', 'risks' => 'Risks', 'tradeoffs' => 'Tradeoffs', 'change' => 'What would change this plan', 'transition' => 'Current-to-target', 'increase' => 'Increase', 'reduce' => 'Reduce', 'clarification' => 'The Advisor needs a little more detail', 'submit_answers' => 'Continue recommendation', 'failed' => 'The Advisor could not finish this plan. Your answers are saved — try again.', 'ask' => 'Ask CashPilot Advisor', 'ask_placeholder' => 'Why does this allocation fit me?', 'send' => 'Send', 'consulting' => 'CashPilot Advisor is reviewing your profile…', 'model_only' => 'No live market data is used in this version.',
+        'starting' => 'Starting…',
+        'stage_reading' => 'Reading your profile',
+        'stage_designing' => 'Designing your portfolio',
+        'stage_checking' => 'Checking it against your limits',
+        'stage_sealing' => 'Encrypting it in your browser',
+        'leave_safe' => 'You can leave this page. Your portfolio will be here when you come back.',
+        'locked' => 'Unlock your Vault to read this recommendation.',
+        'validated_badge' => 'CashPilot validated',
+        'integrity_failed' => 'The decrypted recommendation did not match what was generated, so it is not being shown.',
+        'chat_encrypted' => 'This conversation is encrypted in your browser.',
+        'ask_empty' => 'Ask anything about this plan.',
+        'suggest_fit' => 'Why does this allocation fit me?',
+        'suggest_risk' => 'What is the biggest risk here?',
+        'suggest_start' => 'Where should I start?',
+        'send_failed' => 'Not sent.',
+        'retry' => 'Try again',
+        'send_hint' => 'Enter to send, Shift+Enter for a new line.',
         'closest_fit_title' => 'This is the closest portfolio that fits your risk limits',
         'closest_fit_body' => 'Your expected return is not supported by your current risk capacity, time horizon, liquidity needs, and loss limit. This portfolio stays inside those boundaries instead of increasing risk to chase the target.',
         'guidance_title' => 'Your current goals need an adjustment before an allocation can fit',
@@ -130,8 +164,69 @@ return [
         'alternative_omitted' => 'An optional alternative did not meet every CashPilot guardrail and was omitted. The primary portfolio below passed validation.',
         'higher_unavailable' => 'No meaningfully higher-risk alternative remains inside the assessed capacity and portfolio limits.',
     ],
+    'personas' => [
+        'balanced_investor' => 'Balanced investor',
+        'strategic_growth_investor' => 'Strategic growth investor',
+        'opportunistic_investor' => 'Opportunistic investor',
+        'aggressive_growth_investor' => 'Aggressive growth investor',
+    ],
+    'risk_bands' => [
+        'very_conservative' => 'Very conservative', 'conservative' => 'Conservative', 'balanced' => 'Balanced', 'growth' => 'Growth', 'aggressive' => 'Aggressive',
+        'defensive' => 'Defensive', 'moderate' => 'Moderate', 'speculative' => 'Speculative', 'unknown' => 'Not classified',
+    ],
+    'categories' => [
+        'stock' => 'Stock', 'etf' => 'ETF or index fund', 'bond' => 'Bond', 'currency' => 'Currency', 'metal' => 'Precious metal', 'crypto' => 'Crypto', 'commodity' => 'Commodity', 'real_estate' => 'Real estate', 'private_asset' => 'Private asset', 'other' => 'Other',
+    ],
+    'liquidities' => [
+        'same_day' => 'Same day', 'within_week' => 'Within a week', 'within_month' => 'Within a month', 'illiquid' => 'Hard to sell',
+    ],
+    'perspectives' => [
+        'bearish' => 'Bearish', 'neutral' => 'Neutral', 'bullish' => 'Bullish',
+    ],
+    'convictions' => [
+        'low' => 'Low conviction', 'medium' => 'Medium conviction', 'high' => 'High conviction',
+    ],
+    'holding_periods' => [
+        'under_1_year' => 'Under a year', '1_3_years' => '1–3 years', '3_5_years' => '3–5 years', '5_10_years' => '5–10 years', '10_plus' => '10+ years',
+    ],
+    'inclusions' => [
+        'allowed' => 'AI may include it', 'required' => 'Must be included',
+    ],
+    'underlyings' => [
+        'stocks' => 'Stocks', 'etfs' => 'ETFs', 'indices' => 'Indices', 'commodities' => 'Commodities', 'currencies' => 'Currencies', 'crypto' => 'Crypto',
+    ],
+    'options_experience_years' => [
+        'none' => 'None', 'under_1' => 'Under a year', '1_3' => '1–3 years', '3_plus' => '3+ years',
+    ],
+    'options_trade_counts' => [
+        'none' => 'None', '1_10' => '1–10', '11_50' => '11–50', '50_plus' => '50+',
+    ],
+    'options_objectives' => [
+        'downside_hedging' => 'Hedge against falls', 'income' => 'Generate income', 'defined_risk_growth' => 'Growth with defined risk', 'combination' => 'A combination',
+    ],
+    'options_monitoring' => [
+        'daily' => 'Daily', 'weekly' => 'Weekly', 'monthly' => 'Monthly', 'rarely' => 'Rarely',
+    ],
+    'options_experience' => [
+        'none' => 'None', 'basic' => 'Basic', 'intermediate' => 'Intermediate', 'advanced' => 'Advanced',
+    ],
+    'option_strategies' => [
+        'protective_put' => 'Protective put', 'covered_call' => 'Covered call', 'collar' => 'Collar', 'uncovered' => 'Uncovered',
+    ],
+    'profile_warnings' => [
+        'return_expectation_exceeds_risk_capacity' => 'Your target return is higher than your assessed risk capacity supports.',
+        'willingness_exceeds_capacity' => 'You are willing to take more risk than your finances currently support.',
+        'capacity_exceeds_willingness' => 'You could take more risk than you are comfortable with.',
+    ],
+    'recommendation_statuses' => [
+        'generating' => 'Designing', 'needs_clarification' => 'Needs detail', 'awaiting_vault_seal' => 'Waiting to unlock', 'ready' => 'Ready', 'failed' => 'Failed',
+    ],
+    'constraints_labels' => [
+        'minimum_liquid_allocation' => 'Minimum liquid', 'maximum_single_asset_allocation' => 'Maximum in one asset', 'maximum_high_risk_allocation' => 'Maximum high risk', 'maximum_speculative_allocation' => 'Maximum speculative', 'maximum_options_risk_budget' => 'Maximum options budget',
+    ],
     'disclosure' => 'CashPilot Advisor provides personalized educational guidance based on the information you provide. Investment outcomes are uncertain, and historical performance does not guarantee future results.',
     'validation' => [
         'invalid_section' => 'That assessment section does not exist.', 'custom_asset_identifier' => 'A custom asset needs a ticker or identifier.', 'missing_answers' => 'Complete every assessment section first.', 'completed_immutable' => 'Completed assessments cannot be changed.', 'ai_consent_required' => 'Enable AI consent before generating a recommendation.', 'output_hash_mismatch' => 'The encrypted recommendation does not match the generated result.', 'provider_failure' => 'The AI provider is unavailable right now. Your CashPilot profile remains available.', 'recommendation_rate_limited' => 'You have reached the daily limit of five AI portfolio sessions. Please try again after the daily window resets.',
+        'pending_payload_expired' => 'This recommendation waited too long to be unlocked and had to be discarded. Generating a new one will take a few minutes.',
     ],
 ];

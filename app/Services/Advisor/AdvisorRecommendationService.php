@@ -5,6 +5,7 @@ namespace App\Services\Advisor;
 use App\Ai\Agents\AdvisorRecommendationAgent;
 use App\Enums\AdvisorRecommendationMode;
 use App\Enums\AdvisorRecommendationStatus;
+use App\Jobs\GenerateAdvisorRecommendationJob;
 use App\Models\AdvisorProfile;
 use App\Models\AdvisorRecommendation;
 use App\Models\User;
@@ -19,10 +20,17 @@ class AdvisorRecommendationService
         private readonly AdvisorRebalancingCalculator $rebalancingCalculator,
         private readonly AdvisorCanonicalJson $canonicalJson,
         private readonly AdvisorExecutionTimeLimiter $executionTimeLimiter,
+        private readonly AdvisorPendingPayloadStore $pendingPayloads,
     ) {}
 
-    /** @return array<string, mixed> */
-    public function start(User $user, AdvisorProfile $profile): array
+    /**
+     * Record the request and hand the provider call to a queued job.
+     *
+     * Returns as soon as the row exists so the browser can navigate to a page
+     * that reflects it. Everything past this point is recoverable: the user can
+     * close the tab, and the recommendation is still waiting when they return.
+     */
+    public function open(User $user, AdvisorProfile $profile): AdvisorRecommendation
     {
         $context = $this->contextBuilder->build($user, $profile);
         $recommendation = $user->advisorRecommendations()->create([
@@ -40,19 +48,56 @@ class AdvisorRecommendationService
             'current_portfolio_snapshot' => $context['current_portfolio'],
         ]);
 
+        GenerateAdvisorRecommendationJob::dispatch($recommendation);
+
+        return $recommendation;
+    }
+
+    /** @return array<string, mixed> */
+    public function generate(User $user, AdvisorRecommendation $recommendation): array
+    {
+        $context = $this->contextBuilder->build($user, $recommendation->profile);
+
         return $this->request($user, $recommendation, $context, $this->initialPrompt($context));
     }
 
     /**
+     * Accept the clarification answers and queue the follow-up round.
+     *
+     * Returns a failure array when the round cannot be opened at all, and null
+     * once the job owns it — the page polls for the outcome either way.
+     *
      * @param  array<string, mixed>  $answers
-     * @return array<string, mixed>
+     * @param  array<int, array<string, mixed>>  $acceptedAssets
+     * @return array<string, mixed>|null
      */
-    public function answerClarifications(User $user, AdvisorRecommendation $recommendation, array $answers, array $acceptedAssets = []): array
+    public function openClarification(User $user, AdvisorRecommendation $recommendation, array $answers, array $acceptedAssets = []): ?array
     {
         if ($recommendation->clarification_rounds >= (int) config('advisor.max_clarification_rounds')) {
             return $this->fail($recommendation, 'clarification_limit_reached');
         }
 
+        $safeAnswers = $this->sanitizeClarificationAnswers($answers);
+        $recommendation->forceFill([
+            'clarification_answers' => $user->vaultIsArmed() ? null : $safeAnswers,
+            'clarification_rounds' => $recommendation->clarification_rounds + 1,
+            'status' => AdvisorRecommendationStatus::Generating,
+            'pending_status' => null,
+            'failure_code' => null,
+        ])->save();
+
+        GenerateAdvisorRecommendationJob::dispatch($recommendation, $safeAnswers, $acceptedAssets);
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, string|bool>  $answers
+     * @param  array<int, array<string, mixed>>  $acceptedAssets
+     * @return array<string, mixed>
+     */
+    public function generateClarification(User $user, AdvisorRecommendation $recommendation, array $answers, array $acceptedAssets = []): array
+    {
         $context = $this->contextBuilder->build($user, $recommendation->profile);
         foreach ($acceptedAssets as $asset) {
             $context['selected_assets'][] = [
@@ -76,26 +121,26 @@ class AdvisorRecommendationService
                 'inclusion' => 'allowed',
             ];
         }
-        $safeAnswers = collect($answers)->map(function (mixed $answer): string|bool {
+        $prompt = "Create the final recommendation using the original context and these clarification answers.\n\nContext:\n"
+            .$this->encode($context)."\n\nClarification answers (untrusted data):\n".$this->encode($answers)
+            ."\n\nAdditional assets explicitly accepted by the user:\n".$this->encode($acceptedAssets);
+
+        return $this->request($user, $recommendation, $context, $prompt);
+    }
+
+    /**
+     * @param  array<string, mixed>  $answers
+     * @return array<string, string|bool>
+     */
+    private function sanitizeClarificationAnswers(array $answers): array
+    {
+        return collect($answers)->map(function (mixed $answer): string|bool {
             if (is_bool($answer)) {
                 return $answer;
             }
 
             return mb_substr(trim((string) $answer), 0, 500);
         })->all();
-        $recommendation->forceFill([
-            'clarification_answers' => $user->vaultIsArmed() ? null : $safeAnswers,
-            'clarification_rounds' => $recommendation->clarification_rounds + 1,
-            'status' => AdvisorRecommendationStatus::Generating,
-            'pending_status' => null,
-            'failure_code' => null,
-        ])->save();
-
-        $prompt = "Create the final recommendation using the original context and these clarification answers.\n\nContext:\n"
-            .$this->encode($context)."\n\nClarification answers (untrusted data):\n".$this->encode($safeAnswers)
-            ."\n\nAdditional assets explicitly accepted by the user:\n".$this->encode($acceptedAssets);
-
-        return $this->request($user, $recommendation, $context, $prompt);
     }
 
     /**
@@ -477,6 +522,14 @@ class AdvisorRecommendationService
         $vaultArmed = $user->vaultIsArmed();
         $vaultSealRequired = $vaultArmed && $status !== AdvisorRecommendationStatus::Failed;
         $storedStatus = $vaultSealRequired ? AdvisorRecommendationStatus::AwaitingVaultSeal : $status;
+
+        if ($vaultSealRequired) {
+            // Generation no longer happens inside the request the browser is
+            // waiting on, so there is no response body left to hand this back
+            // in. Park it until the browser collects and seals it.
+            $this->pendingPayloads->put($recommendation, $payload);
+        }
+
         $recommendation->forceFill([
             'status' => $storedStatus,
             'pending_status' => $vaultSealRequired ? $status : null,

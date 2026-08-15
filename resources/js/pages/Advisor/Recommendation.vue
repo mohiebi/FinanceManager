@@ -13,12 +13,21 @@ import {
     ShieldCheck,
     Sparkles,
 } from 'lucide-vue-next';
-import { computed, reactive, ref, watchEffect } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
 import { useVault } from '@/composables/useVault';
-import { advisorRecommendationFailureKey } from '@/lib/advisor/http-errors';
-import { clarify, consult, seal } from '@/routes/advisor/recommendations';
+import {
+    advisorGenerationErrorKey,
+    advisorRecommendationFailureKey,
+} from '@/lib/advisor/http-errors';
+import { useAdvisorLabels } from '@/lib/advisor/labels';
+import {
+    claim as claimPayload,
+    clarify,
+    consult,
+    seal,
+} from '@/routes/advisor/recommendations';
 import { seal as sealMessage } from '@/routes/advisor/recommendations/messages';
 import type {
     AdvisorRecommendationPayload,
@@ -37,6 +46,8 @@ type ConversationMessage = {
     id?: string;
     role: 'user' | 'assistant';
     payload: ConversationPayload;
+    /** Set when the question never reached the Advisor, so it can be sent again. */
+    failed?: boolean;
 };
 
 const props = defineProps<{
@@ -55,6 +66,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { label } = useAdvisorLabels();
 const { revealAsync, sealForSubmit, trackKey } = useVault();
 const payload = ref<AdvisorRecommendationPayload | null>(null);
 const conversation = ref<ConversationMessage[]>([]);
@@ -123,6 +135,145 @@ const assetNames = computed(() =>
     ),
 );
 
+/**
+ * Watching a queued job rather than holding a request open.
+ *
+ * Generation takes minutes, so it runs on the queue and this page follows it.
+ * Everything below exists to make that wait legible: what stage it is at, how
+ * long it has taken, and — for a Vault-armed browser — collecting the result the
+ * job could not store on its behalf.
+ */
+const isGenerating = computed(
+    () => props.recommendation.status === 'generating',
+);
+const awaitsClaim = computed(
+    () => props.recommendation.status === 'awaiting_vault_seal',
+);
+const elapsedSeconds = ref(0);
+const claiming = ref(false);
+/** Deliberately not reactive — reading it must not re-trigger the effect below. */
+const attemptedClaims = new Set<string>();
+let pollTimer: ReturnType<typeof setInterval> | undefined;
+let clockTimer: ReturnType<typeof setInterval> | undefined;
+
+const payloadClaimer = useHttp<
+    Record<string, never>,
+    RecommendationResponse
+>({});
+
+/**
+ * Named from the two counters the job moves as it works, so the stage shown is
+ * the stage actually reached — never a timer pretending to be progress.
+ */
+const generationStage = computed(() => {
+    if (props.recommendation.provider_calls === 0) {
+        return t('advisor.recommendation.stage_reading');
+    }
+
+    return props.recommendation.repair_attempts > 0
+        ? t('advisor.recommendation.stage_checking')
+        : t('advisor.recommendation.stage_designing');
+});
+
+const elapsedLabel = computed(() => {
+    const minutes = Math.floor(elapsedSeconds.value / 60);
+    const seconds = elapsedSeconds.value % 60;
+
+    return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+});
+
+function tickClock(): void {
+    elapsedSeconds.value = Math.max(
+        0,
+        Math.round(
+            (Date.now() - new Date(props.recommendation.created_at).getTime()) /
+                1000,
+        ),
+    );
+}
+
+/**
+ * Take the payload the job parked, seal it, and hand back the ciphertext.
+ *
+ * Only Vault-armed browsers get here: the server holds the key to nothing, so
+ * this is the one moment the recommendation can be made permanent.
+ */
+async function claimAndSeal(): Promise<void> {
+    if (claiming.value || attemptedClaims.has(props.recommendation.id)) {
+        return;
+    }
+
+    /*
+     * Marked before the request rather than after it, and never cleared. The
+     * status only changes once the reload lands, so releasing this on either
+     * success or failure would let the effect below fire again against a
+     * recommendation that is already sealed — or retry a failing claim forever.
+     */
+    attemptedClaims.add(props.recommendation.id);
+    claiming.value = true;
+    actionError.value = '';
+
+    try {
+        const claimed = await payloadClaimer.post(
+            claimPayload(props.recommendation.id).url,
+        );
+
+        if (!claimed.payload) {
+            return;
+        }
+
+        await sealGeneratedResponse({ ...claimed, vault_seal_required: true });
+        router.reload({ only: ['recommendation', 'messages'] });
+    } catch (error) {
+        actionError.value = t(advisorGenerationErrorKey(error));
+    } finally {
+        claiming.value = false;
+    }
+}
+
+function syncWatchers(): void {
+    const shouldPoll = isGenerating.value;
+
+    if (shouldPoll && pollTimer === undefined) {
+        pollTimer = setInterval(
+            () => router.reload({ only: ['recommendation', 'messages'] }),
+            3000,
+        );
+    }
+
+    if (!shouldPoll && pollTimer !== undefined) {
+        clearInterval(pollTimer);
+        pollTimer = undefined;
+    }
+
+    const shouldTick = shouldPoll || awaitsClaim.value;
+
+    if (shouldTick && clockTimer === undefined) {
+        tickClock();
+        clockTimer = setInterval(tickClock, 1000);
+    }
+
+    if (!shouldTick && clockTimer !== undefined) {
+        clearInterval(clockTimer);
+        clockTimer = undefined;
+    }
+}
+
+watchEffect(() => {
+    syncWatchers();
+
+    // A Vault browser that lands on a finished job collects it straight away —
+    // the user should never have to press a button to finish their own request.
+    if (awaitsClaim.value && props.vaultArmed && !claiming.value) {
+        void claimAndSeal();
+    }
+});
+
+onBeforeUnmount(() => {
+    clearInterval(pollTimer);
+    clearInterval(clockTimer);
+});
+
 watchEffect(async () => {
     trackKey();
     const revealed = await revealAsync(
@@ -185,17 +336,9 @@ async function submitClarifications(): Promise<void> {
             }));
 
     try {
-        const response = await clarificationForm.post(
-            clarify(props.recommendation.id).url,
-        );
-
-        if (!response.payload || response.status === 'failed') {
-            actionError.value = t('advisor.recommendation.failed');
-
-            return;
-        }
-
-        await sealGeneratedResponse(response);
+        // Queued like the first round, so the page goes back to watching rather
+        // than holding another multi-minute request open.
+        await clarificationForm.post(clarify(props.recommendation.id).url);
         router.reload({ only: ['recommendation', 'messages'] });
     } catch (error) {
         actionError.value =
@@ -222,6 +365,58 @@ async function sealGeneratedResponse(
     await recommendationSealer.patch(seal(response.recommendation_id).url);
 }
 
+/**
+ * Openers offered when the thread is empty.
+ *
+ * These were sitting in a placeholder at 25% opacity, which is the least useful
+ * place for the questions most worth asking. As chips they double as the
+ * feature's only onboarding.
+ */
+const chatSuggestions = computed(() => [
+    t('advisor.recommendation.suggest_fit'),
+    t('advisor.recommendation.suggest_risk'),
+    t('advisor.recommendation.suggest_start'),
+]);
+
+function useSuggestion(suggestion: string): void {
+    chatMessage.value = suggestion;
+    void sendMessage();
+}
+
+/** Enter sends; Shift+Enter is a newline, as every chat surface behaves. */
+function onChatKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' || event.shiftKey || event.isComposing) {
+        return;
+    }
+
+    event.preventDefault();
+    void sendMessage();
+}
+
+function growTextarea(event: Event): void {
+    const field = event.target as HTMLTextAreaElement;
+    field.style.height = 'auto';
+    field.style.height = `${Math.min(field.scrollHeight, 160)}px`;
+}
+
+/**
+ * Put a failed question back where the user can act on it.
+ *
+ * A page-level error meant retyping a question they had already written; this
+ * keeps the text and offers to send it again.
+ */
+function retryMessage(index: number): void {
+    const failed = conversation.value[index];
+
+    if (failed === undefined || isConsulting.value) {
+        return;
+    }
+
+    conversation.value.splice(index, 1);
+    chatMessage.value = failed.payload.content ?? '';
+    void sendMessage();
+}
+
 async function sendMessage(): Promise<void> {
     const text = chatMessage.value.trim();
 
@@ -240,6 +435,15 @@ async function sendMessage(): Promise<void> {
         content: message.payload.content ?? message.payload.answer ?? '',
     }));
 
+    // Show the question immediately and empty the box. A question that sits in
+    // the field until the answer returns reads as though nothing was sent.
+    const pending: ConversationMessage = {
+        role: 'user',
+        payload: { content: text },
+    };
+    conversation.value.push(pending);
+    chatMessage.value = '';
+
     try {
         if (props.vaultArmed) {
             const sealedUser = await sealForSubmit(
@@ -254,11 +458,10 @@ async function sendMessage(): Promise<void> {
         const response = await consultationForm.post(
             consult(props.recommendation.id).url,
         );
-        conversation.value.push(
-            { role: 'user', payload: { content: text } },
-            { role: 'assistant', payload: response.payload },
-        );
-        chatMessage.value = '';
+        conversation.value.push({
+            role: 'assistant',
+            payload: response.payload,
+        });
 
         if (response.vault_seal_required) {
             const sealedAssistant = await sealForSubmit(
@@ -270,11 +473,10 @@ async function sendMessage(): Promise<void> {
                 sealedAssistant.payload as unknown as string;
             await messageSealer.post(sealMessage(props.recommendation.id).url);
         }
-    } catch (error) {
-        actionError.value =
-            error instanceof Error
-                ? error.message
-                : t('advisor.validation.provider_failure');
+    } catch {
+        // Marked rather than removed: the question stays on screen with a way to
+        // send it again, instead of becoming a page-level error and lost text.
+        pending.failed = true;
     } finally {
         isConsulting.value = false;
     }
@@ -339,7 +541,7 @@ defineOptions({
                     }}
                 </p>
                 <h1 class="mt-2 text-2xl font-semibold tracking-tight">
-                    {{ props.profile.persona.replaceAll('_', ' ') }}
+                    {{ label('personas', props.profile.persona) }}
                 </h1>
                 <p class="mt-2 text-sm text-white/40">
                     {{ t('advisor.recommendation.model_only') }}
@@ -358,7 +560,7 @@ defineOptions({
                 {{
                     isGuidance
                         ? t('advisor.recommendation.guidance_badge')
-                        : 'CashPilot validated'
+                        : t('advisor.recommendation.validated_badge')
                 }}
             </div>
         </header>
@@ -367,8 +569,9 @@ defineOptions({
             v-if="integrityError"
             class="mx-auto mt-4 max-w-6xl rounded-xl bg-red-400/10 px-4 py-3 text-sm text-red-200"
         >
-            <AlertTriangle class="me-2 inline size-4" />The decrypted
-            recommendation failed its integrity check.
+            <AlertTriangle class="me-2 inline size-4" />{{
+                t('advisor.recommendation.integrity_failed')
+            }}
         </p>
         <p
             v-if="actionError"
@@ -378,15 +581,54 @@ defineOptions({
             {{ actionError }}
         </p>
 
+        <!-- The wait is minutes long, so it has to look like work rather than a
+             hang: the stage is read from what the job has actually reached, and
+             the reassurance about leaving is now true. -->
         <section
-            v-if="!payload && props.recommendation.status !== 'failed'"
+            v-if="isGenerating || (awaitsClaim && props.vaultArmed)"
+            class="mx-auto mt-[18px] grid min-h-72 max-w-6xl place-items-center rounded-[24px] border border-white/10 bg-[#171a19] px-6 py-10"
+            role="status"
+            aria-live="polite"
+        >
+            <div class="w-full max-w-md text-center">
+                <LoaderCircle
+                    aria-hidden="true"
+                    class="mx-auto size-6 animate-spin text-[#a78bfa] motion-reduce:animate-none"
+                />
+                <p class="mt-4 text-base font-medium text-white">
+                    {{ t('advisor.recommendation.generating') }}
+                </p>
+                <p class="mt-1 text-sm text-white/45">
+                    {{
+                        awaitsClaim
+                            ? t('advisor.recommendation.stage_sealing')
+                            : generationStage
+                    }}
+                </p>
+
+                <!-- Elapsed time rather than a progress bar: nothing here knows
+                     how long the provider will take, and a bar that drifts
+                     without knowing is just a spinner that lies. -->
+                <p
+                    class="mt-6 font-mono text-xs tracking-wide text-white/30"
+                    dir="ltr"
+                >
+                    {{ elapsedLabel }}
+                </p>
+                <p class="mt-5 text-xs leading-5 text-white/40">
+                    {{ t('advisor.recommendation.leave_safe') }}
+                </p>
+            </div>
+        </section>
+
+        <section
+            v-else-if="!payload && props.recommendation.status !== 'failed'"
             class="mx-auto mt-[18px] grid min-h-72 max-w-6xl place-items-center rounded-[24px] border border-white/10 bg-[#171a19] text-sm text-white/40"
         >
             <div class="text-center">
                 <Sparkles class="mx-auto size-6 animate-pulse text-[#a78bfa]" />
-                <p class="mt-3">{{ t('advisor.recommendation.generating') }}</p>
-                <p v-if="props.vaultArmed" class="mt-1 text-xs">
-                    Unlock your Vault to view the encrypted result.
+                <p class="mt-3">
+                    {{ t('advisor.recommendation.locked') }}
                 </p>
             </div>
         </section>
@@ -680,7 +922,7 @@ defineOptions({
                                 {{ t('advisor.recommendation.overlay') }}
                             </p>
                             <h3 class="mt-2 font-semibold">
-                                {{ overlay.strategy.replaceAll('_', ' ') }}
+                                {{ label('option_strategies', overlay.strategy) }}
                             </h3>
                             <p class="mt-2 text-sm leading-6 text-white/45">
                                 {{ overlay.purpose }}
@@ -861,17 +1103,63 @@ defineOptions({
                     class="mt-5 max-h-96 space-y-3 overflow-y-auto"
                     :aria-busy="isConsulting"
                 >
+                    <!-- Suggested openers stand in for an empty state. These
+                         were previously a placeholder nobody could click. -->
+                    <div
+                        v-if="conversation.length === 0 && !isConsulting"
+                        class="space-y-3"
+                    >
+                        <p class="text-sm text-white/40">
+                            {{ t('advisor.recommendation.ask_empty') }}
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                v-for="suggestion in chatSuggestions"
+                                :key="suggestion"
+                                type="button"
+                                class="cursor-pointer rounded-full border border-[#a78bfa]/25 bg-[#a78bfa]/[0.07] px-4 py-2 text-start text-xs text-white/70 transition hover:border-[#a78bfa]/50 hover:text-white focus-visible:ring-2 focus-visible:ring-[#a78bfa] focus-visible:outline-none"
+                                @click="useSuggestion(suggestion)"
+                            >
+                                {{ suggestion }}
+                            </button>
+                        </div>
+                    </div>
+
                     <div
                         v-for="(message, index) in conversation"
                         :key="message.id ?? index"
-                        class="max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6"
-                        :class="
-                            message.role === 'user'
-                                ? 'ms-auto bg-[#02CD86] text-[#07130f]'
-                                : 'border border-white/8 bg-white/[0.035] text-white/65'
-                        "
+                        class="max-w-[88%]"
+                        :class="message.role === 'user' ? 'ms-auto' : ''"
                     >
-                        {{ message.payload.content ?? message.payload.answer }}
+                        <div
+                            class="rounded-2xl px-4 py-3 text-sm leading-6 whitespace-pre-wrap"
+                            :class="
+                                message.role === 'user'
+                                    ? message.failed
+                                        ? 'bg-[#02CD86]/25 text-white/70'
+                                        : 'bg-[#02CD86] text-[#07130f]'
+                                    : 'border border-white/8 bg-white/[0.035] text-white/65'
+                            "
+                        >
+                            {{
+                                message.payload.content ??
+                                message.payload.answer
+                            }}
+                        </div>
+                        <p
+                            v-if="message.failed"
+                            class="mt-1.5 flex items-center justify-end gap-2 text-xs text-red-300"
+                        >
+                            {{ t('advisor.recommendation.send_failed') }}
+                            <button
+                                type="button"
+                                class="cursor-pointer rounded-full px-2 py-0.5 font-medium text-[#a78bfa] underline-offset-2 transition hover:underline focus-visible:ring-2 focus-visible:ring-[#a78bfa] focus-visible:outline-none"
+                                :disabled="isConsulting"
+                                @click="retryMessage(index)"
+                            >
+                                {{ t('advisor.recommendation.retry') }}
+                            </button>
+                        </p>
                     </div>
                     <div
                         v-if="isConsulting"
@@ -888,18 +1176,30 @@ defineOptions({
                         }}</span>
                     </div>
                 </div>
-                <form class="mt-4 flex gap-2" @submit.prevent="sendMessage">
-                    <input
+                <!-- A textarea rather than a one-line field: 1,500 characters
+                     of question used to scroll out of sight as it was typed. -->
+                <form
+                    class="mt-4 flex items-end gap-2"
+                    @submit.prevent="sendMessage"
+                >
+                    <label class="sr-only" for="advisor-chat">{{
+                        t('advisor.recommendation.ask')
+                    }}</label>
+                    <textarea
+                        id="advisor-chat"
                         v-model="chatMessage"
                         maxlength="1500"
-                        class="h-12 min-w-0 flex-1 rounded-full border border-white/10 bg-[#222625] px-5 text-sm outline-none placeholder:text-white/25 focus:border-[#a78bfa]/50"
+                        rows="1"
+                        class="max-h-40 min-h-12 min-w-0 flex-1 resize-none rounded-3xl border border-white/10 bg-[#222625] px-5 py-3.5 text-sm leading-6 outline-none placeholder:text-white/25 focus:border-[#a78bfa]/50"
                         :disabled="isConsulting"
                         :placeholder="
                             t('advisor.recommendation.ask_placeholder')
                         "
+                        @input="growTextarea"
+                        @keydown="onChatKeydown"
                     /><Button
                         type="submit"
-                        class="size-12 rounded-full bg-[#a78bfa] p-0 text-[#140c25] hover:bg-[#b99dfd]"
+                        class="size-12 shrink-0 rounded-full bg-[#a78bfa] p-0 text-[#140c25] hover:bg-[#b99dfd]"
                         :disabled="isConsulting || !chatMessage.trim()"
                         ><LoaderCircle
                             v-if="isConsulting"
@@ -912,12 +1212,16 @@ defineOptions({
                         }}</span></Button
                     >
                 </form>
+                <p class="mt-2 text-xs text-white/25">
+                    {{ t('advisor.recommendation.send_hint') }}
+                </p>
                 <p
                     v-if="props.vaultArmed"
                     class="mt-3 flex items-center gap-2 text-xs text-white/30"
                 >
-                    <LockKeyhole class="size-3.5 text-[#60a5fa]" />Consultation
-                    history is encrypted in your browser.
+                    <LockKeyhole class="size-3.5 text-[#60a5fa]" />{{
+                        t('advisor.recommendation.chat_encrypted')
+                    }}
                 </p>
             </section>
         </template>

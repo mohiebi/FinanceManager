@@ -14,7 +14,10 @@ use App\Support\FrontendLocalization;
 /** Files shipped to the browser via FrontendLocalization::messages(). */
 function clientRenderedGroups(): array
 {
-    return ['gamification', 'billing'];
+    // advisor joined this list after `assessment.step` shipped as
+    // 'Section :current of :total' and rendered exactly that, literally, on
+    // every page of the assessment.
+    return ['gamification', 'billing', 'advisor'];
 }
 
 test('client-rendered translations use vue-i18n placeholder syntax', function () {

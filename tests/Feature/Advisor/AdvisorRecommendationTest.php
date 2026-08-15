@@ -1,9 +1,12 @@
 <?php
 
 use App\Ai\Agents\AdvisorRecommendationAgent;
+use App\Enums\AdvisorRecommendationMode;
 use App\Enums\AdvisorRecommendationStatus;
 use App\Enums\Feature;
+use App\Jobs\GenerateAdvisorRecommendationJob;
 use App\Models\AdvisorProfile;
+use App\Models\AdvisorRecommendation;
 use App\Models\InvestmentAsset;
 use App\Models\InvestorAssessment;
 use App\Models\User;
@@ -12,6 +15,7 @@ use App\Support\Encryption\UserCrypto;
 use Illuminate\Cache\RateLimiting\Unlimited;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 
@@ -62,6 +66,22 @@ function advisorContext(AdvisorProfile $profile): array
     ];
 }
 
+/**
+ * Ask for a recommendation and return the row once the job has finished with it.
+ *
+ * The request is accepted rather than fulfilled now: the provider call runs in a
+ * queued job, which the sync queue used in tests runs inline. The outcome lives
+ * on the model, so that is where these tests read it.
+ */
+function generateAdvisorRecommendation(User $user): AdvisorRecommendation
+{
+    test()->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertStatus(202)
+        ->assertJsonPath('status', 'generating');
+
+    return $user->advisorRecommendations()->latest('id')->firstOrFail();
+}
+
 beforeEach(fn () => $this->withoutVite());
 
 test('a valid structured AI recommendation is encrypted and stored ready', function () {
@@ -69,18 +89,15 @@ test('a valid structured AI recommendation is encrypted and stored ready', funct
     advisorRecommendationProfile($user);
     AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
 
-    $response = $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertOk()
-        ->assertJsonPath('status', 'ready')
-        ->assertJsonPath('payload.status', 'recommendation_ready');
+    $recommendation = generateAdvisorRecommendation($user);
 
-    $recommendation = $user->advisorRecommendations()->sole();
     expect($recommendation->status)->toBe(AdvisorRecommendationStatus::Ready)
+        ->and($recommendation->recommendation_payload['status'])->toBe('recommendation_ready')
         ->and($recommendation->provider_calls)->toBe(1)
         ->and($recommendation->repair_attempts)->toBe(0)
         ->and(UserCrypto::looksEncrypted($recommendation->getRawOriginal('recommendation_payload')))->toBeTrue()
         ->and($recommendation->recommendation_payload['primary']['allocations'])->toHaveCount(2)
-        ->and($response->json('payload.transition_plan'))->toBeArray();
+        ->and($recommendation->recommendation_payload['transition_plan'])->toBeArray();
 });
 
 test('one invalid response receives one repair request', function () {
@@ -90,10 +107,8 @@ test('one invalid response receives one repair request', function () {
     $invalid['primary']['allocations'][0]['target_percent'] = 60;
     AdvisorRecommendationAgent::fake([$invalid, advisorValidRecommendation()])->preventStrayPrompts();
 
-    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertOk()->assertJsonPath('status', 'ready');
+    $recommendation = generateAdvisorRecommendation($user);
 
-    $recommendation = $user->advisorRecommendations()->sole();
     expect($recommendation->provider_calls)->toBe(2)
         ->and($recommendation->repair_attempts)->toBe(1)
         ->and($recommendation->status)->toBe(AdvisorRecommendationStatus::Ready);
@@ -106,14 +121,11 @@ test('a second invalid response returns useful guidance instead of a validation 
     $invalid['primary']['allocations'][0]['target_percent'] = 60;
     AdvisorRecommendationAgent::fake([$invalid, $invalid, advisorGuidanceResponse()])->preventStrayPrompts();
 
-    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertOk()
-        ->assertJsonPath('status', 'ready')
-        ->assertJsonPath('payload.status', 'guidance_only')
-        ->assertJsonPath('payload.primary', null);
+    $recommendation = generateAdvisorRecommendation($user);
 
-    $recommendation = $user->advisorRecommendations()->sole();
-    expect($recommendation->recommendation_payload['next_steps'])->not->toBeEmpty()
+    expect($recommendation->recommendation_payload['status'])->toBe('guidance_only')
+        ->and($recommendation->recommendation_payload['primary'])->toBeNull()
+        ->and($recommendation->recommendation_payload['next_steps'])->not->toBeEmpty()
         ->and($recommendation->provider_calls)->toBe(3)
         ->and($recommendation->status)->toBe(AdvisorRecommendationStatus::Ready);
 });
@@ -129,15 +141,12 @@ test('an invalid optional higher risk alternative does not discard a valid prima
     ];
     AdvisorRecommendationAgent::fake([$invalid, $invalid])->preventStrayPrompts();
 
-    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertOk()
-        ->assertJsonPath('status', 'ready')
-        ->assertJsonPath('payload.status', 'recommendation_ready')
-        ->assertJsonPath('payload.higher_risk_alternative.available', false)
-        ->assertJsonPath('payload.response_warnings.0', 'higher_risk_alternative_omitted');
+    $recommendation = generateAdvisorRecommendation($user);
 
-    $recommendation = $user->advisorRecommendations()->sole();
-    expect($recommendation->recommendation_payload['primary'])->not->toBeNull()
+    expect($recommendation->recommendation_payload['status'])->toBe('recommendation_ready')
+        ->and($recommendation->recommendation_payload['higher_risk_alternative']['available'])->toBeFalse()
+        ->and($recommendation->recommendation_payload['response_warnings'][0])->toBe('higher_risk_alternative_omitted')
+        ->and($recommendation->recommendation_payload['primary'])->not->toBeNull()
         ->and($recommendation->repair_attempts)->toBe(1)
         ->and($recommendation->status)->toBe(AdvisorRecommendationStatus::Ready);
 });
@@ -150,13 +159,12 @@ test('a risk and return conflict presents the portfolio as a closest fit', funct
     $profile->forceFill(['profile_payload' => $profilePayload])->save();
     AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
 
-    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertOk()
-        ->assertJsonPath('status', 'ready')
-        ->assertJsonPath('payload.fit_status', 'closest_fit')
-        ->assertJsonPath('payload.primary.name', 'Controlled growth');
+    $recommendation = generateAdvisorRecommendation($user);
 
-    expect($user->advisorRecommendations()->sole()->recommendation_payload['next_steps'])->not->toBeEmpty();
+    expect($recommendation->status)->toBe(AdvisorRecommendationStatus::Ready)
+        ->and($recommendation->recommendation_payload['fit_status'])->toBe('closest_fit')
+        ->and($recommendation->recommendation_payload['primary']['name'])->toBe('Controlled growth')
+        ->and($recommendation->recommendation_payload['next_steps'])->not->toBeEmpty();
 });
 
 test('an AI cannot recommend response is saved as actionable guidance', function () {
@@ -166,13 +174,11 @@ test('an AI cannot recommend response is saved as actionable guidance', function
     $guidance['status'] = 'cannot_recommend';
     AdvisorRecommendationAgent::fake([$guidance])->preventStrayPrompts();
 
-    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertOk()
-        ->assertJsonPath('status', 'ready')
-        ->assertJsonPath('payload.status', 'guidance_only')
-        ->assertJsonPath('payload.fit_status', 'guidance_only');
+    $recommendation = generateAdvisorRecommendation($user);
 
-    expect($user->advisorRecommendations()->sole()->status)->toBe(AdvisorRecommendationStatus::Ready);
+    expect($recommendation->status)->toBe(AdvisorRecommendationStatus::Ready)
+        ->and($recommendation->recommendation_payload['status'])->toBe('guidance_only')
+        ->and($recommendation->recommendation_payload['fit_status'])->toBe('guidance_only');
 });
 
 test('provider failures fail safely without persisting a plaintext response', function () {
@@ -181,13 +187,10 @@ test('provider failures fail safely without persisting a plaintext response', fu
     Log::spy();
     AdvisorRecommendationAgent::fake(fn () => throw new RuntimeException('Provider timeout.'));
 
-    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertOk()
-        ->assertJsonPath('status', 'failed')
-        ->assertJsonPath('failure_code', 'provider_failure');
+    $recommendation = generateAdvisorRecommendation($user);
 
-    $recommendation = $user->advisorRecommendations()->sole();
     expect($recommendation->status)->toBe(AdvisorRecommendationStatus::Failed)
+        ->and($recommendation->failure_code)->toBe('provider_failure')
         ->and($recommendation->recommendation_payload)->toBeNull()
         ->and($recommendation->provider_calls)->toBe(2);
 
@@ -208,10 +211,10 @@ test('a blocked repair returns deterministic guidance without consuming an unuse
     $invalid['primary']['allocations'][0]['target_percent'] = 60;
     AdvisorRecommendationAgent::fake([$invalid])->preventStrayPrompts();
 
-    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertOk()
-        ->assertJsonPath('status', 'ready')
-        ->assertJsonPath('payload.status', 'guidance_only');
+    $recommendation = generateAdvisorRecommendation($user);
+
+    expect($recommendation->status)->toBe(AdvisorRecommendationStatus::Ready)
+        ->and($recommendation->recommendation_payload['status'])->toBe('guidance_only');
 
     $recommendation = $user->advisorRecommendations()->sole();
     expect($recommendation->provider_calls)->toBe(1)
@@ -227,10 +230,10 @@ test('an incomplete legacy profile fails before spending a provider call', funct
     $profile->forceFill(['profile_payload' => $payload])->save();
     AdvisorRecommendationAgent::fake()->preventStrayPrompts();
 
-    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertOk()
-        ->assertJsonPath('status', 'failed')
-        ->assertJsonPath('failure_code', 'invalid_advisor_context');
+    $recommendation = generateAdvisorRecommendation($user);
+
+    expect($recommendation->status)->toBe(AdvisorRecommendationStatus::Failed)
+        ->and($recommendation->failure_code)->toBe('invalid_advisor_context');
 
     $recommendation = $user->advisorRecommendations()->sole();
     expect($recommendation->provider_calls)->toBe(0)
@@ -248,11 +251,12 @@ test('clarification is limited to three questions and one round', function () {
     ];
     AdvisorRecommendationAgent::fake([$clarification, advisorValidRecommendation()])->preventStrayPrompts();
 
-    $id = $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertJsonPath('status', 'needs_clarification')->json('recommendation_id');
+    $recommendation = generateAdvisorRecommendation($user);
+    expect($recommendation->status)->toBe(AdvisorRecommendationStatus::NeedsClarification);
 
-    $this->actingAs($user)->postJson(route('advisor.recommendations.clarify', $id), ['answers' => ['identify' => 'NASDAQ']])
-        ->assertOk()->assertJsonPath('status', 'ready');
+    $this->actingAs($user)->postJson(route('advisor.recommendations.clarify', $recommendation->id), ['answers' => ['identify' => 'NASDAQ']])
+        ->assertStatus(202);
+    expect($recommendation->fresh()->status)->toBe(AdvisorRecommendationStatus::Ready);
 
     expect($user->advisorRecommendations()->sole()->clarification_rounds)->toBe(1);
 });
@@ -277,10 +281,10 @@ test('an oversized clarification request is rejected', function () {
     ];
     AdvisorRecommendationAgent::fake([$clarification])->preventStrayPrompts();
 
-    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertOk()
-        ->assertJsonPath('status', 'failed')
-        ->assertJsonPath('failure_code', 'invalid_clarification_request');
+    $recommendation = generateAdvisorRecommendation($user);
+
+    expect($recommendation->status)->toBe(AdvisorRecommendationStatus::Failed)
+        ->and($recommendation->failure_code)->toBe('invalid_clarification_request');
 });
 
 test('an AI suggested asset is usable only after explicit clarification consent', function () {
@@ -315,14 +319,15 @@ test('an AI suggested asset is usable only after explicit clarification consent'
     ];
     AdvisorRecommendationAgent::fake([$clarification, $final])->preventStrayPrompts();
 
-    $id = $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
-        ->assertJsonPath('status', 'needs_clarification')
-        ->json('recommendation_id');
+    $recommendation = generateAdvisorRecommendation($user);
+    expect($recommendation->status)->toBe(AdvisorRecommendationStatus::NeedsClarification);
 
-    $this->actingAs($user)->postJson(route('advisor.recommendations.clarify', $id), [
+    $this->actingAs($user)->postJson(route('advisor.recommendations.clarify', $recommendation->id), [
         'answers' => ['allow_diversifier' => true],
         'accepted_assets' => [['asset_key' => 'accepted-bond', 'name' => 'Bond diversifier', 'category' => 'bond']],
-    ])->assertOk()->assertJsonPath('status', 'ready');
+    ])->assertStatus(202);
+
+    expect($recommendation->fresh()->status)->toBe(AdvisorRecommendationStatus::Ready);
 });
 
 test('model only agent instructions prohibit current market and live option claims', function () {
@@ -440,7 +445,7 @@ test('recommendation generation deterministically uses the newest profile id whe
     $second->forceFill(['created_at' => $createdAt])->save();
     AdvisorRecommendationAgent::fake([advisorValidRecommendation()])->preventStrayPrompts();
 
-    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))->assertOk();
+    generateAdvisorRecommendation($user);
 
     expect($user->advisorRecommendations()->sole()->advisor_profile_id)->toBe($second->id);
 });
@@ -495,4 +500,60 @@ test('cross user recommendation identifiers return not found', function () {
     ]);
 
     $this->actingAs($other)->get(route('advisor.recommendations.show', $recommendation))->assertNotFound();
+});
+
+test('asking for a recommendation queues the work instead of holding the request', function () {
+    Queue::fake();
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorRecommendationProfile($user);
+
+    $this->actingAs($user)->postJson(route('advisor.recommendations.store'))
+        ->assertStatus(202)
+        ->assertJsonPath('status', 'generating')
+        ->assertJsonStructure(['recommendation_id']);
+
+    // The whole point: no provider call happened inside the request, and the row
+    // exists so a closed tab no longer loses the assessment behind it.
+    Queue::assertPushed(GenerateAdvisorRecommendationJob::class);
+    expect($user->advisorRecommendations()->sole()->status)
+        ->toBe(AdvisorRecommendationStatus::Generating);
+});
+
+test('a clarification round is queued too', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorRecommendationProfile($user);
+    $clarification = ['status' => 'needs_clarification', 'questions' => [['key' => 'identify', 'question' => 'Which exchange?', 'type' => 'text']]];
+    AdvisorRecommendationAgent::fake([$clarification])->preventStrayPrompts();
+
+    $recommendation = generateAdvisorRecommendation($user);
+    expect($recommendation->status)->toBe(AdvisorRecommendationStatus::NeedsClarification);
+
+    Queue::fake();
+    $this->actingAs($user)->postJson(route('advisor.recommendations.clarify', $recommendation), [
+        'answers' => ['identify' => 'NASDAQ'],
+    ])->assertStatus(202)->assertJsonPath('status', 'generating');
+
+    Queue::assertPushed(GenerateAdvisorRecommendationJob::class);
+});
+
+test('a crashed generation job retires the recommendation instead of leaving it spinning', function () {
+    $user = User::factory()->pro()->withModules(Feature::Advisor)->create();
+    advisorRecommendationProfile($user);
+    $recommendation = $user->advisorRecommendations()->create([
+        'advisor_profile_id' => $user->advisorProfiles()->sole()->id,
+        'status' => AdvisorRecommendationStatus::Generating,
+        'mode' => AdvisorRecommendationMode::TargetOnly,
+        'profile_version' => 1,
+        'scoring_version' => 1,
+        'prompt_version' => 1,
+        'provider' => 'openai',
+        'knowledge_version' => 1,
+        'context_hash' => str_repeat('a', 64),
+        'current_portfolio_included' => false,
+    ]);
+
+    (new GenerateAdvisorRecommendationJob($recommendation))->failed(new RuntimeException('worker died'));
+
+    expect($recommendation->fresh()->status)->toBe(AdvisorRecommendationStatus::Failed)
+        ->and($recommendation->fresh()->failure_code)->toBe('provider_failure');
 });

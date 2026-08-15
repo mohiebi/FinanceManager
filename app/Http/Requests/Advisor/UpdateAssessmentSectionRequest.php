@@ -24,6 +24,12 @@ class UpdateAssessmentSectionRequest extends FormRequest
     {
         return [
             'answers' => ['required', 'array'],
+            /*
+             * Set when the user is stepping backwards. The section is kept as a
+             * draft rather than being completed, so leaving a page half-answered
+             * no longer costs them the answers they had already given.
+             */
+            'partial' => ['sometimes', 'boolean'],
         ];
     }
 }

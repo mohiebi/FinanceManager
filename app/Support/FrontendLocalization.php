@@ -123,6 +123,22 @@ class FrontendLocalization
     }
 
     /**
+     * The locale written out for a language model, which needs a name rather
+     * than an ISO code to reliably answer in the right language.
+     *
+     * Deliberately in English and deliberately not translated: it is read by a
+     * model, not by the user, and the endonym ("فارسی") is the weaker cue.
+     */
+    public static function languageName(?string $locale): string
+    {
+        return match (self::normalizeLocale($locale)) {
+            'fa' => 'Persian (Farsi)',
+            'de' => 'German',
+            default => 'English',
+        };
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function messages(string $locale): array

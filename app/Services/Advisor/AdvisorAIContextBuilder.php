@@ -10,6 +10,7 @@ use App\Enums\Currency;
 use App\Models\AdvisorProfile;
 use App\Models\User;
 use App\Support\CurrencyPreference;
+use App\Support\FrontendLocalization;
 use Illuminate\Support\Arr;
 
 class AdvisorAIContextBuilder
@@ -39,6 +40,11 @@ class AdvisorAIContextBuilder
         $context = [
             'context_version' => 1,
             'recommendation_mode' => $mode->value,
+            // Part of the hashed context on purpose: a recommendation written in
+            // the wrong language is a different answer, so switching the
+            // preference has to invalidate the cached one rather than leave the
+            // user with English prose they cannot read.
+            'response_language' => FrontendLocalization::languageName($user->locale),
             'investor_profile' => [
                 'persona' => $payload['persona'] ?? null,
                 'risk_band' => $payload['risk_band'] ?? null,

@@ -97,7 +97,7 @@ return [
         'cannot_tolerate' => 'I could not tolerate it', 'extremely_uncomfortable' => 'Extremely uncomfortable', 'uncomfortable_hold' => 'Uncomfortable, but I could hold', 'normal' => 'Normal market behavior', 'buying_opportunity' => 'A buying opportunity',
         '5' => '5%', '10' => '10%', '15' => '15%', '20' => '20%', '30' => '30%', '40' => '40%', '50' => '50%+',
         'portfolio_a' => 'A · Typical +6% · Bad year −8% · Excellent +14%', 'portfolio_b' => 'B · Typical +10% · Bad year −22% · Excellent +28%', 'portfolio_c' => 'C · Typical +15% · Bad year −40% · Excellent +50%',
-        'never' => 'Never', '5_plus' => '5+ years',
+        'never' => 'Never', '3_5' => '3–5 years', '5_plus' => '5+ years',
         'deposits' => 'Savings / deposits', 'gold' => 'Gold', 'silver' => 'Silver', 'stocks' => 'Stocks', 'etfs' => 'ETFs / index funds', 'bonds' => 'Bonds', 'real_estate' => 'Real estate', 'bitcoin' => 'Bitcoin', 'crypto' => 'Other crypto', 'derivatives' => 'Derivatives / options / futures',
         'guarantee_profit' => 'Guaranteeing profit', 'reduce_specific_risk' => 'Reducing asset-specific risk', 'eliminate_declines' => 'Eliminating market declines', 'increase_leverage' => 'Increasing leverage',
         'buy_immediately' => 'Buy immediately', 'research_small' => 'Research and consider a small position', 'evaluate_fundamentals' => 'Ignore recent performance and evaluate fundamentals', 'avoid_after_rise' => 'Avoid it because it has already risen',

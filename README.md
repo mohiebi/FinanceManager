@@ -254,5 +254,7 @@ expiry reminder is load-bearing rather than decorative.
   as payment: the exact-amount and confirmation rules are unchanged.
 - Adding a chain is a `PaymentNetwork` case plus a `config/billing.php` block. Every EVM chain shares
   `EvmJsonRpcExplorer`; only a non-EVM chain needs a new driver behind `ChainExplorer`.
-- The `billing` queue must stay in `composer.json`'s `--queue=` list (`QueueCoverageTest` enforces it)
-  **and** in the production worker's own list, which lives outside this repo and no test can check.
+- The `billing` queue must stay in `composer.json`'s `--queue=` list **and** in `docker/supervisord.conf`,
+  which is the production worker list. `QueueCoverageTest` now enforces both, along with the rule that
+  `queue.retry_after` stays above the longest job timeout — a shorter window hands a running job to a
+  second worker and pays for the same provider call twice.

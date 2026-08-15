@@ -302,7 +302,7 @@ return [
             'description' => 'Choose whether CashPilot uses its flight-themed vocabulary or standard financial app names. Only one naming style is shown outside this explanation.',
             'field_label' => 'Vocabulary',
             'checkbox_label' => 'Use flight-themed names',
-            'checkbox_help' => 'Turn this off to use familiar names such as Dashboard, Investments, and Settings throughout the app.',
+            'checkbox_help' => 'Turn this on for CashPilot\'s flight-themed names such as Flight deck and Flight plan. Left off, the app uses familiar names such as Dashboard, Investments, and Settings.',
             'standard_heading' => 'Standard name',
             'flight_heading' => 'Flight name',
             'mappings' => [

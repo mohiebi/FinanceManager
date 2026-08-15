@@ -45,7 +45,7 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var array<string, mixed>
      */
     protected $attributes = [
-        'flight_terminology_enabled' => true,
+        'flight_terminology_enabled' => false,
         'pro_until' => null,
         'pro_expiry_warned_for' => null,
         'pro_expired_notified_for' => null,

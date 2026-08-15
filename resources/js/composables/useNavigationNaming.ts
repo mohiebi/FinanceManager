@@ -17,8 +17,11 @@ export type UseNavigationNamingReturn = {
 export function useNavigationNaming(): UseNavigationNamingReturn {
     const page = usePage();
     const { t } = useI18n();
+    // Opt-in, so an absent prop means standard names rather than flight ones —
+    // a guest page that shares no user must not read as though the preference
+    // were switched on.
     const flightTerminologyEnabled = computed(
-        () => page.props.flightTerminologyEnabled !== false,
+        () => page.props.flightTerminologyEnabled === true,
     );
 
     function navigationName(

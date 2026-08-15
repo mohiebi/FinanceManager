@@ -32,6 +32,34 @@ test('get-user-context reports calendar, currency, and today in both calendars',
             ->etc());
 });
 
+test('get-user-context names the language the assistant must reply in', function () {
+    $persian = User::factory()->create(['locale' => 'fa']);
+    $german = User::factory()->create(['locale' => 'de']);
+    $english = User::factory()->create(['locale' => 'en']);
+
+    // A bare ISO code leaves the model to guess; the written-out name does not.
+    FinanceServer::actingAs($persian)
+        ->tool(GetUserContextTool::class)
+        ->assertOk()
+        ->assertStructuredContent(fn (AssertableJson $content) => $content
+            ->where('language', 'Persian (Farsi)')
+            ->etc());
+
+    FinanceServer::actingAs($german)
+        ->tool(GetUserContextTool::class)
+        ->assertOk()
+        ->assertStructuredContent(fn (AssertableJson $content) => $content
+            ->where('language', 'German')
+            ->etc());
+
+    FinanceServer::actingAs($english)
+        ->tool(GetUserContextTool::class)
+        ->assertOk()
+        ->assertStructuredContent(fn (AssertableJson $content) => $content
+            ->where('language', 'English')
+            ->etc());
+});
+
 test('jalali date filters are converted server-side instead of being misread as ancient gregorian dates', function () {
     $user = User::factory()->create(['calendar' => 'jalali']);
 

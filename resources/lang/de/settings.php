@@ -302,7 +302,7 @@ return [
             'description' => 'Wähle zwischen der Flug-Terminologie von CashPilot und den üblichen Bezeichnungen einer Finanz-App. Außerhalb dieser Erklärung wird nur ein Stil angezeigt.',
             'field_label' => 'Vokabular',
             'checkbox_label' => 'Flugbezogene Namen verwenden',
-            'checkbox_help' => 'Deaktiviere dies, um überall vertraute Namen wie Dashboard, Investitionen und Einstellungen zu verwenden.',
+            'checkbox_help' => 'Aktiviere dies für die flugbezogenen Namen von CashPilot wie Cockpit und Flugplan. Bleibt es aus, verwendet die App vertraute Namen wie Dashboard, Investitionen und Einstellungen.',
             'standard_heading' => 'Standardname',
             'flight_heading' => 'Flugname',
             'mappings' => [

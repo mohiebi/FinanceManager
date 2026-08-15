@@ -45,10 +45,7 @@ class TelegramHandler extends WebhookHandler
         $user = $this->resolveUser();
 
         if (! $user) {
-            $this->chat->message(
-                "Welcome! To get started, link your account:\n\n".
-                'Go to Settings > Telegram in the app and click Connect Telegram.'
-            )->send();
+            $this->chat->message(__('telegram.link.welcome'))->send();
 
             return;
         }
@@ -94,7 +91,7 @@ class TelegramHandler extends WebhookHandler
             'user_id' => $user->id,
         ]);
 
-        $this->chat->message("*Add cost*\n\nEnter the amount, for example: 50000")
+        $this->chat->message(__('telegram.transaction.add_cost'))
             ->keyboard($this->cancelToMenuKeyboard())
             ->send();
     }
@@ -122,7 +119,7 @@ class TelegramHandler extends WebhookHandler
             'user_id' => $user->id,
         ]);
 
-        $this->chat->message("*Add income*\n\nEnter the amount, for example: 5000000")
+        $this->chat->message(__('telegram.transaction.add_income'))
             ->keyboard($this->cancelToMenuKeyboard())
             ->send();
     }
@@ -153,7 +150,7 @@ class TelegramHandler extends WebhookHandler
         $this->clearActiveWizards();
         $this->chat->storage()->set('inv_wizard', ['step' => 'asset', 'user_id' => $user->id]);
 
-        $this->chat->message("*Add investment*\n\nChoose asset type:")
+        $this->chat->message(__('telegram.investment.start'))
             ->keyboard($this->withCancelToMenu(Keyboard::make()->buttons($buttons)->chunk(2)))
             ->send();
     }
@@ -177,7 +174,7 @@ class TelegramHandler extends WebhookHandler
         $this->clearActiveWizards();
         $this->chat->storage()->set('bill_wizard', ['step' => 'title', 'user_id' => $user->id]);
 
-        $this->chat->message("*Add bill*\n\nEnter a title, for example: Rent")
+        $this->chat->message(__('telegram.bill.start'))
             ->keyboard($this->cancelToMenuKeyboard())
             ->send();
     }
@@ -209,12 +206,12 @@ class TelegramHandler extends WebhookHandler
             });
 
         if ($bills->isEmpty()) {
-            $this->chat->message('No bills yet. Choose Add bill to set one up.')->keyboard($this->mainKeyboard())->send();
+            $this->chat->message(__('telegram.bill.empty'))->keyboard($this->mainKeyboard())->send();
 
             return;
         }
 
-        $lines = ["*Your bills:*\n"];
+        $lines = [__('telegram.bill.list_title')];
         $payButtons = [];
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
 
@@ -223,14 +220,17 @@ class TelegramHandler extends WebhookHandler
             $amount = $this->fmtAmount((float) $bill->amount, Currency::from($bill->currency));
 
             if ($next) {
-                $dueDate = DateFormatter::format($next->due_date, $calendar, 'Y-m-d');
-                $lines[] = "• *{$bill->title}* — {$amount} — due {$dueDate}";
-                $payButtons[] = Button::make("Mark paid: {$bill->title}")
+                $lines[] = __('telegram.bill.line', [
+                    'title' => $bill->title,
+                    'amount' => $amount,
+                    'date' => DateFormatter::format($next->due_date, $calendar, 'Y-m-d'),
+                ]);
+                $payButtons[] = Button::make(__('telegram.buttons.mark_paid', ['title' => $bill->title]))
                     ->action('pay_bill')
                     ->param('bill', (string) $bill->id)
                     ->param('occurrence', (string) $next->id);
             } else {
-                $lines[] = "• *{$bill->title}* — {$amount} — no upcoming due date";
+                $lines[] = __('telegram.bill.line_no_due', ['title' => $bill->title, 'amount' => $amount]);
             }
         }
 
@@ -257,21 +257,23 @@ class TelegramHandler extends WebhookHandler
         $occurrenceModel = $billModel?->occurrences()->find((int) ($occurrence ?? $this->data->get('occurrence')));
 
         if (! $billModel || ! $occurrenceModel) {
-            $this->reply('Bill not found.');
+            $this->reply(__('telegram.bill.not_found'));
 
             return;
         }
 
         if ($occurrenceModel->isPaid()) {
-            $this->reply("\"{$billModel->title}\" is already marked as paid.");
+            $this->reply(__('telegram.bill.already_paid', ['title' => $billModel->title]));
 
             return;
         }
 
         app(MarkBillOccurrencePaid::class)($billModel, $occurrenceModel);
 
-        $amount = $this->fmtAmount((float) $billModel->amount, Currency::from($billModel->currency));
-        $this->chat->message("✓ *{$billModel->title}* marked as paid ({$amount}). A transaction was added.")
+        $this->chat->message(__('telegram.bill.marked_paid', [
+            'title' => $billModel->title,
+            'amount' => $this->fmtAmount((float) $billModel->amount, Currency::from($billModel->currency)),
+        ]))
             ->keyboard($this->mainKeyboard())
             ->send();
     }
@@ -300,12 +302,12 @@ class TelegramHandler extends WebhookHandler
             ->get();
 
         if ($transactions->isEmpty()) {
-            $this->chat->message('No transactions found.')->keyboard($this->mainKeyboard())->send();
+            $this->chat->message(__('telegram.transaction.empty'))->keyboard($this->mainKeyboard())->send();
 
             return;
         }
 
-        $lines = ["*Last 10 transactions:*\n"];
+        $lines = [__('telegram.transaction.list_title')];
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
 
         foreach ($transactions as $transaction) {
@@ -315,7 +317,7 @@ class TelegramHandler extends WebhookHandler
         }
 
         $keyboard = Keyboard::make()->buttons([
-            Button::make('Back to menu')->action('help'),
+            Button::make(__('telegram.buttons.back_to_menu'))->action('help'),
         ]);
 
         $this->chat->message(implode("\n", $lines))->keyboard($keyboard)->send();
@@ -345,11 +347,11 @@ class TelegramHandler extends WebhookHandler
         $streak = app(StreakCalculator::class)->for($user);
 
         $message = $marked === null
-            ? 'You have already recorded something today, so the day counts anyway.'
-            : 'Marked today as spend-free.';
+            ? __('telegram.streak.already_recorded')
+            : __('telegram.streak.marked');
 
         $this->chat
-            ->message($message." Run: *{$streak->currentRun}* days.")
+            ->message(__('telegram.streak.run', ['message' => $message, 'days' => $streak->currentRun]))
             ->keyboard($this->mainKeyboard())
             ->send();
     }
@@ -387,33 +389,32 @@ class TelegramHandler extends WebhookHandler
 
         $today = Carbon::today();
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
+        $locale = $this->locale();
         $buttons = collect();
 
         for ($i = 0; $i < 7; $i++) {
             $date = $today->copy()->subDays($i);
 
             if ($calendar === 'jalali') {
-                $j = Jalalian::fromCarbon($date);
-                $jLabel = $j->format('j M');
-                $label = match ($i) {
-                    0 => 'Today ('.$jLabel.')',
-                    1 => 'Yesterday ('.$jLabel.')',
-                    default => $jLabel,
-                };
+                $shortLabel = Jalalian::fromCarbon($date)->format('j M');
+                $fullLabel = $shortLabel;
             } else {
-                $label = match ($i) {
-                    0 => 'Today ('.$date->format('D').')',
-                    1 => 'Yesterday ('.$date->format('D').')',
-                    default => $date->format('D, M j'),
-                };
+                $shortLabel = $date->locale($locale)->translatedFormat('D');
+                $fullLabel = $date->locale($locale)->translatedFormat('D, M j');
             }
+
+            $label = match ($i) {
+                0 => __('telegram.buttons.today', ['date' => $shortLabel]),
+                1 => __('telegram.buttons.yesterday', ['date' => $shortLabel]),
+                default => $fullLabel,
+            };
 
             $buttons->push(
                 Button::make($label)->action('report_day_pick')->param('date', $date->toDateString())->width(0.5)
             );
         }
 
-        $this->chat->message('Choose a day:')
+        $this->chat->message(__('telegram.report.choose_day'))
             ->keyboard($this->withCancelToMenu(Keyboard::make()->buttons($buttons->all())))
             ->send();
     }
@@ -447,7 +448,7 @@ class TelegramHandler extends WebhookHandler
         $entries = $breakdown->entriesFor($user);
 
         if ($entries->isEmpty()) {
-            $this->chat->message('No investments recorded yet. Use Add investment from the menu to get started.')
+            $this->chat->message(__('telegram.portfolio.empty'))
                 ->keyboard($this->mainKeyboard())
                 ->send();
 
@@ -457,18 +458,23 @@ class TelegramHandler extends WebhookHandler
         $currency = $user->default_currency
             ? Currency::from($user->default_currency)
             : Currency::Toman;
-        $currencyLabel = strtoupper($currency->value === 'toman' ? 'T' : $currency->value);
+        $withCurrency = fn (string $formatted): string => __("telegram.amount.{$currency->value}", ['amount' => $formatted]);
         $result = $breakdown->handle($entries, $currency);
         $summary = $result['summary'];
 
         $lines = [];
-        $lines[] = '📊 Portfolio';
+        $lines[] = __('telegram.portfolio.title');
         $lines[] = '';
-        $lines[] = '💰 Net worth: '.$summary['total_current_value_formatted'].' '.$currencyLabel;
+        $lines[] = __('telegram.portfolio.net_worth', [
+            'amount' => $withCurrency($summary['total_current_value_formatted']),
+        ]);
 
         if ($summary['has_cost_basis_data'] && $summary['total_pnl_formatted'] !== null) {
-            $arrow = $summary['total_pnl_is_positive'] ? '▲' : '▼';
-            $lines[] = "P/L: {$arrow} ".$summary['total_pnl_formatted'].' '.$currencyLabel.' ('.$summary['total_pnl_percent'].'%)';
+            $lines[] = __('telegram.portfolio.profit_loss', [
+                'arrow' => $summary['total_pnl_is_positive'] ? '▲' : '▼',
+                'amount' => $withCurrency($summary['total_pnl_formatted']),
+                'percent' => $summary['total_pnl_percent'],
+            ]);
         }
 
         $lines[] = '';
@@ -481,16 +487,16 @@ class TelegramHandler extends WebhookHandler
             $lines[] = $asset['label'].'  '.$qtyDisplay.' '.$asset['unit'];
 
             if ($asset['price_available']) {
-                $valueLine = '→ '.$asset['current_value_formatted'].' '.$currencyLabel;
+                $valueLine = '→ '.$withCurrency($asset['current_value_formatted']);
 
                 if ($asset['pnl'] !== null && $asset['pnl_formatted'] !== null) {
                     $sign = $asset['pnl_is_positive'] ? '+' : '-';
-                    $valueLine .= '  ('.$sign.$asset['pnl_formatted'].' '.$currencyLabel.')';
+                    $valueLine .= '  ('.$sign.$withCurrency($asset['pnl_formatted']).')';
                 }
 
                 $lines[] = $valueLine;
             } else {
-                $lines[] = '→ Price unavailable';
+                $lines[] = __('telegram.portfolio.price_unavailable');
             }
         }
 
@@ -527,7 +533,7 @@ class TelegramHandler extends WebhookHandler
             ->first();
 
         if (! $budget instanceof Budget) {
-            $this->chat->message('No flight plan yet. Create one in CashPilot under Flight plan, then check it here.')
+            $this->chat->message(__('telegram.budget.empty'))
                 ->keyboard($this->mainKeyboard())
                 ->send();
 
@@ -538,38 +544,42 @@ class TelegramHandler extends WebhookHandler
         $currency = $budget->currency;
 
         $lines = [];
-        $lines[] = '🎯 Flight plan — '.$progress['period']['label'];
+        $lines[] = __('telegram.budget.title', ['period' => $progress['period']['label']]);
         $lines[] = '';
-        $lines[] = 'Income: '.$this->fmtAmount((float) $progress['income'], $currency);
-        $lines[] = 'Allocated: '.$this->fmtAmount((float) $progress['allocated'], $currency);
-        $lines[] = 'Spent: '.$this->fmtAmount((float) $progress['actual'], $currency);
+        $lines[] = __('telegram.budget.income', ['amount' => $this->fmtAmount((float) $progress['income'], $currency)]);
+        $lines[] = __('telegram.budget.allocated', ['amount' => $this->fmtAmount((float) $progress['allocated'], $currency)]);
+        $lines[] = __('telegram.budget.spent', ['amount' => $this->fmtAmount((float) $progress['actual'], $currency)]);
 
         if ((float) $progress['over_allocated'] > 0) {
-            $lines[] = '⚠️ Over-allocated by '.$this->fmtAmount((float) $progress['over_allocated'], $currency);
+            $lines[] = __('telegram.budget.over_allocated', [
+                'amount' => $this->fmtAmount((float) $progress['over_allocated'], $currency),
+            ]);
         }
 
         $lines[] = '';
         $lines[] = '───────────';
 
         foreach ($progress['lines'] as $line) {
-            $label = $line['category']['name'] ?? 'Everything else';
+            $label = $line['category']['name'] ?? __('telegram.budget.everything_else');
             $rule = $line['rule_type'] === BudgetRuleType::Percent->value && $line['percent'] !== null
                 ? ' ('.rtrim(rtrim(number_format((float) $line['percent'], 2, '.', ''), '0'), '.').'%)'
                 : '';
 
             $lines[] = '';
             $lines[] = $label.$rule;
-            $lines[] = '→ '.$this->fmtAmount((float) $line['actual'], $currency)
-                .' of '.$this->fmtAmount((float) $line['allocated'], $currency);
+            $lines[] = __('telegram.budget.line_progress', [
+                'actual' => $this->fmtAmount((float) $line['actual'], $currency),
+                'allocated' => $this->fmtAmount((float) $line['allocated'], $currency),
+            ]);
 
             // The number the user actually came for: what is still spendable.
             $lines[] = $line['over']
-                ? '⚠️ '.$this->fmtAmount(abs((float) $line['remaining']), $currency).' over'
-                : '✅ '.$this->fmtAmount((float) $line['remaining'], $currency).' left';
+                ? __('telegram.budget.line_over', ['amount' => $this->fmtAmount(abs((float) $line['remaining']), $currency)])
+                : __('telegram.budget.line_left', ['amount' => $this->fmtAmount((float) $line['remaining'], $currency)]);
         }
 
         $lines[] = '';
-        $lines[] = $progress['period']['days_remaining'].' days left this period.';
+        $lines[] = __('telegram.budget.days_left', ['days' => $progress['period']['days_remaining']]);
 
         $this->chat->message(implode("\n", $lines))->keyboard($this->mainKeyboard())->send();
     }
@@ -592,13 +602,13 @@ class TelegramHandler extends WebhookHandler
         $transaction = Transaction::query()->where('user_id', $user->id)->find($id);
 
         if (! $transaction) {
-            $this->reply('Transaction not found.');
+            $this->reply(__('telegram.transaction.not_found'));
 
             return;
         }
 
         $transaction->delete();
-        $this->reply("Transaction #{$id} deleted.");
+        $this->reply(__('telegram.transaction.deleted', ['id' => $id]));
     }
 
     public function inv_asset(?string $asset = null): void
@@ -622,7 +632,7 @@ class TelegramHandler extends WebhookHandler
             ->first();
 
         if (! $investmentAsset) {
-            $this->chat->message('Investment asset not found. Choose Add investment to start again.')
+            $this->chat->message(__('telegram.investment.asset_not_found'))
                 ->keyboard($this->mainKeyboard())
                 ->send();
 
@@ -636,7 +646,7 @@ class TelegramHandler extends WebhookHandler
         $wizard['step'] = 'quantity';
         $this->chat->storage()->set('inv_wizard', $wizard);
 
-        $this->chat->message("Enter quantity for {$investmentAsset->label()}:")
+        $this->chat->message(__('telegram.investment.enter_quantity', ['asset' => $investmentAsset->label()]))
             ->keyboard($this->cancelToMenuKeyboard())
             ->send();
     }
@@ -659,7 +669,7 @@ class TelegramHandler extends WebhookHandler
         $wizard = $this->chat->storage()->get('inv_wizard', []);
 
         if (! $currency || ($wizard['step'] ?? '') !== 'cost_basis_currency') {
-            $this->chat->message('The investment draft expired. Choose Add investment to start again.')
+            $this->chat->message(__('telegram.investment.draft_expired'))
                 ->keyboard($this->mainKeyboard())
                 ->send();
 
@@ -677,7 +687,7 @@ class TelegramHandler extends WebhookHandler
         ]);
 
         $this->chat->storage()->forget('inv_wizard');
-        $this->chat->message('Investment saved.')->keyboard($this->mainKeyboard())->send();
+        $this->chat->message(__('telegram.investment.saved'))->keyboard($this->mainKeyboard())->send();
     }
 
     protected function handleChatMessage(\Stringable $text): void
@@ -686,7 +696,7 @@ class TelegramHandler extends WebhookHandler
         $user = $this->resolveUser();
 
         if (! $user) {
-            $this->chat->message('Please link your account first via Settings > Telegram in the app.')->send();
+            $this->chat->message(__('telegram.link.link_first'))->send();
 
             return;
         }
@@ -730,7 +740,7 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
-        $this->chat->message('Choose an action:')->keyboard($this->mainKeyboard())->send();
+        $this->chat->message(__('telegram.menu.choose_action'))->keyboard($this->mainKeyboard())->send();
     }
 
     private function handleTransactionWizard(array $wizard, string $text, User $user): void
@@ -738,7 +748,7 @@ class TelegramHandler extends WebhookHandler
         switch ($wizard['step']) {
             case 'amount':
                 if (! is_numeric($text)) {
-                    $this->chat->message('Please enter a valid number.')
+                    $this->chat->message(__('telegram.shared.invalid_number'))
                         ->keyboard($this->cancelToMenuKeyboard())
                         ->send();
 
@@ -749,19 +759,19 @@ class TelegramHandler extends WebhookHandler
                 $wizard['step'] = 'currency';
                 $this->chat->storage()->set('wizard', $wizard);
 
-                $this->chat->message('Choose a currency:')
+                $this->chat->message(__('telegram.shared.choose_currency'))
                     ->keyboard($this->currencyKeyboard())
                     ->send();
                 break;
 
             case 'currency':
-                $this->chat->message('Please choose a currency using the buttons above.')
+                $this->chat->message(__('telegram.shared.use_currency_buttons'))
                     ->keyboard($this->currencyKeyboard())
                     ->send();
                 break;
 
             case 'category':
-                $this->chat->message('Please choose a category using the buttons above.')
+                $this->chat->message(__('telegram.shared.use_category_buttons'))
                     ->keyboard($this->cancelToMenuKeyboard())
                     ->send();
                 break;
@@ -772,14 +782,14 @@ class TelegramHandler extends WebhookHandler
                 $this->chat->storage()->set('wizard', $wizard);
 
                 $keyboard = Keyboard::make()
-                    ->button('Confirm')->action('confirm_tx')->param('ok', '1')
-                    ->button('Cancel')->action('cancel_tx')->param('ok', '0');
+                    ->button(__('telegram.buttons.confirm'))->action('confirm_tx')->param('ok', '1')
+                    ->button(__('telegram.buttons.cancel'))->action('cancel_tx')->param('ok', '0');
 
-                $summary = "*Confirm transaction:*\n".
-                    "Type: {$wizard['type']}\n".
-                    'Amount: '.$this->formatWizardAmount($wizard)."\n".
-                    "Title: {$wizard['title']}\n".
-                    'Date: today';
+                $summary = __('telegram.transaction.confirm', [
+                    'type' => __("telegram.transaction.types.{$wizard['type']}"),
+                    'amount' => $this->formatWizardAmount($wizard),
+                    'title' => $wizard['title'],
+                ]);
 
                 $this->chat->message($summary)->keyboard($keyboard)->send();
                 break;
@@ -790,7 +800,7 @@ class TelegramHandler extends WebhookHandler
     {
         if ($wizard['step'] === 'quantity') {
             if (! is_numeric($text) || (float) $text <= 0) {
-                $this->chat->message('Please enter a valid positive number.')
+                $this->chat->message(__('telegram.shared.invalid_positive_number'))
                     ->keyboard($this->cancelToMenuKeyboard())
                     ->send();
 
@@ -801,7 +811,7 @@ class TelegramHandler extends WebhookHandler
             $wizard['step'] = 'cost_basis';
             $this->chat->storage()->set('inv_wizard', $wizard);
 
-            $this->chat->message('Enter cost basis per unit. Send 0 to skip.')
+            $this->chat->message(__('telegram.investment.enter_cost_basis'))
                 ->keyboard($this->cancelToMenuKeyboard())
                 ->send();
 
@@ -816,7 +826,7 @@ class TelegramHandler extends WebhookHandler
                 $wizard['step'] = 'cost_basis_currency';
                 $this->chat->storage()->set('inv_wizard', $wizard);
 
-                $this->chat->message('Select the currency for the cost basis:')
+                $this->chat->message(__('telegram.investment.choose_cost_basis_currency'))
                     ->keyboard($this->invCurrencyKeyboard())
                     ->send();
 
@@ -833,7 +843,7 @@ class TelegramHandler extends WebhookHandler
             ]);
 
             $this->chat->storage()->forget('inv_wizard');
-            $this->chat->message('Investment saved.')->keyboard($this->mainKeyboard())->send();
+            $this->chat->message(__('telegram.investment.saved'))->keyboard($this->mainKeyboard())->send();
         }
     }
 
@@ -847,7 +857,7 @@ class TelegramHandler extends WebhookHandler
                 $title = trim($text);
 
                 if ($title === '') {
-                    $this->chat->message('Please enter a non-empty title.')
+                    $this->chat->message(__('telegram.bill.empty_title'))
                         ->keyboard($this->cancelToMenuKeyboard())
                         ->send();
 
@@ -858,14 +868,14 @@ class TelegramHandler extends WebhookHandler
                 $wizard['step'] = 'amount';
                 $this->chat->storage()->set('bill_wizard', $wizard);
 
-                $this->chat->message('Enter the amount, for example: 500000')
+                $this->chat->message(__('telegram.bill.enter_amount'))
                     ->keyboard($this->cancelToMenuKeyboard())
                     ->send();
                 break;
 
             case 'amount':
                 if (! is_numeric($text) || (float) $text <= 0) {
-                    $this->chat->message('Please enter a valid positive number.')
+                    $this->chat->message(__('telegram.shared.invalid_positive_number'))
                         ->keyboard($this->cancelToMenuKeyboard())
                         ->send();
 
@@ -876,25 +886,25 @@ class TelegramHandler extends WebhookHandler
                 $wizard['step'] = 'currency';
                 $this->chat->storage()->set('bill_wizard', $wizard);
 
-                $this->chat->message('Choose a currency:')
+                $this->chat->message(__('telegram.shared.choose_currency'))
                     ->keyboard($this->billCurrencyKeyboard())
                     ->send();
                 break;
 
             case 'currency':
-                $this->chat->message('Please choose a currency using the buttons above.')
+                $this->chat->message(__('telegram.shared.use_currency_buttons'))
                     ->keyboard($this->billCurrencyKeyboard())
                     ->send();
                 break;
 
             case 'category':
-                $this->chat->message('Please choose a category using the buttons above.')
+                $this->chat->message(__('telegram.shared.use_category_buttons'))
                     ->keyboard($this->cancelToMenuKeyboard())
                     ->send();
                 break;
 
             case 'recurrence':
-                $this->chat->message('Please choose monthly or one-time using the buttons above.')
+                $this->chat->message(__('telegram.bill.use_recurrence_buttons'))
                     ->keyboard($this->billRecurrenceKeyboard())
                     ->send();
                 break;
@@ -903,7 +913,7 @@ class TelegramHandler extends WebhookHandler
                 $trimmed = trim($text);
 
                 if (! ctype_digit($trimmed) || (int) $trimmed < 1 || (int) $trimmed > 31) {
-                    $this->chat->message('Please enter a valid day of month (1-31).')
+                    $this->chat->message(__('telegram.bill.invalid_due_day'))
                         ->keyboard($this->cancelToMenuKeyboard())
                         ->send();
 
@@ -921,7 +931,7 @@ class TelegramHandler extends WebhookHandler
                 $date = $this->parseBillDate($text);
 
                 if ($date === null) {
-                    $this->chat->message('Please enter a valid date as YYYY-MM-DD, for example: 2026-08-01')
+                    $this->chat->message(__('telegram.bill.invalid_due_date'))
                         ->keyboard($this->cancelToMenuKeyboard())
                         ->send();
 
@@ -943,17 +953,18 @@ class TelegramHandler extends WebhookHandler
     private function sendBillConfirmation(array $wizard): void
     {
         $keyboard = Keyboard::make()
-            ->button('Confirm')->action('confirm_bill')->param('ok', '1')
-            ->button('Cancel')->action('cancel_bill')->param('ok', '0');
+            ->button(__('telegram.buttons.confirm'))->action('confirm_bill')->param('ok', '1')
+            ->button(__('telegram.buttons.cancel'))->action('cancel_bill')->param('ok', '0');
 
         $recurrence = $wizard['recurrence_type'] === BillRecurrenceType::Monthly->value
-            ? 'Monthly — day '.$wizard['due_day_of_month']
-            : 'One-time — '.$wizard['due_date'];
+            ? __('telegram.bill.recurrence_monthly', ['day' => $wizard['due_day_of_month']])
+            : __('telegram.bill.recurrence_one_time', ['date' => $wizard['due_date']]);
 
-        $summary = "*Confirm bill:*\n".
-            "Title: {$wizard['title']}\n".
-            'Amount: '.$this->fmtAmount((float) $wizard['amount'], Currency::from($wizard['currency']))."\n".
-            "Recurrence: {$recurrence}";
+        $summary = __('telegram.bill.confirm', [
+            'title' => $wizard['title'],
+            'amount' => $this->fmtAmount((float) $wizard['amount'], Currency::from($wizard['currency'])),
+            'recurrence' => $recurrence,
+        ]);
 
         $this->chat->message($summary)->keyboard($keyboard)->send();
     }
@@ -992,7 +1003,7 @@ class TelegramHandler extends WebhookHandler
         $wizard = $this->chat->storage()->get('bill_wizard', []);
 
         if (! $currency || ! isset($wizard['amount'], $wizard['title'])) {
-            $this->chat->message('The bill draft expired. Choose Add bill to start again.')
+            $this->chat->message(__('telegram.bill.draft_expired'))
                 ->keyboard($this->mainKeyboard())
                 ->send();
 
@@ -1011,7 +1022,7 @@ class TelegramHandler extends WebhookHandler
             ->get();
 
         $keyboard = Keyboard::make()
-            ->button('No category')->action('bill_pick_category')->param('cat_id', '0')->width(1);
+            ->button(__('telegram.buttons.no_category'))->action('bill_pick_category')->param('cat_id', '0')->width(1);
 
         foreach ($categories as $category) {
             $keyboard = $keyboard
@@ -1021,7 +1032,7 @@ class TelegramHandler extends WebhookHandler
                 ->width(0.5);
         }
 
-        $this->chat->message('Choose a category:')->keyboard($this->withCancelToMenu($keyboard))->send();
+        $this->chat->message(__('telegram.shared.choose_category'))->keyboard($this->withCancelToMenu($keyboard))->send();
     }
 
     public function bill_pick_category(?string $cat_id = null): void
@@ -1042,7 +1053,7 @@ class TelegramHandler extends WebhookHandler
         $wizard = $this->chat->storage()->get('bill_wizard', []);
 
         if (! isset($wizard['amount'], $wizard['currency'], $wizard['title'])) {
-            $this->chat->message('The bill draft expired. Choose Add bill to start again.')
+            $this->chat->message(__('telegram.bill.draft_expired'))
                 ->keyboard($this->mainKeyboard())
                 ->send();
 
@@ -1053,7 +1064,7 @@ class TelegramHandler extends WebhookHandler
         $wizard['step'] = 'recurrence';
         $this->chat->storage()->set('bill_wizard', $wizard);
 
-        $this->chat->message('Choose recurrence:')->keyboard($this->billRecurrenceKeyboard())->send();
+        $this->chat->message(__('telegram.bill.choose_recurrence'))->keyboard($this->billRecurrenceKeyboard())->send();
     }
 
     public function bill_pick_recurrence(?string $type = null): void
@@ -1075,7 +1086,7 @@ class TelegramHandler extends WebhookHandler
         $wizard = $this->chat->storage()->get('bill_wizard', []);
 
         if (! $recurrence || ! isset($wizard['amount'], $wizard['currency'], $wizard['title'])) {
-            $this->chat->message('The bill draft expired. Choose Add bill to start again.')
+            $this->chat->message(__('telegram.bill.draft_expired'))
                 ->keyboard($this->mainKeyboard())
                 ->send();
 
@@ -1087,7 +1098,7 @@ class TelegramHandler extends WebhookHandler
         if ($recurrence === BillRecurrenceType::Monthly) {
             $wizard['step'] = 'due_day';
             $this->chat->storage()->set('bill_wizard', $wizard);
-            $this->chat->message('Enter the day of month it is due (1-31):')
+            $this->chat->message(__('telegram.bill.enter_due_day'))
                 ->keyboard($this->cancelToMenuKeyboard())
                 ->send();
 
@@ -1096,7 +1107,7 @@ class TelegramHandler extends WebhookHandler
 
         $wizard['step'] = 'due_date';
         $this->chat->storage()->set('bill_wizard', $wizard);
-        $this->chat->message('Enter the due date as YYYY-MM-DD, for example: 2026-08-01')
+        $this->chat->message(__('telegram.bill.enter_due_date'))
             ->keyboard($this->cancelToMenuKeyboard())
             ->send();
     }
@@ -1118,7 +1129,7 @@ class TelegramHandler extends WebhookHandler
         $wizard = $this->chat->storage()->get('bill_wizard', []);
 
         if (empty($wizard) || ! isset($wizard['title'], $wizard['amount'], $wizard['currency'], $wizard['recurrence_type'])) {
-            $this->reply('No active bill draft. Choose Add bill to start again.');
+            $this->reply(__('telegram.bill.none_active'));
 
             return;
         }
@@ -1137,7 +1148,7 @@ class TelegramHandler extends WebhookHandler
         app(SyncBillOccurrence::class)->ensureInitial($bill);
 
         $this->chat->storage()->forget('bill_wizard');
-        $this->chat->message("Bill \"{$bill->title}\" saved.")->keyboard($this->mainKeyboard())->send();
+        $this->chat->message(__('telegram.bill.saved', ['title' => $bill->title]))->keyboard($this->mainKeyboard())->send();
     }
 
     public function cancel_bill(): void
@@ -1153,7 +1164,7 @@ class TelegramHandler extends WebhookHandler
         }
 
         $this->clearActiveWizards();
-        $this->chat->message('Cancelled.')->keyboard($this->mainKeyboard())->send();
+        $this->chat->message(__('telegram.menu.cancelled'))->keyboard($this->mainKeyboard())->send();
     }
 
     public function pick_category(?string $cat_id = null): void
@@ -1174,7 +1185,7 @@ class TelegramHandler extends WebhookHandler
         $wizard = $this->chat->storage()->get('wizard', []);
 
         if (! isset($wizard['amount'], $wizard['currency'], $wizard['type'])) {
-            $this->chat->message('The transaction draft expired. Choose Add cost or Add income to start again.')
+            $this->chat->message(__('telegram.transaction.draft_expired'))
                 ->keyboard($this->mainKeyboard())
                 ->send();
 
@@ -1185,7 +1196,7 @@ class TelegramHandler extends WebhookHandler
         $wizard['step'] = 'title';
         $this->chat->storage()->set('wizard', $wizard);
 
-        $this->chat->message('Enter a title for this transaction:')
+        $this->chat->message(__('telegram.transaction.enter_title'))
             ->keyboard($this->cancelToMenuKeyboard())
             ->send();
     }
@@ -1209,7 +1220,7 @@ class TelegramHandler extends WebhookHandler
         $wizard = $this->chat->storage()->get('wizard', []);
 
         if (! $currency || ! isset($wizard['amount'], $wizard['type'])) {
-            $this->chat->message('The transaction draft expired. Choose Add cost or Add income to start again.')
+            $this->chat->message(__('telegram.transaction.draft_expired'))
                 ->keyboard($this->mainKeyboard())
                 ->send();
 
@@ -1237,7 +1248,7 @@ class TelegramHandler extends WebhookHandler
                 ->width(0.5);
         }
 
-        $this->chat->message('Choose a category:')
+        $this->chat->message(__('telegram.shared.choose_category'))
             ->keyboard($this->withCancelToMenu($keyboard))
             ->send();
     }
@@ -1259,7 +1270,7 @@ class TelegramHandler extends WebhookHandler
         $wizard = $this->chat->storage()->get('wizard', []);
 
         if (empty($wizard)) {
-            $this->reply('No active transaction. Choose Add cost or Add income.');
+            $this->reply(__('telegram.transaction.none_active'));
 
             return;
         }
@@ -1275,7 +1286,7 @@ class TelegramHandler extends WebhookHandler
         ]);
 
         $this->chat->storage()->forget('wizard');
-        $this->chat->message('Transaction saved.')->keyboard($this->mainKeyboard())->send();
+        $this->chat->message(__('telegram.transaction.saved'))->keyboard($this->mainKeyboard())->send();
     }
 
     public function cancel_tx(): void
@@ -1291,7 +1302,7 @@ class TelegramHandler extends WebhookHandler
         }
 
         $this->clearActiveWizards();
-        $this->chat->message('Cancelled.')->keyboard($this->mainKeyboard())->send();
+        $this->chat->message(__('telegram.menu.cancelled'))->keyboard($this->mainKeyboard())->send();
     }
 
     public function cancel_current(): void
@@ -1307,7 +1318,7 @@ class TelegramHandler extends WebhookHandler
         }
 
         $this->clearActiveWizards();
-        $this->chat->message('Cancelled. Choose an action:')->keyboard($this->mainKeyboard())->send();
+        $this->chat->message(__('telegram.menu.cancelled_choose_action'))->keyboard($this->mainKeyboard())->send();
     }
 
     private function linkAccount(string $token): void
@@ -1315,7 +1326,7 @@ class TelegramHandler extends WebhookHandler
         $user = User::query()->where('telegram_connect_token', $token)->first();
 
         if (! $user) {
-            $this->chat->message('Invalid or expired link. Please generate a new one from the app.')->send();
+            $this->chat->message(__('telegram.link.invalid_token'))->send();
 
             return;
         }
@@ -1327,15 +1338,15 @@ class TelegramHandler extends WebhookHandler
 
         $this->resolvedUser = $user->refresh();
         $this->userResolved = true;
+        $this->applyUserLocale();
 
         if ($this->featureLocked($user, Feature::TelegramBot)) {
             return;
         }
 
-        $this->chat->message(
-            "*Account linked successfully!*\n\n".
-            "Welcome, {$user->name}. Choose an action:"
-        )->keyboard($this->mainKeyboard())->send();
+        $this->chat->message(__('telegram.link.success', ['name' => $user->name]))
+            ->keyboard($this->mainKeyboard())
+            ->send();
     }
 
     private function resolveUser(): ?User
@@ -1343,9 +1354,26 @@ class TelegramHandler extends WebhookHandler
         if (! $this->userResolved) {
             $this->resolvedUser = User::query()->where('telegram_chat_id', (string) $this->chat->chat_id)->first();
             $this->userResolved = true;
+            $this->applyUserLocale();
         }
 
         return $this->resolvedUser;
+    }
+
+    /**
+     * A webhook carries no session, so nothing has set a locale for this request.
+     * The account behind the chat id is the only thing that knows which language
+     * the reply belongs in, so apply it the moment that account is known — before
+     * any message or button label is built.
+     */
+    private function applyUserLocale(): void
+    {
+        app()->setLocale($this->locale());
+    }
+
+    private function locale(): string
+    {
+        return FrontendLocalization::normalizeLocale($this->resolvedUser?->locale);
     }
 
     /**
@@ -1375,10 +1403,7 @@ class TelegramHandler extends WebhookHandler
 
     private function sendNotLinked(): void
     {
-        $this->chat->message(
-            "Your Telegram is not linked to an account.\n\n".
-            'Go to Settings > Telegram in the app to connect.'
-        )->send();
+        $this->chat->message(__('telegram.link.not_linked'))->send();
     }
 
     private function sendHelp(User $user): void
@@ -1387,10 +1412,9 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
-        $this->chat->message(
-            "Hello, *{$user->name}*.\n\n".
-            'Choose an action:'
-        )->keyboard($this->mainKeyboard())->send();
+        $this->chat->message(__('telegram.menu.greeting', ['name' => $user->name]))
+            ->keyboard($this->mainKeyboard())
+            ->send();
     }
 
     /**
@@ -1424,68 +1448,65 @@ class TelegramHandler extends WebhookHandler
         }
 
         $buttons = [
-            Button::make('Add cost')->action('add_cost')->width(0.5),
-            Button::make('Add income')->action('add_income')->width(0.5),
-            Button::make('Last 10 transactions')->action('list')->width(0.5),
+            Button::make(__('telegram.buttons.add_cost'))->action('add_cost')->width(0.5),
+            Button::make(__('telegram.buttons.add_income'))->action('add_income')->width(0.5),
+            Button::make(__('telegram.buttons.list_transactions'))->action('list')->width(0.5),
         ];
 
         if ($user?->hasFeature(Feature::Investments)) {
-            $buttons[] = Button::make('Add investment')->action('add_investment')->width(0.5);
+            $buttons[] = Button::make(__('telegram.buttons.add_investment'))->action('add_investment')->width(0.5);
         }
 
         if ($user?->hasFeature(Feature::Bills)) {
-            $buttons[] = Button::make('Add bill')->action('add_bill')->width(0.5);
-            $buttons[] = Button::make('My bills')->action('list_bills')->width(0.5);
+            $buttons[] = Button::make(__('telegram.buttons.add_bill'))->action('add_bill')->width(0.5);
+            $buttons[] = Button::make(__('telegram.buttons.list_bills'))->action('list_bills')->width(0.5);
         }
 
         if ($user?->hasFeature(Feature::Portfolio)) {
-            $buttons[] = Button::make('Portfolio')->action('portfolio')->width(0.5);
+            $buttons[] = Button::make(__('telegram.buttons.portfolio'))->action('portfolio')->width(0.5);
         }
 
         if ($user?->hasFeature(Feature::Budgets)) {
-            $buttons[] = Button::make('Flight plan')->action('budget')->width(0.5);
+            $buttons[] = Button::make(__('telegram.buttons.budget'))->action('budget')->width(0.5);
         }
 
         if ($user?->hasFeature(Feature::Gamification)) {
-            $buttons[] = Button::make('Nothing spent today')->action('no_spend')->width(0.5);
+            $buttons[] = Button::make(__('telegram.buttons.no_spend'))->action('no_spend')->width(0.5);
         }
 
         // Reports are core — always offered.
-        $buttons[] = Button::make('Daily report')->action('report_daily')->width(0.5);
-        $buttons[] = Button::make('Weekly report')->action('report_week')->width(0.5);
-        $buttons[] = Button::make('Monthly report')->action('report_month')->width(0.5);
+        $buttons[] = Button::make(__('telegram.buttons.report_daily'))->action('report_daily')->width(0.5);
+        $buttons[] = Button::make(__('telegram.buttons.report_weekly'))->action('report_week')->width(0.5);
+        $buttons[] = Button::make(__('telegram.buttons.report_monthly'))->action('report_month')->width(0.5);
 
         return Keyboard::make()->buttons($buttons);
     }
 
     private function currencyKeyboard(): Keyboard
     {
-        return $this->withCancelToMenu(Keyboard::make()->buttons(
-            collect(Currency::cases())
-                ->map(fn (Currency $currency): Button => Button::make(strtoupper($currency->value))
-                    ->action('pick_currency')
-                    ->param('currency', $currency->value)
-                    ->width(1 / 3))
-        ));
+        return $this->currencyKeyboardFor('pick_currency');
     }
 
     private function billCurrencyKeyboard(): Keyboard
     {
-        return $this->withCancelToMenu(Keyboard::make()->buttons(
-            collect(Currency::cases())
-                ->map(fn (Currency $currency): Button => Button::make(strtoupper($currency->value))
-                    ->action('bill_pick_currency')
-                    ->param('currency', $currency->value)
-                    ->width(1 / 3))
-        ));
+        return $this->currencyKeyboardFor('bill_pick_currency');
     }
 
     private function invCurrencyKeyboard(): Keyboard
     {
+        return $this->currencyKeyboardFor('inv_pick_currency');
+    }
+
+    /**
+     * Currency names come from the shared finance strings the web app uses, so a
+     * Persian user is offered "تومان" here and on the transactions page alike.
+     */
+    private function currencyKeyboardFor(string $action): Keyboard
+    {
         return $this->withCancelToMenu(Keyboard::make()->buttons(
             collect(Currency::cases())
-                ->map(fn (Currency $currency): Button => Button::make(strtoupper($currency->value))
-                    ->action('inv_pick_currency')
+                ->map(fn (Currency $currency): Button => Button::make(__("finance.currencies.{$currency->value}"))
+                    ->action($action)
                     ->param('currency', $currency->value)
                     ->width(1 / 3))
         ));
@@ -1495,23 +1516,20 @@ class TelegramHandler extends WebhookHandler
     {
         return $this->withCancelToMenu(
             Keyboard::make()
-                ->button('Monthly')->action('bill_pick_recurrence')->param('type', BillRecurrenceType::Monthly->value)->width(0.5)
-                ->button('One-time')->action('bill_pick_recurrence')->param('type', BillRecurrenceType::OneTime->value)->width(0.5)
+                ->button(__('telegram.buttons.monthly'))->action('bill_pick_recurrence')->param('type', BillRecurrenceType::Monthly->value)->width(0.5)
+                ->button(__('telegram.buttons.one_time'))->action('bill_pick_recurrence')->param('type', BillRecurrenceType::OneTime->value)->width(0.5)
         );
     }
 
     private function cancelToMenuKeyboard(): Keyboard
     {
-        return Keyboard::make()
-            ->button('Cancel and menu')
-            ->action('cancel_current')
-            ->width(1);
+        return $this->withCancelToMenu(Keyboard::make());
     }
 
     private function withCancelToMenu(Keyboard $keyboard): Keyboard
     {
         return $keyboard
-            ->button('Cancel and menu')
+            ->button(__('telegram.buttons.cancel_to_menu'))
             ->action('cancel_current')
             ->width(1);
     }
@@ -1519,7 +1537,7 @@ class TelegramHandler extends WebhookHandler
     private function withBackToMenu(Keyboard $keyboard): Keyboard
     {
         return $keyboard
-            ->button('Back to menu')
+            ->button(__('telegram.buttons.back_to_menu'))
             ->action('help')
             ->width(1);
     }
@@ -1544,11 +1562,12 @@ class TelegramHandler extends WebhookHandler
 
     private function fmtAmount(float $amount, Currency $currency): string
     {
-        return match ($currency) {
-            Currency::Toman => number_format((int) round($amount), 0, '.', ',').' T',
-            Currency::Usd => '$'.number_format($amount, 2, '.', ','),
-            Currency::Eur => '€'.number_format($amount, 2, '.', ','),
+        $formatted = match ($currency) {
+            Currency::Toman => number_format((int) round($amount), 0, '.', ','),
+            Currency::Usd, Currency::Eur => number_format($amount, 2, '.', ','),
         };
+
+        return __("telegram.amount.{$currency->value}", ['amount' => $formatted]);
     }
 
     private function deleteKeyboardIfCallback(): void

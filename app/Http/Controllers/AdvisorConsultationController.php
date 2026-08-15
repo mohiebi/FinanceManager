@@ -10,6 +10,7 @@ use App\Services\Advisor\AdvisorCanonicalJson;
 use App\Services\Advisor\AdvisorExecutionTimeLimiter;
 use App\Support\Encryption\EncryptedValue;
 use App\Support\Encryption\SealedField;
+use App\Support\FrontendLocalization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -60,6 +61,7 @@ class AdvisorConsultationController extends Controller
                 ])->all(),
             'user_question' => $request->validated('message'),
             'knowledge_mode' => 'model_only',
+            'response_language' => FrontendLocalization::languageName($request->user()->locale),
         ];
 
         try {

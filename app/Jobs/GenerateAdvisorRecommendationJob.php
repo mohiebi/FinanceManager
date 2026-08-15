@@ -38,6 +38,18 @@ class GenerateAdvisorRecommendationJob implements ShouldBeEncrypted, ShouldQueue
     public int $tries = 1;
 
     /**
+     * Long enough for the whole provider call, carried on the job rather than
+     * left to the worker's `--timeout` flag.
+     *
+     * A worker started without that flag kills its job after 60 seconds, which
+     * is a fifth of what this one is allowed to take — and the queue this lands
+     * on has no explicit onQueue(), so the worker that picks it up is whichever
+     * one happens to drain `default`. The job's own timeout wins over the
+     * worker's, so stating it here removes that dependency entirely.
+     */
+    public int $timeout;
+
+    /**
      * @param  array<string, string|bool>  $clarificationAnswers
      * @param  array<int, array<string, mixed>>  $acceptedAssets
      */
@@ -45,7 +57,9 @@ class GenerateAdvisorRecommendationJob implements ShouldBeEncrypted, ShouldQueue
         public readonly AdvisorRecommendation $recommendation,
         public readonly array $clarificationAnswers = [],
         public readonly array $acceptedAssets = [],
-    ) {}
+    ) {
+        $this->timeout = $this->maximumSeconds();
+    }
 
     /**
      * Outlive the provider call itself, or the worker would kill the job at the
@@ -53,9 +67,13 @@ class GenerateAdvisorRecommendationJob implements ShouldBeEncrypted, ShouldQueue
      */
     public function retryUntil(): \DateTimeInterface
     {
-        return now()->addSeconds(
-            (int) config('advisor.timeout') + (int) config('advisor.execution_time_buffer'),
-        );
+        return now()->addSeconds($this->maximumSeconds());
+    }
+
+    /** The longest this job may reasonably occupy a worker. */
+    public function maximumSeconds(): int
+    {
+        return (int) config('advisor.timeout') + (int) config('advisor.execution_time_buffer');
     }
 
     public function handle(AdvisorRecommendationService $service): void

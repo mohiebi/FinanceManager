@@ -65,3 +65,23 @@ test('every locale defines the same client-rendered keys', function () {
         }
     }
 });
+
+test('every advisor assessment option has a translation', function () {
+    $definition = json_decode(
+        file_get_contents(resource_path('js/lib/advisor/scoring-v1.json')),
+        true,
+        flags: JSON_THROW_ON_ERROR,
+    );
+    $translations = require resource_path('lang/en/advisor.php');
+    $translatedOptions = array_keys($translations['options']);
+
+    foreach ($definition['questions'] as $questionKey => $question) {
+        foreach (['options', 'proportion_options', 'speed_options'] as $optionGroup) {
+            $missingOptions = array_diff($question[$optionGroup] ?? [], $translatedOptions);
+
+            expect($missingOptions)->toBeEmpty(
+                "{$questionKey}.{$optionGroup} contains options without advisor translations"
+            );
+        }
+    }
+});

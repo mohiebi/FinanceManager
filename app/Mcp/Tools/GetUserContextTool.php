@@ -30,6 +30,8 @@ class GetUserContextTool extends Tool
         return Response::structured([
             'name' => $user->name,
             'locale' => $user->locale,
+            'language' => FrontendLocalization::languageName($user->locale),
+            'language_handling' => 'Write every reply to this user in the language named by `language`, whatever language they write in, unless they explicitly ask for another one. Category, bill, asset, and goal names are reproduced exactly as stored, never translated.',
             'calendar' => $calendar,
             'default_currency' => CurrencyPreference::resolveFor($user)->value,
             'today_gregorian' => $today->toDateString(),

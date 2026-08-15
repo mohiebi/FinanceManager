@@ -34,7 +34,7 @@ class UserFactory extends Factory
             'locale' => 'en',
             'calendar' => 'gregorian',
             'timezone' => 'UTC',
-            'flight_terminology_enabled' => true,
+            'flight_terminology_enabled' => false,
             'streak_nudge_enabled' => false,
             'bill_advance_reminder_enabled' => true,
             // Declared even though it is null: a DB default is not present on a

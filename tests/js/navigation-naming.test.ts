@@ -22,7 +22,8 @@ const budgets = source('../../resources/js/pages/Budgets.vue');
 
 test('navigation resolves exactly one naming vocabulary from the user preference', () => {
     assert.match(naming, /flightTerminologyEnabled/);
-    assert.match(naming, /page\.props\.flightTerminologyEnabled !== false/);
+    // Opt-in: an absent prop must resolve to standard names, not flight ones.
+    assert.match(naming, /page\.props\.flightTerminologyEnabled === true/);
     assert.match(moduleNavigation, /useNavigationNaming/);
     assert.doesNotMatch(moduleNavigation, /subtitle\s*:/);
     assert.doesNotMatch(sidebar, /item\.subtitle/);

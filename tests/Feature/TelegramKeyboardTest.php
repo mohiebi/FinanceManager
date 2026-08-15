@@ -106,7 +106,7 @@ test('telegram bill wizard offers currency choices', function () {
     ])->all())->toBe([
         ['text' => 'TOMAN', 'callback_data' => 'action:bill_pick_currency;currency:toman'],
         ['text' => 'USD', 'callback_data' => 'action:bill_pick_currency;currency:usd'],
-        ['text' => 'EUR', 'callback_data' => 'action:bill_pick_currency;currency:eur'],
+        ['text' => 'EURO', 'callback_data' => 'action:bill_pick_currency;currency:eur'],
         ['text' => 'Cancel and menu', 'callback_data' => 'action:cancel_current'],
     ]);
 });
@@ -124,7 +124,7 @@ test('telegram transaction wizard offers currency choices', function () {
     ])->all())->toBe([
         ['text' => 'TOMAN', 'callback_data' => 'action:pick_currency;currency:toman'],
         ['text' => 'USD', 'callback_data' => 'action:pick_currency;currency:usd'],
-        ['text' => 'EUR', 'callback_data' => 'action:pick_currency;currency:eur'],
+        ['text' => 'EURO', 'callback_data' => 'action:pick_currency;currency:eur'],
         ['text' => 'Cancel and menu', 'callback_data' => 'action:cancel_current'],
     ]);
 });

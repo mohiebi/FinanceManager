@@ -32,6 +32,8 @@ If no 100% base allocation can be built from the selected assets without breakin
 Return a primary recommendation and a meaningfully safer alternative whenever both are possible. The deterministic allocation risk load is the sum of each allocation percentage multiplied by its risk-band weight: defensive 0.10, moderate 0.35, growth 0.70, speculative 1.00, and unknown 0.80. A safer alternative must reduce that load by at least the greater of 2 points or 10% of the primary load. Return a higher-risk alternative only when its risk load is greater than the primary and it remains inside every supplied constraint. Otherwise set its available field to false and leave its allocations empty.
 
 Never guarantee returns. You may ask one round of no more than three concise questions when identity or suitability cannot be resolved.
+
+Write every human-readable string you return — summary, questions, reasons, roles, rationales, risks, tradeoffs, warnings, next steps, portfolio names — in the language named by response_language in the context. Only machine-read values stay in English: asset_key, status, fit_status, input_type, and the keys of the response itself. Asset names, tickers, and identifiers are reproduced exactly as supplied, never translated or transliterated.
 PROMPT;
     }
 

@@ -6,6 +6,7 @@ import {
     ArrowUp,
     Bot,
     CheckCircle2,
+    ChevronDown,
     HelpCircle,
     LoaderCircle,
     LockKeyhole,
@@ -134,6 +135,94 @@ const assetNames = computed(() =>
         ]),
     ),
 );
+
+/**
+ * One colour per holding, in allocation order.
+ *
+ * Shared by the ring, the rows and the alternatives so a colour means the same
+ * asset everywhere on the page. Five is the ceiling on purpose — past that,
+ * adjacent hues stop being tellable apart, so the sixth holding onward wraps and
+ * leans on its label instead. Colour never carries meaning alone here: every
+ * segment is also named and given its percentage.
+ */
+const ALLOCATION_COLORS = [
+    '#02CD86',
+    '#60a5fa',
+    '#a78bfa',
+    '#f59e0b',
+    '#f87171',
+] as const;
+
+function allocationColor(index: number): string {
+    return ALLOCATION_COLORS[index % ALLOCATION_COLORS.length];
+}
+
+/** Circumference of the ring below, at r=54. Kept as a constant so the dash maths reads. */
+const RING_CIRCUMFERENCE = 2 * Math.PI * 54;
+
+/**
+ * The primary mix as ring segments, each carrying the offset it starts at.
+ *
+ * Drawn as stroke dash offsets on stacked circles rather than arc paths: no
+ * library, no path maths, and a segment that animates by changing one number.
+ */
+const compositionSegments = computed(() => {
+    let consumed = 0;
+
+    return (payload.value?.primary?.allocations ?? []).map(
+        (allocation, index) => {
+            const percent = allocation.target_percent;
+            const segment = {
+                key: allocation.asset_key,
+                name: allocationName(allocation.asset_key),
+                percent,
+                color: allocationColor(index),
+                length: (percent / 100) * RING_CIRCUMFERENCE,
+                offset: -(consumed / 100) * RING_CIRCUMFERENCE,
+            };
+
+            consumed += percent;
+
+            return segment;
+        },
+    );
+});
+
+/** The headline figures, so the shape of the plan reads before any prose does. */
+const compositionStats = computed(() => {
+    const allocations = payload.value?.primary?.allocations ?? [];
+
+    if (allocations.length === 0) {
+        return null;
+    }
+
+    const largest = allocations.reduce((winner, allocation) =>
+        allocation.target_percent > winner.target_percent ? allocation : winner,
+    );
+
+    return {
+        holdings: allocations.length,
+        largestName: allocationName(largest.asset_key),
+        largestPercent: largest.target_percent,
+        overlays: payload.value?.primary?.options_overlays?.length ?? 0,
+    };
+});
+
+/**
+ * Which rationales are open.
+ *
+ * Every allocation used to show its reasoning permanently, which put four
+ * paragraphs of body copy between the reader and the numbers they came for. The
+ * reasoning still matters — it is why the plan is defensible — so it stays one
+ * click away rather than being cut.
+ */
+const openRationales = ref<string[]>([]);
+
+function toggleRationale(assetKey: string): void {
+    openRationales.value = openRationales.value.includes(assetKey)
+        ? openRationales.value.filter((key) => key !== assetKey)
+        : [...openRationales.value, assetKey];
+}
 
 /**
  * Watching a queued job rather than holding a request open.
@@ -871,45 +960,188 @@ defineOptions({
                 <h2 class="mt-3 text-2xl font-semibold tracking-tight">
                     {{ payload.primary.name }}
                 </h2>
-                <p class="mt-3 max-w-4xl text-sm leading-6 text-white/48">
-                    {{ payload.summary }}
-                </p>
-                <div class="mt-7 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-                    <div class="space-y-4">
-                        <div
-                            v-for="allocation in payload.primary.allocations"
-                            :key="allocation.asset_key"
+
+                <!-- The shape of the plan, before a word of it. The ring is the
+                     one thing on this page that reads at a glance; the summary
+                     sits beside it rather than above, so the first screen is not
+                     four lines of prose. -->
+                <div
+                    v-if="compositionStats"
+                    class="mt-6 grid gap-6 md:grid-cols-[auto_1fr] md:items-center"
+                >
+                    <div class="relative mx-auto size-[148px] shrink-0">
+                        <svg
+                            viewBox="0 0 120 120"
+                            class="size-full -rotate-90"
+                            role="img"
+                            :aria-label="
+                                compositionSegments
+                                    .map(
+                                        (segment) =>
+                                            `${segment.name} ${segment.percent}%`,
+                                    )
+                                    .join(', ')
+                            "
                         >
-                            <div class="flex items-end justify-between gap-4">
-                                <div>
-                                    <h3 class="text-sm font-medium">
+                            <circle
+                                cx="60"
+                                cy="60"
+                                r="54"
+                                fill="none"
+                                stroke="rgba(255,255,255,0.06)"
+                                stroke-width="11"
+                            />
+                            <circle
+                                v-for="segment in compositionSegments"
+                                :key="segment.key"
+                                cx="60"
+                                cy="60"
+                                r="54"
+                                fill="none"
+                                :stroke="segment.color"
+                                stroke-width="11"
+                                stroke-linecap="butt"
+                                :stroke-dasharray="`${segment.length} ${RING_CIRCUMFERENCE}`"
+                                :stroke-dashoffset="segment.offset"
+                            />
+                        </svg>
+                        <div
+                            class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center"
+                        >
+                            <span class="text-2xl font-semibold text-white">
+                                {{ compositionStats.holdings }}
+                            </span>
+                            <span
+                                class="text-[10px] tracking-[0.18em] text-white/40 uppercase"
+                            >
+                                {{ t('advisor.recommendation.holdings') }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="max-w-3xl text-sm leading-6 text-white/48">
+                            {{ payload.summary }}
+                        </p>
+                        <dl class="mt-5 grid gap-3 sm:grid-cols-2">
+                            <div
+                                class="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3"
+                            >
+                                <dt
+                                    class="text-[10px] tracking-[0.18em] text-white/35 uppercase"
+                                >
+                                    {{ t('advisor.recommendation.largest') }}
+                                </dt>
+                                <dd class="mt-1 truncate text-sm text-white">
+                                    {{ compositionStats.largestName }}
+                                    <span class="text-[#02CD86]"
+                                        >{{
+                                            compositionStats.largestPercent
+                                        }}%</span
+                                    >
+                                </dd>
+                            </div>
+                            <div
+                                class="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3"
+                            >
+                                <dt
+                                    class="text-[10px] tracking-[0.18em] text-white/35 uppercase"
+                                >
+                                    {{ t('advisor.recommendation.overlay') }}
+                                </dt>
+                                <dd class="mt-1 text-sm text-white">
+                                    {{ compositionStats.overlays }}
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+
+                <div class="mt-7 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+                    <ul class="space-y-2.5">
+                        <li
+                            v-for="(
+                                allocation, index
+                            ) in payload.primary.allocations"
+                            :key="allocation.asset_key"
+                            class="rounded-2xl border border-white/8 bg-white/[0.02] p-4 transition-colors duration-200 hover:border-white/15"
+                        >
+                            <div class="flex items-center gap-3">
+                                <span
+                                    class="size-2.5 shrink-0 rounded-full"
+                                    :style="{
+                                        backgroundColor: allocationColor(index),
+                                    }"
+                                    aria-hidden="true"
+                                />
+                                <div class="min-w-0 flex-1">
+                                    <h3
+                                        class="truncate text-sm font-medium text-white"
+                                    >
                                         {{
                                             allocationName(allocation.asset_key)
                                         }}
                                     </h3>
-                                    <p class="mt-1 text-xs text-white/35">
+                                    <p class="mt-0.5 truncate text-xs text-white/35">
                                         {{ allocation.role }}
                                     </p>
                                 </div>
-                                <strong class="text-xl text-[#02CD86]"
+                                <strong
+                                    class="shrink-0 text-xl tabular-nums"
+                                    :style="{ color: allocationColor(index) }"
                                     >{{ allocation.target_percent }}%</strong
                                 >
                             </div>
                             <div
-                                class="mt-2 h-2 overflow-hidden rounded-full bg-white/8"
+                                class="mt-3 h-1.5 overflow-hidden rounded-full bg-white/8"
                             >
                                 <div
-                                    class="h-full rounded-full bg-[#02CD86]"
+                                    class="h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none"
                                     :style="{
                                         width: `${allocation.target_percent}%`,
+                                        backgroundColor: allocationColor(index),
                                     }"
                                 />
                             </div>
-                            <p class="mt-2 text-xs leading-5 text-white/36">
+
+                            <!-- The reasoning is what makes the number
+                                 defensible, so it stays — one click away rather
+                                 than four paragraphs deep on first paint. -->
+                            <button
+                                type="button"
+                                class="mt-3 flex cursor-pointer items-center gap-1 text-xs text-white/40 transition-colors duration-200 hover:text-white focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:outline-none"
+                                :aria-expanded="
+                                    openRationales.includes(
+                                        allocation.asset_key,
+                                    )
+                                "
+                                @click="toggleRationale(allocation.asset_key)"
+                            >
+                                {{ t('advisor.recommendation.why') }}
+                                <ChevronDown
+                                    class="size-3.5 transition-transform duration-200 motion-reduce:transition-none"
+                                    :class="
+                                        openRationales.includes(
+                                            allocation.asset_key,
+                                        )
+                                            ? 'rotate-180'
+                                            : ''
+                                    "
+                                    aria-hidden="true"
+                                />
+                            </button>
+                            <p
+                                v-if="
+                                    openRationales.includes(
+                                        allocation.asset_key,
+                                    )
+                                "
+                                class="mt-2 text-xs leading-5 text-white/45"
+                            >
                                 {{ allocation.rationale }}
                             </p>
-                        </div>
-                    </div>
+                        </li>
+                    </ul>
                     <div class="space-y-4">
                         <article
                             v-for="overlay in payload.primary.options_overlays"
@@ -927,32 +1159,65 @@ defineOptions({
                             <p class="mt-2 text-sm leading-6 text-white/45">
                                 {{ overlay.purpose }}
                             </p>
-                            <div class="mt-3 flex gap-4 text-xs text-white/50">
-                                <span
-                                    >Coverage
-                                    {{ overlay.coverage_percent }}%</span
-                                ><span
-                                    >Risk budget
-                                    {{
-                                        overlay.maximum_risk_budget_percent
-                                    }}%</span
+                            <div class="mt-4 grid grid-cols-2 gap-2">
+                                <div
+                                    class="rounded-xl bg-black/20 px-3 py-2 text-center"
                                 >
+                                    <p
+                                        class="text-base font-semibold text-[#c4b5fd] tabular-nums"
+                                    >
+                                        {{ overlay.coverage_percent }}%
+                                    </p>
+                                    <p
+                                        class="mt-0.5 text-[10px] tracking-[0.14em] text-white/35 uppercase"
+                                    >
+                                        {{ t('advisor.recommendation.coverage') }}
+                                    </p>
+                                </div>
+                                <div
+                                    class="rounded-xl bg-black/20 px-3 py-2 text-center"
+                                >
+                                    <p
+                                        class="text-base font-semibold text-[#c4b5fd] tabular-nums"
+                                    >
+                                        {{
+                                            overlay.maximum_risk_budget_percent
+                                        }}%
+                                    </p>
+                                    <p
+                                        class="mt-0.5 text-[10px] tracking-[0.14em] text-white/35 uppercase"
+                                    >
+                                        {{
+                                            t(
+                                                'advisor.recommendation.risk_budget',
+                                            )
+                                        }}
+                                    </p>
+                                </div>
                             </div>
                         </article>
                         <div
-                            class="rounded-2xl border border-white/8 bg-black/15 p-4"
+                            class="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-4"
                         >
-                            <h3 class="text-sm font-semibold">
+                            <h3
+                                class="flex items-center gap-2 text-sm font-semibold text-amber-100"
+                            >
+                                <AlertTriangle
+                                    class="size-4 shrink-0"
+                                    aria-hidden="true"
+                                />
                                 {{ t('advisor.recommendation.risks') }}
                             </h3>
-                            <ul
-                                class="mt-3 space-y-2 text-xs leading-5 text-white/42"
-                            >
+                            <!-- Each risk gets its own surface rather than a
+                                 bullet. Four long sentences run together as a
+                                 list were the least-read text on the page. -->
+                            <ul class="mt-3 space-y-2">
                                 <li
                                     v-for="risk in payload.primary.risks"
                                     :key="risk"
+                                    class="rounded-xl bg-black/20 px-3 py-2.5 text-xs leading-5 text-white/55"
                                 >
-                                    • {{ risk }}
+                                    {{ risk }}
                                 </li>
                             </ul>
                         </div>
@@ -971,36 +1236,86 @@ defineOptions({
                     v-if="!payload.transition_plan.exact_amounts_available"
                     class="mt-2 text-xs text-amber-200/60"
                 >
-                    Some assets have no current price, so exact amounts are
-                    unavailable.
+                    {{ t('advisor.recommendation.prices_missing') }}
                 </p>
                 <div class="mt-4 overflow-x-auto">
                     <table class="w-full min-w-[650px] text-sm">
-                        <thead class="text-start text-xs text-white/30">
+                        <thead
+                            class="text-start text-[10px] tracking-[0.14em] text-white/30 uppercase"
+                        >
                             <tr>
-                                <th class="py-3 text-start">Asset</th>
-                                <th class="py-3 text-end">Current</th>
-                                <th class="py-3 text-end">Target</th>
-                                <th class="py-3 text-end">Difference</th>
+                                <th class="py-3 text-start">
+                                    {{ t('advisor.recommendation.asset') }}
+                                </th>
+                                <th class="py-3 text-end">
+                                    {{ t('advisor.recommendation.current') }}
+                                </th>
+                                <th class="py-3 text-end">
+                                    {{ t('advisor.recommendation.target') }}
+                                </th>
+                                <th class="w-32 py-3 ps-4">
+                                    <span class="sr-only">{{
+                                        t('advisor.recommendation.move')
+                                    }}</span>
+                                </th>
+                                <th class="py-3 text-end">
+                                    {{ t('advisor.recommendation.difference') }}
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-white/8">
                             <tr
-                                v-for="row in payload.transition_plan.rows"
+                                v-for="(
+                                    row, rowIndex
+                                ) in payload.transition_plan.rows"
                                 :key="row.asset_key"
                             >
                                 <td class="py-4 font-medium">
-                                    {{ allocationName(row.asset_key) }}
+                                    <span class="flex items-center gap-2.5">
+                                        <span
+                                            class="size-2.5 shrink-0 rounded-full"
+                                            :style="{
+                                                backgroundColor:
+                                                    allocationColor(rowIndex),
+                                            }"
+                                            aria-hidden="true"
+                                        />
+                                        {{ allocationName(row.asset_key) }}
+                                    </span>
                                 </td>
-                                <td class="py-4 text-end text-white/50">
+                                <td class="py-4 text-end text-white/50 tabular-nums">
                                     {{
                                         row.current_percent === null
                                             ? '—'
                                             : `${row.current_percent}%`
                                     }}
                                 </td>
-                                <td class="py-4 text-end">
+                                <td class="py-4 text-end tabular-nums">
                                     {{ row.target_percent }}%
+                                </td>
+                                <!-- The move itself, as a shape: the faint track
+                                     is where the holding sits now, the solid one
+                                     where it is meant to end up. Two numbers in a
+                                     row do not show a gap; two bars do. -->
+                                <td class="w-32 py-4 ps-4">
+                                    <span
+                                        class="relative block h-1.5 overflow-hidden rounded-full bg-white/8"
+                                    >
+                                        <span
+                                            class="absolute inset-y-0 start-0 rounded-full bg-white/25"
+                                            :style="{
+                                                width: `${row.current_percent ?? 0}%`,
+                                            }"
+                                        />
+                                        <span
+                                            class="absolute inset-y-0 start-0 rounded-full opacity-70"
+                                            :style="{
+                                                width: `${row.target_percent}%`,
+                                                backgroundColor:
+                                                    allocationColor(rowIndex),
+                                            }"
+                                        />
+                                    </span>
                                 </td>
                                 <td
                                     class="py-4 text-end"
@@ -1027,7 +1342,11 @@ defineOptions({
                                         {{
                                             payload.transition_plan.base_currency.toUpperCase()
                                         }}</template
-                                    ><span v-else>Pricing required</span>
+                                    ><span v-else>{{
+                                        t(
+                                            'advisor.recommendation.pricing_required',
+                                        )
+                                    }}</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -1067,26 +1386,32 @@ defineOptions({
                             ) in alternative.allocations"
                             :key="allocation.asset_key"
                             class="h-full"
-                            :class="
-                                [
-                                    'bg-[#02CD86]',
-                                    'bg-[#60a5fa]',
-                                    'bg-[#a78bfa]',
-                                    'bg-[#f59e0b]',
-                                    'bg-[#f87171]',
-                                ][index % 5]
-                            "
-                            :style="{ width: `${allocation.target_percent}%` }"
+                            :style="{
+                                width: `${allocation.target_percent}%`,
+                                backgroundColor: allocationColor(index),
+                            }"
                         />
                     </div>
                     <div class="mt-4 flex flex-wrap gap-2">
                         <span
-                            v-for="allocation in alternative.allocations"
+                            v-for="(
+                                allocation, index
+                            ) in alternative.allocations"
                             :key="allocation.asset_key"
-                            class="rounded-full bg-white/5 px-3 py-1.5 text-xs text-white/55"
-                            >{{ allocationName(allocation.asset_key) }}
-                            {{ allocation.target_percent }}%</span
+                            class="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1.5 text-xs text-white/55"
                         >
+                            <span
+                                class="size-2 shrink-0 rounded-full"
+                                :style="{
+                                    backgroundColor: allocationColor(index),
+                                }"
+                                aria-hidden="true"
+                            />
+                            {{ allocationName(allocation.asset_key) }}
+                            <span class="text-white/80 tabular-nums"
+                                >{{ allocation.target_percent }}%</span
+                            >
+                        </span>
                     </div>
                 </article>
             </section>

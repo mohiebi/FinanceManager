@@ -132,6 +132,22 @@ return [
     ],
     'recommendation' => [
         'generating' => 'Designing your portfolio', 'primary' => 'Primary recommendation', 'safer' => 'Safer alternative', 'higher' => 'Higher-risk alternative', 'allocation' => 'Base allocation', 'overlay' => 'Options overlay', 'risks' => 'Risks', 'tradeoffs' => 'Tradeoffs', 'change' => 'What would change this plan', 'transition' => 'Current-to-target', 'increase' => 'Increase', 'reduce' => 'Reduce', 'clarification' => 'The Advisor needs a little more detail', 'submit_answers' => 'Continue recommendation', 'failed' => 'The Advisor could not finish this plan. Your answers are saved — try again.', 'ask' => 'Ask CashPilot Advisor', 'ask_placeholder' => 'Why does this allocation fit me?', 'send' => 'Send', 'consulting' => 'CashPilot Advisor is reviewing your profile…', 'model_only' => 'No live market data is used in this version.',
+        // The composition ring, the collapsed rationales and the current-to-target
+        // table. This whole file is rendered by vue-i18n, so placeholders here use
+        // the brace form; the colon form would render literally.
+        'holdings' => 'Holdings',
+        'largest' => 'Largest holding',
+        'why' => 'Why this weight',
+        'coverage' => 'Coverage',
+        'risk_budget' => 'Risk budget',
+        'asset' => 'Asset',
+        'current' => 'Current',
+        'target' => 'Target',
+        'move' => 'Move',
+        'difference' => 'Difference',
+        'pricing_required' => 'Pricing required',
+        'prices_missing' => 'Some assets have no current price, so exact amounts are unavailable.',
+
         'starting' => 'Starting…',
         'stage_reading' => 'Reading your profile',
         'stage_designing' => 'Designing your portfolio',

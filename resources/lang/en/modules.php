@@ -19,6 +19,19 @@ return [
     'cancel' => 'Cancel',
     'requires' => 'Needs {features}',
 
+    // Shown when someone without Pro reaches for a Pro module. Rendered by
+    // vue-i18n, so the placeholder is {module} rather than :module.
+    'upgrade' => [
+        'title' => '{module} is a Pro module',
+        'body' => 'Pro covers the modules that call a paid AI provider every time you use them. Everything else in CashPilot stays free.',
+        'note' => 'Pay in crypto for a month, a quarter or a year. Nothing renews by itself.',
+        // Shown in place of the note when billing is switched off — there is no
+        // plans page to send anyone to, so the dialog must not promise one.
+        'unavailable' => 'Pro is not on sale just yet. This module unlocks as soon as it is.',
+        'continue' => 'See Pro plans',
+        'later' => 'Maybe later',
+    ],
+
     'manage' => 'Manage in Privacy & security',
     'managed_elsewhere' => 'Switched on from its own page, because turning it on re-keys your data.',
 

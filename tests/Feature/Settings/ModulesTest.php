@@ -204,3 +204,59 @@ test('every module that claims a nav entry has one', function () {
 
     expect($missing)->toBe([]);
 });
+
+/**
+ * Reaching for a Pro module is a question, not a failed save.
+ *
+ * The switch was disabled outright, so a free user could press it and get
+ * nothing at all — no page change, no explanation, no way to find out what Pro
+ * costs. It stays operable now and opens a dialog instead; the server's
+ * rejection is unchanged and still the thing that enforces entitlement.
+ */
+test('a pro locked module opens the upgrade dialog instead of saving', function () {
+    $page = file_get_contents(resource_path('js/pages/settings/Modules.vue'));
+
+    expect($page)->toContain('function isProLocked')
+        // The switch must stay operable for exactly this case, and no other.
+        ->and($page)->toContain('!module.may_use && !isProLocked(module)')
+        // Turning one on opens the dialog and sends nothing.
+        ->and($page)->toContain('if (next && isProLocked(module))')
+        ->and($page)->toContain('pendingUpgrade.value = module')
+        // Buying is the user's move from inside the dialog, never a redirect
+        // the toggle performs on their behalf.
+        ->and($page)->toContain('billingEdit().url')
+        ->and($page)->toContain("t('modules.upgrade.later')");
+});
+
+test('the upgrade dialog offers no plans page while billing is switched off', function () {
+    // `billing.edit` 404s when the catalog is unavailable, so the button that
+    // leads there has to be gated on the same switch the settings nav reads.
+    $page = file_get_contents(resource_path('js/pages/settings/Modules.vue'));
+
+    expect($page)->toContain('subscription?.billing_enabled === true')
+        ->and($page)->toContain('v-if="billingEnabled"');
+});
+
+test('the upgrade dialog leads somewhere a free user can actually open', function () {
+    config()->set('billing.enabled', true);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('billing.edit'))
+        ->assertOk();
+});
+
+test('the upgrade dialog is written in every locale', function () {
+    $missing = [];
+
+    foreach (['en', 'fa', 'de'] as $locale) {
+        $modules = require resource_path("lang/{$locale}/modules.php");
+
+        foreach (['title', 'body', 'note', 'unavailable', 'continue', 'later'] as $key) {
+            if (! isset($modules['upgrade'][$key])) {
+                $missing[] = "{$locale}.upgrade.{$key}";
+            }
+        }
+    }
+
+    expect($missing)->toBe([]);
+});

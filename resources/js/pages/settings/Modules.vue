@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { onKeyStroke } from '@vueuse/core';
 import {
     Bot,
     BrainCircuit,
@@ -16,12 +17,13 @@ import {
     Trophy,
     Wallet,
 } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useNavigationNaming } from '@/composables/useNavigationNaming';
+import { edit as billingEdit } from '@/routes/billing';
 import { update as updateModules } from '@/routes/modules';
 import type { CoreModuleCard, FeatureKey, ModuleCard } from '@/types/features';
 
@@ -33,6 +35,14 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const { navigationName } = useNavigationNaming();
+const page = usePage();
+
+// The same kill switch the settings nav reads. With billing off there is nothing
+// to sell, and `billing.edit` 404s — so the dialog explains Pro and stops there
+// rather than offering a button into a missing page.
+const billingEnabled = computed(
+    () => page.props.subscription?.billing_enabled === true,
+);
 
 const moduleNavigationKeys: Partial<
     Record<FeatureKey, [standardKey: string, flightKey?: string]>
@@ -83,6 +93,19 @@ const icons: Record<string, Component> = {
 
 const processing = ref<FeatureKey | null>(null);
 const pendingDisable = ref<ModuleCard | null>(null);
+const pendingUpgrade = ref<ModuleCard | null>(null);
+
+/**
+ * A module the plan does not cover, rather than one that is simply switched off.
+ *
+ * Its switch stays operable on purpose: a dead control explains nothing, and the
+ * question someone asks by reaching for it — what is Pro, and what would it cost
+ * me — is exactly what the dialog answers. The server rejects the change anyway,
+ * so nothing here is load-bearing for entitlement.
+ */
+function isProLocked(module: ModuleCard): boolean {
+    return !module.may_use && module.tier === 'pro';
+}
 
 function submit(feature: FeatureKey, payload: Record<string, boolean>): void {
     processing.value = feature;
@@ -100,6 +123,14 @@ function submit(feature: FeatureKey, payload: Record<string, boolean>): void {
 }
 
 function toggle(module: ModuleCard, next: boolean): void {
+    // Reaching for a module the plan does not cover is a question about Pro, not
+    // a failed save — answer it before anything is sent.
+    if (next && isProLocked(module)) {
+        pendingUpgrade.value = module;
+
+        return;
+    }
+
     // Switching a module off can cascade. Say so before it happens rather than
     // explaining it afterwards in a flash message.
     if (!next && module.disables.length > 0) {
@@ -125,6 +156,13 @@ function confirmDisable(): void {
 function togglePromo(module: ModuleCard, hidden: boolean): void {
     submit(module.key, { show_promo: !hidden });
 }
+
+// Escape closes whichever dialog is open — a modal that only the mouse can
+// dismiss traps anyone working from the keyboard.
+onKeyStroke('Escape', () => {
+    pendingUpgrade.value = null;
+    pendingDisable.value = null;
+});
 </script>
 
 <template>
@@ -218,7 +256,10 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
                     <Switch
                         v-if="!module.manage_url"
                         :checked="module.enabled"
-                        :disabled="processing === module.key || !module.may_use"
+                        :disabled="
+                            processing === module.key ||
+                            (!module.may_use && !isProLocked(module))
+                        "
                         :aria-label="moduleLabel(module)"
                         @update:checked="toggle(module, $event)"
                     />
@@ -314,6 +355,72 @@ function togglePromo(module: ModuleCard, hidden: boolean): void {
     </div>
 
     <Teleport to="body">
+        <Transition
+            enter-active-class="transition duration-150"
+            enter-from-class="opacity-0"
+            leave-active-class="transition duration-150"
+            leave-to-class="opacity-0"
+        >
+            <div
+                v-if="pendingUpgrade"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="module-upgrade-title"
+                @click.self="pendingUpgrade = null"
+            >
+                <div
+                    class="w-full max-w-sm rounded-[22px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
+                >
+                    <span
+                        class="flex size-10 items-center justify-center rounded-xl bg-[#6C4EE9]/15 text-[#a89bf3]"
+                    >
+                        <Crown class="size-5" aria-hidden="true" />
+                    </span>
+                    <p
+                        id="module-upgrade-title"
+                        class="mt-4 text-[17px] font-medium text-white"
+                    >
+                        {{
+                            t('modules.upgrade.title', {
+                                module: moduleLabel(pendingUpgrade),
+                            })
+                        }}
+                    </p>
+                    <p class="mt-2 text-sm text-[#989898]">
+                        {{ t('modules.upgrade.body') }}
+                    </p>
+                    <p class="mt-2 text-xs text-[#6f6f6f]">
+                        {{
+                            billingEnabled
+                                ? t('modules.upgrade.note')
+                                : t('modules.upgrade.unavailable')
+                        }}
+                    </p>
+                    <div class="mt-6 flex gap-3">
+                        <button
+                            type="button"
+                            class="flex-1 cursor-pointer rounded-xl bg-white/10 py-2.5 text-sm font-medium text-white transition hover:bg-white/15"
+                            @click="pendingUpgrade = null"
+                        >
+                            {{
+                                billingEnabled
+                                    ? t('modules.upgrade.later')
+                                    : t('modules.cancel')
+                            }}
+                        </button>
+                        <Link
+                            v-if="billingEnabled"
+                            :href="billingEdit().url"
+                            class="flex-1 cursor-pointer rounded-xl bg-[#6C4EE9] py-2.5 text-center text-sm font-medium text-white transition hover:bg-[#5b3fd4]"
+                        >
+                            {{ t('modules.upgrade.continue') }}
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+
         <Transition
             enter-active-class="transition duration-150"
             enter-from-class="opacity-0"

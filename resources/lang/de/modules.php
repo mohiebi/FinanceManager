@@ -19,6 +19,15 @@ return [
     'cancel' => 'Abbrechen',
     'requires' => 'Benötigt {features}',
 
+    'upgrade' => [
+        'title' => '{module} ist ein Pro-Modul',
+        'body' => 'Pro deckt die Module ab, die bei jeder Nutzung einen kostenpflichtigen KI-Dienst aufrufen. Alles andere in CashPilot bleibt kostenlos.',
+        'note' => 'Zahle mit Krypto für einen Monat, ein Quartal oder ein Jahr. Nichts verlängert sich von selbst.',
+        'unavailable' => 'Pro ist noch nicht im Verkauf. Sobald es so weit ist, wird dieses Modul freigeschaltet.',
+        'continue' => 'Pro-Tarife ansehen',
+        'later' => 'Später vielleicht',
+    ],
+
     'manage' => 'In Datenschutz & Sicherheit verwalten',
     'managed_elsewhere' => 'Wird auf einer eigenen Seite eingeschaltet, weil dabei der Schlüssel zu deinen Daten gewechselt wird.',
 

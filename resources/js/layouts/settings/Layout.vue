@@ -49,7 +49,11 @@ const showBilling = computed(
     () => page.props.subscription?.billing_enabled === true,
 );
 
-type SettingsNavItem = NavItem & { icon: Component };
+type SettingsNavItem = NavItem & {
+    icon: Component;
+    /** Matches `settings.navigation.descriptions.*`, shown in the page header. */
+    description: string;
+};
 
 type SettingsNavGroup = { label: string; items: SettingsNavItem[] };
 
@@ -68,21 +72,29 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
             items: [
                 {
                     title: t('settings.navigation.profile'),
+                    description: t('settings.navigation.descriptions.profile'),
                     href: editProfile(),
                     icon: User,
                 },
                 {
                     title: t('settings.navigation.notifications'),
+                    description: t(
+                        'settings.navigation.descriptions.notifications',
+                    ),
                     href: editNotifications(),
                     icon: Bell,
                 },
                 {
                     title: t('settings.navigation.security'),
+                    description: t('settings.navigation.descriptions.security'),
                     href: editSecurity(),
                     icon: ShieldCheck,
                 },
                 {
                     title: t('settings.navigation.preferences'),
+                    description: t(
+                        'settings.navigation.descriptions.preferences',
+                    ),
                     href: '/settings/preferences',
                     icon: SlidersHorizontal,
                 },
@@ -90,6 +102,9 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
                     ? [
                           {
                               title: t('settings.navigation.billing'),
+                              description: t(
+                                  'settings.navigation.descriptions.billing',
+                              ),
                               href: editBilling(),
                               icon: CreditCard,
                           },
@@ -102,11 +117,15 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
             items: [
                 {
                     title: t('settings.navigation.modules'),
+                    description: t('settings.navigation.descriptions.modules'),
                     href: editModules(),
                     icon: Blocks,
                 },
                 {
                     title: t('settings.navigation.categories'),
+                    description: t(
+                        'settings.navigation.descriptions.categories',
+                    ),
                     href: editCategories(),
                     icon: Tags,
                 },
@@ -114,6 +133,9 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
                     ? [
                           {
                               title: t('settings.navigation.assets'),
+                              description: t(
+                                  'settings.navigation.descriptions.assets',
+                              ),
                               href: editInvestmentAssets(),
                               icon: Coins,
                           },
@@ -128,6 +150,9 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
                     ? [
                           {
                               title: t('settings.navigation.telegram'),
+                              description: t(
+                                  'settings.navigation.descriptions.telegram',
+                              ),
                               href: editTelegram(),
                               icon: Bot,
                           },
@@ -137,6 +162,9 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
                     ? [
                           {
                               title: t('settings.navigation.ai'),
+                              description: t(
+                                  'settings.navigation.descriptions.ai',
+                              ),
                               href: editAiConnections(),
                               icon: Sparkles,
                           },
@@ -148,6 +176,31 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
 );
 
 const { isCurrentOrParentUrl } = useCurrentUrl();
+
+const flatNavItems = computed<SettingsNavItem[]>(() =>
+    navGroups.value.flatMap((group) => group.items),
+);
+
+/**
+ * The section being viewed, so the header can name it.
+ *
+ * Every settings page used to sit under one heading that said "Settings",
+ * with the only answer to "which page am I on" being a tinted nav link — and
+ * two of the pages then hid a second `<h1>` behind `sr-only`, so a screen
+ * reader heard the word twice and a sighted reader never saw it once. The
+ * shell names the active section instead, and owns the page's only `<h1>`.
+ *
+ * Falls back to the generic title rather than rendering an empty heading: a
+ * settings page reachable by URL but absent from the nav (a module switched
+ * off mid-visit) still needs something above it.
+ */
+const activeItem = computed<SettingsNavItem | undefined>(() =>
+    flatNavItems.value.find((item) => isCurrentOrParentUrl(item.href)),
+);
+
+const settingsLabel = computed(() =>
+    navigationName('settings.title', 'navigation.settings_subtitle'),
+);
 </script>
 
 <template>
@@ -156,23 +209,75 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
     >
         <div class="w-full">
             <div class="mb-[18px]">
-                <h1 class="text-[22px] font-normal text-white">
-                    {{
-                        navigationName(
-                            'settings.title',
-                            'navigation.settings_subtitle',
-                        )
-                    }}
+                <!-- Kicker, then the section name. The pair keeps "where am I
+                     in the app" and "which page is this" both on screen, which
+                     one line saying "Settings" on all ten pages could not. -->
+                <p
+                    class="text-[11px] font-medium tracking-[0.2em] text-[#6f6f6f] uppercase"
+                >
+                    {{ settingsLabel }}
+                </p>
+                <h1 class="mt-1 text-[22px] font-normal text-white">
+                    {{ activeItem?.title ?? settingsLabel }}
                 </h1>
-                <p class="mt-1 text-sm text-[#989898]">
-                    {{ t('settings.description') }}
+                <p class="mt-1 max-w-[68ch] text-sm text-[#989898]">
+                    {{ activeItem?.description ?? t('settings.description') }}
                 </p>
             </div>
 
             <div class="flex flex-col gap-[18px] lg:flex-row lg:items-start">
+                <!-- Below lg the sidebar became a ten-link stack that pushed the
+                     page someone had just tapped an entire screen down. Same
+                     links, laid out as one scrollable rail instead, so the
+                     content starts where the header ends. -->
+                <nav
+                    class="-mx-[18px] overflow-x-auto px-[18px] pb-1 lg:hidden [&::-webkit-scrollbar]:hidden"
+                    style="scrollbar-width: none"
+                    :aria-label="t('settings.navigation.jump_to')"
+                >
+                    <div class="flex w-max items-center gap-2">
+                        <template
+                            v-for="(group, groupIndex) in navGroups"
+                            :key="group.label"
+                        >
+                            <span
+                                v-if="groupIndex > 0"
+                                class="h-6 w-px shrink-0 bg-white/10"
+                                aria-hidden="true"
+                            />
+                            <Link
+                                v-for="item in group.items"
+                                :key="toUrl(item.href)"
+                                :href="item.href"
+                                :aria-current="
+                                    isCurrentOrParentUrl(item.href)
+                                        ? 'page'
+                                        : undefined
+                                "
+                                :class="[
+                                    'inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full px-4 text-sm whitespace-nowrap transition-colors duration-200',
+                                    'focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101010] focus-visible:outline-none',
+                                    isCurrentOrParentUrl(item.href)
+                                        ? 'bg-[#02CD86] font-medium text-[#101010]'
+                                        : 'bg-[#1a1a1a] text-[#989898] ring-1 ring-white/10 hover:text-white',
+                                ]"
+                            >
+                                <component
+                                    :is="item.icon"
+                                    class="size-4 shrink-0"
+                                    aria-hidden="true"
+                                />
+                                {{ item.title }}
+                            </Link>
+                        </template>
+                    </div>
+                </nav>
+
                 <!-- Settings nav. Sticky from lg up so it stays reachable while
                      a long pane scrolls; 92px clears the app header. -->
-                <aside class="w-full shrink-0 lg:sticky lg:top-[92px] lg:w-56">
+                <aside
+                    class="hidden w-full shrink-0 lg:sticky lg:top-[92px] lg:block lg:w-60"
+                >
                     <nav
                         class="space-y-4 overflow-hidden rounded-[22px] bg-[#1a1a1a] p-3 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                         :aria-label="t('settings.title')"
@@ -198,13 +303,22 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                                             : undefined
                                     "
                                     :class="[
-                                        'flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-colors duration-200',
+                                        'relative flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-colors duration-200',
                                         'focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none',
                                         isCurrentOrParentUrl(item.href)
                                             ? 'bg-[#02CD86]/10 font-medium text-[#02CD86]'
                                             : 'text-[#989898] hover:bg-white/5 hover:text-white',
                                     ]"
                                 >
+                                    <!-- Second marker on the active link, so it
+                                         is not tint alone doing the work for
+                                         anyone who cannot separate the two
+                                         greens. -->
+                                    <span
+                                        v-if="isCurrentOrParentUrl(item.href)"
+                                        class="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-[#02CD86]"
+                                        aria-hidden="true"
+                                    />
                                     <component
                                         :is="item.icon"
                                         class="size-4 shrink-0"

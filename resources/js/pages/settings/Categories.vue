@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
+import { Check, Pencil, Plus, Tags, Trash2, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
@@ -126,6 +126,7 @@ defineOptions({
 
     <div class="flex flex-col gap-[18px]">
         <SettingsSection
+            :icon="Plus"
             :title="t('settings.categories.eyebrow')"
             :description="t('settings.categories.description')"
         >
@@ -200,7 +201,7 @@ defineOptions({
             </form>
         </SettingsSection>
 
-        <SettingsSection :title="t('settings.categories.title')">
+        <SettingsSection :icon="Tags" :title="t('settings.categories.title')">
             <InputError :message="deleteError" />
 
             <div class="space-y-6">

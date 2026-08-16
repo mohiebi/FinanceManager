@@ -214,6 +214,16 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Every coupon this user has claimed, paid-for or free.
+     *
+     * @return HasMany<CouponRedemption, User>
+     */
+    public function couponRedemptions(): HasMany
+    {
+        return $this->hasMany(CouponRedemption::class);
+    }
+
+    /**
      * Get this user's key row, creating it if it is somehow missing.
      *
      * Normally the observer has already made one; this keeps records created

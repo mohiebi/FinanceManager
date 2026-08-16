@@ -58,6 +58,19 @@ class CouponRedemption extends Model
     }
 
     /**
+     * The entitlement this claim produced, once it was consumed.
+     *
+     * Null while the claim is only reserved, and on a released one that never
+     * paid for anything.
+     *
+     * @return BelongsTo<SubscriptionGrant, CouponRedemption>
+     */
+    public function grant(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionGrant::class, 'subscription_grant_id');
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

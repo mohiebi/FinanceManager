@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { ArrowRight } from 'lucide-vue-next';
+import { ArrowRight, Globe, Plane } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import InputError from '@/components/InputError.vue';
 import SettingsRow from '@/components/settings/SettingsRow.vue';
+import SettingsSaveBar from '@/components/settings/SettingsSaveBar.vue';
 import SettingsSection from '@/components/settings/SettingsSection.vue';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Select,
@@ -16,7 +16,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 
 type Option = {
     label: string;
@@ -71,14 +70,25 @@ function submit(): void {
         preserveScroll: true,
     });
 }
+
+function discard(): void {
+    form.reset();
+}
 </script>
 
 <template>
     <div>
         <Head :title="t('settings.preferences.title')" />
 
+        <!-- One form, two cards, and until now one save button — sitting in the
+             footer of the *second* card. Change your language in the first and
+             the only control that would commit it was two screens down, under a
+             heading about terminology. The sticky bar below covers the whole
+             form, appears the moment anything differs from what is stored, and
+             stays on screen wherever you are in it. -->
         <form class="space-y-[18px]" @submit.prevent="submit">
             <SettingsSection
+                :icon="Globe"
                 :title="t('settings.preferences.eyebrow')"
                 :description="t('settings.preferences.description')"
             >
@@ -193,6 +203,7 @@ function submit(): void {
             </SettingsSection>
 
             <SettingsSection
+                :icon="Plane"
                 :title="t('settings.preferences.terminology.title')"
                 :description="t('settings.preferences.terminology.description')"
             >
@@ -276,32 +287,15 @@ function submit(): void {
                         </div>
                     </div>
                 </SettingsRow>
-
-                <template #footer>
-                    <div class="flex items-center gap-4">
-                        <Button
-                            class="bg-[#02CD86] text-[#101010] hover:bg-[#08dd93]"
-                            :disabled="form.processing"
-                        >
-                            <Spinner v-if="form.processing" />
-                            {{ t('common.save') }}
-                        </Button>
-                        <Transition
-                            enter-active-class="transition ease-in-out"
-                            enter-from-class="opacity-0"
-                            leave-active-class="transition ease-in-out"
-                            leave-to-class="opacity-0"
-                        >
-                            <p
-                                v-show="form.recentlySuccessful"
-                                class="text-sm text-[#02CD86]"
-                            >
-                                {{ t('common.saved') }}
-                            </p>
-                        </Transition>
-                    </div>
-                </template>
             </SettingsSection>
+
+            <SettingsSaveBar
+                sticky
+                :processing="form.processing"
+                :dirty="form.isDirty"
+                :recently-successful="form.recentlySuccessful"
+                @discard="discard"
+            />
         </form>
     </div>
 </template>

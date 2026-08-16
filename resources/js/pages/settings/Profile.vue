@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head, usePage } from '@inertiajs/vue3';
+import { CalendarCheck, Trash2, UserRound } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
@@ -7,6 +8,7 @@ import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import DeleteUser from '@/components/DeleteUser.vue';
 import InputError from '@/components/InputError.vue';
 import SettingsRow from '@/components/settings/SettingsRow.vue';
+import SettingsSaveBar from '@/components/settings/SettingsSaveBar.vue';
 import SettingsSection from '@/components/settings/SettingsSection.vue';
 import { Input } from '@/components/ui/input';
 import { edit } from '@/routes/profile';
@@ -34,8 +36,6 @@ const user = computed(() => page.props.auth.user);
 <template>
     <Head :title="t('settings.profile.title')" />
 
-    <h1 class="sr-only">{{ t('settings.profile.title') }}</h1>
-
     <div class="flex flex-col gap-[18px]">
         <!-- Profile-completion callout -->
         <div
@@ -46,19 +46,10 @@ const user = computed(() => page.props.auth.user);
             <div
                 class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#02CD86]/15"
             >
-                <svg
+                <CalendarCheck
                     class="size-5 text-[#02CD86]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                </svg>
+                    aria-hidden="true"
+                />
             </div>
             <!-- Text -->
             <div>
@@ -72,6 +63,7 @@ const user = computed(() => page.props.auth.user);
         </div>
 
         <SettingsSection
+            :icon="UserRound"
             :title="
                 requiresProfileCompletion
                     ? t('settings.profile.complete_heading')
@@ -97,7 +89,7 @@ const user = computed(() => page.props.auth.user);
                         :placeholder="
                             t('settings.profile.placeholder_full_name')
                         "
-                        class="border-white/10 bg-[#252525] text-white placeholder:text-[#686868] focus-visible:border-[#02cd86] focus-visible:ring-1 focus-visible:ring-[#02cd86] dark:bg-[#252525]"
+                        class="settings-input"
                     />
                     <InputError :message="errors.name" />
                 </SettingsRow>
@@ -114,7 +106,7 @@ const user = computed(() => page.props.auth.user);
                         disabled
                         autocomplete="username"
                         :placeholder="t('fields.email_address')"
-                        class="border-white/10 bg-[#252525] text-white opacity-60 placeholder:text-[#686868] dark:bg-[#252525]"
+                        class="settings-input"
                     />
                 </SettingsRow>
 
@@ -126,29 +118,11 @@ const user = computed(() => page.props.auth.user);
                     <InputError :message="errors.birthdate" />
                 </SettingsRow>
 
-                <div class="flex items-center gap-4 pt-5">
-                    <button
-                        type="submit"
-                        :disabled="processing"
-                        data-test="update-profile-button"
-                        class="cursor-pointer rounded-xl bg-[#02CD86] px-5 py-2.5 text-sm font-medium text-[#101010] transition-[filter,opacity] duration-200 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none disabled:opacity-50"
-                    >
-                        {{ t('common.save') }}
-                    </button>
-
-                    <Transition
-                        enter-active-class="transition ease-in-out"
-                        enter-from-class="opacity-0"
-                        leave-active-class="transition ease-in-out"
-                        leave-to-class="opacity-0"
-                    >
-                        <p
-                            v-show="recentlySuccessful"
-                            class="text-sm text-[#02CD86]"
-                        >
-                            {{ t('common.saved') }}
-                        </p>
-                    </Transition>
+                <div class="pt-5">
+                    <SettingsSaveBar
+                        :processing="processing"
+                        :recently-successful="recentlySuccessful"
+                    />
                 </div>
             </Form>
         </SettingsSection>
@@ -158,6 +132,7 @@ const user = computed(() => page.props.auth.user);
         <SettingsSection
             v-if="!requiresProfileCompletion"
             danger
+            :icon="Trash2"
             :title="t('settings.profile.delete_heading')"
             :description="t('settings.profile.delete_description')"
         >

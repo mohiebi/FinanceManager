@@ -59,6 +59,9 @@ return [
         'recovery_codes_notice' => 'Each recovery code can be used once to access your account and will be removed after use. If you need more, click {action} above.',
         'vault' => [
             'title' => 'Private vault',
+            'description' => 'Encrypt your amounts and titles with a key only you hold.',
+            'badge_on' => 'On',
+            'badge_off' => 'Off',
             'armed_status' => 'Private vault is on. Only you hold the key now.',
             'disarmed_status' => 'Private vault is off. CashPilot can read your amounts and titles again.',
 
@@ -336,6 +339,23 @@ return [
         'ai' => 'AI connections',
         'admin' => 'Admin',
         'admin_subtitle' => 'Control tower',
+        'jump_to' => 'Jump to a settings page',
+        'descriptions' => [
+            'profile' => 'Your name, email and birthdate.',
+            'notifications' => 'Choose what CashPilot tells you about, and where.',
+            'security' => 'Password, two-factor authentication and your private vault.',
+            'preferences' => 'Language, calendar, time zone and currency.',
+            'billing' => 'Your plan, payments and invoices.',
+            'modules' => 'Switch parts of the app on or off.',
+            'categories' => 'The labels your income and spending are filed under.',
+            'assets' => 'Custom assets you track in your portfolio.',
+            'telegram' => 'Log money and read reports from Telegram.',
+            'ai' => 'Assistants connected to your account, and what they changed.',
+        ],
+    ],
+    'save_bar' => [
+        'unsaved' => 'You have unsaved changes',
+        'discard' => 'Discard',
     ],
     'ai' => [
         'title' => 'AI connections',

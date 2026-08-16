@@ -381,3 +381,131 @@ test('a guest cannot probe codes', function () {
     $this->postJson(route('billing.coupon.preview'), ['coupon' => 'HALF'])
         ->assertUnauthorized();
 });
+
+test('redeeming a full-price code through the page flashes a receipt instead of opening a payment', function () {
+    $user = User::factory()->create();
+    Coupon::factory()->percent(100)->create(['code' => 'FREE']);
+
+    $response = $this->actingAs($user)->post(route('billing.payments.store'), [
+        'plan' => 'quarterly',
+        // The rail still travels — StartPaymentRequest validates every field on
+        // every request — but nothing on the free branch reads it.
+        'network' => 'ethereum',
+        'asset' => 'usdt',
+        'coupon' => 'free',
+    ]);
+
+    // Its own flash key, not another `status` string: the page has to tell this
+    // apart from every other green strip without matching on a translated
+    // sentence that could be reworded or read in another locale.
+    $response->assertRedirect()->assertSessionHas('activated', [
+        'plan_label' => BillingPlan::Quarterly->label(),
+        'months' => 3,
+        'coupon_code' => 'FREE',
+    ]);
+
+    expect($user->fresh()->isPro())->toBeTrue()
+        ->and(SubscriptionPayment::query()->count())->toBe(0);
+});
+
+test('the billing page carries the activation receipt through exactly once', function () {
+    $user = User::factory()->create();
+    Coupon::factory()->percent(100)->create(['code' => 'FREE']);
+
+    $this->actingAs($user)->post(route('billing.payments.store'), [
+        'plan' => 'monthly',
+        'network' => 'ethereum',
+        'asset' => 'usdt',
+        'coupon' => 'FREE',
+    ]);
+
+    $this->actingAs($user)->get(route('billing.edit'))
+        ->assertInertia(fn ($page) => $page
+            ->component('settings/Billing')
+            ->where('activated.months', 1)
+            ->where('activated.coupon_code', 'FREE')
+        );
+
+    // Flashed, so the confirmation does not reappear on the next visit — the
+    // dialog dismisses itself into a fresh load of this very page.
+    $this->actingAs($user)->get(route('billing.edit'))
+        ->assertInertia(fn ($page) => $page->where('activated', null));
+});
+
+test('a partial discount still opens a payment rather than granting months', function () {
+    $user = User::factory()->create();
+    Coupon::factory()->percent(50)->create(['code' => 'HALF']);
+
+    $this->actingAs($user)->post(route('billing.payments.store'), [
+        'plan' => 'monthly',
+        'network' => 'ethereum',
+        'asset' => 'usdt',
+        'coupon' => 'HALF',
+    ])->assertRedirect()->assertSessionMissing('activated');
+
+    expect($user->fresh()->isPro())->toBeFalse()
+        ->and(SubscriptionPayment::query()->count())->toBe(1);
+});
+
+test('a full-price redemption shows in the history as a settled entry', function () {
+    $user = User::factory()->create();
+    Coupon::factory()->percent(100)->create(['code' => 'FREE']);
+
+    $this->actingAs($user)->post(route('billing.payments.store'), [
+        'plan' => 'quarterly',
+        'network' => 'ethereum',
+        'asset' => 'usdt',
+        'coupon' => 'FREE',
+    ]);
+
+    // The whole complaint: months landed on the account and the history had
+    // nothing to show for it, because a coupon covering the price opens no
+    // payment to list.
+    $this->actingAs($user)->get(route('billing.edit'))
+        ->assertInertia(fn ($page) => $page
+            ->has('history', 1)
+            ->where('history.0.kind', 'coupon')
+            ->where('history.0.tone', 'positive')
+            ->where('history.0.price_usd', '0.00')
+            ->where('history.0.coupon_code', 'FREE')
+            // What the code was worth, so the row can strike it through.
+            ->where('history.0.list_price_usd', BillingPlan::Quarterly->priceUsd())
+            ->where('history.0.settled_at', fn (?string $at): bool => $at !== null)
+        );
+});
+
+test('a withdrawn intent reads as withdrawn, not as something that expired', function () {
+    $user = User::factory()->create();
+    $payment = SubscriptionPayment::factory()->create(['user_id' => $user->id]);
+
+    $this->actingAs($user)->delete(route('billing.payments.cancel', $payment));
+
+    $this->actingAs($user)->get(route('billing.edit'))
+        ->assertInertia(fn ($page) => $page
+            ->where('history.0.kind', 'payment')
+            ->where('history.0.status_label', PaymentStatus::Cancelled->label())
+            // Neutral, like an expiry — it is not a failure either way.
+            ->where('history.0.tone', 'neutral')
+        );
+});
+
+test('a coupon spent on a real payment is listed once, not twice', function () {
+    $user = User::factory()->create();
+    Coupon::factory()->percent(50)->create(['code' => 'HALF']);
+
+    $this->actingAs($user)->post(route('billing.payments.store'), [
+        'plan' => 'monthly',
+        'network' => 'ethereum',
+        'asset' => 'usdt',
+        'coupon' => 'HALF',
+    ]);
+
+    // The claim is attached to the payment, so the payment's own row already
+    // represents it — listing the redemption too would read as two purchases.
+    $this->actingAs($user)->get(route('billing.edit'))
+        ->assertInertia(fn ($page) => $page
+            ->has('history', 1)
+            ->where('history.0.kind', 'payment')
+            ->where('history.0.coupon_code', 'HALF')
+        );
+});

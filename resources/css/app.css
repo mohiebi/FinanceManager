@@ -682,21 +682,50 @@ html[dir='rtl'] body {
     }
 }
 
-/* ── Settings card ────────────────────────────────────────────────────────
-   The settings shell no longer wraps its slot in a panel, because a page that
-   holds both a name field and "delete my account" should not put them on one
-   surface. Pages compose their own cards instead: `SettingsSection` where a
-   page has been split into sections, this class where it is still a single
-   block. Same surface either way, so the two read as one system. */
+/* ── Settings field ───────────────────────────────────────────────────────
+   The card surface itself lives in `SettingsSection` now, and only there: the
+   `.settings-card` that used to sit here served the pages that had not been
+   split into sections yet, and there are none of those left. Two definitions
+   of one surface is how the two drift apart, so this file keeps the field. */
 @layer components {
-    .settings-card {
-        border-radius: 22px;
-        background-color: #1a1a1a;
-        padding: 1.5rem;
-        /* Inset ring rather than a border, so the 22px corner stays crisp and
-           the card does not grow by 2px against its neighbours. */
-        box-shadow:
-            0 18px 45px rgb(0 0 0 / 20%),
-            inset 0 0 0 1px rgb(255 255 255 / 10%);
+    /* The same eight utility classes were pasted onto every text input across
+       Profile and Security, once per field, and had already come apart: the
+       disabled email input carried an `opacity-60` nothing else did, and the
+       focus ring was missing from one of them. Named once, so a field cannot
+       quietly stop looking like a field.
+
+       `!important` throughout for the same reason `.finance-dialog-field` uses
+       it: shadcn's `Input` ships its own border, background, ring and disabled
+       opacity as utilities, and a utility beats a component-layer rule whatever
+       the source order. Matching that precedence is the only way one class can
+       replace the eight it stands in for. */
+    .settings-input {
+        /* 44px, so the field clears the minimum touch target the base `h-9`
+           (36px) misses. Set as a floor rather than a height, so a textarea can
+           still grow past it. */
+        min-height: 2.75rem !important;
+        border-color: rgb(255 255 255 / 10%) !important;
+        background-color: #252525 !important;
+        color: #ffffff !important;
+        color-scheme: dark;
+    }
+
+    .settings-input::placeholder {
+        color: #8b8b8b !important;
+    }
+
+    .settings-input:focus-visible {
+        border-color: #02cd86 !important;
+        box-shadow: 0 0 0 1px #02cd86 !important;
+    }
+
+    /* Read-only fields still have to be readable. The base component fades a
+       disabled input to 50% opacity, which took white on #252525 well under the
+       4.5:1 an email address needs to be checked at a glance; an explicit grey
+       carries the "you cannot edit this" signal at 6.5:1 instead. */
+    .settings-input:disabled {
+        opacity: 1 !important;
+        color: #a8a8a8 !important;
+        cursor: not-allowed !important;
     }
 }

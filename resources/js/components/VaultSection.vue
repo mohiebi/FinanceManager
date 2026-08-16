@@ -271,26 +271,30 @@ async function finishDisable(): Promise<void> {
 
 <template>
     <div class="space-y-4">
-        <div class="flex items-center gap-2.5">
-            <span
-                class="flex size-9 shrink-0 items-center justify-center rounded-xl"
-                :class="
-                    armed
-                        ? 'bg-[#02CD86]/10 text-[#02CD86]'
-                        : 'bg-white/5 text-[#989898]'
-                "
-            >
-                <component
-                    :is="armed ? ShieldCheck : Lock"
-                    class="size-[18px]"
-                />
-            </span>
-            <p
-                class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-            >
-                {{ t('settings.security.vault.title') }}
-            </p>
-        </div>
+        <!-- The title used to live here, as an uppercase `<p>` — which meant the
+             one part of Security with the most to explain was the one part with
+             no heading in the document outline. `SettingsSection` owns it now,
+             as an `<h2>` like every other block on the page, and this keeps only
+             the state badge, which is the part that actually changes. -->
+        <p
+            class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium"
+            :class="
+                armed
+                    ? 'bg-[#02CD86]/10 text-[#02CD86]'
+                    : 'bg-white/5 text-[#989898]'
+            "
+        >
+            <component
+                :is="armed ? ShieldCheck : Lock"
+                class="size-3.5"
+                aria-hidden="true"
+            />
+            {{
+                armed
+                    ? t('settings.security.vault.badge_on')
+                    : t('settings.security.vault.badge_off')
+            }}
+        </p>
 
         <!-- What the user has right now, before any switch. The off state must not
              claim we cannot read the data — that is false at this level. -->

@@ -8,6 +8,7 @@ use App\Actions\Billing\SettleCouponRedemption;
 use App\Actions\Billing\StartSubscriptionPayment;
 use App\Actions\Billing\SubmitPaymentProof;
 use App\Enums\BillingPlan;
+use App\Enums\CouponRedemptionStatus;
 use App\Enums\PaymentStatus;
 use App\Exceptions\CouponUnavailable;
 use App\Exceptions\QuoteUnavailable;
@@ -15,7 +16,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\StartPaymentRequest;
 use App\Http\Requests\Settings\SubmitPaymentProofRequest;
 use App\Models\Coupon;
+use App\Models\CouponRedemption;
 use App\Models\SubscriptionPayment;
+use App\Models\User;
 use App\Support\Billing\BillingCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -45,16 +48,12 @@ class BillingController extends Controller
             'networks' => $this->catalog->networks(),
             'pending' => $this->pendingFor($request),
             'preferred' => $this->preferredRail($request),
-            'payments' => $user->subscriptionPayments()
-                // presentPayment() reads the coupon's code, so eager load it
-                // rather than issuing a query per row of the history.
-                ->with('coupon:id,code')
-                ->latest('created_at')
-                ->limit(20)
-                ->get()
-                ->map(fn (SubscriptionPayment $payment): array => $this->catalog->presentPayment($payment))
-                ->values(),
+            'history' => $this->historyFor($user),
             'status' => $request->session()->get('status'),
+            // Set only on the redirect that follows redeeming a full-price
+            // coupon. Drives the confirmation the buyer gets instead of a
+            // payment screen; absent on every other load.
+            'activated' => $request->session()->get('activated'),
         ]);
     }
 
@@ -80,9 +79,20 @@ class BillingController extends Controller
             if ($resolution->coversEverything) {
                 $rejection = ($this->redeemFreeCoupon)($user, $resolution->coupon, $plan);
 
-                return $rejection === null
-                    ? back()->with('status', __('billing.coupon.redeemed'))
-                    : back()->withErrors(['coupon' => $rejection->label()]);
+                if ($rejection !== null) {
+                    return back()->withErrors(['coupon' => $rejection->label()]);
+                }
+
+                // Its own flash rather than another `status` string. The page has
+                // to tell "your months are on the account, nothing was charged"
+                // apart from every other green strip it shows, and matching on
+                // the translated sentence would break the moment it is reworded
+                // or read in another locale.
+                return back()->with('activated', [
+                    'plan_label' => $plan->label(),
+                    'months' => $plan->months(),
+                    'coupon_code' => $resolution->coupon->code,
+                ]);
             }
 
             $coupon = $resolution->coupon;
@@ -177,7 +187,11 @@ class BillingController extends Controller
         // transaction is evidence now, and stays.
         abort_unless($payment->status === PaymentStatus::Pending, 404);
 
-        $payment->forceFill(['status' => PaymentStatus::Expired])->save();
+        // Withdrawn, not expired. Both are terminal and both hand the coupon
+        // back, but the history is the only place either is ever read, and
+        // "Expired" against an intent the buyer cancelled on purpose reads as
+        // something that failed on them.
+        $payment->forceFill(['status' => PaymentStatus::Cancelled])->save();
 
         // Withdrawing an intent hands back any coupon it was holding, so a
         // single-use code is not spent by somebody who changed their mind.
@@ -210,6 +224,50 @@ class BillingController extends Controller
             'network' => $last->network->value,
             'asset' => $last->asset->value,
         ];
+    }
+
+    /**
+     * Everything that has moved this buyer's subscription, newest first.
+     *
+     * Payments alone were not the whole story. A coupon covering the full price
+     * opens no intent — a chain cannot carry a zero transfer — so redeeming one
+     * granted the months and left this list either empty or, worse, showing only
+     * the intent the buyer had abandoned in order to go and use the code. Read
+     * from both sources and merged, so the list answers "what happened to my
+     * subscription" rather than "which chain transfers did I start".
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function historyFor(User $user): array
+    {
+        $payments = $user->subscriptionPayments()
+            // The presenter reads the coupon's code, so eager load it rather
+            // than issuing a query per row.
+            ->with('coupon:id,code')
+            ->latest('created_at')
+            ->limit(20)
+            ->get()
+            ->map(fn (SubscriptionPayment $payment): array => $this->catalog->presentPaymentHistoryEntry($payment));
+
+        $couponGrants = $user->couponRedemptions()
+            // Only the ones that stood in for a payment. A claim attached to a
+            // payment is already represented by that payment's own row, and
+            // listing it twice would read as two purchases.
+            ->whereNull('subscription_payment_id')
+            ->whereNotNull('subscription_grant_id')
+            ->where('status', CouponRedemptionStatus::Consumed)
+            ->with(['coupon:id,code', 'grant'])
+            ->latest('created_at')
+            ->limit(20)
+            ->get()
+            ->map(fn (CouponRedemption $redemption): array => $this->catalog->presentCouponHistoryEntry($redemption));
+
+        return $payments
+            ->concat($couponGrants)
+            ->sortByDesc('created_at')
+            ->take(20)
+            ->values()
+            ->all();
     }
 
     /**

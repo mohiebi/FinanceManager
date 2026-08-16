@@ -33,7 +33,7 @@ test('the billing page offers every configured plan and rail', function () {
             ->where('networks.0.chain_id', 1)
             ->has('networks.0.assets', 3)
             ->where('pending', null)
-            ->has('payments', 0)
+            ->has('history', 0)
         );
 });
 
@@ -89,7 +89,7 @@ test('choosing a plan opens an intent and shows what to send', function () {
             ->where('pending.payment_uri', fn (string $uri): bool => str_starts_with($uri, 'ethereum:0xa0b86991')
                 && str_contains($uri, '@1/transfer')
                 && str_contains($uri, 'uint256='))
-            ->has('payments', 1)
+            ->has('history', 1)
         );
 });
 
@@ -201,7 +201,7 @@ test('a settled payment leaves the panel and the badge turns Pro together', func
         ->assertInertia(fn (Assert $page) => $page
             ->where('pending', null)
             ->where('subscription.is_pro', true)
-            ->where('payments.0.status', 'confirmed')
+            ->where('history.0.status_label', PaymentStatus::Confirmed->label())
         );
 });
 
@@ -210,7 +210,9 @@ test('an unpaid intent can be withdrawn, a claimed one cannot', function () {
     $open = SubscriptionPayment::factory()->create(['user_id' => $user->id]);
 
     $this->actingAs($user)->delete(route('billing.payments.cancel', $open))->assertRedirect();
-    expect($open->fresh()->status)->toBe(PaymentStatus::Expired);
+    // Withdrawn, not expired: the buyer cancelled it themselves, and the history
+    // is the only place the distinction is ever read.
+    expect($open->fresh()->status)->toBe(PaymentStatus::Cancelled);
 
     // A payment that has claimed a transaction is evidence now, and stays.
     $claimed = SubscriptionPayment::factory()->submitted()->create(['user_id' => $user->id]);

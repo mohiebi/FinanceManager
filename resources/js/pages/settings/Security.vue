@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
-import { ShieldCheck } from 'lucide-vue-next';
+import { KeyRound, ShieldCheck, Vault } from 'lucide-vue-next';
 import { onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import SettingsRow from '@/components/settings/SettingsRow.vue';
+import SettingsSaveBar from '@/components/settings/SettingsSaveBar.vue';
 import SettingsSection from '@/components/settings/SettingsSection.vue';
 import TwoFactorRecoveryCodes from '@/components/TwoFactorRecoveryCodes.vue';
 import TwoFactorSetupModal from '@/components/TwoFactorSetupModal.vue';
@@ -55,10 +56,9 @@ onUnmounted(() => clearTwoFactorAuthData());
 <template>
     <Head :title="t('settings.security.title')" />
 
-    <h1 class="sr-only">{{ t('settings.security.title') }}</h1>
-
     <div class="flex flex-col gap-[18px]">
         <SettingsSection
+            :icon="KeyRound"
             :title="t('settings.security.password_login')"
             :description="
                 hasPassword
@@ -87,7 +87,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                         name="current_password"
                         autocomplete="current-password"
                         :placeholder="t('settings.security.current_password')"
-                        class="border-white/10 bg-[#252525] text-white placeholder:text-[#686868] focus-visible:border-[#02cd86] focus-visible:ring-1 focus-visible:ring-[#02cd86] dark:bg-[#252525]"
+                        class="settings-input"
                     />
                     <InputError :message="errors.current_password" />
                 </SettingsRow>
@@ -105,7 +105,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                         name="password"
                         autocomplete="new-password"
                         :placeholder="t('settings.security.new_password')"
-                        class="border-white/10 bg-[#252525] text-white placeholder:text-[#686868] focus-visible:border-[#02cd86] focus-visible:ring-1 focus-visible:ring-[#02cd86] dark:bg-[#252525]"
+                        class="settings-input"
                     />
                     <InputError :message="errors.password" />
                 </SettingsRow>
@@ -124,44 +124,28 @@ onUnmounted(() => clearTwoFactorAuthData());
                         name="password_confirmation"
                         autocomplete="new-password"
                         :placeholder="t('settings.security.confirm_password')"
-                        class="border-white/10 bg-[#252525] text-white placeholder:text-[#686868] focus-visible:border-[#02cd86] focus-visible:ring-1 focus-visible:ring-[#02cd86] dark:bg-[#252525]"
+                        class="settings-input"
                     />
                     <InputError :message="errors.password_confirmation" />
                 </SettingsRow>
 
-                <div class="flex items-center gap-4 pt-5">
-                    <button
-                        type="submit"
-                        :disabled="processing"
-                        data-test="update-password-button"
-                        class="cursor-pointer rounded-xl bg-[#02CD86] px-5 py-2.5 text-sm font-medium text-[#101010] transition-[filter,opacity] duration-200 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none disabled:opacity-50"
-                    >
-                        {{
+                <div class="pt-5">
+                    <SettingsSaveBar
+                        :processing="processing"
+                        :recently-successful="recentlySuccessful"
+                        :label="
                             hasPassword
                                 ? t('settings.security.save_password')
                                 : t('settings.security.add_password')
-                        }}
-                    </button>
-
-                    <Transition
-                        enter-active-class="transition ease-in-out"
-                        enter-from-class="opacity-0"
-                        leave-active-class="transition ease-in-out"
-                        leave-to-class="opacity-0"
-                    >
-                        <p
-                            v-show="recentlySuccessful"
-                            class="text-sm text-[#02CD86]"
-                        >
-                            {{ t('common.saved') }}
-                        </p>
-                    </Transition>
+                        "
+                    />
                 </div>
             </Form>
         </SettingsSection>
 
         <SettingsSection
             v-if="canManageTwoFactor"
+            :icon="ShieldCheck"
             :title="t('settings.security.two_factor')"
             :description="t('settings.security.two_factor_description')"
         >
@@ -177,7 +161,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                     <button
                         v-if="hasSetupData"
                         type="button"
-                        class="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#02CD86] px-5 py-2.5 text-sm font-medium text-[#101010] transition-[filter] duration-200 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none"
+                        class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-[#02CD86] px-5 text-sm font-medium text-[#101010] transition-[filter] duration-200 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none"
                         @click="showSetupModal = true"
                     >
                         <ShieldCheck class="size-4" />
@@ -192,7 +176,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                         <button
                             type="submit"
                             :disabled="processing"
-                            class="cursor-pointer rounded-xl bg-[#02CD86] px-5 py-2.5 text-sm font-medium text-[#101010] transition-[filter,opacity] duration-200 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none disabled:opacity-50"
+                            class="inline-flex min-h-11 cursor-pointer items-center rounded-xl bg-[#02CD86] px-5 text-sm font-medium text-[#101010] transition-[filter,opacity] duration-200 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none disabled:opacity-50"
                         >
                             {{ t('settings.security.enable_2fa') }}
                         </button>
@@ -209,7 +193,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                     <button
                         type="submit"
                         :disabled="processing"
-                        class="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#E94E50]/10 px-5 py-2.5 text-sm font-medium text-[#E94E50] transition-colors duration-200 hover:bg-[#E94E50]/20 focus-visible:ring-2 focus-visible:ring-[#E94E50] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none disabled:opacity-50"
+                        class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-[#E94E50]/10 px-5 text-sm font-medium text-[#E94E50] transition-colors duration-200 hover:bg-[#E94E50]/20 focus-visible:ring-2 focus-visible:ring-[#E94E50] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none disabled:opacity-50"
                     >
                         {{ t('settings.security.disable_2fa') }}
                     </button>
@@ -225,12 +209,13 @@ onUnmounted(() => clearTwoFactorAuthData());
             />
         </SettingsSection>
 
-        <!-- VaultSection renders its own icon-led title internally, so it goes
-             straight into the card surface rather than a SettingsSection —
-             wrapping it there would print the heading twice. -->
-        <div class="settings-card">
+        <SettingsSection
+            :icon="Vault"
+            :title="t('settings.security.vault.title')"
+            :description="t('settings.security.vault.description')"
+        >
             <VaultSection :has-password="hasPassword" />
-        </div>
+        </SettingsSection>
     </div>
 
     <Dialog :open="needsPasswordConfirmation">
@@ -270,7 +255,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                         autocomplete="current-password"
                         autofocus
                         :placeholder="t('fields.password')"
-                        class="border-white/10 bg-[#252525] text-white placeholder:text-[#686868] focus-visible:border-[#02cd86] focus-visible:ring-1 focus-visible:ring-[#02cd86] dark:bg-[#252525]"
+                        class="settings-input"
                     />
                     <InputError :message="errors.password" />
                 </div>

@@ -59,6 +59,9 @@ return [
         'recovery_codes_notice' => 'Jeder Wiederherstellungscode kann einmal für den Kontozugriff verwendet werden und wird danach entfernt. Wenn du mehr benötigst, klicke oben auf {action}.',
         'vault' => [
             'title' => 'Privater Tresor',
+            'description' => 'Verschlüssle deine Beträge und Titel mit einem Schlüssel, den nur du hast.',
+            'badge_on' => 'An',
+            'badge_off' => 'Aus',
             'armed_status' => 'Der private Tresor ist an. Nur du hast jetzt den Schlüssel.',
             'disarmed_status' => 'Der private Tresor ist aus. CashPilot kann deine Beträge und Titel wieder lesen.',
 
@@ -336,6 +339,23 @@ return [
         'ai' => 'KI-Verbindungen',
         'admin' => 'Admin',
         'admin_subtitle' => 'Kontrollturm',
+        'jump_to' => 'Zu einer Einstellungsseite springen',
+        'descriptions' => [
+            'profile' => 'Dein Name, deine E-Mail-Adresse und dein Geburtsdatum.',
+            'notifications' => 'Lege fest, worüber CashPilot dich informiert und wo.',
+            'security' => 'Passwort, Zwei-Faktor-Authentifizierung und dein privater Tresor.',
+            'preferences' => 'Sprache, Kalender, Zeitzone und Währung.',
+            'billing' => 'Dein Tarif, deine Zahlungen und Rechnungen.',
+            'modules' => 'Schalte Teile der App ein oder aus.',
+            'categories' => 'Die Bezeichnungen, unter denen Einnahmen und Ausgaben abgelegt werden.',
+            'assets' => 'Eigene Assets, die du in deinem Portfolio verfolgst.',
+            'telegram' => 'Buchungen erfassen und Berichte lesen – aus Telegram.',
+            'ai' => 'Mit deinem Konto verbundene Assistenten und ihre Änderungen.',
+        ],
+    ],
+    'save_bar' => [
+        'unsaved' => 'Du hast ungespeicherte Änderungen',
+        'discard' => 'Verwerfen',
     ],
     'ai' => [
         'title' => 'KI-Verbindungen',

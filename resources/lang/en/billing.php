@@ -92,6 +92,8 @@ return [
         'view_tx' => 'View transaction',
         'paid_on' => 'Paid {date}',
         'opened_on' => 'Opened {date}',
+        'coupon_status' => 'Redeemed',
+        'free_with_coupon' => 'Covered by coupon {code}',
     ],
 
     'statuses' => [
@@ -100,6 +102,7 @@ return [
         'confirmed' => 'Paid',
         'failed' => 'Failed',
         'expired' => 'Expired',
+        'cancelled' => 'Withdrawn',
         'refunded' => 'Refunded',
     ],
 
@@ -119,13 +122,34 @@ return [
         'expired' => 'This payment window closed before it was paid.',
     ],
 
+    'checkout' => [
+        'heading' => 'Review and pay',
+        'description' => 'Check the total, add a code if you have one, then confirm.',
+        'selected_plan' => 'Selected plan',
+        'change_plan' => 'Change plan',
+        'subtotal' => 'Plan price',
+        'discount' => 'Coupon {code}',
+        'total' => 'Total due',
+        'nothing_to_pay_title' => 'Nothing to pay',
+        'nothing_to_pay_body' => 'This code covers the {plan} plan in full. Confirm below and your Pro access starts straight away — no wallet, no transaction, no network fee.',
+        'pay_rail_hidden' => 'No chain is involved when there is nothing to transfer, so there is no wallet to pick.',
+        'confirm_paid' => 'Continue to payment',
+        'confirm_free' => 'Activate Pro for free',
+        'back_to_plans' => 'Back to plans',
+    ],
+
+    'activated' => [
+        'title' => 'Your Pro access is active',
+        'body' => 'Coupon {code} covered the {plan} plan in full, so nothing was charged. {months} have been added to your account.',
+        'continue' => 'Go to billing',
+    ],
+
     'coupon' => [
         'label' => 'Coupon code',
         'placeholder' => 'Have a code?',
         'apply' => 'Apply',
         'remove' => 'Remove',
         'free' => 'Free with this code',
-        'covers_everything' => 'It covers the whole price — choose a plan to redeem it.',
         'applied' => 'Coupon {code} applied.',
         'redeemed' => 'Coupon redeemed — your Pro access is active.',
         'discount' => 'You save {amount}.',

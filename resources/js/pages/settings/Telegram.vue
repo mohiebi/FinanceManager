@@ -104,6 +104,7 @@ const commands = computed(() => {
         <!-- ── Connected state ─────────────────────────────────── -->
         <template v-if="connected">
             <SettingsSection
+                :icon="BotMessageSquare"
                 :title="t('settings.telegram.bot')"
                 :description="t('settings.telegram.connected_description')"
             >
@@ -161,6 +162,7 @@ const commands = computed(() => {
                  red edge, and to not share a surface with the command list. -->
             <SettingsSection
                 danger
+                :icon="Unlink"
                 :title="t('settings.telegram.disconnect')"
                 :description="t('settings.telegram.disconnect_description')"
             >
@@ -184,6 +186,7 @@ const commands = computed(() => {
         <!-- ── Not connected state ─────────────────────────────── -->
         <SettingsSection
             v-else
+            :icon="BotMessageSquare"
             :title="t('settings.telegram.bot')"
             :description="t('settings.telegram.not_connected_description')"
         >

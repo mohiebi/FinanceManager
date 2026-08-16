@@ -92,6 +92,8 @@ return [
         'view_tx' => 'Transaktion ansehen',
         'paid_on' => 'Bezahlt am {date}',
         'opened_on' => 'Angelegt am {date}',
+        'coupon_status' => 'Eingelöst',
+        'free_with_coupon' => 'Durch Gutschein {code} abgedeckt',
     ],
 
     'statuses' => [
@@ -100,6 +102,7 @@ return [
         'confirmed' => 'Bezahlt',
         'failed' => 'Fehlgeschlagen',
         'expired' => 'Abgelaufen',
+        'cancelled' => 'Zurückgezogen',
         'refunded' => 'Erstattet',
     ],
 
@@ -119,13 +122,34 @@ return [
         'expired' => 'Dieses Zahlungsfenster schloss, bevor bezahlt wurde.',
     ],
 
+    'checkout' => [
+        'heading' => 'Prüfen und bezahlen',
+        'description' => 'Prüfe die Summe, füge ggf. einen Code hinzu und bestätige.',
+        'selected_plan' => 'Gewählter Tarif',
+        'change_plan' => 'Tarif ändern',
+        'subtotal' => 'Tarifpreis',
+        'discount' => 'Gutschein {code}',
+        'total' => 'Zu zahlen',
+        'nothing_to_pay_title' => 'Nichts zu zahlen',
+        'nothing_to_pay_body' => 'Dieser Code deckt den Tarif {plan} vollständig ab. Bestätige unten, und dein Pro-Zugang startet sofort – keine Wallet, keine Transaktion, keine Netzwerkgebühr.',
+        'pay_rail_hidden' => 'Wenn nichts zu überweisen ist, ist keine Chain beteiligt – es gibt also keine Wallet zu wählen.',
+        'confirm_paid' => 'Weiter zur Zahlung',
+        'confirm_free' => 'Pro kostenlos aktivieren',
+        'back_to_plans' => 'Zurück zu den Tarifen',
+    ],
+
+    'activated' => [
+        'title' => 'Dein Pro-Zugang ist aktiv',
+        'body' => 'Gutschein {code} hat den Tarif {plan} vollständig abgedeckt, es wurde nichts berechnet. {months} wurden deinem Konto gutgeschrieben.',
+        'continue' => 'Zur Abrechnung',
+    ],
+
     'coupon' => [
         'label' => 'Gutscheincode',
         'placeholder' => 'Code vorhanden?',
         'apply' => 'Einlösen',
         'remove' => 'Entfernen',
         'free' => 'Mit diesem Code kostenlos',
-        'covers_everything' => 'Er deckt den gesamten Preis — wähle einen Tarif, um ihn einzulösen.',
         'applied' => 'Gutschein {code} angewendet.',
         'redeemed' => 'Gutschein eingelöst — dein Pro-Zugang ist aktiv.',
         'discount' => 'Du sparst {amount}.',

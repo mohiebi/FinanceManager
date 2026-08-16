@@ -27,6 +27,16 @@ enum PaymentStatus: string
     /** The intent's window closed before anything was paid. */
     case Expired = 'expired';
 
+    /**
+     * The buyer withdrew the intent themselves.
+     *
+     * Separate from {@see self::Expired} because the history is the only place
+     * either is ever seen, and "Expired" against an intent somebody deliberately
+     * cancelled reads as something that went wrong. Nothing else treats the two
+     * differently: both are terminal, both grant nothing, both release a coupon.
+     */
+    case Cancelled = 'cancelled';
+
     /** Paid back by hand. Bookkeeping only — nothing here ever sends funds. */
     case Refunded = 'refunded';
 
@@ -45,6 +55,7 @@ enum PaymentStatus: string
             self::Confirmed => 'Paid',
             self::Failed => 'Failed',
             self::Expired => 'Expired',
+            self::Cancelled => 'Withdrawn',
             self::Refunded => 'Refunded',
         };
     }
@@ -76,7 +87,7 @@ enum PaymentStatus: string
             self::Confirmed => 'positive',
             self::Pending, self::Submitted => 'pending',
             self::Failed => 'negative',
-            self::Expired, self::Refunded => 'neutral',
+            self::Expired, self::Cancelled, self::Refunded => 'neutral',
         };
     }
 }

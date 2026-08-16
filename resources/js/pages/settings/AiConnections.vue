@@ -6,7 +6,10 @@ import {
     ChevronDown,
     ChevronUp,
     Copy,
+    History,
+    Plug,
     ShieldCheck,
+    Sparkles,
     Unlink,
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
@@ -233,10 +236,9 @@ defineOptions({
 <template>
     <Head :title="t('settings.ai.title')" />
 
-    <h1 class="sr-only">{{ t('settings.ai.title') }}</h1>
-
     <div class="flex flex-col gap-[18px]">
         <SettingsSection
+            :icon="Sparkles"
             :title="t('settings.ai.eyebrow')"
             :description="t('settings.ai.description')"
         >
@@ -427,7 +429,7 @@ defineOptions({
             </div>
         </SettingsSection>
 
-        <SettingsSection :title="t('settings.ai.connected_apps')">
+        <SettingsSection :icon="Plug" :title="t('settings.ai.connected_apps')">
             <p v-if="connections.length === 0" class="text-sm text-[#989898]">
                 {{ t('settings.ai.no_connections') }}
             </p>
@@ -473,7 +475,7 @@ defineOptions({
             </ul>
         </SettingsSection>
 
-        <SettingsSection :title="t('settings.ai.history')">
+        <SettingsSection :icon="History" :title="t('settings.ai.history')">
             <p v-if="history.length === 0" class="text-sm text-[#989898]">
                 {{ t('settings.ai.history_empty') }}
             </p>

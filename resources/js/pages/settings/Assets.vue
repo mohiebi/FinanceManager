@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Check, ChevronDown, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
+import {
+    Check,
+    ChevronDown,
+    Coins,
+    Pencil,
+    Plus,
+    Trash2,
+    X,
+} from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
@@ -275,6 +283,7 @@ defineOptions({
 
     <div class="flex flex-col gap-[18px]">
         <SettingsSection
+            :icon="Plus"
             :title="t('settings.assets.eyebrow')"
             :description="t('settings.assets.description')"
         >
@@ -626,7 +635,10 @@ defineOptions({
             </form>
         </SettingsSection>
 
-        <SettingsSection :title="t('settings.assets.custom_assets')">
+        <SettingsSection
+            :icon="Coins"
+            :title="t('settings.assets.custom_assets')"
+        >
             <div class="mb-3 flex items-center justify-between gap-3">
                 <InputError :message="deleteError" />
                 <span class="ms-auto text-xs text-[#989898]">

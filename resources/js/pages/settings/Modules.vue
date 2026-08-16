@@ -2,9 +2,11 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { onKeyStroke } from '@vueuse/core';
 import {
+    Blocks,
     Bot,
     BrainCircuit,
     ChartPie,
+    Check,
     Crown,
     Lock,
     Plane,
@@ -20,6 +22,7 @@ import {
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
+import SettingsSection from '@/components/settings/SettingsSection.vue';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useNavigationNaming } from '@/composables/useNavigationNaming';
@@ -168,163 +171,175 @@ onKeyStroke('Escape', () => {
 <template>
     <Head :title="t('modules.title')" />
 
-    <div class="space-y-6">
-        <div>
-            <p
-                class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-            >
-                {{ t('modules.title') }}
-            </p>
-            <p class="mt-1 text-sm text-[#989898]">
-                {{ t('modules.description') }}
-            </p>
-        </div>
-
+    <div class="flex flex-col gap-[18px]">
+        <!-- The page used to open with its own uppercase eyebrow and
+             description, which is now what the settings shell prints in the
+             header above it — the same two lines, twice. -->
         <Transition
-            enter-active-class="transition ease-in-out"
+            enter-active-class="transition ease-in-out motion-reduce:transition-none"
             enter-from-class="opacity-0"
-            leave-active-class="transition ease-in-out"
+            leave-active-class="transition ease-in-out motion-reduce:transition-none"
             leave-to-class="opacity-0"
         >
-            <p v-if="props.status" class="text-sm text-[#02CD86]">
+            <p
+                v-if="props.status"
+                class="flex items-center gap-2 rounded-2xl bg-[#02CD86]/10 px-4 py-3 text-sm text-[#02CD86] ring-1 ring-[#02CD86]/25"
+                role="status"
+                aria-live="polite"
+            >
+                <Check class="size-4 shrink-0" aria-hidden="true" />
                 {{ props.status }}
             </p>
         </Transition>
 
-        <!-- One card on a phone, two from 640, three from 1280 — and three
-             stays the ceiling until a genuinely ultrawide 1800px, not
-             Tailwind's `2xl` (1536px), which is just an ordinary laptop and
-             was cramming a fourth column into too little width per card,
-             clipping the description. Column count rather than card width
-             does the work, so a card never stretches past the point where
-             its description stops being scannable. -->
-        <ul
-            class="grid gap-4 min-[1800px]:grid-cols-4 sm:grid-cols-2 xl:grid-cols-3"
+        <SettingsSection
+            :icon="Blocks"
+            :title="t('modules.optional_heading')"
+            :description="t('modules.description')"
         >
-            <li
-                v-for="module in props.modules"
-                :key="module.key"
-                class="flex flex-col rounded-2xl bg-white/5 p-4 ring-1 transition-colors"
-                :class="module.enabled ? 'ring-[#02CD86]/25' : 'ring-white/10'"
-            >
-                <div class="flex items-start gap-3">
-                    <span
-                        class="flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors"
-                        :class="
-                            module.enabled
-                                ? 'bg-[#02CD86]/10 text-[#02CD86]'
-                                : 'bg-white/5 text-[#989898]'
-                        "
-                    >
-                        <component
-                            :is="icons[module.icon]"
-                            class="size-[18px]"
-                        />
-                    </span>
+            <!-- One card on a phone, two from 640, three only past 1500px.
+                 Three is the ceiling because column count, not card width, is
+                 what has to give: a fourth column at laptop widths left each
+                 card too narrow to hold its description without clipping. The
+                 threshold sits higher than it used to because the grid now
+                 lives inside a card, which costs it the card's padding. -->
+            <ul class="grid gap-4 min-[1500px]:grid-cols-3 sm:grid-cols-2">
+                <li
+                    v-for="module in props.modules"
+                    :key="module.key"
+                    class="flex flex-col rounded-2xl bg-white/5 p-4 ring-1 transition-colors"
+                    :class="
+                        module.enabled ? 'ring-[#02CD86]/25' : 'ring-white/10'
+                    "
+                >
+                    <div class="flex items-start gap-3">
+                        <span
+                            class="flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors"
+                            :class="
+                                module.enabled
+                                    ? 'bg-[#02CD86]/10 text-[#02CD86]'
+                                    : 'bg-white/5 text-[#989898]'
+                            "
+                        >
+                            <component
+                                :is="icons[module.icon]"
+                                class="size-[18px]"
+                                aria-hidden="true"
+                            />
+                        </span>
 
-                    <div class="min-w-0 flex-1">
-                        <p class="text-sm font-medium break-words text-white">
-                            {{ moduleLabel(module) }}
-                        </p>
-                        <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                            <span
-                                v-if="module.tier === 'pro'"
-                                class="inline-flex items-center gap-1 rounded-md bg-[#6C4EE9]/15 px-2 py-0.5 text-[11px] font-medium text-[#a89bf3]"
+                        <div class="min-w-0 flex-1">
+                            <p
+                                class="text-sm font-medium break-words text-white"
                             >
-                                <Crown class="size-3" aria-hidden="true" />
-                                {{ t('modules.tiers.pro') }}
-                            </span>
-                            <span
-                                v-else-if="!module.enabled"
-                                class="rounded-md bg-[#02CD86]/10 px-2 py-0.5 text-[11px] font-medium text-[#02CD86]"
+                                {{ moduleLabel(module) }}
+                            </p>
+                            <div
+                                class="mt-1 flex flex-wrap items-center gap-1.5"
                             >
-                                {{ t('modules.tiers.free') }}
-                            </span>
-                            <span
-                                v-if="module.enabled"
-                                class="text-[11px] text-[#02CD86]"
-                            >
-                                {{ t('modules.enabled') }}
-                            </span>
+                                <span
+                                    v-if="module.tier === 'pro'"
+                                    class="inline-flex items-center gap-1 rounded-md bg-[#6C4EE9]/15 px-2 py-0.5 text-[11px] font-medium text-[#a89bf3]"
+                                >
+                                    <Crown class="size-3" aria-hidden="true" />
+                                    {{ t('modules.tiers.pro') }}
+                                </span>
+                                <span
+                                    v-else-if="!module.enabled"
+                                    class="rounded-md bg-[#02CD86]/10 px-2 py-0.5 text-[11px] font-medium text-[#02CD86]"
+                                >
+                                    {{ t('modules.tiers.free') }}
+                                </span>
+                                <span
+                                    v-if="module.enabled"
+                                    class="inline-flex items-center gap-1 text-[11px] text-[#02CD86]"
+                                >
+                                    <Check class="size-3" aria-hidden="true" />
+                                    {{ t('modules.enabled') }}
+                                </span>
+                            </div>
                         </div>
+
+                        <!-- Self-managed modules keep their header clear: the
+                             manage link's label is long, and sitting here as a
+                             shrink-0 sibling it squeezed the title until it
+                             wrapped one letter per line. It lives in the footer
+                             instead. -->
+                        <Switch
+                            v-if="!module.manage_url"
+                            :checked="module.enabled"
+                            :disabled="
+                                processing === module.key ||
+                                (!module.may_use && !isProLocked(module))
+                            "
+                            :aria-label="moduleLabel(module)"
+                            @update:checked="toggle(module, $event)"
+                        />
+                        <Lock
+                            v-else
+                            class="mt-1 size-4 shrink-0 text-[#6f6f6f]"
+                            aria-hidden="true"
+                        />
                     </div>
 
-                    <!-- Self-managed modules keep their header clear: the manage
-                         link's label is long, and sitting here as a shrink-0
-                         sibling it squeezed the title until it wrapped one
-                         letter per line. It lives in the footer instead. -->
-                    <Switch
-                        v-if="!module.manage_url"
-                        :checked="module.enabled"
-                        :disabled="
-                            processing === module.key ||
-                            (!module.may_use && !isProLocked(module))
-                        "
-                        :aria-label="moduleLabel(module)"
-                        @update:checked="toggle(module, $event)"
-                    />
-                    <Lock
-                        v-else
-                        class="mt-1 size-4 shrink-0 text-[#6f6f6f]"
-                        aria-hidden="true"
-                    />
-                </div>
-
-                <p class="mt-3 text-sm text-[#989898]">
-                    {{ module.description }}
-                </p>
-
-                <p
-                    v-if="module.requires.length > 0"
-                    class="mt-2 text-xs text-[#6f6f6f]"
-                >
-                    {{
-                        t('modules.requires', {
-                            features: module.requires.join(', '),
-                        })
-                    }}
-                </p>
-
-                <!-- Pinned to the bottom so cards in a row line their controls
-                     up regardless of how long each description runs. -->
-                <div
-                    v-if="module.manage_url"
-                    class="mt-auto border-t border-white/5 pt-3"
-                >
-                    <p class="text-xs text-[#6f6f6f]">
-                        {{ t('modules.managed_elsewhere') }}
+                    <p class="mt-3 text-sm text-[#989898]">
+                        {{ module.description }}
                     </p>
-                    <Link
-                        :href="module.manage_url"
-                        class="mt-2 inline-flex cursor-pointer items-center rounded-xl bg-white/10 px-3 py-2 text-xs font-medium text-white transition-colors duration-200 hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none"
+
+                    <p
+                        v-if="module.requires.length > 0"
+                        class="mt-2 text-xs text-[#6f6f6f]"
                     >
-                        {{ t('modules.manage') }}
-                    </Link>
-                </div>
+                        {{
+                            t('modules.requires', {
+                                features: module.requires.join(', '),
+                            })
+                        }}
+                    </p>
 
-                <label
-                    v-else-if="!module.enabled && module.in_nav"
-                    class="mt-auto flex cursor-pointer items-center gap-2 border-t border-white/5 pt-3"
-                >
-                    <Checkbox
-                        :checked="!module.show_promo"
-                        :disabled="processing === module.key"
-                        @update:checked="togglePromo(module, $event === true)"
-                    />
-                    <span class="text-xs text-[#989898]">
-                        {{ t('modules.hide_from_menu') }}
-                    </span>
-                </label>
-            </li>
-        </ul>
+                    <!-- Pinned to the bottom so cards in a row line their
+                         controls up regardless of how long each description
+                         runs. -->
+                    <div
+                        v-if="module.manage_url"
+                        class="mt-auto border-t border-white/5 pt-3"
+                    >
+                        <p class="text-xs text-[#6f6f6f]">
+                            {{ t('modules.managed_elsewhere') }}
+                        </p>
+                        <Link
+                            :href="module.manage_url"
+                            class="mt-2 inline-flex min-h-9 cursor-pointer items-center rounded-xl bg-white/10 px-3 text-xs font-medium text-white transition-colors duration-200 hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none"
+                        >
+                            {{ t('modules.manage') }}
+                        </Link>
+                    </div>
 
-        <div class="space-y-3">
-            <p class="text-xs text-[#6f6f6f]">
-                {{ t('modules.core_badge') }}
-            </p>
-            <ul
-                class="grid gap-4 min-[1800px]:grid-cols-4 sm:grid-cols-2 xl:grid-cols-3"
-            >
+                    <label
+                        v-else-if="!module.enabled && module.in_nav"
+                        class="mt-auto flex min-h-11 cursor-pointer items-center gap-2 border-t border-white/5 pt-3"
+                    >
+                        <Checkbox
+                            :checked="!module.show_promo"
+                            :disabled="processing === module.key"
+                            @update:checked="
+                                togglePromo(module, $event === true)
+                            "
+                        />
+                        <span class="text-xs text-[#989898]">
+                            {{ t('modules.hide_from_menu') }}
+                        </span>
+                    </label>
+                </li>
+            </ul>
+        </SettingsSection>
+
+        <SettingsSection
+            :icon="Lock"
+            :title="t('modules.core_heading')"
+            :description="t('modules.core_description')"
+        >
+            <ul class="grid gap-4 min-[1500px]:grid-cols-3 sm:grid-cols-2">
                 <li
                     v-for="module in props.coreModules"
                     :key="module.key"
@@ -337,6 +352,7 @@ onKeyStroke('Escape', () => {
                             <component
                                 :is="icons[module.icon]"
                                 class="size-[18px]"
+                                aria-hidden="true"
                             />
                         </span>
                         <p
@@ -344,14 +360,17 @@ onKeyStroke('Escape', () => {
                         >
                             {{ moduleLabel(module) }}
                         </p>
-                        <Lock class="mt-1 size-4 shrink-0 text-[#6f6f6f]" />
+                        <Lock
+                            class="mt-1 size-4 shrink-0 text-[#6f6f6f]"
+                            aria-hidden="true"
+                        />
                     </div>
                     <p class="mt-3 text-sm text-[#6f6f6f]">
                         {{ module.description }}
                     </p>
                 </li>
             </ul>
-        </div>
+        </SettingsSection>
     </div>
 
     <Teleport to="body">
@@ -400,7 +419,7 @@ onKeyStroke('Escape', () => {
                     <div class="mt-6 flex gap-3">
                         <button
                             type="button"
-                            class="flex-1 cursor-pointer rounded-xl bg-white/10 py-2.5 text-sm font-medium text-white transition hover:bg-white/15"
+                            class="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-xl bg-white/10 text-sm font-medium text-white transition hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none"
                             @click="pendingUpgrade = null"
                         >
                             {{
@@ -412,7 +431,7 @@ onKeyStroke('Escape', () => {
                         <Link
                             v-if="billingEnabled"
                             :href="billingEdit().url"
-                            class="flex-1 cursor-pointer rounded-xl bg-[#6C4EE9] py-2.5 text-center text-sm font-medium text-white transition hover:bg-[#5b3fd4]"
+                            class="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-xl bg-[#6C4EE9] text-center text-sm font-medium text-white transition hover:bg-[#5b3fd4] focus-visible:ring-2 focus-visible:ring-[#a89bf3] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none"
                         >
                             {{ t('modules.upgrade.continue') }}
                         </Link>
@@ -427,15 +446,24 @@ onKeyStroke('Escape', () => {
             leave-active-class="transition duration-150"
             leave-to-class="opacity-0"
         >
+            <!-- The upgrade dialog next door was already announcing itself;
+                 this one was a bare div, so a screen reader met an unlabelled
+                 blob of text with a destructive button in it. -->
             <div
                 v-if="pendingDisable"
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="module-disable-title"
                 @click.self="pendingDisable = null"
             >
                 <div
                     class="w-full max-w-sm rounded-[22px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
                 >
-                    <p class="text-[17px] font-medium text-white">
+                    <p
+                        id="module-disable-title"
+                        class="text-[17px] font-medium text-white"
+                    >
                         {{
                             t('modules.confirm_disable_title', {
                                 module: moduleLabel(pendingDisable),
@@ -452,14 +480,14 @@ onKeyStroke('Escape', () => {
                     <div class="mt-6 flex gap-3">
                         <button
                             type="button"
-                            class="flex-1 cursor-pointer rounded-xl bg-white/10 py-2.5 text-sm font-medium text-white transition hover:bg-white/15"
+                            class="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-xl bg-white/10 text-sm font-medium text-white transition hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none"
                             @click="pendingDisable = null"
                         >
                             {{ t('modules.cancel') }}
                         </button>
                         <button
                             type="button"
-                            class="flex-1 cursor-pointer rounded-xl bg-[#E94E50] py-2.5 text-sm font-medium text-white transition hover:bg-[#d43e40]"
+                            class="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-xl bg-[#E94E50] text-sm font-medium text-white transition hover:bg-[#d43e40] focus-visible:ring-2 focus-visible:ring-[#E94E50] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none"
                             @click="confirmDisable"
                         >
                             {{ t('modules.confirm_disable_action') }}

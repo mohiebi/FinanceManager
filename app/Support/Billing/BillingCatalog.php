@@ -5,6 +5,7 @@ namespace App\Support\Billing;
 use App\Enums\BillingPlan;
 use App\Enums\PaymentNetwork;
 use App\Enums\SettlementAsset;
+use App\Models\CouponRedemption;
 use App\Models\SubscriptionPayment;
 
 /**
@@ -71,6 +72,77 @@ final readonly class BillingCatalog
                 'is_stable' => $asset->isStable(),
             ], $network->assets()),
         ], PaymentNetwork::available());
+    }
+
+    /**
+     * One row of the buyer's history for a payment.
+     *
+     * @return array{id: string, kind: string, plan_label: string|null, months: int, status_label: string, tone: string, price_usd: string, list_price_usd: string|null, coupon_code: string|null, explorer_url: string|null, failure_message: string|null, created_at: string, settled_at: string|null}
+     */
+    public function presentPaymentHistoryEntry(SubscriptionPayment $payment): array
+    {
+        return [
+            'id' => $payment->id,
+            'kind' => 'payment',
+            'plan_label' => $payment->plan->label(),
+            'months' => $payment->months,
+            'status_label' => $payment->status->label(),
+            'tone' => $payment->status->tone(),
+            'price_usd' => $payment->price_usd,
+            'list_price_usd' => $payment->list_price_usd,
+            'coupon_code' => $payment->coupon?->code,
+            'explorer_url' => $payment->tx_hash !== null && $payment->network !== null
+                ? $payment->network->explorerTxUrl($payment->tx_hash)
+                : null,
+            'failure_message' => $payment->failure_reason?->label(),
+            'created_at' => $payment->created_at->toIso8601String(),
+            'settled_at' => $payment->verified_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * One row of the buyer's history for a coupon that covered the whole price.
+     *
+     * These have no payment behind them by design — a chain cannot carry a zero
+     * transfer — which meant redeeming one put months on the account and left
+     * the history showing nothing, or worse, showing only the intent the buyer
+     * had abandoned to go and use the code. The entitlement moved, so the
+     * history has to say so.
+     *
+     * `plan_label` is null because the grant records months, not a plan —
+     * reconstructing "Monthly" from a month count would go wrong the first time
+     * a plan's length is reconfigured. The page titles these rows from `months`
+     * instead, using the same keys it already counts months with elsewhere;
+     * doing it here would need Laravel's `:count`, and the billing translations
+     * are read by vue-i18n, which interpolates `{count}` and would print the
+     * colon form literally.
+     *
+     * @return array{id: string, kind: string, plan_label: string|null, months: int, status_label: string, tone: string, price_usd: string, list_price_usd: string|null, coupon_code: string|null, explorer_url: string|null, failure_message: string|null, created_at: string, settled_at: string|null}
+     */
+    public function presentCouponHistoryEntry(CouponRedemption $redemption): array
+    {
+        $grantedAt = ($redemption->grant?->created_at ?? $redemption->created_at)->toIso8601String();
+
+        return [
+            'id' => 'coupon-'.$redemption->getKey(),
+            'kind' => 'coupon',
+            'plan_label' => null,
+            'months' => $redemption->grant?->months ?? 0,
+            'status_label' => __('billing.history.coupon_status'),
+            // Positive, because from the buyer's side this settled: they have the
+            // months, and nothing is outstanding.
+            'tone' => 'positive',
+            'price_usd' => '0.00',
+            // What the code was worth. It covered everything, so the discount is
+            // the list price, and the row can strike it through like any other.
+            'list_price_usd' => $redemption->discount_usd,
+            'coupon_code' => $redemption->coupon?->code,
+            // No transaction, so nothing to look up on a chain.
+            'explorer_url' => null,
+            'failure_message' => null,
+            'created_at' => $grantedAt,
+            'settled_at' => $grantedAt,
+        ];
     }
 
     /**

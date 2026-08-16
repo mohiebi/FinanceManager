@@ -8,6 +8,8 @@ export type PaymentStatusKey =
     | 'confirmed'
     | 'failed'
     | 'expired'
+    /** The buyer withdrew the intent, as opposed to letting its window close. */
+    | 'cancelled'
     | 'refunded';
 
 export type PaymentTone = 'positive' | 'pending' | 'negative' | 'neutral';
@@ -87,6 +89,19 @@ export type CouponPreview = {
     plans: Record<string, CouponPlanPrice>;
 };
 
+/**
+ * Flashed once, on the redirect that follows redeeming a full-price coupon.
+ *
+ * A coupon that covers everything never opens a payment intent, so there is no
+ * `PaymentRecord` to show and nothing in the history until the grant lands.
+ * This is what the page confirms with instead.
+ */
+export type ActivationReceipt = {
+    plan_label: string;
+    months: number;
+    coupon_code: string;
+};
+
 export type CouponPreviewResponse =
     | { accepted: true; code: string; plans: Record<string, CouponPlanPrice> }
     | { accepted: false; message: string };
@@ -113,6 +128,38 @@ export type AdminCoupon = {
     expired: boolean;
     note: string | null;
     created_at: string;
+};
+
+/**
+ * One row of the buyer's subscription history.
+ *
+ * Not every entry is a payment. A coupon covering the whole price opens no
+ * intent — a chain cannot carry a zero transfer — so those arrive as their own
+ * kind rather than being missing from the list that is supposed to explain how
+ * the account came to be Pro.
+ */
+export type HistoryEntry = {
+    id: string;
+    kind: 'payment' | 'coupon';
+    /**
+     * The plan's name — null on a coupon entry, which the grant records only as
+     * a month count. The page titles those from `months` instead: doing it
+     * server-side would need Laravel's `:count`, and this group is rendered by
+     * vue-i18n, which interpolates `{count}`.
+     */
+    plan_label: string | null;
+    months: number;
+    status_label: string;
+    tone: PaymentTone;
+    price_usd: string;
+    /** The undiscounted price, or null when no coupon was involved. */
+    list_price_usd: string | null;
+    coupon_code: string | null;
+    explorer_url: string | null;
+    failure_message: string | null;
+    created_at: string;
+    /** When the months actually landed, or null while nothing has settled. */
+    settled_at: string | null;
 };
 
 export type PaymentRecord = {

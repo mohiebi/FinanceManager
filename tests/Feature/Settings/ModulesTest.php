@@ -238,7 +238,13 @@ test('the upgrade dialog offers no plans page while billing is switched off', fu
 });
 
 test('the upgrade dialog leads somewhere a free user can actually open', function () {
-    config()->set('billing.enabled', true);
+    // The full helper, not just the master switch. `billing.edit` is gated on
+    // three things — the switch, a priced plan and a chain with an address, an
+    // endpoint and a payable asset — and setting only the first left the other
+    // two to whatever the developer happened to have in their own .env. It
+    // passed on a machine configured for real payments and 404'd everywhere
+    // else, including against the committed defaults.
+    enableBilling();
 
     $this->actingAs(User::factory()->create())
         ->get(route('billing.edit'))

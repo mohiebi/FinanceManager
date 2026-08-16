@@ -355,6 +355,7 @@ type Entry = {
     asset_icon_svg: string | null;
     asset_color: string;
     asset_unit: string;
+    kind: 'buy' | 'sell';
     quantity: Encrypted<string | number>;
     cost_basis: Encrypted<string | number> | null;
     cost_basis_currency: string | null;

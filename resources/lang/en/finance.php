@@ -201,6 +201,7 @@ return [
         'sell_quantity' => 'How much are you selling?',
         'sell_total' => 'Total you sold it for',
         'sell_exceeds_holding' => 'You cannot sell more than you currently hold.',
+        'sell_not_editable' => 'A sale cannot be edited. Delete it and record it again.',
         'holding_now' => 'You hold {quantity} {unit}',
         'record_cost' => 'Also record this as a cost',
         'record_cost_hint' => 'Adds a transaction under Investment for the money that left your pocket',

@@ -171,6 +171,93 @@ test('selling records a disposal without touching the purchase', function () {
         ->and((float) $purchase->fresh()->quantity)->toBe(5.0);
 });
 
+test('a disposal cannot be edited through the purchase route', function () {
+    $user = User::factory()->withModules()->create();
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    Investment::query()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => $asset->id,
+        'asset_type' => $asset->slug,
+        'kind' => 'buy',
+        'quantity' => 5,
+        'cost_basis' => 4000000,
+        'cost_basis_currency' => Currency::Toman->value,
+        'occurred_at' => '2026-07-01',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('investments.sell'), [
+            'investment_asset_id' => $asset->id,
+            'quantity' => '2',
+            'total_sale' => '12000000',
+            'sale_price_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-10',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $disposal = Investment::query()->where('kind', 'sell')->sole();
+
+    // The buy route reads a positive quantity, so letting it write one here
+    // turned a two-unit sale into a two-unit purchase and moved the holding by
+    // four — while `kind` still said `sell`.
+    $this->actingAs($user)
+        ->patch(route('investments.update', $disposal), [
+            'investment_asset_id' => $asset->id,
+            'asset_type' => $asset->slug,
+            'quantity' => '3',
+            'cost_basis' => '4000000',
+            'cost_basis_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-10',
+        ])
+        ->assertStatus(409);
+
+    expect((float) $disposal->fresh()->quantity)->toBe(-2.0)
+        ->and($user->investments()->get()->sum(fn (Investment $entry): float => (float) $entry->quantity))
+        ->toBe(3.0);
+});
+
+test('the entry list marks disposals so the purchase dialog is never offered for one', function () {
+    $user = User::factory()->withModules()->create();
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    Investment::query()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => $asset->id,
+        'asset_type' => $asset->slug,
+        'kind' => 'buy',
+        'quantity' => 5,
+        'cost_basis' => 4000000,
+        'cost_basis_currency' => Currency::Toman->value,
+        'occurred_at' => '2026-07-01',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('investments.sell'), [
+            'investment_asset_id' => $asset->id,
+            'quantity' => '2',
+            'total_sale' => '12000000',
+            'sale_price_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-10',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)
+        ->get(route('investments.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Investments')
+            ->where('entries', function (mixed $entries): bool {
+                $byKind = collect($entries)->groupBy(fn (array $entry): string => $entry['kind']);
+
+                expect($byKind->get('sell'))->toHaveCount(1)
+                    ->and($byKind->get('buy'))->toHaveCount(1);
+
+                return true;
+            }),
+        );
+});
+
 test('you cannot sell more than you hold', function () {
     $user = User::factory()->withModules()->create();
     $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();

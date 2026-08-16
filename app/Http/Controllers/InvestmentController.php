@@ -69,6 +69,11 @@ class InvestmentController extends Controller
                     'asset_icon_svg' => $asset?->icon_svg,
                     'asset_color' => $asset?->color ?? '#02CD86',
                     'asset_unit' => $asset?->unit ?? '',
+                    // Plaintext even with the vault armed — it is the only thing
+                    // that tells a sale from a purchase once the quantity that
+                    // carries the sign is ciphertext. Named as the portfolio
+                    // payload names it, which ships it for the same reason.
+                    'kind' => $investment->kind->value,
                     'quantity' => $vaultArmed ? $investment->quantity : (float) $investment->quantity,
                     'cost_basis' => $vaultArmed || $investment->cost_basis === null ? $investment->cost_basis : (float) $investment->cost_basis,
                     'cost_basis_currency' => $investment->cost_basis_currency,
@@ -223,9 +228,26 @@ class InvestmentController extends Controller
         ];
     }
 
+    /**
+     * Edits a purchase. Disposals are deliberately not editable here.
+     *
+     * This route speaks the buy vocabulary — a positive quantity and a
+     * `total_cost` that becomes the per-unit basis — and a sale has none of
+     * that: its quantity is stored negative so holdings stay a plain sum, its
+     * basis is frozen at the average at sale time, and its proceeds live in
+     * `sale_price`. Letting it through rewrote the sign, so a sale of two units
+     * became a purchase of two and the holding moved by four in the wrong
+     * direction, while `kind` still said `sell` and the realised gain kept
+     * being computed from it.
+     *
+     * A sale is corrected by deleting it and recording it again, which is right
+     * whether or not the vault is armed — the sign is the one thing a server
+     * that cannot read the quantity could never have restored on its own.
+     */
     public function update(Request $request, Investment $investment, SaveInvestment $saveInvestment): RedirectResponse
     {
         abort_unless((int) $investment->user_id === (int) $request->user()->id, 404);
+        abort_if($investment->isSell(), 409, __('finance.investments.sell_not_editable'));
 
         $validated = $this->validatedInvestmentData($request);
 

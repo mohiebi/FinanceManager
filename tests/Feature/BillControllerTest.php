@@ -505,3 +505,46 @@ test('syncPending skips a paid collision and moves the pending occurrence to the
         Carbon::setTestNow();
     }
 });
+
+test('the upcoming horizon does not jump a whole month on the 31st', function () {
+    // The day before, and the day itself. Plain addMonths() turns 2026-08-31
+    // into 2026-10-01, and endOfMonth() then pushed the horizon out to 2026-10-31.
+    $horizonFor = function (string $today): array {
+        Carbon::setTestNow(Carbon::parse($today.' 09:00:00'));
+
+        try {
+            $user = User::factory()->withModules()->create();
+
+            $bill = $user->bills()->create([
+                'title' => 'Rent',
+                'amount' => 5000000,
+                'currency' => Currency::Toman->value,
+                'recurrence_type' => 'monthly',
+                'due_day_of_month' => 15,
+            ]);
+
+            // Comfortably inside next month, and comfortably beyond it.
+            $bill->occurrences()->create(['due_date' => '2026-09-15']);
+            $bill->occurrences()->create(['due_date' => '2026-10-15']);
+
+            $dueDates = [];
+
+            $this->actingAs($user)
+                ->get(route('bills.index'))
+                ->assertOk()
+                ->assertInertia(function (Assert $page) use (&$dueDates): void {
+                    $dueDates = collect($page->toArray()['props']['upcomingOccurrences'] ?? [])
+                        ->pluck('due_date')
+                        ->all();
+                });
+
+            return $dueDates;
+        } finally {
+            Carbon::setTestNow();
+        }
+    };
+
+    expect($horizonFor('2026-08-31'))->toBe($horizonFor('2026-08-30'))
+        ->and($horizonFor('2026-08-31'))->toContain('2026-09-15')
+        ->and($horizonFor('2026-08-31'))->not->toContain('2026-10-15');
+});

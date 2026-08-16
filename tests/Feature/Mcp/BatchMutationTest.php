@@ -1,9 +1,12 @@
 <?php
 
+use App\Enums\AssetType;
 use App\Enums\Feature;
 use App\Mcp\Servers\FinanceServer;
 use App\Mcp\Tools\ApplyFinanceChangesTool;
 use App\Models\Category;
+use App\Models\Investment;
+use App\Models\InvestmentAsset;
 use App\Models\McpProposal;
 use App\Models\Transaction;
 use App\Models\User;
@@ -162,4 +165,55 @@ test('the batch mutation tool advertises one consequential private write call', 
             'openWorldHint' => false,
         ])
         ->and($tool['inputSchema']['properties']['operations']['maxItems'])->toBe(100);
+});
+
+test('a batch cannot edit a disposal back into a purchase', function () {
+    $user = User::factory()->withModules()->create();
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    Investment::query()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => $asset->id,
+        'asset_type' => $asset->slug,
+        'kind' => 'buy',
+        'quantity' => 5,
+        'cost_basis' => 4000000,
+        'cost_basis_currency' => 'toman',
+        'occurred_at' => '2026-07-01',
+    ]);
+
+    // There is no sell action on this surface, so the row is created the way the
+    // web sell route creates one.
+    $disposal = Investment::query()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => $asset->id,
+        'asset_type' => $asset->slug,
+        'kind' => 'sell',
+        'quantity' => -2,
+        'cost_basis' => 4000000,
+        'cost_basis_currency' => 'toman',
+        'sale_price' => 6000000,
+        'sale_price_currency' => 'toman',
+        'occurred_at' => '2026-07-10',
+    ]);
+
+    FinanceServer::actingAs($user)
+        ->tool(ApplyFinanceChangesTool::class, [
+            'operations' => [[
+                'resource' => 'investment',
+                'action' => 'update',
+                'id' => $disposal->id,
+                'investment_asset_id' => $asset->id,
+                'quantity' => 3,
+                'cost_basis' => 4000000,
+                'cost_basis_currency' => 'toman',
+                'occurred_at' => '2026-07-10',
+            ]],
+        ])
+        ->assertHasErrors();
+
+    // Untouched, so the holding is still the 3 units the user actually has.
+    expect((float) $disposal->fresh()->quantity)->toBe(-2.0)
+        ->and($user->investments()->get()->sum(fn (Investment $entry): float => (float) $entry->quantity))
+        ->toBe(3.0);
 });

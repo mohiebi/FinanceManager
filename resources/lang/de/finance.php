@@ -192,6 +192,7 @@ return [
         'sell_quantity' => 'Wie viel verkaufst du?',
         'sell_total' => 'Gesamterlös aus dem Verkauf',
         'sell_exceeds_holding' => 'Du kannst nicht mehr verkaufen, als du besitzt.',
+        'sell_not_editable' => 'Ein Verkauf kann nicht bearbeitet werden. Lösche ihn und erfasse ihn erneut.',
         'holding_now' => 'Du hältst {quantity} {unit}',
         'record_cost' => 'Auch als Ausgabe erfassen',
         'record_cost_hint' => 'Legt eine Transaktion unter Investition für das ausgegebene Geld an',

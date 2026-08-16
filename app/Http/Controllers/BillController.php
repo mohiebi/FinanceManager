@@ -16,6 +16,7 @@ use App\Models\BillOccurrence;
 use App\Models\Category;
 use App\Models\User;
 use App\Services\AssetPriceService;
+use App\Support\BillDueDateCalculator;
 use App\Support\CurrencyPreference;
 use App\Support\Encryption\SealedField;
 use App\Support\FrontendLocalization;
@@ -171,7 +172,13 @@ class BillController extends Controller
     }
 
     /**
-     * All unpaid occurrences within the next 90 days, ordered by due date.
+     * All unpaid occurrences up to the end of next month, ordered by due date.
+     *
+     * The step is deliberately overflow-free, like {@see BillDueDateCalculator}:
+     * plain `addMonths()` turns the 31st into the 1st of the month after next,
+     * and the `endOfMonth()` on top of it then stretched the horizon to that
+     * month's end — so on the 31st the page showed a whole extra month of bills
+     * that it had not shown the day before.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -182,7 +189,7 @@ class BillController extends Controller
         bool $vaultArmed,
     ): array {
         $today = Carbon::today();
-        $horizon = $today->copy()->addMonths(1)->endOfMonth();
+        $horizon = $today->copy()->addMonthNoOverflow()->endOfMonth();
 
         return BillOccurrence::query()
             ->whereNull('paid_at')

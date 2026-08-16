@@ -372,7 +372,12 @@
                                 <div
                                     class="flex items-center justify-center gap-2"
                                 >
+                                    <!-- Purchases only. This dialog speaks cost,
+                                         not proceeds, so it cannot express a
+                                         sale — which is deleted and re-recorded
+                                         instead. -->
                                     <button
+                                        v-if="entry.kind !== 'sell'"
                                         type="button"
                                         class="rounded-md bg-white/5 px-2 py-1 text-xs text-[#6C4EE9] ring-1 ring-white/10 hover:bg-white/10"
                                         @click="openEditDialog(entry)"
@@ -484,6 +489,7 @@ type Entry = {
     asset_icon_svg: string | null;
     asset_color: string;
     asset_unit: string;
+    kind: 'buy' | 'sell';
     quantity: Encrypted<string | number>;
     cost_basis: Encrypted<string | number> | null;
     cost_basis_currency: string | null;

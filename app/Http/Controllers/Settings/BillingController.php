@@ -181,7 +181,12 @@ class BillingController extends Controller
 
         // 404 rather than 403 on somebody else's payment: a ULID is not
         // guessable, and confirming one exists is the only thing a 403 adds.
-        abort_unless($payment->user_id === $request->user()->getKey(), 404);
+        // Cast both sides, as every other ownership check here does: a driver that
+        // returns integer columns as strings would otherwise fail this comparison
+        // for the owner. It fails closed, so it was never a way in — but the tests
+        // run SQLite and production runs MySQL, so it is not a difference the
+        // suite would ever show.
+        abort_unless((int) $payment->user_id === (int) $request->user()->getKey(), 404);
 
         // Only an unpaid intent can be withdrawn. Anything that has claimed a
         // transaction is evidence now, and stays.

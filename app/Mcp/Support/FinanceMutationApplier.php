@@ -230,15 +230,8 @@ class FinanceMutationApplier
             return ['deleted_investment_id' => $id];
         }
 
-        // Same reason the web route refuses one: this speaks the buy vocabulary,
-        // and a disposal is stored with a negative quantity. Rewriting it here
-        // turned a sale into a purchase of the same size — a holding that moved
-        // by twice the sale — while `kind` still read `sell`. There is no sell
-        // action on this surface, so nothing here can express the edit properly.
-        if ($investment instanceof Investment && $investment->isSell()) {
-            throw new InvalidArgumentException('A sale cannot be edited. Delete it and record the sale again.');
-        }
-
+        // A disposal is refused by SaveInvestment::update() itself, which is the
+        // one path every surface shares — there is no sell action here anyway.
         $operation['occurred_at'] = CalendarDates::normalizeToGregorian($operation['occurred_at'] ?? null);
         $validated = $this->validate($operation, SaveInvestment::rules());
         $payload = SaveInvestment::normalize($user, $validated);

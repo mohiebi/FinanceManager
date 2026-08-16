@@ -18,6 +18,12 @@ use Illuminate\Validation\ValidationException;
 class SaveInvestment
 {
     /**
+     * Slack allowed when checking a holding against zero, so float drift in a
+     * sum of stored quantities cannot make an exactly-empty holding look short.
+     */
+    private const HOLDING_TOLERANCE = 1e-9;
+
+    /**
      * Rules for recording a disposal.
      *
      * Quantity arrives positive and is negated on the way in — asking the user to
@@ -205,13 +211,113 @@ class SaveInvestment
     }
 
     /**
+     * Applies a purchase edit. Disposals are refused.
+     *
+     * The guard lives here rather than in the callers because there are four of
+     * them — the web route, the MCP batch, a confirmed MCP proposal, and the
+     * propose tool — and every one of them arrives with a payload shaped by
+     * {@see self::normalize()}, which speaks only the buy vocabulary: a positive
+     * quantity, and a `total_cost` that becomes the per-unit basis. A sale has
+     * none of that. Its quantity is stored negative so holdings stay a plain
+     * sum, so letting one through rewrote the sign and moved the holding by
+     * twice the size of the sale, while `kind` still read `sell` and the
+     * realised gain kept being derived from it.
+     *
      * @param  array<string, mixed>  $data  normalized investment attributes
+     *
+     * @throws ValidationException when the entry is a disposal, or when the edit
+     *                             would leave a holding below zero
      */
     public function update(Investment $investment, array $data): Investment
     {
+        if ($investment->isSell()) {
+            throw ValidationException::withMessages([
+                'quantity' => __('finance.investments.sell_not_editable'),
+            ]);
+        }
+
+        self::assertHoldingStaysPositive($investment, $data);
+
         $investment->fill($data)->save();
 
         return $investment;
+    }
+
+    /**
+     * Refuses an edit that would leave the user holding less than nothing.
+     *
+     * The sell path already enforces that nobody sells more than they hold, but
+     * the same account could be driven negative from the other side — shrink a
+     * purchase below what has already been sold against it and the holding goes
+     * negative, which the sell path would never have allowed.
+     *
+     * Both assets are checked, because moving a purchase to a different one
+     * drains the asset it left just as surely as shrinking it does.
+     *
+     * @param  array<string, mixed>  $data  normalized investment attributes
+     *
+     * @throws ValidationException
+     */
+    private static function assertHoldingStaysPositive(Investment $investment, array $data): void
+    {
+        $incoming = $data['quantity'] ?? null;
+
+        // With the vault armed the quantity arrives as ciphertext and the stored
+        // ones read back the same way, so the browser owns this check — the same
+        // division of labour {@see self::normalizeSell()} already relies on.
+        if (! is_numeric($incoming)) {
+            return;
+        }
+
+        $movingTo = (int) ($data['investment_asset_id'] ?? $investment->investment_asset_id);
+        $movingFrom = (int) $investment->investment_asset_id;
+
+        foreach (array_unique([$movingTo, $movingFrom]) as $assetId) {
+            $net = self::netHeldExcluding($investment, $assetId);
+
+            if ($net === null) {
+                continue;
+            }
+
+            if ($assetId === $movingTo) {
+                $net += (float) $incoming;
+            }
+
+            // A hair below zero rather than zero itself: these are float sums, and
+            // selling a holding down to exactly empty must stay legal.
+            if ($net < -self::HOLDING_TOLERANCE) {
+                throw ValidationException::withMessages([
+                    'quantity' => __('finance.investments.update_leaves_negative_holding'),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Net units of one asset, ignoring the row being edited.
+     *
+     * Null when a quantity cannot be read, which is the armed-vault case and the
+     * signal to leave the judgement to the browser.
+     */
+    private static function netHeldExcluding(Investment $investment, int $assetId): ?float
+    {
+        $net = 0.0;
+
+        $entries = Investment::query()
+            ->where('user_id', $investment->user_id)
+            ->where('investment_asset_id', $assetId)
+            ->whereKeyNot($investment->getKey())
+            ->get();
+
+        foreach ($entries as $entry) {
+            if (! is_numeric($entry->quantity)) {
+                return null;
+            }
+
+            $net += (float) $entry->quantity;
+        }
+
+        return $net;
     }
 
     /**

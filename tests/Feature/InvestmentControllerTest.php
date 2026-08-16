@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Investments\SaveInvestment;
 use App\Enums\AssetType;
 use App\Enums\Currency;
 use App\Models\Category;
@@ -8,6 +9,7 @@ use App\Models\InvestmentAsset;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('it stores total investment cost as per unit cost basis', function () {
@@ -215,6 +217,158 @@ test('a disposal cannot be edited through the purchase route', function () {
     expect((float) $disposal->fresh()->quantity)->toBe(-2.0)
         ->and($user->investments()->get()->sum(fn (Investment $entry): float => (float) $entry->quantity))
         ->toBe(3.0);
+});
+
+test('the shared save action refuses a disposal, so every surface is covered', function () {
+    // The choke point all four callers share — the web route, the MCP batch, a
+    // confirmed MCP proposal and the propose tool. Guarding it here is what
+    // stops the next caller from reopening the hole.
+    $user = User::factory()->withModules()->create();
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    $disposal = Investment::query()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => $asset->id,
+        'asset_type' => $asset->slug,
+        'kind' => 'sell',
+        'quantity' => -2,
+        'cost_basis' => 4000000,
+        'cost_basis_currency' => Currency::Toman->value,
+        'sale_price' => 6000000,
+        'sale_price_currency' => Currency::Toman->value,
+        'occurred_at' => '2026-07-10',
+    ]);
+
+    expect(fn () => app(SaveInvestment::class)->update($disposal, ['quantity' => 3]))
+        ->toThrow(ValidationException::class);
+
+    expect((float) $disposal->fresh()->quantity)->toBe(-2.0);
+});
+
+test('shrinking a purchase below what was already sold is refused', function () {
+    $user = User::factory()->withModules()->create();
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    $purchase = Investment::query()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => $asset->id,
+        'asset_type' => $asset->slug,
+        'kind' => 'buy',
+        'quantity' => 5,
+        'cost_basis' => 4000000,
+        'cost_basis_currency' => Currency::Toman->value,
+        'occurred_at' => '2026-07-01',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('investments.sell'), [
+            'investment_asset_id' => $asset->id,
+            'quantity' => '4',
+            'total_sale' => '24000000',
+            'sale_price_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-10',
+        ])
+        ->assertSessionHasNoErrors();
+
+    // Four are already sold, so a purchase of one leaves the account holding -3 —
+    // a position the sell route would never have allowed anyone to reach.
+    $this->actingAs($user)
+        ->patch(route('investments.update', $purchase), [
+            'investment_asset_id' => $asset->id,
+            'asset_type' => $asset->slug,
+            'quantity' => '1',
+            'cost_basis' => '4000000',
+            'cost_basis_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-01',
+        ])
+        ->assertSessionHasErrors('quantity');
+
+    expect((float) $purchase->fresh()->quantity)->toBe(5.0)
+        ->and($user->investments()->get()->sum(fn (Investment $entry): float => (float) $entry->quantity))
+        ->toBe(1.0);
+});
+
+test('shrinking a purchase to exactly what was sold is still allowed', function () {
+    $user = User::factory()->withModules()->create();
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    $purchase = Investment::query()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => $asset->id,
+        'asset_type' => $asset->slug,
+        'kind' => 'buy',
+        'quantity' => 5,
+        'cost_basis' => 4000000,
+        'cost_basis_currency' => Currency::Toman->value,
+        'occurred_at' => '2026-07-01',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('investments.sell'), [
+            'investment_asset_id' => $asset->id,
+            'quantity' => '4',
+            'total_sale' => '24000000',
+            'sale_price_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-10',
+        ])
+        ->assertSessionHasNoErrors();
+
+    // Landing on exactly zero is a real position, not an overdraft.
+    $this->actingAs($user)
+        ->patch(route('investments.update', $purchase), [
+            'investment_asset_id' => $asset->id,
+            'asset_type' => $asset->slug,
+            'quantity' => '4',
+            'cost_basis' => '4000000',
+            'cost_basis_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-01',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($user->investments()->get()->sum(fn (Investment $entry): float => (float) $entry->quantity))
+        ->toBe(0.0);
+});
+
+test('moving a purchase to another asset cannot strand the asset it left', function () {
+    $user = User::factory()->withModules()->create();
+    $gold = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+    $silver = InvestmentAsset::query()->where('slug', AssetType::Silver->value)->firstOrFail();
+
+    $purchase = Investment::query()->create([
+        'user_id' => $user->id,
+        'investment_asset_id' => $gold->id,
+        'asset_type' => $gold->slug,
+        'kind' => 'buy',
+        'quantity' => 5,
+        'cost_basis' => 4000000,
+        'cost_basis_currency' => Currency::Toman->value,
+        'occurred_at' => '2026-07-01',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('investments.sell'), [
+            'investment_asset_id' => $gold->id,
+            'quantity' => '4',
+            'total_sale' => '24000000',
+            'sale_price_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-10',
+        ])
+        ->assertSessionHasNoErrors();
+
+    // Carrying the purchase over to silver would leave the gold sale standing
+    // alone against nothing.
+    $this->actingAs($user)
+        ->patch(route('investments.update', $purchase), [
+            'investment_asset_id' => $silver->id,
+            'asset_type' => $silver->slug,
+            'quantity' => '5',
+            'cost_basis' => '4000000',
+            'cost_basis_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-01',
+        ])
+        ->assertSessionHasErrors('quantity');
+
+    expect((int) $purchase->fresh()->investment_asset_id)->toBe((int) $gold->id);
 });
 
 test('the entry list marks disposals so the purchase dialog is never offered for one', function () {

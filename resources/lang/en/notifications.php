@@ -85,6 +85,32 @@ return [
         'email_body' => ':count payment(s) could not be settled automatically and are waiting on you. The most recent stopped because: :reason Nobody is told their payment failed until you decide, so they are still waiting.',
     ],
 
+    'payment_screening_delayed' => [
+        'title' => 'Payment screening is delayed',
+        'body_generic' => ':count payment(s) are waiting for source screening.',
+        'email_body' => ':count chain-confirmed payment(s) are waiting because screening has not returned a trustworthy result. No access has been granted. Retry from the subscriptions console after the provider recovers.',
+    ],
+
+    'deposit_pool_low' => [
+        'title' => 'Deposit address pool is low',
+        'body_generic' => ':network has :count unused deposit address(es) left.',
+        'email_body' => ':network has :count unused single-use deposit address(es) left. Checkout automatically stops at zero; import another offline-generated public-address batch before then.',
+    ],
+
+    'payment_quarantined' => [
+        'title' => 'Payment funds were quarantined',
+        'body_generic' => ':count deposit(s) are permanently quarantined.',
+        'email_body' => ':count deposit(s) are permanently quarantined after source screening. They have no approve, refund, release, or sweep action.',
+    ],
+
+    'subscription_payment_quarantined' => [
+        'title' => 'Your payment could not be accepted',
+        'body_generic' => 'Your :plan payment was not activated after source screening.',
+        'email_body' => ':explanation Your :plan subscription was not activated. For safety, the payment cannot be moved or returned. Please create a new payment and use another wallet.',
+        'sanctioned_explanation' => 'The sending address matched a sanctions list.',
+        'flagged_explanation' => 'The payment source was flagged by our transaction-risk screening.',
+    ],
+
     'subscription_activated' => [
         'title' => 'Pro is active',
         'body_generic' => 'Your :plan plan runs until :date.',

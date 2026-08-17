@@ -72,7 +72,10 @@ const calendar = computed(() => page.props.calendar);
  * longer takes payments.
  */
 const initialNetwork =
-    props.networks.find((option) => option.key === props.preferred?.network) ??
+    props.networks.find(
+        (option) => option.available && option.key === props.preferred?.network,
+    ) ??
+    props.networks.find((option) => option.available) ??
     props.networks[0];
 
 const network = ref<NetworkOption | undefined>(initialNetwork);
@@ -93,6 +96,10 @@ const selectedAsset = computed<AssetOption | undefined>(() =>
  * deliberate selection for no reason.
  */
 function chooseNetwork(option: NetworkOption): void {
+    if (!option.available) {
+        return;
+    }
+
     network.value = option;
 
     if (!option.assets.some((candidate) => candidate.key === asset.value)) {
@@ -788,13 +795,16 @@ onKeyStroke('Escape', () => {
                         v-for="option in networks"
                         :key="option.key"
                         type="button"
+                        :disabled="!option.available"
                         :aria-pressed="option.key === network?.key"
                         :class="[
-                            'min-h-11 cursor-pointer rounded-xl px-4 text-sm ring-1 transition-colors duration-200',
+                            'min-h-11 rounded-xl px-4 text-sm ring-1 transition-colors duration-200',
                             'focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none',
-                            option.key === network?.key
-                                ? 'bg-[#02CD86]/10 font-medium text-[#02CD86] ring-[#02CD86]/30'
-                                : 'text-[#989898] ring-white/10 hover:bg-white/5 hover:text-white',
+                            !option.available
+                                ? 'cursor-not-allowed text-[#6f6f6f] opacity-50 ring-white/5'
+                                : option.key === network?.key
+                                  ? 'bg-[#02CD86]/10 font-medium text-[#02CD86] ring-[#02CD86]/30'
+                                  : 'cursor-pointer text-[#989898] ring-white/10 hover:bg-white/5 hover:text-white',
                         ]"
                         @click="chooseNetwork(option)"
                     >
@@ -848,14 +858,21 @@ onKeyStroke('Escape', () => {
                 </p>
             </div>
 
-            <p v-if="startForm.errors.plan" class="mt-3 text-sm text-[#E94E50]">
-                {{ startForm.errors.plan }}
+            <p
+                v-if="startForm.errors.plan || startForm.errors.network"
+                class="mt-3 text-sm text-[#E94E50]"
+            >
+                {{ startForm.errors.plan ?? startForm.errors.network }}
             </p>
 
             <template #footer>
                 <div class="flex flex-wrap items-center gap-3">
                     <Button
-                        :disabled="startForm.processing || !asset"
+                        :disabled="
+                            startForm.processing ||
+                            !asset ||
+                            (!nothingToPay && !network?.available)
+                        "
                         @click="confirmSelectedPlan"
                     >
                         <Spinner v-if="startForm.processing" class="size-4" />

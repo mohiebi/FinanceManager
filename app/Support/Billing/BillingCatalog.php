@@ -6,6 +6,7 @@ use App\Enums\BillingPlan;
 use App\Enums\PaymentNetwork;
 use App\Enums\SettlementAsset;
 use App\Models\CouponRedemption;
+use App\Models\DepositAddress;
 use App\Models\SubscriptionPayment;
 
 /**
@@ -56,22 +57,30 @@ final readonly class BillingCatalog
      */
     public function networks(): array
     {
-        return array_map(fn (PaymentNetwork $network): array => [
-            'key' => $network->value,
-            'label' => $network->label(),
-            'chain_id' => $network->chainId(),
-            'address' => $network->receivingAddress(),
-            'confirmations_required' => $network->confirmationsRequired(),
-            'assets' => array_map(fn (SettlementAsset $asset): array => [
-                'key' => $asset->value,
-                'label' => $asset->label(),
-                'symbol' => $asset->symbol(),
-                'contract' => $asset->contractOn($network),
-                'decimals' => $asset->decimalsOn($network),
-                'display_precision' => $asset->displayPrecision(),
-                'is_stable' => $asset->isStable(),
-            ], $network->assets()),
-        ], PaymentNetwork::available());
+        return array_map(function (PaymentNetwork $network): array {
+            $availableAddresses = DepositAddress::query()
+                ->available()
+                ->where('network', $network->value)
+                ->count();
+
+            return [
+                'key' => $network->value,
+                'label' => $network->label(),
+                'chain_id' => $network->chainId(),
+                'available' => $availableAddresses > 0,
+                'available_addresses' => $availableAddresses,
+                'confirmations_required' => $network->confirmationsRequired(),
+                'assets' => array_map(fn (SettlementAsset $asset): array => [
+                    'key' => $asset->value,
+                    'label' => $asset->label(),
+                    'symbol' => $asset->symbol(),
+                    'contract' => $asset->contractOn($network),
+                    'decimals' => $asset->decimalsOn($network),
+                    'display_precision' => $asset->displayPrecision(),
+                    'is_stable' => $asset->isStable(),
+                ], $network->assets()),
+            ];
+        }, PaymentNetwork::available());
     }
 
     /**
@@ -183,6 +192,7 @@ final readonly class BillingCatalog
             'confirmations_required' => $payment->network?->confirmationsRequired(),
             'failure_reason' => $payment->failure_reason?->value,
             'failure_message' => $payment->failure_reason?->label(),
+            'screening_risk' => $payment->screening_risk?->value,
             'payment_uri' => $this->paymentUri($payment),
             'created_at' => $payment->created_at->toIso8601String(),
             'expires_at' => $payment->expires_at->toIso8601String(),

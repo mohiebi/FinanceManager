@@ -69,6 +69,8 @@ function verify(SubscriptionPayment $payment): void
         app(VerifyPaymentOnChain::class),
         app(GrantProAccess::class),
     );
+
+    passPaymentScreening($payment);
 }
 
 test('a matching token transfer settles the payment and grants the months', function () {

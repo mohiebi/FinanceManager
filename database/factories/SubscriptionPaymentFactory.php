@@ -6,6 +6,7 @@ use App\Enums\BillingPlan;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentNetwork;
 use App\Enums\PaymentStatus;
+use App\Enums\ScreeningRisk;
 use App\Enums\SettlementAsset;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
@@ -83,6 +84,10 @@ class SubscriptionPaymentFactory extends Factory
             'block_number' => 21_000_000,
             'block_timestamp' => now()->subMinutes(5),
             'submitted_at' => now()->subMinutes(6),
+            'chain_verified_at' => now()->subMinutes(5),
+            'screening_risk' => ScreeningRisk::NoMatch,
+            'screening_provider' => 'factory',
+            'screened_at' => now(),
             'verified_at' => now(),
         ]);
     }

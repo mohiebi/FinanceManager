@@ -1,6 +1,14 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { AlertTriangle, ExternalLink, Ticket } from 'lucide-vue-next';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import {
+    AlertTriangle,
+    CheckCircle2,
+    Clock3,
+    ExternalLink,
+    ShieldAlert,
+    Ticket,
+    WalletCards,
+} from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
@@ -38,9 +46,49 @@ type ProUser = {
     last_reason: string | null;
 };
 
+type PoolHealth = {
+    network: string;
+    network_label: string;
+    available: number;
+    assigned: number;
+    retired: number;
+    quarantined: number;
+    warning: boolean;
+    checkout_available: boolean;
+};
+
+type DepositRow = {
+    id: string;
+    network: string;
+    network_label: string;
+    address: string;
+    derivation_index: number;
+    status: string;
+    payment_id: string | null;
+    user_email: string | null;
+    asset: string | null;
+    asset_symbol: string | null;
+    amount: string | null;
+    requires_conversion: boolean;
+    screening_risk: string | null;
+    block_timestamp: string | null;
+    quarantine_reason: string | null;
+    quarantined_at: string | null;
+    authorization_expires_at: string | null;
+    sweep_tx_hash: string | null;
+    conversion_tx_hash: string | null;
+    swept_at: string | null;
+};
+
 defineProps<{
     counts: Record<string, number>;
+    poolHealth: PoolHealth[];
     needsAttention: AdminPayment[];
+    delayedScreening: AdminPayment[];
+    quarantined: DepositRow[];
+    cooling: DepositRow[];
+    readyToSweep: DepositRow[];
+    completedSweeps: DepositRow[];
     recent: AdminPayment[];
     proUsers: ProUser[];
     coupons: AdminCoupon[];
@@ -48,6 +96,7 @@ defineProps<{
 }>();
 
 const { t } = useI18n();
+const page = usePage();
 
 /**
  * The create-coupon form.
@@ -122,11 +171,17 @@ const noteFor = ref<Record<string, string>>({});
 const grantMonths = ref<Record<number, number>>({});
 const grantNote = ref<Record<number, string>>({});
 const busy = ref<string | null>(null);
+const sweepFor = ref<
+    Record<
+        string,
+        { conversion_tx_hash: string; sweep_tx_hash: string; note: string }
+    >
+>({});
 
 function act(
     url: string,
     key: string,
-    data: Record<string, string | number>,
+    data: Record<string, string | number | null>,
 ): void {
     busy.value = key;
 
@@ -136,6 +191,26 @@ function act(
             busy.value = null;
         },
     });
+}
+
+function sweepFields(id: string): {
+    conversion_tx_hash: string;
+    sweep_tx_hash: string;
+    note: string;
+} {
+    return (sweepFor.value[id] ??= {
+        conversion_tx_hash: '',
+        sweep_tx_hash: '',
+        note: '',
+    });
+}
+
+function authorizationIsLive(row: DepositRow): boolean {
+    return (
+        row.status === 'sweep_authorized' &&
+        row.authorization_expires_at !== null &&
+        new Date(row.authorization_expires_at).getTime() > Date.now()
+    );
 }
 
 const toneClasses: Record<PaymentTone, string> = {
@@ -170,13 +245,75 @@ function shortHash(value: string | null): string {
             {{ status }}
         </p>
 
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <p
+            v-if="
+                page.props.errors.sweep ||
+                page.props.errors.note ||
+                page.props.errors.sweep_tx_hash ||
+                page.props.errors.conversion_tx_hash
+            "
+            class="rounded-xl bg-[#2c1b1b] px-4 py-3 text-sm text-[#E94E50] ring-1 ring-[#E94E50]/20"
+        >
+            {{
+                page.props.errors.sweep ??
+                page.props.errors.note ??
+                page.props.errors.sweep_tx_hash ??
+                page.props.errors.conversion_tx_hash
+            }}
+        </p>
+
+        <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
+            <h2 class="mb-4 flex items-center gap-2 text-[17px] text-white">
+                <WalletCards class="size-4 text-[#02CD86]" />
+                {{ t('billing.admin.pool_health') }}
+            </h2>
+            <div class="grid gap-3 sm:grid-cols-2">
+                <div
+                    v-for="pool in poolHealth"
+                    :key="pool.network"
+                    class="rounded-2xl bg-black/30 p-4 ring-1"
+                    :class="pool.warning ? 'ring-[#E0B341]/30' : 'ring-white/5'"
+                >
+                    <div class="flex items-center justify-between gap-3">
+                        <p class="text-sm font-medium text-white">
+                            {{ pool.network_label }}
+                        </p>
+                        <span
+                            class="rounded-full px-2.5 py-1 text-xs ring-1"
+                            :class="
+                                pool.checkout_available
+                                    ? 'bg-[#1f2e22] text-[#7BD88F] ring-[#7BD88F]/20'
+                                    : 'bg-[#2c1b1b] text-[#E94E50] ring-[#E94E50]/20'
+                            "
+                        >
+                            {{
+                                pool.checkout_available
+                                    ? t('billing.admin.checkout_on')
+                                    : t('billing.admin.checkout_off')
+                            }}
+                        </span>
+                    </div>
+                    <p class="mt-3 text-2xl font-medium text-white">
+                        {{ pool.available }}
+                    </p>
+                    <p class="text-xs text-[#989898]">
+                        {{ t('billing.admin.addresses_available') }}
+                    </p>
+                    <p class="mt-2 text-xs text-[#6f6f6f]">
+                        {{ t('billing.admin.pool_counts', pool) }}
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
             <div
                 v-for="key in [
                     'pro_users',
                     'pending',
                     'submitted',
                     'confirmed',
+                    'quarantined',
                 ]"
                 :key="key"
                 class="rounded-2xl bg-[#1a1a1a] p-4 ring-1 ring-white/10"
@@ -193,6 +330,210 @@ function shortHash(value: string | null): string {
                 </p>
             </div>
         </div>
+
+        <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
+            <h2 class="mb-4 flex items-center gap-2 text-[17px] text-white">
+                <Clock3 class="size-4 text-[#E0B341]" />
+                {{ t('billing.admin.delayed_screening') }}
+            </h2>
+            <p
+                v-if="delayedScreening.length === 0"
+                class="text-sm text-[#989898]"
+            >
+                {{ t('billing.admin.none') }}
+            </p>
+            <ul v-else class="space-y-3">
+                <li
+                    v-for="payment in delayedScreening"
+                    :key="payment.id"
+                    class="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-black/30 p-4 ring-1 ring-white/5"
+                >
+                    <div>
+                        <p class="text-sm text-white">
+                            {{ payment.user.email }}
+                        </p>
+                        <p class="mt-1 text-xs text-[#989898]">
+                            {{ payment.network_label }} ·
+                            {{ payment.asset_symbol }} ·
+                            {{ payment.failure_message }}
+                        </p>
+                    </div>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        :disabled="busy === payment.id"
+                        @click="
+                            act(
+                                `/admin/billing/payments/${payment.id}/recheck`,
+                                payment.id,
+                                {},
+                            )
+                        "
+                    >
+                        {{ t('billing.admin.recheck_screening') }}
+                    </Button>
+                </li>
+            </ul>
+        </section>
+
+        <section
+            class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-[#E94E50]/20"
+        >
+            <h2 class="mb-4 flex items-center gap-2 text-[17px] text-white">
+                <ShieldAlert class="size-4 text-[#E94E50]" />
+                {{ t('billing.admin.permanent_quarantine') }}
+            </h2>
+            <p v-if="quarantined.length === 0" class="text-sm text-[#989898]">
+                {{ t('billing.admin.none') }}
+            </p>
+            <ul v-else class="space-y-3">
+                <li
+                    v-for="row in quarantined"
+                    :key="row.id"
+                    class="rounded-2xl bg-black/30 p-4 ring-1 ring-[#E94E50]/15"
+                >
+                    <p class="text-sm text-white">
+                        {{ row.user_email }} · {{ row.network_label }} ·
+                        {{ row.amount }} {{ row.asset_symbol }}
+                    </p>
+                    <p
+                        class="mt-1 font-mono text-xs break-all text-[#989898]"
+                        dir="ltr"
+                    >
+                        {{ row.address }}
+                    </p>
+                    <p class="mt-1 text-xs text-[#E94E50]">
+                        {{ row.quarantine_reason }}
+                    </p>
+                    <p class="mt-2 text-xs text-[#6f6f6f]">
+                        {{ t('billing.admin.quarantine_no_actions') }}
+                    </p>
+                </li>
+            </ul>
+        </section>
+
+        <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
+            <h2 class="mb-4 flex items-center gap-2 text-[17px] text-white">
+                <Clock3 class="size-4 text-[#989898]" />
+                {{ t('billing.admin.cooling') }}
+            </h2>
+            <p v-if="cooling.length === 0" class="text-sm text-[#989898]">
+                {{ t('billing.admin.none') }}
+            </p>
+            <ul v-else class="divide-y divide-white/5">
+                <li v-for="row in cooling" :key="row.id" class="py-3">
+                    <p class="text-sm text-white">
+                        {{ row.network_label }} · {{ row.amount }}
+                        {{ row.asset_symbol }}
+                    </p>
+                    <p
+                        class="mt-1 font-mono text-xs break-all text-[#6f6f6f]"
+                        dir="ltr"
+                    >
+                        {{ row.address }}
+                    </p>
+                </li>
+            </ul>
+        </section>
+
+        <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
+            <h2 class="mb-4 flex items-center gap-2 text-[17px] text-white">
+                <WalletCards class="size-4 text-[#02CD86]" />
+                {{ t('billing.admin.ready_to_sweep') }}
+            </h2>
+            <p v-if="readyToSweep.length === 0" class="text-sm text-[#989898]">
+                {{ t('billing.admin.none') }}
+            </p>
+            <ul v-else class="space-y-4">
+                <li
+                    v-for="row in readyToSweep"
+                    :key="row.id"
+                    class="rounded-2xl bg-black/30 p-4 ring-1 ring-white/5"
+                >
+                    <p class="text-sm text-white">
+                        {{ row.network_label }} · {{ row.amount }}
+                        {{ row.asset_symbol }}
+                    </p>
+                    <p
+                        class="mt-1 font-mono text-xs break-all text-[#989898]"
+                        dir="ltr"
+                    >
+                        {{ row.address }}
+                    </p>
+
+                    <div v-if="!authorizationIsLive(row)" class="mt-3">
+                        <Button
+                            size="sm"
+                            :disabled="busy === row.id"
+                            @click="
+                                act(
+                                    `/admin/billing/deposits/${row.id}/authorize-sweep`,
+                                    row.id,
+                                    {},
+                                )
+                            "
+                        >
+                            {{ t('billing.admin.authorize_sweep') }}
+                        </Button>
+                    </div>
+
+                    <div v-else class="mt-3 grid gap-2 md:grid-cols-3">
+                        <Input
+                            v-if="row.requires_conversion"
+                            v-model="sweepFields(row.id).conversion_tx_hash"
+                            dir="ltr"
+                            :placeholder="t('billing.admin.conversion_hash')"
+                        />
+                        <Input
+                            v-model="sweepFields(row.id).sweep_tx_hash"
+                            dir="ltr"
+                            :placeholder="t('billing.admin.sweep_hash')"
+                        />
+                        <Input
+                            v-model="sweepFields(row.id).note"
+                            :placeholder="t('billing.admin.note_placeholder')"
+                        />
+                        <Button
+                            size="sm"
+                            :disabled="busy === row.id"
+                            @click="
+                                act(
+                                    `/admin/billing/deposits/${row.id}/record-sweep`,
+                                    row.id,
+                                    sweepFields(row.id),
+                                )
+                            "
+                        >
+                            {{ t('billing.admin.record_sweep') }}
+                        </Button>
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
+            <h2 class="mb-4 flex items-center gap-2 text-[17px] text-white">
+                <CheckCircle2 class="size-4 text-[#7BD88F]" />
+                {{ t('billing.admin.completed_sweeps') }}
+            </h2>
+            <p
+                v-if="completedSweeps.length === 0"
+                class="text-sm text-[#989898]"
+            >
+                {{ t('billing.admin.none') }}
+            </p>
+            <ul v-else class="divide-y divide-white/5">
+                <li v-for="row in completedSweeps" :key="row.id" class="py-3">
+                    <p class="text-sm text-white">
+                        {{ row.network_label }} · {{ row.amount }}
+                        {{ row.asset_symbol }}
+                    </p>
+                    <p class="mt-1 font-mono text-xs text-[#6f6f6f]" dir="ltr">
+                        {{ shortHash(row.sweep_tx_hash) }}
+                    </p>
+                </li>
+            </ul>
+        </section>
 
         <!-- The queue that matters: everything automatic verification refused to
              guess at, where money probably arrived. -->

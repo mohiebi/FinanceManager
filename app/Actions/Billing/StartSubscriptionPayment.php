@@ -5,18 +5,24 @@ namespace App\Actions\Billing;
 use App\Enums\BillingPlan;
 use App\Enums\CouponRedemptionStatus;
 use App\Enums\CouponRejection;
+use App\Enums\DepositAddressStatus;
 use App\Enums\PaymentNetwork;
 use App\Enums\PaymentStatus;
 use App\Enums\SettlementAsset;
 use App\Exceptions\CouponUnavailable;
+use App\Exceptions\DepositAddressLimitExceeded;
+use App\Exceptions\DepositAddressUnavailable;
 use App\Exceptions\QuoteUnavailable;
 use App\Models\Coupon;
 use App\Models\CouponRedemption;
+use App\Models\DepositAddress;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
+use App\Notifications\DepositPoolLowNotification;
 use App\Services\Billing\AssetQuoteService;
 use App\Support\Billing\CouponDiscount;
 use App\Support\Billing\TokenAmount;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -78,48 +84,133 @@ final readonly class StartSubscriptionPayment
         }
 
         $listPrice = $plan->priceUsd();
+        $payable = $coupon === null ? $listPrice : CouponDiscount::finalPrice($listPrice, $coupon);
+        $listPriceSnapshot = $coupon === null ? null : $listPrice;
+        $discount = $coupon === null ? null : CouponDiscount::amountOff($listPrice, $coupon);
 
-        if ($coupon === null) {
-            return $this->create($user, $plan, $network, $asset, $listPrice, null, null, null);
+        // Price lookup is outbound IO and therefore stays outside the address-
+        // allocation transaction. Coupon value fields are immutable after issue;
+        // availability is still rechecked under its row lock below.
+        $usdRate = $this->quotes->usdRate($asset);
+        $quantized = $this->quotes->priceIn($asset, $payable, $usdRate);
+        $decimals = $asset->decimalsOn($network);
+
+        return DB::transaction(function () use (
+            $user,
+            $plan,
+            $network,
+            $asset,
+            $coupon,
+            $payable,
+            $listPriceSnapshot,
+            $discount,
+            $usdRate,
+            $quantized,
+            $decimals,
+        ): SubscriptionPayment {
+            // Serializes competing clicks from one account before either can
+            // consume a second irreversible deposit address.
+            User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+
+            $existing = $this->openIntentFor($user, $plan, $network, $asset, $coupon);
+
+            if ($existing !== null) {
+                return $existing;
+            }
+
+            $lockedCoupon = null;
+
+            if ($coupon !== null) {
+                $lockedCoupon = Coupon::query()->whereKey($coupon->getKey())->lockForUpdate()->first();
+
+                if ($lockedCoupon === null) {
+                    throw new CouponUnavailable(CouponRejection::NotFound);
+                }
+
+                $rejection = $this->resolveCoupon->rejectionFor($user, $lockedCoupon);
+
+                if ($rejection !== null) {
+                    throw new CouponUnavailable($rejection);
+                }
+
+                if (CouponDiscount::coversEverything($plan->priceUsd(), $lockedCoupon)) {
+                    throw new RuntimeException("Coupon {$lockedCoupon->code} leaves nothing to pay; redeem it rather than opening an intent.");
+                }
+            }
+
+            $this->assertWithinAddressLimit($user);
+
+            $depositAddress = DepositAddress::query()
+                ->available()
+                ->where('network', $network->value)
+                ->orderBy('derivation_index')
+                ->lockForUpdate()
+                ->first();
+
+            if ($depositAddress === null) {
+                throw new DepositAddressUnavailable($network);
+            }
+
+            $payment = $this->create(
+                user: $user,
+                plan: $plan,
+                network: $network,
+                asset: $asset,
+                payableUsd: $payable,
+                coupon: $lockedCoupon,
+                listPriceUsd: $listPriceSnapshot,
+                discountUsd: $discount,
+                payToAddress: $depositAddress->address,
+                usdRate: $usdRate,
+                quantized: $quantized,
+                decimals: $decimals,
+            );
+
+            $depositAddress->forceFill([
+                'status' => DepositAddressStatus::Assigned,
+                'assigned_payment_id' => $payment->getKey(),
+                'assigned_at' => now(),
+            ])->save();
+
+            $remainingAddresses = DepositAddress::query()
+                ->available()
+                ->where('network', $network->value)
+                ->count();
+
+            $this->schedulePoolWarning($network, $remainingAddresses);
+
+            if ($lockedCoupon !== null) {
+                CouponRedemption::create([
+                    'coupon_id' => $lockedCoupon->getKey(),
+                    'user_id' => $user->getKey(),
+                    'subscription_payment_id' => $payment->getKey(),
+                    'status' => CouponRedemptionStatus::Reserved,
+                    'discount_usd' => $discount,
+                ]);
+            }
+
+            return $payment->setRelation('depositAddress', $depositAddress);
+        }, 3);
+    }
+
+    private function schedulePoolWarning(PaymentNetwork $network, int $remainingAddresses): void
+    {
+        $threshold = (int) config('billing.deposit_pool.low_address_warning', 25);
+
+        if ($remainingAddresses > $threshold) {
+            return;
         }
 
-        // Everything from the limit re-check to the redemption row happens under
-        // one lock on the coupon, so two buyers cannot both claim its last use.
-        return DB::transaction(function () use ($user, $plan, $network, $asset, $listPrice, $coupon): SubscriptionPayment {
-            $locked = Coupon::query()->whereKey($coupon->getKey())->lockForUpdate()->first();
+        DB::afterCommit(function () use ($network, $remainingAddresses): void {
+            $cacheKey = "billing.deposit-pool-low.{$network->value}";
 
-            if ($locked === null) {
-                throw new CouponUnavailable(CouponRejection::NotFound);
+            if (! Cache::add($cacheKey, true, now()->addHours(12))) {
+                return;
             }
 
-            $rejection = $this->resolveCoupon->rejectionFor($user, $locked);
-
-            if ($rejection !== null) {
-                throw new CouponUnavailable($rejection);
-            }
-
-            $discount = CouponDiscount::amountOff($listPrice, $locked);
-            $payable = CouponDiscount::finalPrice($listPrice, $locked);
-
-            // A coupon covering the whole price has no intent to open — the
-            // caller is expected to have sent it to RedeemFreeCoupon instead.
-            if (CouponDiscount::coversEverything($listPrice, $locked)) {
-                throw new RuntimeException("Coupon {$locked->code} leaves nothing to pay; redeem it rather than opening an intent.");
-            }
-
-            $payment = $this->create($user, $plan, $network, $asset, $payable, $locked, $listPrice, $discount);
-
-            CouponRedemption::create([
-                'coupon_id' => $locked->getKey(),
-                'user_id' => $user->getKey(),
-                'subscription_payment_id' => $payment->getKey(),
-                // Reserved, not consumed: the buyer has claimed a use but has not
-                // paid for it yet. Released again if the intent lapses.
-                'status' => CouponRedemptionStatus::Reserved,
-                'discount_usd' => $discount,
-            ]);
-
-            return $payment;
+            $adminEmail = trim((string) config('app.admin_email'));
+            $admin = $adminEmail === '' ? null : User::query()->where('email', $adminEmail)->first();
+            $admin?->notify(new DepositPoolLowNotification($network->value, $remainingAddresses));
         });
     }
 
@@ -141,11 +232,11 @@ final readonly class StartSubscriptionPayment
         ?Coupon $coupon,
         ?string $listPriceUsd,
         ?string $discountUsd,
+        string $payToAddress,
+        string $usdRate,
+        string $quantized,
+        int $decimals,
     ): SubscriptionPayment {
-        $usdRate = $this->quotes->usdRate($asset);
-        $quantized = $this->quotes->priceIn($asset, $payableUsd, $usdRate);
-        $decimals = $asset->decimalsOn($network);
-
         return SubscriptionPayment::create([
             'user_id' => $user->getKey(),
             'status' => PaymentStatus::Pending,
@@ -159,12 +250,26 @@ final readonly class StartSubscriptionPayment
             'asset' => $asset,
             'token_contract' => $asset->contractOn($network),
             'asset_decimals' => $decimals,
-            'pay_to_address' => $network->receivingAddress(),
+            'pay_to_address' => $payToAddress,
             'quote_rate' => $usdRate,
             'quote_expires_at' => now()->addMinutes($asset->quoteLockMinutes()),
             'expected_amount' => $this->distinctAmount($network, $asset, $quantized, $decimals),
             'expires_at' => now()->addHours((int) config('billing.payment_window_hours', 24)),
         ]);
+    }
+
+    private function assertWithinAddressLimit(User $user): void
+    {
+        $limit = (int) config('billing.deposit_pool.max_assignments_per_user_per_day', 10);
+
+        $assigned = DepositAddress::query()
+            ->where('assigned_at', '>=', now()->subDay())
+            ->whereHas('payment', fn ($query) => $query->where('user_id', $user->getKey()))
+            ->count();
+
+        if ($assigned >= $limit) {
+            throw new DepositAddressLimitExceeded($limit);
+        }
     }
 
     private function assertPayable(BillingPlan $plan, PaymentNetwork $network, SettlementAsset $asset): void

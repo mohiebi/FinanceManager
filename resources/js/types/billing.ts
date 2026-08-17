@@ -1,5 +1,5 @@
 export type BillingPlanKey = 'monthly' | 'quarterly' | 'yearly';
-export type PaymentNetworkKey = 'ethereum';
+export type PaymentNetworkKey = 'ethereum' | 'arbitrum';
 export type SettlementAssetKey = 'eth' | 'usdt' | 'usdc';
 
 export type PaymentStatusKey =
@@ -7,6 +7,7 @@ export type PaymentStatusKey =
     | 'submitted'
     | 'confirmed'
     | 'failed'
+    | 'quarantined'
     | 'expired'
     /** The buyer withdrew the intent, as opposed to letting its window close. */
     | 'cancelled'
@@ -58,7 +59,8 @@ export type NetworkOption = {
     key: PaymentNetworkKey;
     label: string;
     chain_id: number;
-    address: string | null;
+    available: boolean;
+    available_addresses: number;
     confirmations_required: number;
     assets: AssetOption[];
 };
@@ -193,6 +195,7 @@ export type PaymentRecord = {
     confirmations_required: number | null;
     failure_reason: string | null;
     failure_message: string | null;
+    screening_risk: 'no_match' | 'unknown' | 'flagged' | 'sanctioned' | null;
     /** An EIP-681 request a wallet can open with the amount already filled in. */
     payment_uri: string | null;
     created_at: string;

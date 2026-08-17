@@ -2,16 +2,14 @@
 
 namespace App\Jobs;
 
-use App\Actions\Billing\GrantProAccess;
 use App\Actions\Billing\SettleCouponRedemption;
 use App\Actions\Billing\VerifyPaymentOnChain;
-use App\Enums\GrantReason;
+use App\Enums\DepositAddressStatus;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentStatus;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
 use App\Notifications\PaymentNeedsReviewNotification;
-use App\Notifications\SubscriptionActivatedNotification;
 use App\Notifications\SubscriptionPaymentFailedNotification;
 use App\Support\Billing\PaymentVerification;
 use App\Support\Billing\TokenAmount;
@@ -73,7 +71,7 @@ class VerifySubscriptionPaymentJob implements ShouldBeUnique, ShouldQueue
         return [15, 30, 60, 120, 300, 600, 900, 1800, 1800, 3600, 3600, 3600];
     }
 
-    public function handle(VerifyPaymentOnChain $verify, GrantProAccess $grant): void
+    public function handle(VerifyPaymentOnChain $verify): void
     {
         $payment = SubscriptionPayment::query()->find($this->paymentId);
 
@@ -86,7 +84,7 @@ class VerifySubscriptionPaymentJob implements ShouldBeUnique, ShouldQueue
         $verification = $verify($payment);
 
         if ($verification->confirmed) {
-            $this->settle($payment, $verification, $grant);
+            $this->recordConfirmedTransfer($payment, $verification);
 
             return;
         }
@@ -99,17 +97,28 @@ class VerifySubscriptionPaymentJob implements ShouldBeUnique, ShouldQueue
             return;
         }
 
-        $payment->forceFill(['status' => PaymentStatus::Failed])->save();
-
         // Who hears about this depends on whether the answer is actually final.
         // A reviewable reason means money probably did arrive and an admin may
         // well approve it within the hour — telling the buyer their payment
         // failed first, only to reverse it, is worse than telling them nothing.
         if ($verification->reason?->needsReview() === true) {
+            $payment->forceFill(['status' => PaymentStatus::Failed])->save();
             $this->askForReview($payment->fresh());
 
             return;
         }
+
+        DB::transaction(function () use ($payment): void {
+            $locked = SubscriptionPayment::query()
+                ->with('depositAddress')
+                ->whereKey($payment->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $locked->forceFill(['status' => PaymentStatus::Failed])->save();
+            $locked->depositAddress?->forceFill(['status' => DepositAddressStatus::Retired])->save();
+            app(SettleCouponRedemption::class)->release($locked);
+        });
 
         $payment->user->notify(new SubscriptionPaymentFailedNotification($payment->fresh()));
     }
@@ -183,14 +192,11 @@ class VerifySubscriptionPaymentJob implements ShouldBeUnique, ShouldQueue
             ->count();
     }
 
-    private function settle(
+    private function recordConfirmedTransfer(
         SubscriptionPayment $payment,
         PaymentVerification $verification,
-        GrantProAccess $grant,
     ): void {
-        DB::transaction(function () use ($payment, $verification, $grant): void {
-            // Re-read under a lock: two workers reaching this at once must not
-            // both grant. The status check inside the lock is what makes that safe.
+        DB::transaction(function () use ($payment, $verification): void {
             $locked = SubscriptionPayment::query()->whereKey($payment->getKey())->lockForUpdate()->first();
 
             if ($locked === null || $locked->status !== PaymentStatus::Submitted) {
@@ -198,7 +204,6 @@ class VerifySubscriptionPaymentJob implements ShouldBeUnique, ShouldQueue
             }
 
             $locked->forceFill([
-                'status' => PaymentStatus::Confirmed,
                 'received_amount' => $verification->receivedAmount === null
                     ? null
                     : TokenAmount::toDecimal($verification->receivedAmount, (int) $locked->asset_decimals),
@@ -206,23 +211,14 @@ class VerifySubscriptionPaymentJob implements ShouldBeUnique, ShouldQueue
                 'block_number' => $verification->blockNumber,
                 'block_timestamp' => $verification->blockTimestamp,
                 'from_address' => $verification->fromAddress,
-                'verified_at' => now(),
+                'chain_verified_at' => now(),
                 'failure_reason' => null,
             ])->save();
 
-            // Same transaction as the status write, so there is no instant where
-            // a payment reads as paid without the months behind it.
-            $subscriptionGrant = $grant($locked->user, (int) $locked->months, GrantReason::Payment, $locked->getKey());
-
-            // Inside the same locked transaction as the status write, so a
-            // coupon claim can never be spent by a payment that did not settle.
-            app(SettleCouponRedemption::class)->consume($locked, $subscriptionGrant);
-
-            // After commit, deliberately: a mail provider having a bad minute
-            // must never be able to roll back somebody's entitlement.
-            DB::afterCommit(fn () => $locked->user->notify(
-                new SubscriptionActivatedNotification($locked, $subscriptionGrant->pro_until_after)
-            ));
+            // Screening performs network I/O and must never run while this row
+            // lock is held. afterCommit also prevents a worker from seeing the
+            // payment before these verified chain facts become visible.
+            ScreenSubscriptionPaymentJob::dispatch($locked->getKey())->afterCommit();
         });
     }
 

@@ -46,20 +46,11 @@ return [
         ],
     ],
 
-    /*
-    | The receiving address. One address serves every EVM chain — same private
-    | key, same address — so adding a chain does not mean managing a new wallet.
-    | A per-network override exists for anyone who would rather segregate them.
-    */
-    'evm_address' => env('BILLING_EVM_ADDRESS'),
-
     'networks' => [
 
         'ethereum' => [
             'enabled' => env('BILLING_ETHEREUM_ENABLED', false),
             'chain_id' => 1,
-            'address' => env('BILLING_ETHEREUM_ADDRESS', env('BILLING_EVM_ADDRESS')),
-
             // Any JSON-RPC endpoint: Alchemy, Infura, a public node or your own.
             // Use a keyed provider in production — public endpoints rate-limit
             // hard enough that the verification job spends its retries on 429s.
@@ -84,14 +75,17 @@ return [
             */
             'assets' => [
                 'eth' => [
+                    'enabled' => env('BILLING_ETHEREUM_ETH_ENABLED', true),
                     'contract' => null,
                     'decimals' => 18,
                 ],
                 'usdt' => [
+                    'enabled' => env('BILLING_ETHEREUM_USDT_ENABLED', false),
                     'contract' => env('BILLING_ETHEREUM_USDT_CONTRACT', '0xdac17f958d2ee523a2206206994597c13d831ec7'),
                     'decimals' => 6,
                 ],
                 'usdc' => [
+                    'enabled' => env('BILLING_ETHEREUM_USDC_ENABLED', false),
                     'contract' => env('BILLING_ETHEREUM_USDC_CONTRACT', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'),
                     'decimals' => 6,
                 ],
@@ -101,7 +95,6 @@ return [
         'arbitrum' => [
             'enabled' => env('BILLING_ARBITRUM_ENABLED', false),
             'chain_id' => 42161,
-            'address' => env('BILLING_ARBITRUM_ADDRESS', env('BILLING_EVM_ADDRESS')),
             'rpc_url' => env('BILLING_ARBITRUM_RPC_URL', 'https://arb1.arbitrum.io/rpc'),
 
             /*
@@ -128,14 +121,17 @@ return [
             */
             'assets' => [
                 'eth' => [
+                    'enabled' => env('BILLING_ARBITRUM_ETH_ENABLED', true),
                     'contract' => null,
                     'decimals' => 18,
                 ],
                 'usdt' => [
+                    'enabled' => env('BILLING_ARBITRUM_USDT_ENABLED', true),
                     'contract' => env('BILLING_ARBITRUM_USDT_CONTRACT', '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9'),
                     'decimals' => 6,
                 ],
                 'usdc' => [
+                    'enabled' => env('BILLING_ARBITRUM_USDC_ENABLED', true),
                     'contract' => env('BILLING_ARBITRUM_USDC_CONTRACT', '0xaf88d065e77c8cc2239327c5edb3a432268e5831'),
                     'decimals' => 6,
                 ],
@@ -165,6 +161,47 @@ return [
         'api_key' => env('BILLING_ETHERSCAN_API_KEY'),
         'timeout' => env('BILLING_ETHERSCAN_TIMEOUT', 8),
         'connect_timeout' => env('BILLING_ETHERSCAN_CONNECT_TIMEOUT', 4),
+    ],
+
+    /*
+    | Every new on-chain payment consumes one public address generated offline.
+    | Addresses are never returned to the pool after being shown to a buyer.
+    */
+    'deposit_pool' => [
+        'low_address_warning' => env('BILLING_DEPOSIT_POOL_LOW_WARNING', 25),
+        'max_assignments_per_user_per_day' => env('BILLING_DEPOSIT_POOL_USER_DAILY_LIMIT', 10),
+    ],
+
+    /*
+    | Screening is fail-closed. Disabled or unreachable drivers return Unknown,
+    | which keeps both entitlement and funds on hold instead of passing them.
+    */
+    'screening' => [
+        'enabled' => env('BILLING_SCREENING_ENABLED', false),
+        'driver' => env('BILLING_SCREENING_DRIVER', 'oracle'),
+        'timeout' => env('BILLING_SCREENING_TIMEOUT', 8),
+        'connect_timeout' => env('BILLING_SCREENING_CONNECT_TIMEOUT', 4),
+        'oracle' => [
+            'contracts' => [
+                'ethereum' => env('BILLING_ETHEREUM_SANCTIONS_ORACLE', '0x40c57923924b5c5c5455c48d93317139addac8fb'),
+                'arbitrum' => env('BILLING_ARBITRUM_SANCTIONS_ORACLE', '0x40c57923924b5c5c5455c48d93317139addac8fb'),
+            ],
+        ],
+        'chainalysis' => [
+            'enabled' => env('BILLING_CHAINALYSIS_ENABLED', false),
+            'url' => env('BILLING_CHAINALYSIS_URL', 'https://public.chainalysis.com/api/v1/address'),
+            'api_key' => env('BILLING_CHAINALYSIS_API_KEY'),
+        ],
+    ],
+
+    'sweep' => [
+        'cooling_hours' => env('BILLING_SWEEP_COOLING_HOURS', 72),
+        'authorization_minutes' => env('BILLING_SWEEP_AUTHORIZATION_MINUTES', 30),
+        'max_remaining_native_wei' => env('BILLING_SWEEP_MAX_REMAINING_NATIVE_WEI', '10000000000000'),
+        'treasury' => [
+            'ethereum' => env('BILLING_ETHEREUM_TREASURY_ADDRESS'),
+            'arbitrum' => env('BILLING_ARBITRUM_TREASURY_ADDRESS'),
+        ],
     ],
 
     /*

@@ -49,6 +49,8 @@ function settle(SubscriptionPayment $payment): void
         app(VerifyPaymentOnChain::class),
         app(GrantProAccess::class),
     );
+
+    passPaymentScreening($payment);
 }
 
 test('ether forwarded by a contract now settles on its own', function () {

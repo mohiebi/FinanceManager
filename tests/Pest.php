@@ -1,10 +1,19 @@
 <?php
 
+use App\Actions\Billing\FinalizeScreenedPayment;
+use App\Enums\DepositAddressStatus;
+use App\Enums\PaymentNetwork;
+use App\Enums\PaymentStatus;
+use App\Enums\ScreeningRisk;
+use App\Models\DepositAddress;
+use App\Models\SubscriptionPayment;
 use App\Models\Transaction;
+use App\Support\Billing\ScreeningResult;
 use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 /*
@@ -185,9 +194,9 @@ function advisorGuidanceResponse(): array
  * Switch billing on for a test, with a payable Ethereum rail.
  *
  * Billing ships off, and the network ships off inside it, so nothing that
- * exercises a payment works without this. The address and RPC endpoint are
- * fabricated: no test ever reaches a real node, and the quote source is left
- * disabled so a stablecoin test never touches the network at all.
+ * exercises a payment works without this. The public address pool and RPC
+ * endpoint are fabricated: no test ever reaches a real node, and the quote
+ * source is left disabled so a stablecoin test never touches the network.
  *
  * @param  array<string, mixed>  $overrides
  */
@@ -195,8 +204,6 @@ function enableBilling(array $overrides = []): void
 {
     config()->set([
         'billing.enabled' => true,
-        'billing.evm_address' => TEST_RECEIVING_ADDRESS,
-
         // Pinned rather than inherited. Every one of these reads from .env in
         // production, and a developer testing against real prices or a second
         // chain would otherwise silently rewrite what these tests assert.
@@ -205,9 +212,11 @@ function enableBilling(array $overrides = []): void
         'billing.plans.yearly.price_usd' => '45.00',
 
         'billing.networks.ethereum.enabled' => true,
-        'billing.networks.ethereum.address' => TEST_RECEIVING_ADDRESS,
         'billing.networks.ethereum.rpc_url' => 'https://ethereum.test/rpc',
         'billing.networks.ethereum.confirmations' => 12,
+        'billing.networks.ethereum.assets.eth.enabled' => true,
+        'billing.networks.ethereum.assets.usdt.enabled' => true,
+        'billing.networks.ethereum.assets.usdc.enabled' => true,
         'billing.networks.ethereum.assets.usdt.contract' => '0xdac17f958d2ee523a2206206994597c13d831ec7',
         'billing.networks.ethereum.assets.usdc.contract' => '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
 
@@ -218,6 +227,50 @@ function enableBilling(array $overrides = []): void
         'billing.quote.enabled' => false,
         ...$overrides,
     ]);
+
+    if (! Schema::hasTable('deposit_addresses')) {
+        return;
+    }
+
+    foreach (PaymentNetwork::cases() as $network) {
+        if (! config("billing.networks.{$network->value}.enabled", false)) {
+            continue;
+        }
+
+        if (DepositAddress::query()->where('network', $network->value)->exists()) {
+            continue;
+        }
+
+        foreach (range(0, 39) as $index) {
+            DepositAddress::create([
+                'network' => $network,
+                'derivation_index' => $index,
+                'address' => $index === 0
+                    ? TEST_RECEIVING_ADDRESS
+                    : '0x'.str_pad(dechex($index + 1), 40, '0', STR_PAD_LEFT),
+                'status' => DepositAddressStatus::Available,
+            ]);
+        }
+    }
+}
+
+/** Complete the second, fail-closed phase for legacy chain-verification tests. */
+function passPaymentScreening(SubscriptionPayment $payment): void
+{
+    $payment->refresh();
+
+    if ($payment->status !== PaymentStatus::Submitted || $payment->chain_verified_at === null) {
+        return;
+    }
+
+    app(FinalizeScreenedPayment::class)(
+        $payment,
+        new ScreeningResult(
+            risk: ScreeningRisk::NoMatch,
+            provider: 'test_screening',
+            screenedAt: now()->toImmutable(),
+        ),
+    );
 }
 
 /**

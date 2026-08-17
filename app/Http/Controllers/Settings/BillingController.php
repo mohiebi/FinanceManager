@@ -9,8 +9,11 @@ use App\Actions\Billing\StartSubscriptionPayment;
 use App\Actions\Billing\SubmitPaymentProof;
 use App\Enums\BillingPlan;
 use App\Enums\CouponRedemptionStatus;
+use App\Enums\DepositAddressStatus;
 use App\Enums\PaymentStatus;
 use App\Exceptions\CouponUnavailable;
+use App\Exceptions\DepositAddressLimitExceeded;
+use App\Exceptions\DepositAddressUnavailable;
 use App\Exceptions\QuoteUnavailable;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\StartPaymentRequest;
@@ -23,6 +26,7 @@ use App\Support\Billing\BillingCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -107,6 +111,10 @@ class BillingController extends Controller
         } catch (CouponUnavailable $exception) {
             // Somebody took the last use between resolving and claiming.
             return back()->withErrors(['coupon' => $exception->rejection->label()]);
+        } catch (DepositAddressUnavailable) {
+            return back()->withErrors(['network' => __('billing.errors.deposit_pool_empty')]);
+        } catch (DepositAddressLimitExceeded) {
+            return back()->withErrors(['plan' => __('billing.errors.deposit_address_limit')]);
         }
 
         return back()->with('status', __('billing.pay.created'));
@@ -196,7 +204,10 @@ class BillingController extends Controller
         // back, but the history is the only place either is ever read, and
         // "Expired" against an intent the buyer cancelled on purpose reads as
         // something that failed on them.
-        $payment->forceFill(['status' => PaymentStatus::Cancelled])->save();
+        DB::transaction(function () use ($payment): void {
+            $payment->forceFill(['status' => PaymentStatus::Cancelled])->save();
+            $payment->depositAddress?->forceFill(['status' => DepositAddressStatus::Retired])->save();
+        });
 
         // Withdrawing an intent hands back any coupon it was holding, so a
         // single-use code is not spent by somebody who changed their mind.

@@ -185,10 +185,7 @@ test('the action refuses rails the config does not offer', function () {
     expect(SubscriptionPayment::query()->count())->toBe(0);
 });
 
-test('a network with no address or endpoint is not on offer at all', function () {
-    enableBilling(['billing.networks.ethereum.address' => null]);
-    expect(PaymentNetwork::available())->toBe([]);
-
+test('a network with no endpoint is not offered and shared address config is irrelevant', function () {
     enableBilling(['billing.networks.ethereum.rpc_url' => null]);
     expect(PaymentNetwork::available())->toBe([]);
 

@@ -121,6 +121,8 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
             Route::post('admin/billing/payments/{payment}/approve', [AdminBillingController::class, 'approve'])->name('admin.billing.approve');
             Route::post('admin/billing/payments/{payment}/reject', [AdminBillingController::class, 'reject'])->name('admin.billing.reject');
             Route::post('admin/billing/payments/{payment}/recheck', [AdminBillingController::class, 'recheck'])->name('admin.billing.recheck');
+            Route::post('admin/billing/deposits/{depositAddress}/authorize-sweep', [AdminBillingController::class, 'authorizeSweep'])->name('admin.billing.sweeps.authorize');
+            Route::post('admin/billing/deposits/{depositAddress}/record-sweep', [AdminBillingController::class, 'recordSweep'])->name('admin.billing.sweeps.record');
             Route::post('admin/billing/users/{user}/grant', [AdminBillingController::class, 'grant'])->name('admin.billing.grant');
             Route::post('admin/billing/users/{user}/revoke', [AdminBillingController::class, 'revoke'])->name('admin.billing.revoke');
 

@@ -70,7 +70,7 @@ enum SettlementAsset: string
     {
         $configured = config("billing.networks.{$network->value}.assets.{$this->value}");
 
-        if (! is_array($configured)) {
+        if (! is_array($configured) || ($configured['enabled'] ?? true) !== true) {
             return false;
         }
 

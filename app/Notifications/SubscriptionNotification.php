@@ -11,7 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
 /**
- * Shared shape for the four things a subscription ever has to say.
+ * Shared shape for subscription and billing-operation notices.
  *
  * The important rule these all inherit concerns what may be *stored*. The
  * `notifications.data` column is not encrypted, so a transaction hash or a

@@ -55,6 +55,15 @@ enum PaymentFailureReason: string
     /** An administrator refused it. */
     case AdminRejected = 'admin_rejected';
 
+    /** The sender matched an exact sanctions designation. */
+    case SanctionedSender = 'sanctioned_sender';
+
+    /** A future risk provider classified the transaction as unsafe. */
+    case FlaggedSender = 'flagged_sender';
+
+    /** Screening could not produce a trustworthy result yet. */
+    case ScreeningUnavailable = 'screening_unavailable';
+
     /** The intent's window closed unpaid. */
     case Expired = 'expired';
 
@@ -80,6 +89,9 @@ enum PaymentFailureReason: string
             self::NativeTransferNotVisible => 'We could not read that transfer automatically.',
             self::ExplorerUnavailable => 'We could not reach the network. We will keep trying.',
             self::AdminRejected => 'This payment was rejected after review.',
+            self::SanctionedSender => 'The sending address matched a sanctions list.',
+            self::FlaggedSender => 'The payment source was classified as high risk.',
+            self::ScreeningUnavailable => 'We are still checking the payment source.',
             self::Expired => 'This payment window closed before it was paid.',
         };
     }
@@ -88,7 +100,7 @@ enum PaymentFailureReason: string
     public function isRetryable(): bool
     {
         return match ($this) {
-            self::TxNotFound, self::ExplorerUnavailable => true,
+            self::TxNotFound, self::ExplorerUnavailable, self::ScreeningUnavailable => true,
             default => false,
         };
     }

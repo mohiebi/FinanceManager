@@ -3,6 +3,7 @@
 use App\Actions\Billing\GrantProAccess;
 use App\Enums\GrantReason;
 use App\Enums\PaymentStatus;
+use App\Models\DepositAddress;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
 use Illuminate\Support\Facades\Queue;
@@ -45,14 +46,16 @@ test('the page 404s while billing is switched off', function () {
         ->assertNotFound();
 });
 
-test('the page 404s when no chain can actually take a payment', function () {
-    // Switched on, but with nowhere to send funds. Offering a plan here would
-    // hand the buyer an intent nobody could ever settle.
-    enableBilling(['billing.networks.ethereum.address' => null]);
+test('the page remains available but marks checkout unavailable when a pool is empty', function () {
+    enableBilling();
+    DepositAddress::query()->delete();
 
     $this->actingAs(User::factory()->create())
         ->get(route('billing.edit'))
-        ->assertNotFound();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('networks.0.available', false)
+            ->where('networks.0.available_addresses', 0));
 });
 
 test('billing is behind auth and a complete profile', function () {

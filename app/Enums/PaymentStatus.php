@@ -24,6 +24,9 @@ enum PaymentStatus: string
     /** Refused for a reason no retry can change. */
     case Failed = 'failed';
 
+    /** Funds arrived from a risky source and must never be moved or approved. */
+    case Quarantined = 'quarantined';
+
     /** The intent's window closed before anything was paid. */
     case Expired = 'expired';
 
@@ -54,6 +57,7 @@ enum PaymentStatus: string
             self::Submitted => 'Checking',
             self::Confirmed => 'Paid',
             self::Failed => 'Failed',
+            self::Quarantined => 'Quarantined',
             self::Expired => 'Expired',
             self::Cancelled => 'Withdrawn',
             self::Refunded => 'Refunded',
@@ -86,7 +90,7 @@ enum PaymentStatus: string
         return match ($this) {
             self::Confirmed => 'positive',
             self::Pending, self::Submitted => 'pending',
-            self::Failed => 'negative',
+            self::Failed, self::Quarantined => 'negative',
             self::Expired, self::Cancelled, self::Refunded => 'neutral',
         };
     }

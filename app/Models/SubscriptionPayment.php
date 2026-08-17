@@ -7,6 +7,7 @@ use App\Enums\BillingPlan;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentNetwork;
 use App\Enums\PaymentStatus;
+use App\Enums\ScreeningRisk;
 use App\Enums\SettlementAsset;
 use App\Support\Billing\CouponDiscount;
 use App\Support\Billing\TokenAmount;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
@@ -90,6 +92,18 @@ class SubscriptionPayment extends Model
     public function couponRedemption(): HasOne
     {
         return $this->hasOne(CouponRedemption::class);
+    }
+
+    /** @return HasOne<DepositAddress, SubscriptionPayment> */
+    public function depositAddress(): HasOne
+    {
+        return $this->hasOne(DepositAddress::class, 'assigned_payment_id');
+    }
+
+    /** @return HasMany<PaymentScreening, SubscriptionPayment> */
+    public function screenings(): HasMany
+    {
+        return $this->hasMany(PaymentScreening::class, 'subscription_payment_id');
     }
 
     /** What the coupon took off, or null when none was used. */
@@ -184,6 +198,8 @@ class SubscriptionPayment extends Model
             'asset' => SettlementAsset::class,
             'asset_decimals' => 'integer',
             'failure_reason' => PaymentFailureReason::class,
+            'screening_risk' => ScreeningRisk::class,
+            'screening_categories' => 'array',
             'confirmations' => 'integer',
             'block_number' => 'integer',
             'attempts' => 'integer',
@@ -191,6 +207,8 @@ class SubscriptionPayment extends Model
             'block_timestamp' => 'datetime',
             'submitted_at' => 'datetime',
             'verified_at' => 'datetime',
+            'chain_verified_at' => 'datetime',
+            'screened_at' => 'datetime',
             'expires_at' => 'datetime',
             // price_usd, quote_rate, expected_amount and received_amount are
             // deliberately uncast. They are stored in string columns and read

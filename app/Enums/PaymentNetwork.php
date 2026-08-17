@@ -66,13 +66,6 @@ enum PaymentNetwork: string
         return $this === self::Arbitrum;
     }
 
-    public function receivingAddress(): ?string
-    {
-        $address = config("billing.networks.{$this->value}.address");
-
-        return is_string($address) && $address !== '' ? $this->normalizeAddress($address) : null;
-    }
-
     public function rpcUrl(): ?string
     {
         $url = config("billing.networks.{$this->value}.rpc_url");
@@ -132,14 +125,12 @@ enum PaymentNetwork: string
     /**
      * Whether this chain can currently take a payment.
      *
-     * All four conditions matter: a network switched on without an address, an
-     * RPC endpoint or a payable asset would hand the buyer an intent nobody can
-     * ever settle.
+     * New payments receive their address from the offline pool, so a shared
+     * receiving address is deliberately not part of network availability.
      */
     public function isEnabled(): bool
     {
         return (bool) config("billing.networks.{$this->value}.enabled", false)
-            && $this->receivingAddress() !== null
             && $this->rpcUrl() !== null
             && $this->assets() !== [];
     }

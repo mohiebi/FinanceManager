@@ -73,6 +73,32 @@ return [
         'email_body' => ':count Zahlung(en) konnten nicht automatisch abgeschlossen werden und warten auf dich. Die letzte scheiterte an: :reason Bis du entscheidest, erfährt niemand, dass seine Zahlung fehlgeschlagen ist — sie warten also noch.',
     ],
 
+    'payment_screening_delayed' => [
+        'title' => 'Die Quellenprüfung ist verzögert',
+        'body_generic' => ':count Zahlung(en) warten auf die Quellenprüfung.',
+        'email_body' => ':count auf der Chain bestätigte Zahlung(en) warten auf ein verlässliches Prüfergebnis. Es wurde kein Zugang gewährt. Wiederhole die Prüfung nach Wiederherstellung des Anbieters in der Abonnementverwaltung.',
+    ],
+
+    'deposit_pool_low' => [
+        'title' => 'Der Pool der Einzahlungsadressen ist niedrig',
+        'body_generic' => ':network hat noch :count unbenutzte Einzahlungsadresse(n).',
+        'email_body' => ':network hat noch :count unbenutzte Einmal-Einzahlungsadresse(n). Der Checkout stoppt bei null automatisch; importiere vorher einen weiteren offline erzeugten Stapel öffentlicher Adressen.',
+    ],
+
+    'payment_quarantined' => [
+        'title' => 'Zahlungsmittel wurden quarantänisiert',
+        'body_generic' => ':count Einzahlung(en) sind dauerhaft quarantänisiert.',
+        'email_body' => ':count Einzahlung(en) wurden nach der Quellenprüfung dauerhaft quarantänisiert. Sie können nicht freigegeben, erstattet, gelöst oder übertragen werden.',
+    ],
+
+    'subscription_payment_quarantined' => [
+        'title' => 'Deine Zahlung konnte nicht akzeptiert werden',
+        'body_generic' => 'Dein :plan-Tarif wurde nach der Quellenprüfung nicht aktiviert.',
+        'email_body' => ':explanation Dein :plan-Tarif wurde nicht aktiviert. Aus Sicherheitsgründen kann die Zahlung weder bewegt noch zurückgesendet werden. Erstelle bitte eine neue Zahlung und verwende eine andere Wallet.',
+        'sanctioned_explanation' => 'Die Absenderadresse stimmte mit einer Sanktionsliste überein.',
+        'flagged_explanation' => 'Die Zahlungsquelle wurde von der Transaktionsrisikoprüfung markiert.',
+    ],
+
     'subscription_activated' => [
         'title' => 'Pro ist aktiv',
         'body_generic' => 'Dein Tarif :plan läuft bis :date.',

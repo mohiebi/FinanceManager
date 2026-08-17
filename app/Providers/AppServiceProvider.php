@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Actions\Gamification\AwardMilestones;
 use App\Contracts\AdvisorKnowledgeProvider;
+use App\Contracts\Billing\AddressScreener;
 use App\Services\Advisor\ModelOnlyAdvisorKnowledgeProvider;
+use App\Services\Billing\AddressScreenerFactory;
 use App\Support\Encryption\UserKeyRing;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -36,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
         // its per-user memo is rebuilt for every row the CSV importer writes.
         $this->app->scoped(AwardMilestones::class);
         $this->app->bind(AdvisorKnowledgeProvider::class, ModelOnlyAdvisorKnowledgeProvider::class);
+        $this->app->bind(AddressScreener::class, fn (): AddressScreener => app(AddressScreenerFactory::class)->configured());
     }
 
     /**

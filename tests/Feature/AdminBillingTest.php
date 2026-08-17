@@ -70,11 +70,13 @@ test('the console lists what needs a decision', function () {
         );
 });
 
-test('approving a stranded payment grants the months and records who did it', function () {
+test('approving a chain anomaly sends it to screening and only no match grants', function () {
     $boss = admin();
     $payment = SubscriptionPayment::factory()->submitted()->create([
         'months' => 3,
         'failure_reason' => PaymentFailureReason::AmountMismatch,
+        'from_address' => '0x2222222222222222222222222222222222222222',
+        'received_amount' => '4.90',
     ]);
 
     $this->post(route('admin.billing.approve', $payment), [
@@ -83,17 +85,22 @@ test('approving a stranded payment grants the months and records who did it', fu
 
     $payment->refresh();
 
-    expect($payment->status)->toBe(PaymentStatus::Confirmed)
+    expect($payment->status)->toBe(PaymentStatus::Submitted)
         ->and($payment->approved_by_admin_id)->toBe($boss->id)
         ->and($payment->failure_reason)->toBeNull()
+        ->and($payment->chain_verified_at)->not->toBeNull()
+        ->and($payment->user->fresh()->isPro())->toBeFalse();
+
+    passPaymentScreening($payment);
+
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Confirmed)
         ->and($payment->user->fresh()->isPro())->toBeTrue();
 
     $grant = $payment->user->subscriptionGrants()->sole();
 
-    expect($grant->reason)->toBe(GrantReason::AdminApprovePayment)
+    expect($grant->reason)->toBe(GrantReason::Payment)
         ->and($grant->months)->toBe(3)
-        ->and($grant->granted_by_admin_id)->toBe($boss->id)
-        ->and($grant->note)->toBe('Exchange took its fee out of the amount.');
+        ->and($grant->granted_by_admin_id)->toBeNull();
 });
 
 test('every decision has to be explained', function () {

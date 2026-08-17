@@ -25,7 +25,6 @@ function enableBothChains(array $overrides = []): void
 {
     enableBilling([
         'billing.networks.arbitrum.enabled' => true,
-        'billing.networks.arbitrum.address' => TEST_RECEIVING_ADDRESS,
         'billing.networks.arbitrum.rpc_url' => 'https://arbitrum.test/rpc',
         ...$overrides,
     ]);
@@ -106,6 +105,7 @@ test('a payment settles on Arbitrum through the same driver', function () {
         app(VerifyPaymentOnChain::class),
         app(GrantProAccess::class),
     );
+    passPaymentScreening($payment);
 
     expect($payment->fresh()->status)->toBe(PaymentStatus::Confirmed)
         ->and($payment->user->fresh()->isPro())->toBeTrue();
@@ -126,6 +126,7 @@ test('a mainnet endpoint answering for Arbitrum is caught as misconfiguration', 
         app(VerifyPaymentOnChain::class),
         app(GrantProAccess::class),
     );
+    passPaymentScreening($payment);
 
     expect($payment->fresh()->status)->toBe(PaymentStatus::Submitted);
 });
@@ -160,6 +161,7 @@ test('Etherscan is asked about the right chain, with the same key', function () 
         app(VerifyPaymentOnChain::class),
         app(GrantProAccess::class),
     );
+    passPaymentScreening($payment);
 
     expect($payment->fresh()->status)->toBe(PaymentStatus::Confirmed);
 

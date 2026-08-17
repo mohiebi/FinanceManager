@@ -3,8 +3,10 @@
 namespace App\Jobs;
 
 use App\Actions\Billing\SettleCouponRedemption;
+use App\Enums\DepositAddressStatus;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentStatus;
+use App\Models\DepositAddress;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
 use App\Notifications\SubscriptionExpiredNotification;
@@ -73,6 +75,14 @@ class ReconcileSubscriptionsJob implements ShouldQueue
             'updated_at' => now(),
         ]);
 
+        DepositAddress::query()
+            ->whereIn('assigned_payment_id', $expiredIds)
+            ->where('status', DepositAddressStatus::Assigned->value)
+            ->update([
+                'status' => DepositAddressStatus::Retired->value,
+                'updated_at' => now(),
+            ]);
+
         // Any coupon those intents were holding goes back into the pool.
         // Without this a single-use code would be spent by the first person who
         // opened an intent and wandered off, not by the first who paid.
@@ -88,12 +98,20 @@ class ReconcileSubscriptionsJob implements ShouldQueue
      */
     private function restartStalledVerifications(): void
     {
-        SubscriptionPayment::query()
+        $stalled = SubscriptionPayment::query()
             ->settling()
             ->where('updated_at', '<=', now()->subMinutes(self::STALLED_AFTER_MINUTES))
-            ->where('created_at', '>=', now()->subHours((int) config('billing.tx_max_age_hours', 72) + 24))
+            ->where('created_at', '>=', now()->subHours((int) config('billing.tx_max_age_hours', 72) + 24));
+
+        $stalled->clone()
+            ->whereNull('chain_verified_at')
             ->pluck('id')
             ->each(fn (string $id) => VerifySubscriptionPaymentJob::dispatch($id));
+
+        $stalled->clone()
+            ->whereNotNull('chain_verified_at')
+            ->pluck('id')
+            ->each(fn (string $id) => ScreenSubscriptionPaymentJob::dispatch($id));
     }
 
     /**

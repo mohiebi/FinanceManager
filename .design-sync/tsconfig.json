@@ -1,0 +1,7 @@
+{
+    "//": "This file exists to win esbuild's tsconfig walk for the preview .tsx files. The repo root tsconfig.json belongs to the Laravel/Vue app and sets jsxImportSource:\"vue\"; without this, previews compile against vue/jsx-runtime and every card dies with 'Objects are not valid as a React child'. cfg.tsconfig does NOT cover this — it is package-relative and only feeds a path-alias plugin.",
+    "compilerOptions": {
+        "jsx": "react-jsx",
+        "jsxImportSource": "react"
+    }
+}

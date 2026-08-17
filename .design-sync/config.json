@@ -1,0 +1,26 @@
+{
+    "pkg": "@cashpilot/ui",
+    "globalName": "CashPilotUI",
+    "projectId": "172a98c8-a207-4112-b104-c29396ae646e",
+    "shape": "package",
+    "buildCmd": "npm run build",
+    "srcDir": "src",
+    "tsconfig": "tsconfig.json",
+    "cssEntry": "dist/styles.css",
+    "readmeHeader": ".design-sync/conventions.md",
+    "overrides": {
+        "Button": { "cardMode": "column" },
+        "Card": { "cardMode": "column" },
+        "Dialog": { "cardMode": "single", "primaryStory": "ConfirmDelete", "viewport": "680x460" },
+        "DropdownMenu": { "cardMode": "single", "primaryStory": "RowActions", "viewport": "560x440" },
+        "Tooltip": { "cardMode": "single", "primaryStory": "Open", "viewport": "480x260" },
+        "Select": { "cardMode": "single", "primaryStory": "Open", "viewport": "560x480" },
+        "Checkbox": { "cardMode": "column" },
+        "Switch": { "cardMode": "column" }
+    },
+    "componentSrcMap": {
+        "AlertVariants": null,
+        "BadgeVariants": null,
+        "ButtonVariants": null
+    }
+}

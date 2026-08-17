@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\UserEncrypted;
 use App\Concerns\OwnsEncryptedAttributes;
+use App\Concerns\ScopedToOwner;
 use App\Contracts\HasEncryptionOwner;
 use App\Enums\BudgetIncomeBasis;
 use App\Enums\Currency;
@@ -28,7 +29,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Budget extends Model implements HasEncryptionOwner
 {
     /** @use HasFactory<BudgetFactory> */
-    use HasFactory, OwnsEncryptedAttributes;
+    use HasFactory, OwnsEncryptedAttributes, ScopedToOwner;
 
     /**
      * @return BelongsTo<User, Budget>

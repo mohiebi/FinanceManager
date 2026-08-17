@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\ScopedToOwner;
 use App\Enums\InvestorAssessmentStatus;
 use Database\Factories\InvestorAssessmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class InvestorAssessment extends Model
 {
     /** @use HasFactory<InvestorAssessmentFactory> */
-    use HasFactory;
+    use HasFactory, ScopedToOwner;
 
     /** @return BelongsTo<User, InvestorAssessment> */
     public function user(): BelongsTo

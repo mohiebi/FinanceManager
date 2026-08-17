@@ -129,8 +129,6 @@ class BillController extends Controller
 
     public function update(Request $request, Bill $bill, SaveBill $saveBill): RedirectResponse
     {
-        abort_unless((int) $bill->user_id === (int) $request->user()->id, 404);
-
         $saveBill->update($bill, $this->validatedBillData($request));
 
         return back();
@@ -138,8 +136,6 @@ class BillController extends Controller
 
     public function destroy(Request $request, Bill $bill): RedirectResponse
     {
-        abort_unless((int) $bill->user_id === (int) $request->user()->id, 404);
-
         $bill->delete();
 
         return back();
@@ -154,7 +150,8 @@ class BillController extends Controller
      */
     public function markPaid(Request $request, Bill $bill, BillOccurrence $occurrence, MarkBillOccurrencePaid $markBillOccurrencePaid): RedirectResponse
     {
-        abort_unless((int) $bill->user_id === (int) $request->user()->id, 404);
+        // The bill is owner-scoped by its binding; this is the parentage check,
+        // which binding cannot make for us — the occurrence has no `user_id`.
         abort_unless((int) $occurrence->bill_id === (int) $bill->id, 404);
 
         $sealed = null;

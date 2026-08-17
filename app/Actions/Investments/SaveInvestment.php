@@ -183,7 +183,9 @@ class SaveInvestment
 
         unset($validated['total_sale']);
 
-        $validated['quantity'] = -$units;
+        // Through the enum rather than a bare minus sign, so the rule that a
+        // disposal is stored negative lives in exactly one place.
+        $validated['quantity'] = InvestmentKind::Sell->signFor($units);
         // Stored per unit so a later partial sale of the same asset is comparable,
         // and so realised gain is a plain (sold − paid) × units.
         $validated['sale_price'] = $totalSale === null ? null : $totalSale / $units;

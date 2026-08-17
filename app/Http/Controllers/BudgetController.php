@@ -95,8 +95,6 @@ class BudgetController extends Controller
 
     public function update(Request $request, Budget $budget): RedirectResponse
     {
-        $this->authoriseOwnership($request, $budget);
-
         $user = $request->user();
         $vaultArmed = $user->vaultIsArmed();
         $validated = $request->validate(SaveBudget::rules($vaultArmed));
@@ -112,19 +110,8 @@ class BudgetController extends Controller
 
     public function destroy(Request $request, Budget $budget): RedirectResponse
     {
-        $this->authoriseOwnership($request, $budget);
-
         $budget->delete();
 
         return back()->with('status', __('budgets.deleted'));
-    }
-
-    /**
-     * 404 rather than 403 — a budget belonging to someone else should not be
-     * confirmed to exist.
-     */
-    private function authoriseOwnership(Request $request, Budget $budget): void
-    {
-        abort_unless((int) $budget->user_id === (int) $request->user()->id, 404);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\UserEncrypted;
 use App\Concerns\OwnsEncryptedAttributes;
+use App\Concerns\ScopedToOwner;
 use App\Contracts\HasEncryptionOwner;
 use App\Enums\BillRecurrenceType;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -27,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class Bill extends Model implements HasEncryptionOwner
 {
-    use OwnsEncryptedAttributes;
+    use OwnsEncryptedAttributes, ScopedToOwner;
 
     /**
      * @return BelongsTo<User, Bill>

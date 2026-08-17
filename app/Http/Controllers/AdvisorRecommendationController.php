@@ -41,7 +41,6 @@ class AdvisorRecommendationController extends Controller
 
     public function clarify(AnswerClarificationsRequest $request, AdvisorRecommendation $recommendation, AdvisorRecommendationService $service): JsonResponse
     {
-        abort_unless((int) $recommendation->user_id === (int) $request->user()->id, 404);
         abort_unless($recommendation->status === AdvisorRecommendationStatus::NeedsClarification, 409);
         $recommendation->load('profile.assessment.answers');
 
@@ -70,7 +69,6 @@ class AdvisorRecommendationController extends Controller
      */
     public function claim(Request $request, AdvisorRecommendation $recommendation, AdvisorPendingPayloadStore $pendingPayloads): JsonResponse
     {
-        abort_unless((int) $recommendation->user_id === (int) $request->user()->id, 404);
         abort_unless($request->user()->vaultIsArmed(), 409);
         abort_unless($recommendation->status === AdvisorRecommendationStatus::AwaitingVaultSeal, 409);
 
@@ -102,7 +100,6 @@ class AdvisorRecommendationController extends Controller
 
     public function seal(SealRecommendationRequest $request, AdvisorRecommendation $recommendation, AdvisorPendingPayloadStore $pendingPayloads): JsonResponse
     {
-        abort_unless((int) $recommendation->user_id === (int) $request->user()->id, 404);
         abort_unless($request->user()->vaultIsArmed(), 409);
         abort_unless($recommendation->status === AdvisorRecommendationStatus::AwaitingVaultSeal, 409);
 
@@ -138,7 +135,6 @@ class AdvisorRecommendationController extends Controller
 
     public function show(Request $request, AdvisorRecommendation $recommendation): Response
     {
-        abort_unless((int) $recommendation->user_id === (int) $request->user()->id, 404);
         $recommendation->load(['profile', 'messages']);
 
         return Inertia::render('Advisor/Recommendation', [

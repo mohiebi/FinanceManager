@@ -6,6 +6,7 @@ import {
     buildBreakdown,
     buildSnapshot,
     type PortfolioAsset,
+    signedQuantityFor,
 } from '../../resources/js/lib/portfolio.ts';
 
 /**
@@ -222,4 +223,65 @@ test('no holdings means no snapshot at all', () => {
         buildSnapshot(buildBreakdown([], [], 'toman', vectors.rates)),
         null,
     );
+});
+
+/**
+ * The sign rule itself, pinned on its own.
+ *
+ * Every holding total in this file is a plain sum, so a disposal only subtracts
+ * because its stored quantity is negative. That invariant has been broken twice
+ * in two places — once on the server, where an edit rewrote a sale's sign, and
+ * once here, where the sell dialog sealed the magnitude the user typed and left
+ * the browser to add a sale to the holding it should have taken away from. With
+ * the vault armed there is no server-side second chance: a sealed quantity is
+ * the only copy, and nothing downstream can sign it after the fact.
+ */
+test('a disposal is signed negative and a purchase positive, whatever is typed', () => {
+    assert.equal(signedQuantityFor('sell', 2), -2);
+    assert.equal(signedQuantityFor('buy', 2), 2);
+
+    // Idempotent from either direction, so a value that already carries its sign
+    // survives a second pass unchanged.
+    assert.equal(signedQuantityFor('sell', -2), -2);
+    assert.equal(signedQuantityFor('buy', -2), 2);
+
+    assert.equal(signedQuantityFor('sell', 0), 0);
+    assert.equal(signedQuantityFor('sell', 0.00000001), -0.00000001);
+});
+
+test('a sale signed the browser way nets the same holding as the server way', () => {
+    // The armed-vault path and the plaintext path have to agree, because the same
+    // breakdown code reads both.
+    const { assets } = buildBreakdown(
+        [
+            {
+                investment_asset_id: 1,
+                kind: 'buy',
+                quantity: signedQuantityFor('buy', 5),
+                cost_basis: 4_000_000,
+                cost_basis_currency: 'toman',
+                sale_price: null,
+                sale_price_currency: null,
+            },
+            {
+                investment_asset_id: 1,
+                kind: 'sell',
+                // What the dialog now seals: the magnitude typed, signed first.
+                quantity: signedQuantityFor('sell', 2),
+                cost_basis: 4_000_000,
+                cost_basis_currency: 'toman',
+                sale_price: 6_000_000,
+                sale_price_currency: 'toman',
+            },
+        ],
+        vectors.assets,
+        'toman',
+        vectors.rates,
+    );
+
+    const gold = assets.find(
+        (asset: PortfolioAsset) => asset.id === 1,
+    ) as PortfolioAsset;
+
+    assert.equal(gold.quantity, 3);
 });

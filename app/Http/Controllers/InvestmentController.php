@@ -246,7 +246,6 @@ class InvestmentController extends Controller
      */
     public function update(Request $request, Investment $investment, SaveInvestment $saveInvestment): RedirectResponse
     {
-        abort_unless((int) $investment->user_id === (int) $request->user()->id, 404);
         abort_if($investment->isSell(), 409, __('finance.investments.sell_not_editable'));
 
         $validated = $this->validatedInvestmentData($request);
@@ -258,8 +257,6 @@ class InvestmentController extends Controller
 
     public function destroy(Request $request, Investment $investment): RedirectResponse
     {
-        abort_unless((int) $investment->user_id === (int) $request->user()->id, 404);
-
         $investment->delete();
 
         return redirect()->back();

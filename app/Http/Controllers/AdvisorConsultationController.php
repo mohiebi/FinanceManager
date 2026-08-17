@@ -24,7 +24,6 @@ class AdvisorConsultationController extends Controller
         AdvisorCanonicalJson $canonicalJson,
         AdvisorExecutionTimeLimiter $executionTimeLimiter,
     ): JsonResponse {
-        abort_unless((int) $recommendation->user_id === (int) $request->user()->id, 404);
         abort_unless($recommendation->status === AdvisorRecommendationStatus::Ready, 409);
         $recommendation->loadMissing('profile');
         $vaultArmed = $request->user()->vaultIsArmed();
@@ -85,7 +84,6 @@ class AdvisorConsultationController extends Controller
 
     public function seal(Request $request, AdvisorRecommendation $recommendation): JsonResponse
     {
-        abort_unless((int) $recommendation->user_id === (int) $request->user()->id, 404);
         abort_unless($request->user()->vaultIsArmed(), 409);
         $validated = Validator::make($request->all(), ['payload' => SealedField::rules(), 'role' => ['required', 'in:assistant']])->validate();
         $message = $recommendation->messages()->create([

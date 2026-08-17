@@ -27,6 +27,29 @@ export type PortfolioAssetMeta = {
     price_available: boolean;
 };
 
+/**
+ * Applies the sign a stored quantity has to carry, given the kind of entry.
+ *
+ * The twin of `InvestmentKind::signFor()` on the server, and it exists for the
+ * same reason: holdings are a plain sum, so a disposal is only a subtraction
+ * because its quantity is stored negative.
+ *
+ * The browser needs its own copy because with the vault armed the quantity is
+ * sealed before it is sent, and a server that cannot read a value cannot sign
+ * it — so for those users this is the only place the sign can be applied at all.
+ */
+export function signedQuantityFor(
+    kind: 'buy' | 'sell',
+    quantity: number,
+): number {
+    const magnitude = Math.abs(quantity);
+
+    // `magnitude !== 0` keeps a zero from coming back as `-0`, which is equal to
+    // zero everywhere it is summed but is not the same value to a strict compare,
+    // and would read as a negative in anything that serialises it.
+    return kind === 'sell' && magnitude !== 0 ? -magnitude : magnitude;
+}
+
 /** One holding, already decrypted. A disposal carries a negative quantity. */
 export type PortfolioEntry = {
     investment_asset_id: number;

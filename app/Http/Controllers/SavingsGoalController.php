@@ -26,8 +26,6 @@ class SavingsGoalController extends Controller
 
     public function update(Request $request, SavingsGoal $savingsGoal): RedirectResponse
     {
-        $this->authoriseOwnership($request, $savingsGoal);
-
         $vaultArmed = $request->user()->vaultIsArmed();
         $validated = $request->validate(SaveGoal::rules($vaultArmed));
 
@@ -42,8 +40,6 @@ class SavingsGoalController extends Controller
 
     public function destroy(Request $request, SavingsGoal $savingsGoal): RedirectResponse
     {
-        $this->authoriseOwnership($request, $savingsGoal);
-
         $savingsGoal->delete();
 
         return back()->with('status', __('gamification.goals.deleted'));
@@ -62,8 +58,6 @@ class SavingsGoalController extends Controller
      */
     public function markAchieved(Request $request, SavingsGoal $savingsGoal): RedirectResponse
     {
-        $this->authoriseOwnership($request, $savingsGoal);
-
         if ($savingsGoal->achieved_on === null) {
             $savingsGoal->forceFill([
                 'achieved_on' => $request->user()->localToday()->toDateString(),
@@ -71,14 +65,5 @@ class SavingsGoalController extends Controller
         }
 
         return back();
-    }
-
-    /**
-     * 404 rather than 403 — a goal belonging to someone else should not be
-     * confirmed to exist.
-     */
-    private function authoriseOwnership(Request $request, SavingsGoal $goal): void
-    {
-        abort_unless((int) $goal->user_id === (int) $request->user()->id, 404);
     }
 }

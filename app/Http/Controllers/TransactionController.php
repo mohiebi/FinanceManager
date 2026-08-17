@@ -636,8 +636,6 @@ class TransactionController extends Controller
         Transaction $transaction,
         SaveTransaction $saveTransaction,
     ): RedirectResponse {
-        abort_unless((int) $transaction->user_id === (int) $request->user()->id, 404);
-
         $saveTransaction->handle($request->user(), $request->transactionData(), $transaction);
 
         return redirect()->to($request->headers->get('referer') ?: route('dashboard'));
@@ -648,8 +646,6 @@ class TransactionController extends Controller
      */
     public function destroy(Request $request, Transaction $transaction): RedirectResponse
     {
-        abort_unless((int) $transaction->user_id === (int) $request->user()->id, 404);
-
         $transaction->delete();
 
         return redirect()->to($request->headers->get('referer') ?: route('dashboard'));

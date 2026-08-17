@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\UserEncrypted;
 use App\Concerns\OwnsEncryptedAttributes;
+use App\Concerns\ScopedToOwner;
 use App\Contracts\HasEncryptionOwner;
 use App\Enums\AdvisorRecommendationMode;
 use App\Enums\AdvisorRecommendationStatus;
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class AdvisorRecommendation extends Model implements HasEncryptionOwner
 {
     /** @use HasFactory<AdvisorRecommendationFactory> */
-    use HasFactory, HasUlids, OwnsEncryptedAttributes;
+    use HasFactory, HasUlids, OwnsEncryptedAttributes, ScopedToOwner;
 
     /** @return BelongsTo<User, AdvisorRecommendation> */
     public function user(): BelongsTo

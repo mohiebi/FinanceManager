@@ -8,6 +8,7 @@ use App\Models\Bill;
 use App\Models\Category;
 use App\Models\User;
 use App\Support\Encryption\SealedField;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Shared bill validation and persistence used by the web BillController and
@@ -36,14 +37,12 @@ class SaveBill
             'category_id' => [
                 'nullable',
                 'integer',
+                // Delegates to the same check the write path runs, so validation
+                // and persistence can never disagree about what is allowed.
                 function (string $attribute, mixed $value, \Closure $fail) use ($user): void {
-                    $exists = Category::query()
-                        ->availableFor($user)
-                        ->where('type', TransactionType::Cost)
-                        ->whereKey($value)
-                        ->exists();
-
-                    if (! $exists) {
+                    try {
+                        self::assertCategoryIsUsable($user, $value);
+                    } catch (ValidationException) {
                         $fail(__('finance.bills.invalid_category'));
                     }
                 },
@@ -93,9 +92,13 @@ class SaveBill
 
     /**
      * @param  array<string, mixed>  $data  normalized bill attributes
+     *
+     * @throws ValidationException when the category is not the user's to use
      */
     public function create(User $user, array $data, ?string $calendar = null): Bill
     {
+        self::assertCategoryIsUsable($user, $data['category_id'] ?? null);
+
         $bill = $user->bills()->create($data);
 
         $this->syncBillOccurrence->ensureInitial($bill, $calendar);
@@ -105,13 +108,45 @@ class SaveBill
 
     /**
      * @param  array<string, mixed>  $data  normalized bill attributes
+     *
+     * @throws ValidationException when the category is not the user's to use
      */
     public function update(Bill $bill, array $data, ?string $calendar = null): Bill
     {
+        self::assertCategoryIsUsable($bill->user, $data['category_id'] ?? null);
+
         $bill->update($data);
 
         $this->syncBillOccurrence->syncPending($bill, $calendar);
 
         return $bill;
+    }
+
+    /**
+     * The category rule from {@see self::rules()}, enforced where writes happen.
+     *
+     * Callers that validate still fail earlier and with a better message; this is
+     * the floor beneath them, for the paths that do not — a confirmed MCP
+     * proposal replays a payload stored earlier and re-validates none of it.
+     *
+     * @throws ValidationException
+     */
+    public static function assertCategoryIsUsable(User $user, mixed $categoryId): void
+    {
+        if ($categoryId === null || $categoryId === '') {
+            return;
+        }
+
+        $usable = Category::query()
+            ->availableFor($user)
+            ->where('type', TransactionType::Cost)
+            ->whereKey($categoryId)
+            ->exists();
+
+        if (! $usable) {
+            throw ValidationException::withMessages([
+                'category_id' => __('finance.bills.invalid_category'),
+            ]);
+        }
     }
 }

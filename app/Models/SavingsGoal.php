@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\UserEncrypted;
 use App\Concerns\OwnsEncryptedAttributes;
+use App\Concerns\ScopedToOwner;
 use App\Contracts\HasEncryptionOwner;
 use Database\Factories\SavingsGoalFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -26,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SavingsGoal extends Model implements HasEncryptionOwner
 {
     /** @use HasFactory<SavingsGoalFactory> */
-    use HasFactory, OwnsEncryptedAttributes;
+    use HasFactory, OwnsEncryptedAttributes, ScopedToOwner;
 
     /**
      * @return BelongsTo<User, SavingsGoal>

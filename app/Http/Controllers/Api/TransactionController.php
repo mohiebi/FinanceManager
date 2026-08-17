@@ -50,8 +50,6 @@ class TransactionController extends Controller
      */
     public function show(Request $request, Transaction $transaction): TransactionResource
     {
-        abort_unless((int) $transaction->user_id === (int) $request->user()->id, 404);
-
         return new TransactionResource($transaction->load('category:id,name,slug,type,is_default'));
     }
 
@@ -63,8 +61,6 @@ class TransactionController extends Controller
         Transaction $transaction,
         SaveTransaction $saveTransaction,
     ): TransactionResource {
-        abort_unless((int) $transaction->user_id === (int) $request->user()->id, 404);
-
         $transaction = $saveTransaction->handle($request->user(), $request->transactionData(), $transaction);
 
         return (new TransactionResource($transaction->load('category:id,name,slug,type,is_default')))
@@ -76,8 +72,6 @@ class TransactionController extends Controller
      */
     public function destroy(Request $request, Transaction $transaction): JsonResponse
     {
-        abort_unless((int) $transaction->user_id === (int) $request->user()->id, 404);
-
         $transaction->delete();
 
         return response()->json(status: 204);

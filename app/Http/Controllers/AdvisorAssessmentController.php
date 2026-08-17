@@ -23,7 +23,6 @@ class AdvisorAssessmentController extends Controller
 {
     public function show(Request $request, InvestorAssessment $assessment, AdvisorAssessmentDefinition $definition): Response
     {
-        abort_unless((int) $assessment->user_id === (int) $request->user()->id, 404);
         $section = max(1, min(8, (int) $request->integer('section', min(8, $assessment->last_completed_section + 1))));
 
         return Inertia::render('Advisor/Assessment', [
@@ -49,7 +48,6 @@ class AdvisorAssessmentController extends Controller
 
     public function updateSection(UpdateAssessmentSectionRequest $request, InvestorAssessment $assessment, int $section, AdvisorAssessmentDefinition $definition): RedirectResponse
     {
-        abort_unless((int) $assessment->user_id === (int) $request->user()->id, 404);
         abort_if($assessment->isCompleted(), 409, __('advisor.validation.completed_immutable'));
         if ($section < 1 || $section > 8) {
             throw ValidationException::withMessages(['section' => __('advisor.validation.invalid_section')]);
@@ -96,7 +94,6 @@ class AdvisorAssessmentController extends Controller
 
     public function complete(CompleteAssessmentRequest $request, InvestorAssessment $assessment, AdvisorAssessmentDefinition $definition, AdvisorProfileBuilder $profileBuilder): RedirectResponse
     {
-        abort_unless((int) $assessment->user_id === (int) $request->user()->id, 404);
         abort_if($assessment->isCompleted(), 409, __('advisor.validation.completed_immutable'));
         $answers = $assessment->answers()->get()->mapWithKeys(fn ($answer): array => [$answer->question_key => $answer->answer])->all();
         if (array_diff($definition->requiredQuestionKeys(), array_keys($answers)) !== []) {

@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { useVault } from '@/composables/useVault';
+import { signedQuantityFor } from '@/lib/portfolio';
 
 /**
  * Records a disposal.
@@ -147,12 +148,26 @@ async function submit(): Promise<void> {
 
     try {
         if (isArmed()) {
-            const sealed = await sealForSubmit(data, 'investments', {
-                quantity: 'decimal',
-                sale_price: 'decimal',
-                cost_basis: 'decimal',
-                note: 'string',
-            });
+            const sealed = await sealForSubmit(
+                {
+                    ...data,
+                    // Negated before it is sealed, because after that nothing can
+                    // reach it: holdings are a plain sum, so a sale only subtracts
+                    // if its stored quantity is negative, and the server has no key
+                    // to apply that sign itself. Unarmed, the server negates and
+                    // this value is ignored.
+                    quantity: String(
+                        signedQuantityFor('sell', Number(form.quantity)),
+                    ),
+                },
+                'investments',
+                {
+                    quantity: 'decimal',
+                    sale_price: 'decimal',
+                    cost_basis: 'decimal',
+                    note: 'string',
+                },
+            );
 
             let mirrored: Record<string, string | null> = {};
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\UserEncrypted;
 use App\Concerns\OwnsEncryptedAttributes;
+use App\Concerns\ScopedToOwner;
 use App\Contracts\HasEncryptionOwner;
 use App\Enums\Currency;
 use App\Enums\TransactionType;
@@ -30,7 +31,7 @@ use InvalidArgumentException;
 class Transaction extends Model implements HasEncryptionOwner
 {
     /** @use HasFactory<TransactionFactory> */
-    use HasFactory, OwnsEncryptedAttributes;
+    use HasFactory, OwnsEncryptedAttributes, ScopedToOwner;
 
     protected static function booted(): void
     {

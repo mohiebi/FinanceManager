@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\UserEncrypted;
 use App\Concerns\OwnsEncryptedAttributes;
+use App\Concerns\ScopedToOwner;
 use App\Contracts\HasEncryptionOwner;
 use App\Enums\InvestmentKind;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -25,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class Investment extends Model implements HasEncryptionOwner
 {
-    use OwnsEncryptedAttributes;
+    use OwnsEncryptedAttributes, ScopedToOwner;
 
     /**
      * @return BelongsTo<User, Investment>

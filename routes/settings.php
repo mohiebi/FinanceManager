@@ -96,6 +96,7 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
         ->name('vault.disable');
 
     Route::get('settings/categories', [CategoryController::class, 'edit'])->name('categories.edit');
+    Route::patch('categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
     Route::patch('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 

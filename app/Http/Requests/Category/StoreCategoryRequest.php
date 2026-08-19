@@ -28,6 +28,7 @@ class StoreCategoryRequest extends FormRequest
         return [
             'type' => ['required', Rule::enum(TransactionType::class)],
             'name' => ['required', 'string', 'max:100'],
+            'color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ];
     }
 
@@ -63,13 +64,14 @@ class StoreCategoryRequest extends FormRequest
     }
 
     /**
-     * @return array{type: TransactionType, name: string}
+     * @return array{type: TransactionType, name: string, color: string|null}
      */
     public function categoryData(): array
     {
         return [
             'type' => TransactionType::from($this->validated('type')),
             'name' => (string) $this->validated('name'),
+            'color' => $this->validated('color') ?: null,
         ];
     }
 }

@@ -30,6 +30,7 @@ class UpdateCategoryRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:100'],
+            'color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ];
     }
 
@@ -66,12 +67,13 @@ class UpdateCategoryRequest extends FormRequest
     }
 
     /**
-     * @return array{name: string}
+     * @return array{name: string, color: string|null}
      */
     public function categoryData(): array
     {
         return [
             'name' => (string) $this->validated('name'),
+            'color' => $this->validated('color') ?: null,
         ];
     }
 }

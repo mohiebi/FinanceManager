@@ -170,3 +170,132 @@ test('users cannot delete categories used by transactions', function () {
         'id' => $category->id,
     ]);
 });
+
+test('a new category joins the end of its type list', function () {
+    $user = User::factory()->create();
+    Category::factory()->cost()->forUser($user)->create(['sort_order' => 0]);
+    Category::factory()->cost()->forUser($user)->create(['sort_order' => 1]);
+
+    $this
+        ->actingAs($user)
+        ->post(route('categories.store'), [
+            'type' => TransactionType::Cost->value,
+            'name' => 'Streaming',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $category = Category::query()
+        ->where('user_id', $user->id)
+        ->where('name', 'Streaming')
+        ->first();
+
+    expect($category->sort_order)->toBe(2);
+});
+
+test('a category can be created with a color', function () {
+    $user = User::factory()->create();
+
+    $this
+        ->actingAs($user)
+        ->post(route('categories.store'), [
+            'type' => TransactionType::Cost->value,
+            'name' => 'Coffee Shops',
+            'color' => '#02CD86',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(Category::query()->where('user_id', $user->id)->first()->color)
+        ->toBe('#02CD86');
+});
+
+test('an invalid color is rejected', function () {
+    $user = User::factory()->create();
+
+    $this
+        ->actingAs($user)
+        ->post(route('categories.store'), [
+            'type' => TransactionType::Cost->value,
+            'name' => 'Coffee Shops',
+            'color' => 'not-a-color',
+        ])
+        ->assertSessionHasErrors('color');
+
+    expect(Category::query()->where('user_id', $user->id)->count())->toBe(0);
+});
+
+test('users can recolor an owned custom category', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->cost()->forUser($user)->create([
+        'name' => 'Groceries',
+        'color' => '#02CD86',
+    ]);
+
+    $this
+        ->actingAs($user)
+        ->patch(route('categories.update', $category), [
+            'name' => 'Groceries',
+            'color' => '#947BFF',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($category->refresh()->color)->toBe('#947BFF');
+});
+
+test('categories are listed in their sort order', function () {
+    $user = User::factory()->create();
+    $third = Category::factory()->cost()->forUser($user)->create(['name' => 'Third', 'sort_order' => 2]);
+    $first = Category::factory()->cost()->forUser($user)->create(['name' => 'First', 'sort_order' => 0]);
+    $second = Category::factory()->cost()->forUser($user)->create(['name' => 'Second', 'sort_order' => 1]);
+
+    $this
+        ->actingAs($user)
+        ->get(route('categories.edit'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('categories.cost.0.id', $first->id)
+            ->where('categories.cost.1.id', $second->id)
+            ->where('categories.cost.2.id', $third->id)
+        );
+});
+
+test('users can reorder their own categories within a type', function () {
+    $user = User::factory()->create();
+    $a = Category::factory()->cost()->forUser($user)->create(['sort_order' => 0]);
+    $b = Category::factory()->cost()->forUser($user)->create(['sort_order' => 1]);
+    $c = Category::factory()->cost()->forUser($user)->create(['sort_order' => 2]);
+
+    $this
+        ->actingAs($user)
+        ->patch(route('categories.reorder'), [
+            'type' => TransactionType::Cost->value,
+            'ids' => [$c->id, $a->id, $b->id],
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($c->refresh()->sort_order)->toBe(0)
+        ->and($a->refresh()->sort_order)->toBe(1)
+        ->and($b->refresh()->sort_order)->toBe(2);
+});
+
+test('reordering ignores ids that are not owned or do not match the type', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $a = Category::factory()->cost()->forUser($user)->create(['sort_order' => 0]);
+    $b = Category::factory()->cost()->forUser($user)->create(['sort_order' => 1]);
+    $wrongType = Category::factory()->income()->forUser($user)->create(['sort_order' => 0]);
+    $notOwned = Category::factory()->cost()->forUser($otherUser)->create(['sort_order' => 0]);
+
+    $this
+        ->actingAs($user)
+        ->patch(route('categories.reorder'), [
+            'type' => TransactionType::Cost->value,
+            'ids' => [$notOwned->id, $b->id, $wrongType->id, $a->id],
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($b->refresh()->sort_order)->toBe(0)
+        ->and($a->refresh()->sort_order)->toBe(1)
+        ->and($wrongType->refresh()->sort_order)->toBe(0)
+        ->and($notOwned->refresh()->sort_order)->toBe(0);
+});

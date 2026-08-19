@@ -305,6 +305,12 @@ return [
         'by_category' => 'by category',
         'by_day' => 'by day',
         'by_month' => 'by month',
+        'read_eyebrow' => 'The read',
+        'read_headline_positive' => 'You came out {amount} ahead',
+        'read_headline_negative' => 'You spent {amount} more than you brought in',
+        'read_body_spending' => '{category} was the biggest slice of your spending, at {percent}% of the period\'s costs.',
+        'read_body_transfers' => '{category} was the biggest slice, at {percent}% — with investments counted as transfers rather than spending.',
+        'read_body_no_spending' => 'No costs were logged in this period yet.',
     ],
     'tables' => [
         'money_coming_in' => 'Money coming in',

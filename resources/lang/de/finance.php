@@ -294,6 +294,12 @@ return [
         'top_categories' => 'Top-Kategorien',
         'cost_breakdown' => 'Ausgabenaufschlüsselung',
         'by_category' => 'nach Kategorie',
+        'read_eyebrow' => 'Die Auswertung',
+        'read_headline_positive' => 'Du liegst {amount} im Plus',
+        'read_headline_negative' => 'Du hast {amount} mehr ausgegeben als eingenommen',
+        'read_body_spending' => '{category} war mit {percent}% der größte Anteil deiner Ausgaben in diesem Zeitraum.',
+        'read_body_transfers' => '{category} war mit {percent}% der größte Anteil — Investitionen zählen dabei als Umbuchung, nicht als Ausgabe.',
+        'read_body_no_spending' => 'In diesem Zeitraum wurden noch keine Ausgaben erfasst.',
     ],
     'tables' => [
         'money_coming_in' => 'Eingehendes Geld',

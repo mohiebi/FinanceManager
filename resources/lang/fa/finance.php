@@ -305,6 +305,12 @@ return [
         'by_category' => 'به تفکیک دسته',
         'by_day' => 'روزانه',
         'by_month' => 'ماهانه',
+        'read_eyebrow' => 'خلاصه',
+        'read_headline_positive' => '{amount} بیشتر از خرجتان درآمد داشتید',
+        'read_headline_negative' => '{amount} بیشتر از درآمدتان خرج کردید',
+        'read_body_spending' => 'دسته «{category}» با {percent}% بیشترین سهم را از هزینه‌های این بازه داشت.',
+        'read_body_transfers' => 'دسته «{category}» با {percent}% بیشترین سهم را داشت — با احتساب سرمایه‌گذاری‌ها به‌عنوان جابه‌جایی، نه هزینه.',
+        'read_body_no_spending' => 'در این بازه هنوز هزینه‌ای ثبت نشده است.',
     ],
     'tables' => [
         'money_coming_in' => 'پول ورودی',

@@ -17,6 +17,7 @@ import {
 import { computed, onBeforeUnmount, reactive, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
+import { useAmountMask } from '@/composables/useAmountMask';
 import { useVault } from '@/composables/useVault';
 import {
     advisorGenerationErrorKey,
@@ -69,6 +70,12 @@ const props = defineProps<{
 const { t } = useI18n();
 const { label } = useAdvisorLabels();
 const { revealAsync, sealForSubmit, trackKey } = useVault();
+const { masked } = useAmountMask();
+const maskClass = computed(() =>
+    masked.value
+        ? 'blur-[6px] transition-[filter] duration-150 select-none'
+        : 'transition-[filter] duration-150',
+);
 const payload = ref<AdvisorRecommendationPayload | null>(null);
 const conversation = ref<ConversationMessage[]>([]);
 const clarificationAnswers = reactive<Record<string, string | boolean>>({});
@@ -245,10 +252,9 @@ const attemptedClaims = new Set<string>();
 let pollTimer: ReturnType<typeof setInterval> | undefined;
 let clockTimer: ReturnType<typeof setInterval> | undefined;
 
-const payloadClaimer = useHttp<
-    Record<string, never>,
-    RecommendationResponse
->({});
+const payloadClaimer = useHttp<Record<string, never>, RecommendationResponse>(
+    {},
+);
 
 /**
  * Named from the two counters the job moves as it works, so the stage shown is
@@ -614,7 +620,8 @@ defineOptions({
     <Head :title="t('advisor.recommendation.primary')" />
 
     <div
-        class="min-h-[calc(100vh-92px)] bg-[#0d0f0f] px-[18px] py-5 text-white"
+        data-app-flush-bottom
+        class="min-h-[calc(100svh-72px)] bg-background px-[18px] py-5 text-white lg:min-h-[calc(100svh-92px)]"
     >
         <header
             class="mx-auto max-w-6xl rounded-[24px] border border-white/10 bg-[#171a19] p-6 md:flex md:items-center md:justify-between md:gap-8"
@@ -1060,9 +1067,8 @@ defineOptions({
                 <div class="mt-7 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
                     <ul class="space-y-2.5">
                         <li
-                            v-for="(
-                                allocation, index
-                            ) in payload.primary.allocations"
+                            v-for="(allocation, index) in payload.primary
+                                .allocations"
                             :key="allocation.asset_key"
                             class="rounded-2xl border border-white/8 bg-white/[0.02] p-4 transition-colors duration-200 hover:border-white/15"
                         >
@@ -1082,7 +1088,9 @@ defineOptions({
                                             allocationName(allocation.asset_key)
                                         }}
                                     </h3>
-                                    <p class="mt-0.5 truncate text-xs text-white/35">
+                                    <p
+                                        class="mt-0.5 truncate text-xs text-white/35"
+                                    >
                                         {{ allocation.role }}
                                     </p>
                                 </div>
@@ -1154,7 +1162,9 @@ defineOptions({
                                 {{ t('advisor.recommendation.overlay') }}
                             </p>
                             <h3 class="mt-2 font-semibold">
-                                {{ label('option_strategies', overlay.strategy) }}
+                                {{
+                                    label('option_strategies', overlay.strategy)
+                                }}
                             </h3>
                             <p class="mt-2 text-sm leading-6 text-white/45">
                                 {{ overlay.purpose }}
@@ -1171,7 +1181,9 @@ defineOptions({
                                     <p
                                         class="mt-0.5 text-[10px] tracking-[0.14em] text-white/35 uppercase"
                                     >
-                                        {{ t('advisor.recommendation.coverage') }}
+                                        {{
+                                            t('advisor.recommendation.coverage')
+                                        }}
                                     </p>
                                 </div>
                                 <div
@@ -1265,9 +1277,8 @@ defineOptions({
                         </thead>
                         <tbody class="divide-y divide-white/8">
                             <tr
-                                v-for="(
-                                    row, rowIndex
-                                ) in payload.transition_plan.rows"
+                                v-for="(row, rowIndex) in payload
+                                    .transition_plan.rows"
                                 :key="row.asset_key"
                             >
                                 <td class="py-4 font-medium">
@@ -1283,7 +1294,9 @@ defineOptions({
                                         {{ allocationName(row.asset_key) }}
                                     </span>
                                 </td>
-                                <td class="py-4 text-end text-white/50 tabular-nums">
+                                <td
+                                    class="py-4 text-end text-white/50 tabular-nums"
+                                >
                                     {{
                                         row.current_percent === null
                                             ? '—'
@@ -1334,14 +1347,16 @@ defineOptions({
                                         /><ArrowDown
                                             v-else
                                             class="me-1 inline size-3"
-                                        />{{
-                                            Math.abs(
-                                                row.difference,
-                                            ).toLocaleString()
-                                        }}
-                                        {{
-                                            payload.transition_plan.base_currency.toUpperCase()
-                                        }}</template
+                                        /><span :class="maskClass"
+                                            >{{
+                                                Math.abs(
+                                                    row.difference,
+                                                ).toLocaleString()
+                                            }}
+                                            {{
+                                                payload.transition_plan.base_currency.toUpperCase()
+                                            }}</span
+                                        ></template
                                     ><span v-else>{{
                                         t(
                                             'advisor.recommendation.pricing_required',

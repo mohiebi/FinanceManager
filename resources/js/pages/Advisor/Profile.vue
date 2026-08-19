@@ -110,7 +110,8 @@ defineOptions({
     <Head :title="t('advisor.profile.title')" />
 
     <div
-        class="min-h-[calc(100vh-92px)] bg-[#0d0f0f] px-[18px] py-5 text-white"
+        data-app-flush-bottom
+        class="min-h-[calc(100svh-72px)] bg-background px-[18px] py-5 text-white lg:min-h-[calc(100svh-92px)]"
     >
         <section
             class="mx-auto max-w-6xl overflow-hidden rounded-[28px] border border-white/10 bg-[#171a19] shadow-[0_24px_70px_rgba(0,0,0,0.3)]"
@@ -133,11 +134,16 @@ defineOptions({
                         <h1
                             class="mt-5 text-3xl font-semibold tracking-[-0.03em] md:text-4xl"
                         >
-                            {{ label('personas', props.profile.payload.persona) }}
+                            {{
+                                label('personas', props.profile.payload.persona)
+                            }}
                         </h1>
                         <p class="mt-2 text-sm text-white/40">
                             {{
-                                label('risk_bands', props.profile.payload.risk_band)
+                                label(
+                                    'risk_bands',
+                                    props.profile.payload.risk_band,
+                                )
                             }}
                         </p>
 

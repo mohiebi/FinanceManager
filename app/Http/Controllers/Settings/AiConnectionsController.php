@@ -69,6 +69,35 @@ class AiConnectionsController extends Controller
         ]);
     }
 
+    /**
+     * The emergency stop: every active MCP token for this user, across every
+     * connected client, revoked in one call. Same two-table update as a single
+     * client's revoke, just scoped to the user instead of one client_id.
+     */
+    public function revokeAll(Request $request): RedirectResponse
+    {
+        /** @var Collection<int, Token> $tokens */
+        $tokens = Token::query()
+            ->where('user_id', $request->user()->id)
+            ->where('revoked', false)
+            ->get()
+            ->filter(fn (Token $token): bool => $token->can('mcp:use'));
+
+        if ($tokens->isEmpty()) {
+            return back();
+        }
+
+        $tokenIds = $tokens->pluck('id');
+
+        Token::query()->whereIn('id', $tokenIds)->update(['revoked' => true]);
+
+        RefreshToken::query()
+            ->whereIn('access_token_id', $tokenIds)
+            ->update(['revoked' => true]);
+
+        return back();
+    }
+
     public function destroy(Request $request, string $clientId): RedirectResponse
     {
         /** @var Collection<int, Token> $tokens */

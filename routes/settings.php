@@ -104,6 +104,7 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
 
     Route::middleware(EnsureFeatureEnabled::class.':ai_assistant')->group(function () {
         Route::get('settings/ai-connections', [AiConnectionsController::class, 'edit'])->name('ai-connections.edit');
+        Route::delete('settings/ai-connections', [AiConnectionsController::class, 'revokeAll'])->name('ai-connections.revoke-all');
         Route::delete('settings/ai-connections/{token}', [AiConnectionsController::class, 'destroy'])->name('ai-connections.destroy');
     });
 

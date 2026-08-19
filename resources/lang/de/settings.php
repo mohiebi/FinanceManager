@@ -409,6 +409,12 @@ return [
         'expires_at' => 'Läuft ab',
         'revoke' => 'Gesamten Zugriff widerrufen',
         'revoke_confirm' => 'Zugriff dieses Assistenten in allen aktiven Sitzungen widerrufen? Für eine erneute Verbindung ist eine neue Autorisierung nötig.',
+        'pause_all' => [
+            'title' => 'Nichts ändert sich ohne dich',
+            'description' => 'Jeder verbundene Assistent kann jederzeit hier auf einmal getrennt werden.',
+            'action' => 'Alle Assistenten pausieren',
+            'confirm' => 'Zugriff jedes verbundenen Assistenten auf einmal widerrufen? Jeder muss danach einzeln neu verbunden und autorisiert werden.',
+        ],
         'history' => 'Änderungsverlauf',
         'history_empty' => 'Noch keine Änderungen durch KI.',
         'unknown_client' => 'Unbekannter Assistent',

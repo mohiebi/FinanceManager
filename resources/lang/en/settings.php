@@ -409,6 +409,12 @@ return [
         'expires_at' => 'Expires',
         'revoke' => 'Revoke all access',
         'revoke_confirm' => "Revoke this assistant's access on every active session? It will need to be authorized again to reconnect.",
+        'pause_all' => [
+            'title' => 'Nothing changes without you',
+            'description' => 'Every connected assistant can be cut off at once, right here, whenever you want.',
+            'action' => 'Pause all assistants',
+            'confirm' => 'Revoke every connected assistant\'s access at once? Each one will need to be reconnected and re-authorized individually.',
+        ],
         'history' => 'Change history',
         'history_empty' => 'No AI-made changes yet.',
         'unknown_client' => 'Unknown assistant',

@@ -130,6 +130,8 @@ return [
         'review_transactions' => 'بررسی تراکنش‌ها',
         'needs_you_this_week' => 'این هفته نیاز به توجه دارد',
         'where_it_went' => 'خرج کجا رفت',
+        'cash_flow' => 'جریان نقدی این ماه',
+        'cash_flow_hint' => 'برای دیدن عدد دقیق روی هر روز نگه دارید',
         'net_worth' => 'ارزش خالص',
         'per_day' => 'در روز',
     ],

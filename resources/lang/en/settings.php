@@ -324,8 +324,9 @@ return [
     'navigation' => [
         'groups' => [
             'account' => 'Account',
-            'workspace' => 'Workspace',
-            'integrations' => 'Integrations',
+            'money' => 'Money',
+            'connections' => 'Connections',
+            'app' => 'App',
         ],
         'profile' => 'Profile',
         'notifications' => 'Notifications',

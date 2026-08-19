@@ -77,26 +77,10 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
                     icon: User,
                 },
                 {
-                    title: t('settings.navigation.notifications'),
-                    description: t(
-                        'settings.navigation.descriptions.notifications',
-                    ),
-                    href: editNotifications(),
-                    icon: Bell,
-                },
-                {
                     title: t('settings.navigation.security'),
                     description: t('settings.navigation.descriptions.security'),
                     href: editSecurity(),
                     icon: ShieldCheck,
-                },
-                {
-                    title: t('settings.navigation.preferences'),
-                    description: t(
-                        'settings.navigation.descriptions.preferences',
-                    ),
-                    href: '/settings/preferences',
-                    icon: SlidersHorizontal,
                 },
                 ...(showBilling.value
                     ? [
@@ -113,13 +97,15 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
             ],
         },
         {
-            label: t('settings.navigation.groups.workspace'),
+            label: t('settings.navigation.groups.money'),
             items: [
                 {
-                    title: t('settings.navigation.modules'),
-                    description: t('settings.navigation.descriptions.modules'),
-                    href: editModules(),
-                    icon: Blocks,
+                    title: t('settings.navigation.preferences'),
+                    description: t(
+                        'settings.navigation.descriptions.preferences',
+                    ),
+                    href: '/settings/preferences',
+                    icon: SlidersHorizontal,
                 },
                 {
                     title: t('settings.navigation.categories'),
@@ -144,7 +130,7 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
             ],
         },
         {
-            label: t('settings.navigation.groups.integrations'),
+            label: t('settings.navigation.groups.connections'),
             items: [
                 ...(showTelegram.value
                     ? [
@@ -170,6 +156,25 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
                           },
                       ]
                     : []),
+                {
+                    title: t('settings.navigation.notifications'),
+                    description: t(
+                        'settings.navigation.descriptions.notifications',
+                    ),
+                    href: editNotifications(),
+                    icon: Bell,
+                },
+            ],
+        },
+        {
+            label: t('settings.navigation.groups.app'),
+            items: [
+                {
+                    title: t('settings.navigation.modules'),
+                    description: t('settings.navigation.descriptions.modules'),
+                    href: editModules(),
+                    icon: Blocks,
+                },
             ],
         },
     ].filter((group) => group.items.length > 0),

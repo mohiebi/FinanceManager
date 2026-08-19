@@ -324,8 +324,9 @@ return [
     'navigation' => [
         'groups' => [
             'account' => 'Konto',
-            'workspace' => 'Arbeitsbereich',
-            'integrations' => 'Integrationen',
+            'money' => 'Finanzen',
+            'connections' => 'Verbindungen',
+            'app' => 'App',
         ],
         'profile' => 'Profil',
         'notifications' => 'Benachrichtigungen',

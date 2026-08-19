@@ -4,64 +4,9 @@
     <div
         class="finance-dense flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
     >
-        <!-- Hero / period summary -->
-        <section
-            class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
-        >
-            <div
-                class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between"
-            >
-                <div class="max-w-2xl space-y-3">
-                    <p
-                        class="text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase"
-                    >
-                        {{ t('finance.reports.eyebrow') }}
-                    </p>
-                    <div class="space-y-2">
-                        <h1
-                            class="text-3xl font-semibold tracking-tight text-white sm:text-4xl"
-                        >
-                            {{ t('finance.reports.heading') }}
-                        </h1>
-                        <p class="text-sm text-[#989898]">
-                            {{ t('finance.reports.description') }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="grid gap-3 sm:grid-cols-2 xl:min-w-xl">
-                    <div
-                        class="rounded-[14px] border border-white/10 bg-[#252525] p-4 shadow-xs"
-                    >
-                        <p
-                            class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-                        >
-                            {{ t('finance.fields.range') }}
-                        </p>
-                        <p class="mt-2 text-sm font-semibold text-white">
-                            {{ props.period.label }}
-                        </p>
-                    </div>
-
-                    <div
-                        class="rounded-[14px] border border-white/10 bg-[#252525] p-4 shadow-xs"
-                    >
-                        <p
-                            class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-                        >
-                            {{ t('finance.reports.transactions') }}
-                        </p>
-                        <p class="mt-2 text-sm font-semibold text-white">
-                            {{ props.summary.count }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <!-- Filters -->
         <section
-            class="mx-[18px] mt-[18px] rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
             <div class="flex flex-col gap-5">
                 <div class="flex flex-col gap-4">
@@ -84,8 +29,8 @@
                     </div>
                 </div>
 
-                <!-- Search / type / category filters -->
-                <div class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.9fr_auto]">
+                <!-- Search / category filters -->
+                <div class="grid gap-4 sm:grid-cols-2">
                     <div class="grid gap-2">
                         <Label for="report_search">{{
                             t('finance.fields.search')
@@ -97,38 +42,6 @@
                             :placeholder="t('finance.filters.title_or_note')"
                             @keyup.enter="applyFilters()"
                         />
-                    </div>
-
-                    <div class="grid gap-2">
-                        <Label for="report_type">{{
-                            t('finance.fields.type')
-                        }}</Label>
-                        <Select
-                            v-model="selectedType"
-                            @update:model-value="applyTypeFilter"
-                        >
-                            <SelectTrigger
-                                id="report_type"
-                                :class="filterFieldClass"
-                            >
-                                <SelectValue
-                                    :placeholder="
-                                        t('finance.filters.all_types')
-                                    "
-                                />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">{{
-                                    t('finance.filters.all_types')
-                                }}</SelectItem>
-                                <SelectItem value="cost">{{
-                                    t('finance.filters.costs')
-                                }}</SelectItem>
-                                <SelectItem value="income">{{
-                                    t('finance.filters.incomes')
-                                }}</SelectItem>
-                            </SelectContent>
-                        </Select>
                     </div>
 
                     <div class="grid gap-2">
@@ -162,26 +75,6 @@
                                 </SelectItem>
                             </SelectContent>
                         </Select>
-                    </div>
-
-                    <div class="flex flex-wrap items-end gap-2 xl:justify-end">
-                        <Button
-                            class="shrink-0 rounded-full bg-white/10 px-5 text-white shadow-none ring-1 ring-white/20 hover:bg-white/15"
-                            @click="applyFilters()"
-                        >
-                            <Search class="size-4" />
-                            {{ t('finance.actions.filter') }}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            class="size-9 shrink-0 rounded-full bg-white/10 p-0 text-[#989898] ring-1 ring-white/15 hover:bg-white/15"
-                            @click="clearTransactionFilters"
-                        >
-                            <RotateCcw class="size-4" />
-                            <span class="sr-only">{{
-                                t('finance.actions.reset_filters')
-                            }}</span>
-                        </Button>
                     </div>
                 </div>
 
@@ -476,14 +369,14 @@
                                     {{ t('finance.fields.category') }}
                                 </th>
                                 <th
-                                    class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
-                                >
-                                    {{ t('finance.fields.amount') }}
-                                </th>
-                                <th
-                                    class="hidden rounded-r-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:table-cell sm:px-5"
+                                    class="hidden bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:table-cell sm:px-5"
                                 >
                                     {{ t('finance.fields.date') }}
+                                </th>
+                                <th
+                                    class="rounded-r-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
+                                >
+                                    {{ t('finance.fields.amount') }}
                                 </th>
                             </tr>
                         </thead>
@@ -523,6 +416,11 @@
                                     </span>
                                 </td>
                                 <td
+                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
+                                >
+                                    {{ displayDate(transaction.occurred_at) }}
+                                </td>
+                                <td
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-semibold text-[#6C4EE9] sm:px-5"
                                 >
                                     <CipheredMoney
@@ -536,11 +434,6 @@
                                         "
                                         :rates="props.rates"
                                     />
-                                </td>
-                                <td
-                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
-                                >
-                                    {{ displayDate(transaction.occurred_at) }}
                                 </td>
                             </tr>
                             <tr v-if="props.transactions.costs.length === 0">
@@ -641,14 +534,14 @@
                                     {{ t('finance.fields.category') }}
                                 </th>
                                 <th
-                                    class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
-                                >
-                                    {{ t('finance.fields.amount') }}
-                                </th>
-                                <th
-                                    class="hidden rounded-r-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:table-cell sm:px-5"
+                                    class="hidden bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:table-cell sm:px-5"
                                 >
                                     {{ t('finance.fields.date') }}
+                                </th>
+                                <th
+                                    class="rounded-r-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
+                                >
+                                    {{ t('finance.fields.amount') }}
                                 </th>
                             </tr>
                         </thead>
@@ -689,6 +582,11 @@
                                     </span>
                                 </td>
                                 <td
+                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
+                                >
+                                    {{ displayDate(transaction.occurred_at) }}
+                                </td>
+                                <td
                                     class="px-3 py-[17px] text-center text-[17px] leading-none font-semibold text-[#02CD86] sm:px-5"
                                 >
                                     <CipheredMoney
@@ -702,11 +600,6 @@
                                         "
                                         :rates="props.rates"
                                     />
-                                </td>
-                                <td
-                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
-                                >
-                                    {{ displayDate(transaction.occurred_at) }}
                                 </td>
                             </tr>
                             <tr v-if="props.transactions.incomes.length === 0">
@@ -774,7 +667,6 @@
 
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { RotateCcw, Search } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
@@ -923,7 +815,6 @@ const selectedRange = ref<ReportRange>(props.filters.range);
 const fromDate = ref(props.filters.from);
 const toDate = ref(props.filters.to);
 const search = ref(props.filters.search);
-const selectedType = ref<FilterType>(props.filters.type);
 const selectedCategory = ref(props.filters.category?.toString() ?? 'all');
 const excludeInvestments = ref(props.filters.exclude_investments);
 
@@ -1170,13 +1061,10 @@ const reportBody = computed(() => {
           });
 });
 
-const reportCategories = computed(() => {
-    if (selectedType.value === 'cost' || selectedType.value === 'income') {
-        return props.categories[selectedType.value] ?? [];
-    }
-
-    return [...props.categories.cost, ...props.categories.income];
-});
+const reportCategories = computed(() => [
+    ...props.categories.cost,
+    ...props.categories.income,
+]);
 
 watch(
     () => props.filters,
@@ -1185,23 +1073,11 @@ watch(
         fromDate.value = filters.from;
         toDate.value = filters.to;
         search.value = filters.search;
-        selectedType.value = filters.type;
         selectedCategory.value = filters.category?.toString() ?? 'all';
         excludeInvestments.value = filters.exclude_investments;
     },
     { deep: true },
 );
-
-watch(selectedType, () => {
-    if (
-        selectedCategory.value !== 'all' &&
-        !reportCategories.value.some(
-            (category) => category.id.toString() === selectedCategory.value,
-        )
-    ) {
-        selectedCategory.value = 'all';
-    }
-});
 
 function selectRange(range: ReportRange): void {
     selectedRange.value = range;
@@ -1225,7 +1101,6 @@ function applyFilters(
             from: fromDate.value,
             to: toDate.value,
             search: search.value || null,
-            type: selectedType.value === 'all' ? null : selectedType.value,
             category:
                 selectedCategory.value === 'all'
                     ? null
@@ -1255,31 +1130,10 @@ function changeIncomePage(page: number): void {
     applyFilters(selectedRange.value, costPage > 1 ? costPage : null, page);
 }
 
-function applyTypeFilter(): void {
-    if (
-        selectedCategory.value !== 'all' &&
-        !reportCategories.value.some(
-            (category) => category.id.toString() === selectedCategory.value,
-        )
-    ) {
-        selectedCategory.value = 'all';
-    }
-
-    applyFilters();
-}
-
 /** Ticking it re-queries straight away — a filter you have to confirm is a trap. */
 function applyExcludeInvestments(checked: boolean | 'indeterminate'): void {
     excludeInvestments.value = checked === true;
 
-    applyFilters();
-}
-
-function clearTransactionFilters(): void {
-    search.value = '';
-    selectedType.value = 'all';
-    selectedCategory.value = 'all';
-    excludeInvestments.value = false;
     applyFilters();
 }
 

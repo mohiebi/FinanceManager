@@ -159,7 +159,7 @@ function changeLocale(value: string) {
         class="sticky top-0 z-40 flex min-h-[64px] shrink-0 items-center border-b border-white/7 bg-[#111111]/88 px-4 py-3 text-white backdrop-blur-md transition-[width,height] ease-linear lg:static lg:min-h-[72px] lg:px-7 lg:py-4"
     >
         <div
-            class="flex w-full flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-4"
+            class="mx-auto flex w-full max-w-[1440px] flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-4"
         >
             <div
                 class="flex w-full items-center justify-between gap-2 lg:w-auto"

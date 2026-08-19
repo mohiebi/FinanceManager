@@ -45,6 +45,10 @@ return [
     'spent_inline' => '{amount} ausgegeben',
     'over_allocated' => '{amount} über dem Einkommen zugeteilt',
     'over_allocated_hint' => 'Die festen und prozentualen Zeilen versprechen mehr, als dieses Einkommen deckt.',
+    'line_over_title_one' => 'Eine Zeile über dem Limit',
+    'line_over_title_many' => '{count} Zeilen über dem Limit',
+    'line_over_body' => '{names} hat das Limit bereits überschritten.',
+    'edit_limits' => 'Limits bearbeiten',
 
     'lines' => 'Planzeilen',
     'add_line' => 'Zeile hinzufügen',

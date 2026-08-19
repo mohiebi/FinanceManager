@@ -207,7 +207,7 @@ class TransactionController extends Controller
         }
 
         $query = $user->transactions()
-            ->with('category:id,name,slug,type,is_default')
+            ->with('category:id,name,slug,type,color,is_default')
             ->when(
                 $selectedType instanceof TransactionType,
                 fn (Builder $query) => $query->where('type', $selectedType),

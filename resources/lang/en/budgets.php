@@ -45,6 +45,10 @@ return [
     'spent_inline' => '{amount} spent',
     'over_allocated' => 'Over-allocated by {amount}',
     'over_allocated_hint' => 'The fixed and percentage lines promise more than this income covers.',
+    'line_over_title_one' => 'One line over',
+    'line_over_title_many' => '{count} lines over',
+    'line_over_body' => '{names} already spent past the limit.',
+    'edit_limits' => 'Edit limits',
 
     'lines' => 'Plan lines',
     'add_line' => 'Add line',

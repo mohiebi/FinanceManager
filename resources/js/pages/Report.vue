@@ -249,7 +249,9 @@
         </section>
 
         <!-- Summary cards -->
-        <div class="grid gap-[18px] px-[18px] pt-[18px] md:grid-cols-3">
+        <div
+            class="grid gap-[18px] px-[18px] pt-[18px] sm:grid-cols-2 xl:grid-cols-4"
+        >
             <article
                 class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
@@ -315,7 +317,42 @@
                     />
                 </p>
             </article>
+
+            <article
+                class="kpi-card-neutral overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            >
+                <p
+                    class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
+                >
+                    {{ t('finance.metrics.entries') }}
+                </p>
+                <p class="mt-3 text-2xl font-semibold text-white">
+                    {{ props.summary.count }}
+                </p>
+            </article>
         </div>
+
+        <!-- The read: a narrative built from this period's real numbers,
+             not a restatement of the KPI cards above it. -->
+        <section
+            v-if="reportReady"
+            class="mx-[18px] mt-[18px] rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+        >
+            <p
+                class="text-xs font-semibold tracking-[0.2em] text-[#02CD86] uppercase"
+            >
+                {{ t('finance.reports.read_eyebrow') }}
+            </p>
+            <h2
+                class="mt-2 text-2xl leading-tight font-semibold text-white sm:text-[26px]"
+                :class="maskClass"
+            >
+                {{ reportHeadline }}
+            </h2>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-[#989898]">
+                {{ reportBody }}
+            </p>
+        </section>
 
         <!-- Charts row -->
         <div
@@ -1084,6 +1121,53 @@ const topSpending = computed(() => {
             (_, index) => chartPalette[index % chartPalette.length],
         ),
     };
+});
+
+/** True once both totals have a real number behind them, so the narrative
+ *  card can wait for the same signal the KPI cards already wait for. */
+const reportReady = computed(
+    () => incomeTotal.value !== null && costTotal.value !== null,
+);
+
+const reportHeadline = computed(() => {
+    if (incomeTotal.value === null || costTotal.value === null) {
+        return '';
+    }
+
+    const balance = incomeTotal.value - costTotal.value;
+    const amount = formatMoney(
+        Math.abs(balance).toFixed(2),
+        props.selectedCurrency,
+    );
+
+    return balance >= 0
+        ? t('finance.reports.read_headline_positive', { amount })
+        : t('finance.reports.read_headline_negative', { amount });
+});
+
+/** Names the single biggest real driver behind the headline — the top
+ *  spending category and its share — rather than a generic restatement of
+ *  the totals already on screen above it. */
+const reportBody = computed(() => {
+    if (topSpending.value.labels.length === 0) {
+        return t('finance.reports.read_body_no_spending');
+    }
+
+    const topLabel = topSpending.value.labels[0];
+    const topValue = topSpending.value.values[0] ?? 0;
+    const totalCost = costTotal.value ?? 0;
+    const percent =
+        totalCost > 0 ? Math.round((topValue / totalCost) * 100) : 0;
+
+    return excludeInvestments.value
+        ? t('finance.reports.read_body_transfers', {
+              category: topLabel,
+              percent,
+          })
+        : t('finance.reports.read_body_spending', {
+              category: topLabel,
+              percent,
+          });
 });
 
 const reportCategories = computed(() => {

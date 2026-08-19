@@ -112,6 +112,47 @@ test('a user can revoke all active sessions for their own MCP connection', funct
         ->and(RefreshToken::query()->where('access_token_id', $secondToken->getKey())->first()->revoked)->toBeTrue();
 });
 
+test('a user can pause all their ai connections at once', function () {
+    $user = User::factory()->create();
+    app(UpdateUserFeature::class)($user, Feature::AiAssistant, true);
+    $claude = createOauthClient('Claude');
+    $chatgpt = createOauthClient('ChatGPT');
+
+    $claudeToken = createAccessToken($user, $claude);
+    $chatgptToken = createAccessToken($user, $chatgpt);
+    $nonMcpToken = createAccessToken($user, $claude, ['profile:read']);
+
+    RefreshToken::query()->forceCreate([
+        'id' => Str::random(80),
+        'access_token_id' => $claudeToken->getKey(),
+        'revoked' => false,
+        'expires_at' => now()->addDays(30),
+    ]);
+
+    $this->actingAs($user)
+        ->delete(route('ai-connections.revoke-all'))
+        ->assertRedirect();
+
+    expect($claudeToken->fresh()->revoked)->toBeTrue()
+        ->and($chatgptToken->fresh()->revoked)->toBeTrue()
+        ->and($nonMcpToken->fresh()->revoked)->toBeFalse()
+        ->and(RefreshToken::query()->where('access_token_id', $claudeToken->getKey())->first()->revoked)->toBeTrue();
+});
+
+test('pausing all ai connections does not affect another user\'s tokens', function () {
+    $userA = User::factory()->create();
+    $userB = User::factory()->create();
+    app(UpdateUserFeature::class)($userB, Feature::AiAssistant, true);
+    $client = createOauthClient();
+    $tokenA = createAccessToken($userA, $client);
+
+    $this->actingAs($userB)
+        ->delete(route('ai-connections.revoke-all'))
+        ->assertRedirect();
+
+    expect($tokenA->fresh()->revoked)->toBeFalse();
+});
+
 test('a user cannot revoke another user\'s connection', function () {
     $userA = User::factory()->create();
     $userB = User::factory()->create();

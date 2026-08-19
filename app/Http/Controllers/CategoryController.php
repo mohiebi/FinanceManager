@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\TransactionType;
+use App\Http\Requests\Category\ReorderCategoriesRequest;
 use App\Http\Requests\Category\StoreCategoryRequest;
 use App\Http\Requests\Category\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
@@ -23,6 +24,7 @@ class CategoryController extends Controller
             ->where('user_id', $request->user()->id)
             ->withCount('transactions')
             ->orderBy('type')
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
@@ -53,10 +55,19 @@ class CategoryController extends Controller
     {
         $data = $request->categoryData();
 
+        // New categories join the end of their type's list — the client owns
+        // reordering from there via reorder().
+        $nextSortOrder = Category::query()
+            ->where('user_id', $request->user()->id)
+            ->where('type', $data['type'])
+            ->max('sort_order');
+
         $category = Category::query()->create([
             'user_id' => $request->user()->id,
             'type' => $data['type'],
             'name' => $data['name'],
+            'color' => $data['color'],
+            'sort_order' => $nextSortOrder === null ? 0 : $nextSortOrder + 1,
         ]);
 
         return back()->with('createdCategory', [
@@ -75,7 +86,33 @@ class CategoryController extends Controller
         $category->update([
             'name' => $data['name'],
             'slug' => Category::slugForName($data['name']),
+            'color' => $data['color'],
         ]);
+
+        return back();
+    }
+
+    /**
+     * Persist the order the client dragged an owned type-group's categories
+     * into. Ids outside that owned type group are silently ignored rather
+     * than rejected — a stray id changes nothing, so there is nothing to
+     * protect against by erroring.
+     */
+    public function reorder(ReorderCategoriesRequest $request): RedirectResponse
+    {
+        $data = $request->reorderData();
+
+        $owned = Category::query()
+            ->where('user_id', $request->user()->id)
+            ->where('type', $data['type'])
+            ->pluck('id')
+            ->all();
+
+        $ordered = array_values(array_intersect($data['ids'], $owned));
+
+        foreach ($ordered as $index => $id) {
+            Category::query()->whereKey($id)->update(['sort_order' => $index]);
+        }
 
         return back();
     }

@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Check, Pencil, Plus, Tags, Trash2, X } from 'lucide-vue-next';
+import {
+    Check,
+    GripVertical,
+    Pencil,
+    Plus,
+    Tags,
+    Trash2,
+    X,
+} from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
@@ -19,6 +27,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import {
     destroy as destroyCategory,
+    reorder as reorderCategories,
     store as storeCategory,
     update as updateCategoryRoute,
 } from '@/routes/categories';
@@ -30,6 +39,7 @@ type Category = {
     name: string;
     slug: string;
     type: TransactionType;
+    color: string | null;
     is_default: boolean;
     transactions_count: number;
 };
@@ -42,10 +52,23 @@ const { t } = useI18n();
 const page = usePage();
 const editingId = ref<number | null>(null);
 const deleteTarget = ref<Category | null>(null);
+const draggingId = ref<number | null>(null);
+const dragOverId = ref<number | null>(null);
+
+const presetColors = [
+    '#02CD86',
+    '#6C4EE9',
+    '#E94E50',
+    '#F59E0B',
+    '#0EA5E9',
+    '#EC4899',
+];
+const defaultColor = presetColors[0];
 
 const createForm = useForm({
     type: 'cost' as TransactionType,
     name: '',
+    color: defaultColor,
 });
 
 const editForm = useForm({
@@ -76,7 +99,7 @@ const groups = computed(() => [
 function createCategory(): void {
     createForm.post(storeCategory.url(), {
         preserveScroll: true,
-        onSuccess: () => createForm.reset('name'),
+        onSuccess: () => createForm.reset('name', 'color'),
     });
 }
 
@@ -93,10 +116,20 @@ function cancelEdit(): void {
 }
 
 function updateCategory(category: Category): void {
-    editForm.patch(updateCategoryRoute.url(category.id), {
-        preserveScroll: true,
-        onSuccess: cancelEdit,
-    });
+    editForm
+        .transform((data) => ({ ...data, color: category.color }))
+        .patch(updateCategoryRoute.url(category.id), {
+            preserveScroll: true,
+            onSuccess: cancelEdit,
+        });
+}
+
+function updateColor(category: Category, color: string): void {
+    router.patch(
+        updateCategoryRoute.url(category.id),
+        { name: category.name, color },
+        { preserveScroll: true, preserveState: true },
+    );
 }
 
 function confirmDelete(): void {
@@ -110,6 +143,53 @@ function confirmDelete(): void {
             deleteTarget.value = null;
         },
     });
+}
+
+function handleDragStart(event: DragEvent, category: Category): void {
+    draggingId.value = category.id;
+
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', String(category.id));
+    }
+}
+
+function handleDragEnter(category: Category): void {
+    if (draggingId.value !== null && draggingId.value !== category.id) {
+        dragOverId.value = category.id;
+    }
+}
+
+function handleDragEnd(): void {
+    draggingId.value = null;
+    dragOverId.value = null;
+}
+
+function handleDrop(type: TransactionType, targetCategory: Category): void {
+    const sourceId = draggingId.value;
+    dragOverId.value = null;
+    draggingId.value = null;
+
+    if (sourceId === null || sourceId === targetCategory.id) {
+        return;
+    }
+
+    const list = props.categories[type] ?? [];
+    const ids = list.map((category) => category.id);
+    const fromIndex = ids.indexOf(sourceId);
+    const toIndex = ids.indexOf(targetCategory.id);
+
+    if (fromIndex === -1 || toIndex === -1) {
+        return;
+    }
+
+    ids.splice(toIndex, 0, ids.splice(fromIndex, 1)[0]);
+
+    router.patch(
+        reorderCategories.url(),
+        { type, ids },
+        { preserveScroll: true, preserveState: true },
+    );
 }
 
 defineOptions({
@@ -132,7 +212,7 @@ defineOptions({
         >
             <form class="space-y-3" @submit.prevent="createCategory">
                 <div
-                    class="grid gap-3 sm:grid-cols-[140px_1fr_auto] sm:items-end"
+                    class="grid gap-3 sm:grid-cols-[140px_1fr_auto_auto] sm:items-end"
                 >
                     <div class="grid gap-2">
                         <Label class="finance-dialog-label" for="category_type">
@@ -169,6 +249,46 @@ defineOptions({
                             "
                         />
                     </div>
+                    <div class="grid gap-2">
+                        <Label class="finance-dialog-label">
+                            {{ t('settings.categories.color') }}
+                        </Label>
+                        <div class="flex h-9 items-center gap-1.5">
+                            <button
+                                v-for="c in presetColors"
+                                :key="c"
+                                type="button"
+                                :style="{ backgroundColor: c }"
+                                :class="[
+                                    'size-6 shrink-0 cursor-pointer rounded-full transition-transform hover:scale-110',
+                                    createForm.color === c
+                                        ? 'scale-110 ring-2 ring-white ring-offset-1 ring-offset-[#1a1a1a]'
+                                        : '',
+                                ]"
+                                @click="createForm.color = c"
+                            />
+                            <label
+                                class="relative size-6 shrink-0 cursor-pointer overflow-hidden rounded-full ring-1 ring-white/20"
+                                :style="{
+                                    backgroundColor: presetColors.includes(
+                                        createForm.color,
+                                    )
+                                        ? '#333'
+                                        : createForm.color,
+                                }"
+                            >
+                                <span
+                                    class="absolute inset-0 flex items-center justify-center text-[9px] text-white/70"
+                                    >+</span
+                                >
+                                <input
+                                    v-model="createForm.color"
+                                    type="color"
+                                    class="absolute inset-0 cursor-pointer opacity-0"
+                                />
+                            </label>
+                        </div>
+                    </div>
                     <Button
                         class="h-9 bg-[#02CD86] text-[#101010] hover:bg-[#08dd93]"
                         :disabled="createForm.processing"
@@ -181,7 +301,9 @@ defineOptions({
                 <div class="flex items-center gap-3">
                     <InputError
                         :message="
-                            createForm.errors.type || createForm.errors.name
+                            createForm.errors.type ||
+                            createForm.errors.name ||
+                            createForm.errors.color
                         "
                     />
                     <Transition
@@ -226,11 +348,54 @@ defineOptions({
                         <div
                             v-for="category in group.categories"
                             :key="category.id"
-                            class="rounded-xl bg-[#252525] px-3 py-3 ring-1 ring-white/10"
+                            draggable="true"
+                            class="flex items-center gap-2 rounded-xl bg-[#252525] px-3 py-3 ring-1 ring-white/10 transition"
+                            :class="[
+                                draggingId === category.id ? 'opacity-40' : '',
+                                dragOverId === category.id
+                                    ? 'ring-2 ring-[#02CD86]'
+                                    : '',
+                            ]"
+                            @dragstart="handleDragStart($event, category)"
+                            @dragenter.prevent="handleDragEnter(category)"
+                            @dragover.prevent
+                            @dragend="handleDragEnd"
+                            @drop.prevent="handleDrop(group.type, category)"
                         >
+                            <span
+                                class="shrink-0 cursor-grab touch-none text-[#6b6b6b] active:cursor-grabbing"
+                                :title="
+                                    t('settings.categories.drag_to_reorder')
+                                "
+                            >
+                                <GripVertical class="size-4" />
+                            </span>
+
+                            <label
+                                class="relative size-6 shrink-0 cursor-pointer overflow-hidden rounded-full ring-1 ring-white/20"
+                                :style="{
+                                    backgroundColor:
+                                        category.color ?? defaultColor,
+                                }"
+                                :title="t('settings.categories.color')"
+                            >
+                                <input
+                                    :value="category.color ?? defaultColor"
+                                    type="color"
+                                    class="absolute inset-0 cursor-pointer opacity-0"
+                                    @change="
+                                        updateColor(
+                                            category,
+                                            ($event.target as HTMLInputElement)
+                                                .value,
+                                        )
+                                    "
+                                />
+                            </label>
+
                             <form
                                 v-if="editingId === category.id"
-                                class="space-y-2"
+                                class="min-w-0 flex-1 space-y-2"
                                 @submit.prevent="updateCategory(category)"
                             >
                                 <Input
@@ -258,7 +423,7 @@ defineOptions({
                                 </div>
                             </form>
 
-                            <div v-else class="flex items-center gap-3">
+                            <template v-else>
                                 <div class="min-w-0 flex-1">
                                     <p
                                         class="truncate text-sm font-medium text-white"
@@ -289,7 +454,7 @@ defineOptions({
                                 >
                                     <Trash2 class="size-4" />
                                 </Button>
-                            </div>
+                            </template>
                         </div>
                     </div>
 

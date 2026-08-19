@@ -190,6 +190,36 @@
                 }}</span>
             </p>
 
+            <!-- ── One or more lines already over their own limit ──── -->
+            <div
+                v-if="overspentLines.length > 0"
+                class="mx-[18px] mt-[18px] flex flex-wrap items-center justify-between gap-4 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-[#E94E50]/28"
+            >
+                <div class="flex items-center gap-3">
+                    <span
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#2e0d0d]"
+                    >
+                        <AlertTriangle class="size-[18px] text-[#E94E50]" />
+                    </span>
+                    <div>
+                        <p
+                            class="text-xs font-semibold tracking-[0.2em] text-[#E94E50] uppercase"
+                        >
+                            {{ overspentLinesTitle }}
+                        </p>
+                        <p class="mt-1 text-sm text-[#989898]">
+                            {{ overspentLinesBody }}
+                        </p>
+                    </div>
+                </div>
+                <Button
+                    class="shrink-0 rounded-full bg-[#E94E50] px-5 text-white hover:brightness-110"
+                    @click="openDialog()"
+                >
+                    {{ t('budgets.edit_limits') }}
+                </Button>
+            </div>
+
             <!-- ── Lines ──────────────────────────────────────────── -->
             <section
                 class="mx-[18px] my-[18px] rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
@@ -512,7 +542,7 @@
 
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { Pencil, Plus, Target, Trash2 } from 'lucide-vue-next';
+import { AlertTriangle, Pencil, Plus, Target, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
@@ -586,6 +616,27 @@ const plan = computed<BudgetProgress | null>(
 
 const incomeBases: BudgetIncomeBasis[] = ['actual', 'expected'];
 const ruleOptions: BudgetRule[] = ['percent', 'fixed', 'remainder'];
+
+/** Lines that have actually spent past their own limit — distinct from the
+ *  plan-wide over-allocation warning below, which is about the lines' limits
+ *  summing past income rather than any one of them being overspent. */
+const overspentLines = computed(
+    () => plan.value?.lines.filter((line) => line.over) ?? [],
+);
+
+const overspentLinesTitle = computed(() =>
+    overspentLines.value.length === 1
+        ? t('budgets.line_over_title_one')
+        : t('budgets.line_over_title_many', {
+              count: overspentLines.value.length,
+          }),
+);
+
+const overspentLinesBody = computed(() =>
+    t('budgets.line_over_body', {
+        names: overspentLines.value.map((line) => lineLabel(line)).join(', '),
+    }),
+);
 
 const currencyLabel = computed(() => {
     const value = plan.value?.currency ?? props.budget?.currency ?? 'toman';

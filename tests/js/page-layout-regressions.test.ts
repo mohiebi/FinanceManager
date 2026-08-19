@@ -19,10 +19,10 @@ test('advisor assessment owns its bottom spacing and uses the shell background',
     assert.match(assessment, /min-h-\[calc\(100svh-72px\)\]/);
     assert.match(assessment, /lg:min-h-\[calc\(100svh-92px\)\]/);
     assert.doesNotMatch(assessment, /bg-\[#0d0f0f\]/);
-    assert.match(
-        styles,
-        /\.app-page-scroll:has\(> \[data-app-flush-bottom\]\)/,
-    );
+    // Descendant rather than direct-child: the 1440px content-width wrapper
+    // in AppSidebarLayout sits between the scroller and every page's root
+    // element, one level deeper than a direct child.
+    assert.match(styles, /\.app-page-scroll:has\(\[data-app-flush-bottom\]\)/);
     assert.match(styles, /padding-bottom:\s*0/);
 });
 

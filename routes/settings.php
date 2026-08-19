@@ -41,6 +41,9 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
         ->middleware('throttle:6,1')
         ->name('security.confirm-password');
 
+    Route::delete('settings/security/sessions/{session}', [SecurityController::class, 'destroySession'])
+        ->name('security.sessions.destroy');
+
     Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
 
     Route::get('settings/preferences', [PreferencesController::class, 'edit'])->name('preferences.edit');

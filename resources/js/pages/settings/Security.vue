@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
-import { KeyRound, ShieldCheck, Vault } from 'lucide-vue-next';
+import { Form, Head, router } from '@inertiajs/vue3';
+import { KeyRound, Laptop, ShieldCheck, Vault } from 'lucide-vue-next';
 import { onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import SettingsRow from '@/components/settings/SettingsRow.vue';
@@ -20,9 +21,20 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import VaultSection from '@/components/VaultSection.vue';
+import { useRelativeTime } from '@/composables/useRelativeTime';
 import { useTwoFactorAuth } from '@/composables/useTwoFactorAuth';
 import { edit } from '@/routes/security';
+import { destroy as destroySession } from '@/routes/security/sessions';
 import { disable, enable } from '@/routes/two-factor';
+
+type Session = {
+    id: string;
+    browser: string | null;
+    platform: string | null;
+    ip_address: string | null;
+    last_active_at: string | null;
+    is_current: boolean;
+};
 
 type Props = {
     canManageTwoFactor?: boolean;
@@ -30,6 +42,7 @@ type Props = {
     needsPasswordConfirmation?: boolean;
     requiresConfirmation?: boolean;
     twoFactorEnabled?: boolean;
+    sessions?: Session[];
 };
 
 withDefaults(defineProps<Props>(), {
@@ -38,6 +51,7 @@ withDefaults(defineProps<Props>(), {
     needsPasswordConfirmation: false,
     requiresConfirmation: false,
     twoFactorEnabled: false,
+    sessions: () => [],
 });
 
 defineOptions({
@@ -48,9 +62,37 @@ defineOptions({
 
 const { t } = useI18n();
 const { hasSetupData, clearTwoFactorAuthData } = useTwoFactorAuth();
+const { formatRelativeTime } = useRelativeTime();
 const showSetupModal = ref<boolean>(false);
+const revokeTarget = ref<Session | null>(null);
+const revokingSession = ref(false);
 
 onUnmounted(() => clearTwoFactorAuthData());
+
+function sessionLabel(session: Session): string {
+    const browser =
+        session.browser ?? t('settings.security.sessions.unknown_browser');
+    const platform =
+        session.platform ?? t('settings.security.sessions.unknown_platform');
+
+    return `${browser} · ${platform}`;
+}
+
+function confirmRevokeSession(): void {
+    if (!revokeTarget.value) {
+        return;
+    }
+
+    revokingSession.value = true;
+
+    router.delete(destroySession.url(revokeTarget.value.id), {
+        preserveScroll: true,
+        onFinish: () => {
+            revokingSession.value = false;
+            revokeTarget.value = null;
+        },
+    });
+}
 </script>
 
 <template>
@@ -210,6 +252,80 @@ onUnmounted(() => clearTwoFactorAuthData());
         </SettingsSection>
 
         <SettingsSection
+            :icon="Laptop"
+            :title="t('settings.security.sessions.title')"
+            :description="t('settings.security.sessions.description')"
+        >
+            <p v-if="sessions.length === 0" class="text-sm text-[#989898]">
+                {{ t('settings.security.sessions.empty') }}
+            </p>
+
+            <ul v-else class="divide-y divide-white/5">
+                <li
+                    v-for="session in sessions"
+                    :key="session.id"
+                    class="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                >
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#252525] text-[#989898]"
+                        >
+                            <Laptop class="size-[18px]" aria-hidden="true" />
+                        </span>
+
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <p class="text-sm font-medium text-white">
+                                    {{ sessionLabel(session) }}
+                                </p>
+                                <span
+                                    v-if="session.is_current"
+                                    class="rounded-full bg-[#02CD86]/10 px-2 py-0.5 text-xs font-medium text-[#02CD86]"
+                                >
+                                    {{
+                                        t(
+                                            'settings.security.sessions.this_device',
+                                        )
+                                    }}
+                                </span>
+                            </div>
+                            <p class="mt-0.5 text-xs text-[#989898]">
+                                <span v-if="session.last_active_at">{{
+                                    t(
+                                        'settings.security.sessions.last_active',
+                                        {
+                                            when: formatRelativeTime(
+                                                session.last_active_at,
+                                            ),
+                                        },
+                                    )
+                                }}</span>
+                                <span v-if="session.ip_address">
+                                    ·
+                                    {{
+                                        t(
+                                            'settings.security.sessions.ip_address',
+                                            { address: session.ip_address },
+                                        )
+                                    }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        v-if="!session.is_current"
+                        type="button"
+                        class="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium text-[#E94E50] transition-colors duration-200 hover:bg-[#E94E50]/10"
+                        @click="revokeTarget = session"
+                    >
+                        {{ t('settings.security.sessions.revoke') }}
+                    </button>
+                </li>
+            </ul>
+        </SettingsSection>
+
+        <SettingsSection
             :icon="Vault"
             :title="t('settings.security.vault.title')"
             :description="t('settings.security.vault.description')"
@@ -268,4 +384,13 @@ onUnmounted(() => clearTwoFactorAuthData());
             </Form>
         </DialogContent>
     </Dialog>
+
+    <ConfirmDeleteModal
+        :open="revokeTarget !== null"
+        :title="t('settings.security.sessions.revoke_confirm_title')"
+        :description="t('settings.security.sessions.revoke_confirm_body')"
+        :processing="revokingSession"
+        @update:open="(open) => !open && (revokeTarget = null)"
+        @confirm="confirmRevokeSession"
+    />
 </template>

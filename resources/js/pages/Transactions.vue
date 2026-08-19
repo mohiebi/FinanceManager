@@ -184,7 +184,7 @@
                         <thead>
                             <tr class="text-left">
                                 <th
-                                    class="finance-cell-tight rounded-l-2xl bg-[#24212f] px-2 py-3 text-center"
+                                    class="finance-cell-tight rounded-l-2xl bg-[#252525] px-2 py-3 text-center"
                                 >
                                     <Checkbox
                                         :checked="costsSelectionState"
@@ -192,27 +192,27 @@
                                     />
                                 </th>
                                 <th
-                                    class="bg-[#24212f] px-3 py-3 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                    class="bg-[#252525] px-3 py-3 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
-                                    class="bg-[#24212f] px-3 py-3 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                    class="bg-[#252525] px-3 py-3 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.category') }}
                                 </th>
                                 <th
-                                    class="bg-[#24212f] px-3 py-3 text-center font-normal text-[#c4b2ff] sm:px-5"
+                                    class="bg-[#252525] px-3 py-3 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
-                                    class="hidden bg-[#24212f] px-3 py-3 text-center font-normal whitespace-nowrap text-[#c4b2ff] sm:table-cell sm:px-5"
+                                    class="hidden bg-[#252525] px-3 py-3 text-center font-normal whitespace-nowrap text-[#989898] sm:table-cell sm:px-5"
                                 >
                                     {{ t('finance.fields.date') }}
                                 </th>
                                 <th
-                                    class="rounded-r-2xl bg-[#24212f] px-3 py-3 sm:px-5"
+                                    class="rounded-r-2xl bg-[#252525] px-3 py-3 sm:px-5"
                                 ></th>
                             </tr>
                         </thead>
@@ -303,7 +303,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="rounded-md p-1.5 hover:bg-[#fff0f0]"
+                                            class="rounded-md p-1.5 hover:bg-[#2e0d0d]"
                                             @click="requestDelete(transaction)"
                                         >
                                             <Trash2
@@ -415,7 +415,7 @@
                         <thead>
                             <tr class="text-left">
                                 <th
-                                    class="finance-cell-tight rounded-l-2xl bg-[#0d2620] px-2 py-3 text-center"
+                                    class="finance-cell-tight rounded-l-2xl bg-[#252525] px-2 py-3 text-center"
                                 >
                                     <Checkbox
                                         :checked="incomesSelectionState"
@@ -423,27 +423,27 @@
                                     />
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-3 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#252525] px-3 py-3 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-3 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#252525] px-3 py-3 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.category') }}
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-3 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#252525] px-3 py-3 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
-                                    class="hidden bg-[#0d2620] px-3 py-3 text-center font-normal whitespace-nowrap text-[#7ee8c4] sm:table-cell sm:px-5"
+                                    class="hidden bg-[#252525] px-3 py-3 text-center font-normal whitespace-nowrap text-[#989898] sm:table-cell sm:px-5"
                                 >
                                     {{ t('finance.fields.date') }}
                                 </th>
                                 <th
-                                    class="rounded-r-2xl bg-[#0d2620] px-3 py-3 sm:px-5"
+                                    class="rounded-r-2xl bg-[#252525] px-3 py-3 sm:px-5"
                                 ></th>
                             </tr>
                         </thead>
@@ -537,7 +537,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="rounded-md p-1.5 hover:bg-[#fff0f0]"
+                                            class="rounded-md p-1.5 hover:bg-[#2e0d0d]"
                                             @click="requestDelete(transaction)"
                                         >
                                             <Trash2

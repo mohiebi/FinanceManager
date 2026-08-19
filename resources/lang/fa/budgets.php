@@ -45,6 +45,10 @@ return [
     'spent_inline' => '{amount} خرج‌شده',
     'over_allocated' => '{amount} بیش از درآمد تخصیص یافته',
     'over_allocated_hint' => 'خط‌های ثابت و درصدی بیش از آنچه این درآمد پوشش می‌دهد قول داده‌اند.',
+    'line_over_title_one' => 'یک خط بیش از حد',
+    'line_over_title_many' => '{count} خط بیش از حد',
+    'line_over_body' => '{names} از سقف تعیین‌شده گذشته است.',
+    'edit_limits' => 'ویرایش سقف‌ها',
 
     'lines' => 'خط‌های طرح',
     'add_line' => 'افزودن خط',

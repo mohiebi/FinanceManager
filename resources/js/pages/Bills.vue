@@ -4,65 +4,41 @@
     <div
         class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-auto bg-[#111111]"
     >
-        <!-- ── Header ─────────────────────────────────────────────── -->
+        <!-- ── Summary bar — total due + add trigger. The mock's own screen
+             has no header of its own (the shell already owns the page
+             title), but this stays: bills have no other page to manage
+             them from. ────────────────────────────────────────────── -->
         <section
-            class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            class="mx-[18px] mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
-            <div
-                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-                <div>
-                    <h1
-                        class="text-2xl font-semibold tracking-tight text-white"
-                    >
-                        {{ t('finance.bills.title') }}
-                    </h1>
-                    <p class="mt-1 max-w-lg text-sm text-[#989898]">
-                        {{ t('finance.bills.description') }}
-                    </p>
-                </div>
-                <div
-                    class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end"
+            <div>
+                <p
+                    class="text-[10px] font-medium tracking-widest text-[#6b6b6b] uppercase"
                 >
-                    <div
-                        class="flex flex-col items-start gap-0.5 rounded-2xl bg-white/5 px-4 py-2.5 ring-1 ring-white/10 sm:items-end"
-                    >
-                        <p
-                            class="text-[10px] font-medium tracking-widest text-[#6b6b6b] uppercase"
-                        >
-                            {{ t('finance.fields.total_cost') }} ·
-                            {{ t('finance.reports.this_month') }}
-                        </p>
-                        <p class="text-2xl leading-none font-bold text-white">
-                            <span
-                                v-if="monthlyTotal !== null"
-                                :class="maskClass"
-                                >{{ formatAmount(monthlyTotal) }}</span
-                            >
-                            <span
-                                v-else
-                                aria-hidden="true"
-                                class="inline-block h-[1em] w-24 animate-pulse rounded bg-white/10 align-middle"
-                            />
-                            <span
-                                class="ml-1 text-xs font-normal text-[#989898]"
-                                >{{
-                                    currencyLabel(
-                                        props.monthlyBillSummary.currency,
-                                    )
-                                }}</span
-                            >
-                        </p>
-                    </div>
-                    <Button
-                        class="h-11 w-max shrink-0 rounded-full bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-5 text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
-                        @click="openCreateDialog()"
-                    >
-                        <Plus class="size-4" />
-                        {{ t('finance.bills.add_bill') }}
-                    </Button>
-                </div>
+                    {{ t('finance.fields.total_cost') }} ·
+                    {{ t('finance.reports.this_month') }}
+                </p>
+                <p class="mt-0.5 text-2xl leading-none font-bold text-white">
+                    <span v-if="monthlyTotal !== null" :class="maskClass">{{
+                        formatAmount(monthlyTotal)
+                    }}</span>
+                    <span
+                        v-else
+                        aria-hidden="true"
+                        class="inline-block h-[1em] w-24 animate-pulse rounded bg-white/10 align-middle"
+                    />
+                    <span class="ml-1 text-xs font-normal text-[#989898]">{{
+                        currencyLabel(props.monthlyBillSummary.currency)
+                    }}</span>
+                </p>
             </div>
+            <Button
+                class="h-11 w-max shrink-0 rounded-full bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-5 text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
+                @click="openCreateDialog()"
+            >
+                <Plus class="size-4" />
+                {{ t('finance.bills.add_bill') }}
+            </Button>
         </section>
 
         <!-- ── Empty state ────────────────────────────────────────── -->
@@ -216,116 +192,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- ── Upcoming occurrences timeline ────────────────────── -->
-        <section
-            v-if="upcomingOccurrences.length > 0"
-            class="mx-[18px] mb-[18px] rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
-        >
-            <h2
-                class="mb-5 text-[10px] font-medium tracking-widest text-[#6b6b6b] uppercase"
-            >
-                {{ t('finance.bills.upcoming') }}
-            </h2>
-
-            <div
-                v-for="(group, gi) in groupedUpcoming"
-                :key="group.month"
-                :class="{ 'mt-6': gi > 0 }"
-            >
-                <!-- Month separator -->
-                <div class="mb-1 flex items-center gap-3">
-                    <span class="shrink-0 text-xs font-semibold text-white">
-                        {{ group.label }}
-                    </span>
-                    <div class="h-px flex-1 bg-white/[0.08]" />
-                </div>
-
-                <!-- Bill rows -->
-                <div class="divide-y divide-white/[0.05]">
-                    <div
-                        v-for="occ in group.occurrences"
-                        :key="occ.occurrence_id"
-                        class="flex items-center gap-3 py-2.5 first:pt-2 last:pb-0"
-                    >
-                        <!-- Day badge — colour encodes urgency -->
-                        <div
-                            :class="[
-                                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold tabular-nums',
-                                occ.is_overdue
-                                    ? 'bg-[#2f1717] text-[#E94E50]'
-                                    : occ.is_due_today
-                                      ? 'bg-[#0d2620] text-[#02CD86]'
-                                      : 'bg-white/[0.06] text-[#6b6b6b]',
-                            ]"
-                        >
-                            {{ displayDate(occ.due_date).split('-')[2] }}
-                        </div>
-
-                        <!-- Bill title -->
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate text-sm font-medium text-white">
-                                <Ciphered :value="occ.title" table="bills" />
-                            </p>
-                            <p
-                                v-if="
-                                    occ.payment_number !== null &&
-                                    occ.payment_count !== null
-                                "
-                                class="mt-0.5 text-[10px] font-medium text-[#a995ff]"
-                            >
-                                {{
-                                    t('finance.bills.payment_progress', {
-                                        current: occ.payment_number,
-                                        total: occ.payment_count,
-                                    })
-                                }}
-                            </p>
-                        </div>
-
-                        <!-- Status chip + amount -->
-                        <div class="flex shrink-0 items-center gap-3">
-                            <span
-                                v-if="occ.is_overdue"
-                                class="rounded-md bg-[#2f1717] px-2 py-0.5 text-[10px] font-medium text-[#E94E50]"
-                                >{{ t('finance.bills.overdue') }}</span
-                            >
-                            <span
-                                v-else-if="occ.is_due_today"
-                                class="rounded-md bg-[#0d2620] px-2 py-0.5 text-[10px] font-medium text-[#02CD86]"
-                                >{{ t('finance.bills.due_today') }}</span
-                            >
-                            <span
-                                v-else
-                                class="hidden text-xs text-[#6b6b6b] tabular-nums sm:inline"
-                                >{{ displayDate(occ.due_date) }}</span
-                            >
-
-                            <span
-                                class="min-w-[110px] text-right text-sm font-bold text-white tabular-nums"
-                            >
-                                <CipheredMoney
-                                    :amount="occ.amount"
-                                    :display-amount="occ.display_amount"
-                                    :currency="occ.currency as CurrencyCode"
-                                    :display-currency="
-                                        occ.display_currency as CurrencyCode
-                                    "
-                                    :rates="props.rates"
-                                    table="bills"
-                                />
-                                <span
-                                    class="text-[10px] font-normal text-[#6b6b6b]"
-                                    >{{
-                                        currencyLabel(occ.display_currency)
-                                    }}</span
-                                >
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
 
         <!-- ── Add / Edit dialog ──────────────────────────────────── -->
         <Dialog :open="isDialogOpen" @update:open="handleDialogOpenChange">
@@ -806,7 +672,6 @@
 
 <script setup lang="ts">
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { toJalaali } from 'jalaali-js';
 import { CalendarClock, Plus, Receipt, Trash2 } from 'lucide-vue-next';
 import { computed, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -838,11 +703,7 @@ import {
     countMonthlyPaymentsThrough,
     nextMonthlyDueDate,
 } from '@/lib/bill-recurrence';
-import {
-    formatAppDate,
-    jalaliMonthAbbreviations,
-    monthBucketKeyFromIso,
-} from '@/lib/date';
+import { formatAppDate } from '@/lib/date';
 import { convert as convertMoney } from '@/lib/money';
 import type { CurrencyCode, Rates } from '@/lib/money';
 import { dashboard } from '@/routes';
@@ -991,38 +852,6 @@ watchEffect(async () => {
     }
 
     clientMonthlyTotal.value = Math.round(total * 100) / 100;
-});
-
-const groupedUpcoming = computed(() => {
-    const groups = new Map<
-        string,
-        { month: string; label: string; occurrences: UpcomingOccurrence[] }
-    >();
-
-    for (const occ of props.upcomingOccurrences) {
-        const key = monthBucketKeyFromIso(occ.due_date, props.userCalendar);
-
-        if (!groups.has(key)) {
-            const [gy, gm, gd] = occ.due_date.split('-').map(Number);
-            let label: string;
-
-            if (props.userCalendar === 'jalali') {
-                const j = toJalaali(gy, gm, gd);
-                label = `${jalaliMonthAbbreviations[j.jm - 1]} ${j.jy}`;
-            } else {
-                label = new Date(gy, gm - 1, 1).toLocaleString('default', {
-                    month: 'long',
-                    year: 'numeric',
-                });
-            }
-
-            groups.set(key, { month: key, label, occurrences: [] });
-        }
-
-        groups.get(key)!.occurrences.push(occ);
-    }
-
-    return [...groups.values()].slice(0, 2);
 });
 
 const displayDate = (value: string): string =>

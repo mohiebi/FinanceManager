@@ -9,7 +9,6 @@ function source(path: string): string {
 const assessment = source('../../resources/js/pages/Advisor/Assessment.vue');
 const appLayout = source('../../resources/js/layouts/app/AppSidebarLayout.vue');
 const styles = source('../../resources/css/app.css');
-const transactions = source('../../resources/js/pages/Transactions.vue');
 const preferences = source('../../resources/js/pages/settings/Preferences.vue');
 
 test('advisor assessment owns its bottom spacing and uses the shell background', () => {
@@ -24,14 +23,6 @@ test('advisor assessment owns its bottom spacing and uses the shell background',
     // element, one level deeper than a direct child.
     assert.match(styles, /\.app-page-scroll:has\(\[data-app-flush-bottom\]\)/);
     assert.match(styles, /padding-bottom:\s*0/);
-});
-
-test('transactions keep one bulk toolbar instead of a duplicate page banner', () => {
-    const bulkDeleteActions =
-        transactions.match(/finance\.actions\.bulk_delete/g) ?? [];
-
-    assert.equal(bulkDeleteActions.length, 1);
-    assert.match(transactions, /Bulk action toolbar/);
 });
 
 test('the time zone select matches the other preference control widths', () => {

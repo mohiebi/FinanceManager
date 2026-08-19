@@ -56,9 +56,11 @@
                         <p
                             class="mt-3 text-[20px] leading-none font-bold text-white"
                         >
-                            <span v-if="summaryIncome !== null">{{
-                                formatAmount(summaryIncome)
-                            }}</span>
+                            <span
+                                v-if="summaryIncome !== null"
+                                :class="maskClass"
+                                >{{ formatAmount(summaryIncome) }}</span
+                            >
                             <span
                                 v-else
                                 aria-hidden="true"
@@ -94,9 +96,11 @@
                         <p
                             class="mt-3 text-[20px] leading-none font-bold text-white"
                         >
-                            <span v-if="summaryCost !== null">{{
-                                formatAmount(summaryCost)
-                            }}</span>
+                            <span
+                                v-if="summaryCost !== null"
+                                :class="maskClass"
+                                >{{ formatAmount(summaryCost) }}</span
+                            >
                             <span
                                 v-else
                                 aria-hidden="true"
@@ -123,8 +127,8 @@
                                 class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
                                 :class="
                                     balance >= 0
-                                        ? 'bg-[#effffa]'
-                                        : 'bg-[#fff0f0]'
+                                        ? 'bg-[#0d2e22]'
+                                        : 'bg-[#2e0d0d]'
                                 "
                             >
                                 <Wallet
@@ -150,10 +154,10 @@
                                     : 'text-[#E94E50]'
                             "
                         >
-                            <template v-if="totalsReady">
+                            <span v-if="totalsReady" :class="maskClass">
                                 {{ balance >= 0 ? '+' : '−'
                                 }}{{ formatAmount(Math.abs(balance)) }}
-                            </template>
+                            </span>
                             <span
                                 v-else
                                 aria-hidden="true"
@@ -314,11 +318,11 @@
                                     <p
                                         class="text-[24px] leading-none font-bold text-white"
                                     >
-                                        {{
+                                        <span :class="maskClass">{{
                                             formatAmount(
                                                 portfolioSnapshot.net_worth_formatted,
                                             )
-                                        }}
+                                        }}</span>
                                         <span
                                             class="text-xs font-normal text-[#989898]"
                                             >{{ selectedCurrencyLabel }}</span
@@ -383,6 +387,7 @@
                                         >
                                         <span
                                             class="text-sm font-semibold text-white"
+                                            :class="maskClass"
                                             >{{
                                                 formatAmount(
                                                     asset.value_formatted,
@@ -507,6 +512,7 @@
                                     </span>
                                     <span
                                         class="text-sm font-semibold text-white"
+                                        :class="maskClass"
                                         >{{
                                             formatAmount(price.price_formatted)
                                         }}</span
@@ -776,22 +782,22 @@
                         <thead>
                             <tr>
                                 <th
-                                    class="rounded-l-2xl bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
+                                    class="rounded-l-2xl bg-[#252525] px-3 py-3.5 text-center text-sm font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
-                                    class="bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
+                                    class="bg-[#252525] px-3 py-3.5 text-center text-sm font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.category') }}
                                 </th>
                                 <th
-                                    class="bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
+                                    class="bg-[#252525] px-3 py-3.5 text-center text-sm font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
-                                    class="rounded-r-2xl bg-[#24212f] px-3 py-3.5 text-center text-sm font-normal text-[#d9d6ea] sm:px-5"
+                                    class="rounded-r-2xl bg-[#252525] px-3 py-3.5 text-center text-sm font-normal text-[#989898] sm:px-5"
                                 ></th>
                             </tr>
                         </thead>
@@ -861,7 +867,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="rounded-md p-1.5 hover:bg-[#fff0f0]"
+                                            class="rounded-md p-1.5 hover:bg-[#2e0d0d]"
                                             @click="requestDelete(transaction)"
                                         >
                                             <Trash2
@@ -906,22 +912,22 @@
                         <thead>
                             <tr>
                                 <th
-                                    class="rounded-l-2xl bg-[#0d2620] px-3 py-3.5 text-center text-sm font-normal text-[#7ee8c4] sm:px-5"
+                                    class="rounded-l-2xl bg-[#252525] px-3 py-3.5 text-center text-sm font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-3.5 text-center text-sm font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#252525] px-3 py-3.5 text-center text-sm font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.category') }}
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-3.5 text-center text-sm font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#252525] px-3 py-3.5 text-center text-sm font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
-                                    class="rounded-r-2xl bg-[#0d2620] px-3 py-3.5 text-center text-sm font-normal text-[#7ee8c4] sm:px-5"
+                                    class="rounded-r-2xl bg-[#252525] px-3 py-3.5 text-center text-sm font-normal text-[#989898] sm:px-5"
                                 ></th>
                             </tr>
                         </thead>
@@ -991,7 +997,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="rounded-md p-1.5 hover:bg-[#fff0f0]"
+                                            class="rounded-md p-1.5 hover:bg-[#2e0d0d]"
                                             @click="requestDelete(transaction)"
                                         >
                                             <Trash2
@@ -1070,6 +1076,7 @@ import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import CompletenessRing from '@/components/gamification/CompletenessRing.vue';
 import StreakCard from '@/components/gamification/StreakCard.vue';
 import TransactionDialog from '@/components/transactions/TransactionDialog.vue';
+import { useAmountMask } from '@/composables/useAmountMask';
 import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
 import { useRelativeTime } from '@/composables/useRelativeTime';
 import { useVault } from '@/composables/useVault';
@@ -1210,6 +1217,12 @@ const page = usePage();
 const features = computed(() => page.props.features);
 const { t } = useI18n();
 const { isArmed, revealAsync, sealForSubmit } = useVault();
+const { masked } = useAmountMask();
+const maskClass = computed(() =>
+    masked.value
+        ? 'blur-[6px] transition-[filter] duration-150 select-none'
+        : 'transition-[filter] duration-150',
+);
 
 // Built here from decrypted holdings when the vault is armed, and handed straight
 // through from the server otherwise.

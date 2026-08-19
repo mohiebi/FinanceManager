@@ -74,7 +74,7 @@
                             :class="[
                                 'rounded-full px-4 py-1.5 text-sm font-normal transition',
                                 selectedRange === range.value
-                                    ? 'bg-[#111111] text-white'
+                                    ? 'bg-[#02cd86] text-[#101010]'
                                     : 'bg-white/5 text-[#989898] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
                             ]"
                             @click="selectRange(range.value)"
@@ -259,7 +259,7 @@
                     {{ t('finance.metrics.income') }}
                 </p>
                 <p class="mt-3 text-2xl font-semibold text-white">
-                    <span v-if="incomeTotal !== null">{{
+                    <span v-if="incomeTotal !== null" :class="maskClass">{{
                         formatMoney(
                             incomeTotal.toFixed(2),
                             props.selectedCurrency,
@@ -282,7 +282,7 @@
                     {{ costsLabel }}
                 </p>
                 <p class="mt-3 text-2xl font-semibold text-white">
-                    <span v-if="costTotal !== null">{{
+                    <span v-if="costTotal !== null" :class="maskClass">{{
                         formatMoney(
                             costTotal.toFixed(2),
                             props.selectedCurrency,
@@ -305,7 +305,9 @@
                     {{ t('finance.metrics.balance') }}
                 </p>
                 <p class="mt-3 text-2xl font-semibold text-white">
-                    <span v-if="balanceLabel !== null">{{ balanceLabel }}</span>
+                    <span v-if="balanceLabel !== null" :class="maskClass">{{
+                        balanceLabel
+                    }}</span>
                     <span
                         v-else
                         aria-hidden="true"
@@ -427,22 +429,22 @@
                         <thead>
                             <tr class="text-left text-base">
                                 <th
-                                    class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="rounded-l-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.category') }}
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
-                                    class="hidden rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
+                                    class="hidden rounded-r-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:table-cell sm:px-5"
                                 >
                                     {{ t('finance.fields.date') }}
                                 </th>
@@ -592,22 +594,22 @@
                         <thead>
                             <tr class="text-left text-base">
                                 <th
-                                    class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="rounded-l-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.subject') }}
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.category') }}
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.amount') }}
                                 </th>
                                 <th
-                                    class="hidden rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
+                                    class="hidden rounded-r-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:table-cell sm:px-5"
                                 >
                                     {{ t('finance.fields.date') }}
                                 </th>
@@ -755,6 +757,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useAmountMask } from '@/composables/useAmountMask';
 import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
 import {
     dayBucketsBetween,
@@ -862,6 +865,12 @@ defineOptions({
 });
 
 const { t } = useI18n();
+const { masked } = useAmountMask();
+const maskClass = computed(() =>
+    masked.value
+        ? 'blur-[6px] transition-[filter] duration-150 select-none'
+        : 'transition-[filter] duration-150',
+);
 
 const ranges = computed<Array<{ label: string; value: ReportRange }>>(() => [
     { label: t('finance.reports.this_month'), value: 'this_month' },

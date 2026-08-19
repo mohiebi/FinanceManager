@@ -14,6 +14,7 @@ import {
 } from 'lucide-vue-next';
 import type { ComputedRef } from 'vue';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { dashboard, goals, portfolio, report } from '@/routes';
 import { index as advisorIndex } from '@/routes/advisor';
@@ -35,14 +36,25 @@ import type { NavItem } from '@/types/navigation';
  */
 export type ModuleNavState = 'enabled' | 'promo' | 'locked';
 
+/** Visual grouping only — has no bearing on feature gating. */
+export type ModuleNavGroup = 'money' | 'plan' | 'grow' | 'system';
+
 export type ModuleNavItem = NavItem & {
     key: string;
     state: ModuleNavState;
     tier: ModuleState['tier'];
+    group: ModuleNavGroup;
+};
+
+export type ModuleNavGroupEntry = {
+    key: ModuleNavGroup;
+    label: string;
+    items: ModuleNavItem[];
 };
 
 export type UseModuleNavReturn = {
     navItems: ComputedRef<ModuleNavItem[]>;
+    navGroups: ComputedRef<ModuleNavGroupEntry[]>;
 };
 
 /**
@@ -51,6 +63,7 @@ export type UseModuleNavReturn = {
  */
 export function useModuleNav(): UseModuleNavReturn {
     const { navigationName } = useNavigationNaming();
+    const { t } = useI18n();
     const page = usePage();
 
     const navItems = computed<ModuleNavItem[]>(() => {
@@ -63,6 +76,7 @@ export function useModuleNav(): UseModuleNavReturn {
             title: string;
             href: NavItem['href'];
             icon: NavItem['icon'];
+            group: ModuleNavGroup;
         }[] = [
             {
                 key: 'dashboard',
@@ -73,6 +87,7 @@ export function useModuleNav(): UseModuleNavReturn {
                 ),
                 href: dashboard(),
                 icon: LayoutGrid,
+                group: 'money',
             },
             {
                 key: 'transactions',
@@ -80,6 +95,7 @@ export function useModuleNav(): UseModuleNavReturn {
                 title: navigationName('navigation.transactions'),
                 href: transactionsIndex(),
                 icon: ReceiptText,
+                group: 'money',
             },
             {
                 key: 'reports',
@@ -90,40 +106,7 @@ export function useModuleNav(): UseModuleNavReturn {
                 ),
                 href: report(),
                 icon: ChartPie,
-            },
-            {
-                key: 'investments',
-                feature: 'investments',
-                title: navigationName(
-                    'navigation.investments',
-                    'navigation.investments_subtitle',
-                ),
-                href: investmentsIndex(),
-                icon: TrendingUp,
-            },
-            {
-                key: 'portfolio',
-                feature: 'portfolio',
-                title: navigationName('navigation.portfolio'),
-                href: portfolio(),
-                icon: Wallet,
-            },
-            {
-                key: 'goals',
-                feature: 'goals',
-                title: navigationName(
-                    'navigation.goals',
-                    'navigation.goals_subtitle',
-                ),
-                href: goals(),
-                icon: Trophy,
-            },
-            {
-                key: 'bills',
-                feature: 'bills',
-                title: navigationName('navigation.bills'),
-                href: billsIndex(),
-                icon: Receipt,
+                group: 'money',
             },
             {
                 key: 'budgets',
@@ -134,6 +117,45 @@ export function useModuleNav(): UseModuleNavReturn {
                 ),
                 href: budgetsIndex(),
                 icon: Target,
+                group: 'plan',
+            },
+            {
+                key: 'bills',
+                feature: 'bills',
+                title: navigationName('navigation.bills'),
+                href: billsIndex(),
+                icon: Receipt,
+                group: 'plan',
+            },
+            {
+                key: 'goals',
+                feature: 'goals',
+                title: navigationName(
+                    'navigation.goals',
+                    'navigation.goals_subtitle',
+                ),
+                href: goals(),
+                icon: Trophy,
+                group: 'plan',
+            },
+            {
+                key: 'portfolio',
+                feature: 'portfolio',
+                title: navigationName('navigation.portfolio'),
+                href: portfolio(),
+                icon: Wallet,
+                group: 'grow',
+            },
+            {
+                key: 'investments',
+                feature: 'investments',
+                title: navigationName(
+                    'navigation.investments',
+                    'navigation.investments_subtitle',
+                ),
+                href: investmentsIndex(),
+                icon: TrendingUp,
+                group: 'grow',
             },
             {
                 key: 'advisor',
@@ -144,6 +166,7 @@ export function useModuleNav(): UseModuleNavReturn {
                 ),
                 href: advisorIndex(),
                 icon: BrainCircuit,
+                group: 'grow',
             },
             {
                 key: 'ai_assistant',
@@ -154,6 +177,7 @@ export function useModuleNav(): UseModuleNavReturn {
                 ),
                 href: editAiConnections(),
                 icon: Sparkles,
+                group: 'system',
             },
             {
                 key: 'telegram_bot',
@@ -161,12 +185,13 @@ export function useModuleNav(): UseModuleNavReturn {
                 title: navigationName('navigation.telegram_bot'),
                 href: editTelegram(),
                 icon: Bot,
+                group: 'system',
             },
         ];
 
         return entries.flatMap<ModuleNavItem>((entry) => {
             if (entry.feature === null) {
-                return [{ ...entry, state: 'enabled', tier: 'free' }];
+                return [{ ...entry, state: 'enabled', tier: 'free' as const }];
             }
 
             const state = features?.[entry.feature];
@@ -201,5 +226,23 @@ export function useModuleNav(): UseModuleNavReturn {
         });
     });
 
-    return { navItems };
+    const navGroups = computed<ModuleNavGroupEntry[]>(() => {
+        const order: ModuleNavGroup[] = ['money', 'plan', 'grow', 'system'];
+        const labels: Record<ModuleNavGroup, string> = {
+            money: t('navigation.nav_group_money'),
+            plan: t('navigation.nav_group_plan'),
+            grow: t('navigation.nav_group_grow'),
+            system: t('navigation.nav_group_system'),
+        };
+
+        return order
+            .map((key) => ({
+                key,
+                label: labels[key],
+                items: navItems.value.filter((item) => item.group === key),
+            }))
+            .filter((group) => group.items.length > 0);
+    });
+
+    return { navItems, navGroups };
 }

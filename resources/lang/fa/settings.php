@@ -326,8 +326,9 @@ return [
     'navigation' => [
         'groups' => [
             'account' => 'حساب',
-            'workspace' => 'فضای کاری',
-            'integrations' => 'اتصال‌ها',
+            'money' => 'مالی',
+            'connections' => 'اتصال‌ها',
+            'app' => 'برنامه',
         ],
         'assets' => 'دارایی‌ها',
         'profile' => 'پروفایل',

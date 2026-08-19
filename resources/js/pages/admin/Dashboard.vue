@@ -67,6 +67,15 @@ const verification = ref<AdminFilters['verification']>(
 );
 const sort = ref<AdminFilters['sort']>(props.filters.sort);
 const range = ref<AdminRange>(props.range);
+
+type AdminTab = 'customers' | 'growth' | 'engagement';
+const activeTab = ref<AdminTab>('customers');
+const tabOptions: { value: AdminTab; label: string }[] = [
+    { value: 'customers', label: 'Customers' },
+    { value: 'growth', label: 'Growth' },
+    { value: 'engagement', label: 'Engagement' },
+];
+
 const isFiltering = ref(false);
 const isChangingRange = ref(false);
 const selectedUser = ref<AdminUser | null>(null);
@@ -374,7 +383,7 @@ function activityTone(user: AdminUser): string {
                                 class="rounded-lg px-3 py-1.5 text-xs font-medium transition"
                                 :class="
                                     range === option.value
-                                        ? 'bg-[#0d2e22] text-[#7ee8c4]'
+                                        ? 'bg-[#02cd86] text-[#101010]'
                                         : 'text-[#989898] hover:text-white'
                                 "
                                 :aria-pressed="range === option.value"
@@ -588,6 +597,29 @@ function activityTone(user: AdminUser): string {
                     </AdminKpiCard>
                 </section>
 
+                <div
+                    class="flex w-fit items-center gap-0.5 rounded-xl border border-white/10 bg-[#1a1a1a] p-1"
+                    role="tablist"
+                    aria-label="Admin sections"
+                >
+                    <button
+                        v-for="option in tabOptions"
+                        :key="option.value"
+                        type="button"
+                        role="tab"
+                        :aria-selected="activeTab === option.value"
+                        class="rounded-lg px-4 py-1.5 text-sm font-medium transition"
+                        :class="
+                            activeTab === option.value
+                                ? 'bg-[#02cd86] text-[#101010]'
+                                : 'text-[#989898] hover:text-white'
+                        "
+                        @click="activeTab = option.value"
+                    >
+                        {{ option.label }}
+                    </button>
+                </div>
+
                 <Deferred data="analytics">
                     <template #fallback>
                         <section
@@ -610,246 +642,279 @@ function activityTone(user: AdminUser): string {
                     <section
                         v-if="analytics"
                         aria-label="Analytics charts"
-                        class="grid gap-4 xl:grid-cols-2"
                         :class="isChangingRange ? 'opacity-60' : ''"
                     >
-                        <article
-                            class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 xl:col-span-2"
+                        <div
+                            v-show="activeTab === 'growth'"
+                            aria-label="Growth"
+                            class="grid gap-4 xl:grid-cols-2"
                         >
-                            <div class="flex items-start justify-between gap-4">
-                                <div>
-                                    <h2 class="text-lg font-medium">
-                                        Customer growth
-                                    </h2>
-                                    <p class="mt-1 text-sm text-[#686868]">
-                                        New and cumulative customers over the
-                                        {{ rangeLabel }}
-                                    </p>
+                            <article
+                                class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 xl:col-span-2"
+                            >
+                                <div
+                                    class="flex items-start justify-between gap-4"
+                                >
+                                    <div>
+                                        <h2 class="text-lg font-medium">
+                                            Customer growth
+                                        </h2>
+                                        <p class="mt-1 text-sm text-[#686868]">
+                                            New and cumulative customers over
+                                            the
+                                            {{ rangeLabel }}
+                                        </p>
+                                    </div>
+                                    <Users class="size-5 text-[#02CD86]" />
                                 </div>
-                                <Users class="size-5 text-[#02CD86]" />
-                            </div>
-                            <LineChart
-                                class="mt-4"
-                                :series="growthSeries"
-                                :categories="analytics.growth.labels"
-                                raw-labels
-                                value-suffix=""
-                                no-data-text="No customer growth data yet"
-                                :height="280"
-                            />
-                        </article>
+                                <LineChart
+                                    class="mt-4"
+                                    :series="growthSeries"
+                                    :categories="analytics.growth.labels"
+                                    raw-labels
+                                    value-suffix=""
+                                    no-data-text="No customer growth data yet"
+                                    :height="280"
+                                />
+                            </article>
 
-                        <article
-                            class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
-                        >
-                            <h2 class="text-lg font-medium">
-                                Signup-to-value funnel
-                            </h2>
-                            <p class="mt-1 text-sm text-[#686868]">
-                                Customers who joined in the {{ rangeLabel }}
-                            </p>
-                            <FunnelChart
-                                class="mt-4"
-                                :labels="analytics.funnel.labels"
-                                :values="analytics.funnel.values"
-                            />
-                        </article>
-
-                        <article
-                            class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
-                        >
-                            <h2 class="text-lg font-medium">
-                                Acquisition channels
-                            </h2>
-                            <p class="mt-1 text-sm text-[#686868]">
-                                Where customers who joined in the
-                                {{ rangeLabel }} came from
-                            </p>
-                            <RankedBarChart
-                                v-if="analytics.acquisition.values.length > 0"
-                                class="mt-3"
-                                :labels="analytics.acquisition.labels"
-                                :values="analytics.acquisition.values"
-                                :colors="[
-                                    '#02CD86',
-                                    '#4cb6a2',
-                                    '#6C4EE9',
-                                    '#947bff',
-                                    '#b8aaff',
-                                    '#686868',
-                                ]"
-                                series-name="Signups"
-                                :percentage-labels="false"
-                                :height="280"
-                            />
-                            <p
-                                v-else
-                                class="flex h-[280px] items-center justify-center text-sm text-[#686868]"
+                            <article
+                                class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
                             >
-                                No signups in this period yet
-                            </p>
-                        </article>
+                                <h2 class="text-lg font-medium">
+                                    Signup-to-value funnel
+                                </h2>
+                                <p class="mt-1 text-sm text-[#686868]">
+                                    Customers who joined in the {{ rangeLabel }}
+                                </p>
+                                <FunnelChart
+                                    class="mt-4"
+                                    :labels="analytics.funnel.labels"
+                                    :values="analytics.funnel.values"
+                                />
+                            </article>
 
-                        <article
-                            class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 xl:col-span-2"
-                        >
-                            <h2 class="text-lg font-medium">
-                                Engagement trend
-                            </h2>
-                            <p class="mt-1 text-sm text-[#686868]">
-                                Weekly and monthly active customers from daily
-                                snapshots
-                            </p>
-                            <LineChart
-                                v-if="
-                                    analytics.engagement_trend.labels.length > 0
-                                "
-                                class="mt-4"
-                                :series="engagementSeries"
-                                :categories="analytics.engagement_trend.labels"
-                                raw-labels
-                                value-suffix=""
-                                :height="260"
-                            />
-                            <p
-                                v-else
-                                class="flex h-[260px] items-center justify-center px-6 text-center text-sm text-[#686868]"
+                            <article
+                                class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
                             >
-                                Trends appear once the daily snapshot job has
-                                captured its first few days of data.
-                            </p>
-                        </article>
+                                <h2 class="text-lg font-medium">
+                                    Acquisition channels
+                                </h2>
+                                <p class="mt-1 text-sm text-[#686868]">
+                                    Where customers who joined in the
+                                    {{ rangeLabel }} came from
+                                </p>
+                                <RankedBarChart
+                                    v-if="
+                                        analytics.acquisition.values.length > 0
+                                    "
+                                    class="mt-3"
+                                    :labels="analytics.acquisition.labels"
+                                    :values="analytics.acquisition.values"
+                                    :colors="[
+                                        '#02CD86',
+                                        '#4cb6a2',
+                                        '#6C4EE9',
+                                        '#947bff',
+                                        '#b8aaff',
+                                        '#686868',
+                                    ]"
+                                    series-name="Signups"
+                                    :percentage-labels="false"
+                                    :height="280"
+                                />
+                                <p
+                                    v-else
+                                    class="flex h-[280px] items-center justify-center text-sm text-[#686868]"
+                                >
+                                    No signups in this period yet
+                                </p>
+                            </article>
+                        </div>
 
-                        <article
-                            class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
+                        <div
+                            v-show="activeTab === 'engagement'"
+                            aria-label="Engagement"
+                            class="grid gap-4 xl:grid-cols-2"
                         >
-                            <h2 class="text-lg font-medium">
-                                Product adoption
-                            </h2>
-                            <p class="mt-1 text-sm text-[#686868]">
-                                Customers with at least one record in each
-                                product area
-                            </p>
-                            <RankedBarChart
-                                class="mt-3"
-                                :labels="analytics.product_adoption.labels"
-                                :values="analytics.product_adoption.values"
-                                :colors="[
-                                    '#02CD86',
-                                    '#4cb6a2',
-                                    '#6C4EE9',
-                                    '#947bff',
-                                ]"
-                                series-name="Customers"
-                                :percentage-labels="false"
-                                :height="280"
-                            />
-                        </article>
-
-                        <article
-                            class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
-                        >
-                            <h2 class="text-lg font-medium">
-                                Authentication mix
-                            </h2>
-                            <p class="mt-1 text-sm text-[#686868]">
-                                How customers access their accounts
-                            </p>
-                            <DonutChart
-                                v-if="authenticationTotal > 0"
-                                class="mt-2"
-                                :series="analytics.authentication_mix.values"
-                                :labels="analytics.authentication_mix.labels"
-                                :colors="['#02CD86', '#6C4EE9', '#947bff']"
-                                center-label="Customers"
-                                :center-value="
-                                    formatAdminNumber(authenticationTotal)
-                                "
-                                :tooltip-formatter="
-                                    (value: number) =>
-                                        formatAdminNumber(value) + ' customers'
-                                "
-                            />
-                            <p
-                                v-else
-                                class="flex h-[280px] items-center justify-center text-sm text-[#686868]"
+                            <article
+                                class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 xl:col-span-2"
                             >
-                                No authentication data yet
-                            </p>
-                        </article>
+                                <h2 class="text-lg font-medium">
+                                    Engagement trend
+                                </h2>
+                                <p class="mt-1 text-sm text-[#686868]">
+                                    Weekly and monthly active customers from
+                                    daily snapshots
+                                </p>
+                                <LineChart
+                                    v-if="
+                                        analytics.engagement_trend.labels
+                                            .length > 0
+                                    "
+                                    class="mt-4"
+                                    :series="engagementSeries"
+                                    :categories="
+                                        analytics.engagement_trend.labels
+                                    "
+                                    raw-labels
+                                    value-suffix=""
+                                    :height="260"
+                                />
+                                <p
+                                    v-else
+                                    class="flex h-[260px] items-center justify-center px-6 text-center text-sm text-[#686868]"
+                                >
+                                    Trends appear once the daily snapshot job
+                                    has captured its first few days of data.
+                                </p>
+                            </article>
 
-                        <article
-                            class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
-                        >
-                            <h2 class="text-lg font-medium">
-                                Retention by segment
-                            </h2>
-                            <p class="mt-1 text-sm text-[#686868]">
-                                Share of customers older than 30 days who were
-                                active in the last 30 days
-                            </p>
-                            <RankedBarChart
-                                v-if="
-                                    analytics.retention_segments.values.length >
-                                    0
-                                "
-                                class="mt-3"
-                                :labels="analytics.retention_segments.labels"
-                                :values="analytics.retention_segments.values"
-                                :colors="[
-                                    '#02CD86',
-                                    '#4cb6a2',
-                                    '#6C4EE9',
-                                    '#947bff',
-                                    '#b8aaff',
-                                ]"
-                                series-name="Retention"
-                                :percentage-labels="false"
-                                percent-values
-                                :height="280"
-                            />
-                            <p
-                                v-else
-                                class="flex h-[280px] items-center justify-center px-6 text-center text-sm text-[#686868]"
+                            <article
+                                class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
                             >
-                                Retention appears once customers are older than
-                                30 days.
-                            </p>
-                        </article>
+                                <h2 class="text-lg font-medium">
+                                    Product adoption
+                                </h2>
+                                <p class="mt-1 text-sm text-[#686868]">
+                                    Customers with at least one record in each
+                                    product area
+                                </p>
+                                <RankedBarChart
+                                    class="mt-3"
+                                    :labels="analytics.product_adoption.labels"
+                                    :values="analytics.product_adoption.values"
+                                    :colors="[
+                                        '#02CD86',
+                                        '#4cb6a2',
+                                        '#6C4EE9',
+                                        '#947bff',
+                                    ]"
+                                    series-name="Customers"
+                                    :percentage-labels="false"
+                                    :height="280"
+                                />
+                            </article>
 
-                        <article
-                            class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
-                        >
-                            <h2 class="text-lg font-medium">
-                                Customer locales
-                            </h2>
-                            <p class="mt-1 text-sm text-[#686868]">
-                                Language preferences across registered customers
-                            </p>
-                            <DonutChart
-                                v-if="localeTotal > 0"
-                                class="mt-2"
-                                :series="analytics.locales.values"
-                                :labels="analytics.locales.labels"
-                                :colors="['#02CD86', '#6C4EE9', '#947bff']"
-                                center-label="Customers"
-                                :center-value="formatAdminNumber(localeTotal)"
-                                :tooltip-formatter="
-                                    (value: number) =>
-                                        formatAdminNumber(value) + ' customers'
-                                "
-                            />
-                            <p
-                                v-else
-                                class="flex h-[280px] items-center justify-center text-sm text-[#686868]"
+                            <article
+                                class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
                             >
-                                No locale data yet
-                            </p>
-                        </article>
+                                <h2 class="text-lg font-medium">
+                                    Authentication mix
+                                </h2>
+                                <p class="mt-1 text-sm text-[#686868]">
+                                    How customers access their accounts
+                                </p>
+                                <DonutChart
+                                    v-if="authenticationTotal > 0"
+                                    class="mt-2"
+                                    :series="
+                                        analytics.authentication_mix.values
+                                    "
+                                    :labels="
+                                        analytics.authentication_mix.labels
+                                    "
+                                    :colors="['#02CD86', '#6C4EE9', '#947bff']"
+                                    center-label="Customers"
+                                    :center-value="
+                                        formatAdminNumber(authenticationTotal)
+                                    "
+                                    :tooltip-formatter="
+                                        (value: number) =>
+                                            formatAdminNumber(value) +
+                                            ' customers'
+                                    "
+                                />
+                                <p
+                                    v-else
+                                    class="flex h-[280px] items-center justify-center text-sm text-[#686868]"
+                                >
+                                    No authentication data yet
+                                </p>
+                            </article>
+
+                            <article
+                                class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
+                            >
+                                <h2 class="text-lg font-medium">
+                                    Retention by segment
+                                </h2>
+                                <p class="mt-1 text-sm text-[#686868]">
+                                    Share of customers older than 30 days who
+                                    were active in the last 30 days
+                                </p>
+                                <RankedBarChart
+                                    v-if="
+                                        analytics.retention_segments.values
+                                            .length > 0
+                                    "
+                                    class="mt-3"
+                                    :labels="
+                                        analytics.retention_segments.labels
+                                    "
+                                    :values="
+                                        analytics.retention_segments.values
+                                    "
+                                    :colors="[
+                                        '#02CD86',
+                                        '#4cb6a2',
+                                        '#6C4EE9',
+                                        '#947bff',
+                                        '#b8aaff',
+                                    ]"
+                                    series-name="Retention"
+                                    :percentage-labels="false"
+                                    percent-values
+                                    :height="280"
+                                />
+                                <p
+                                    v-else
+                                    class="flex h-[280px] items-center justify-center px-6 text-center text-sm text-[#686868]"
+                                >
+                                    Retention appears once customers are older
+                                    than 30 days.
+                                </p>
+                            </article>
+
+                            <article
+                                class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
+                            >
+                                <h2 class="text-lg font-medium">
+                                    Customer locales
+                                </h2>
+                                <p class="mt-1 text-sm text-[#686868]">
+                                    Language preferences across registered
+                                    customers
+                                </p>
+                                <DonutChart
+                                    v-if="localeTotal > 0"
+                                    class="mt-2"
+                                    :series="analytics.locales.values"
+                                    :labels="analytics.locales.labels"
+                                    :colors="['#02CD86', '#6C4EE9', '#947bff']"
+                                    center-label="Customers"
+                                    :center-value="
+                                        formatAdminNumber(localeTotal)
+                                    "
+                                    :tooltip-formatter="
+                                        (value: number) =>
+                                            formatAdminNumber(value) +
+                                            ' customers'
+                                    "
+                                />
+                                <p
+                                    v-else
+                                    class="flex h-[280px] items-center justify-center text-sm text-[#686868]"
+                                >
+                                    No locale data yet
+                                </p>
+                            </article>
+                        </div>
                     </section>
                 </Deferred>
 
                 <section
+                    v-show="activeTab === 'customers'"
                     class="mb-4 overflow-hidden rounded-[18px] bg-[#1a1a1a] ring-1 ring-white/10"
                 >
                     <div class="border-b border-white/10 p-5">

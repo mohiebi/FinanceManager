@@ -16,4 +16,6 @@ return [
     'year' => 'سال',
     'language' => 'زبان',
     'calendar' => 'تقویم',
+    'hide_amounts' => 'پنهان',
+    'show_amounts' => 'نمایش',
 ];

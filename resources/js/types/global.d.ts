@@ -23,6 +23,7 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             locale: 'en' | 'fa' | 'de';
+            locales: ('en' | 'fa' | 'de')[];
             dir: 'ltr' | 'rtl';
             calendar: 'gregorian' | 'jalali';
             timezone: string;

@@ -100,7 +100,8 @@ defineOptions({
     <Head :title="t('advisor.title')" />
 
     <div
-        class="min-h-[calc(100vh-92px)] bg-[#0d0f0f] px-[18px] py-5 text-white"
+        data-app-flush-bottom
+        class="min-h-[calc(100svh-72px)] bg-background px-[18px] py-5 text-white lg:min-h-[calc(100svh-92px)]"
     >
         <section
             class="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#171a19] px-6 py-8 shadow-[0_24px_70px_rgba(0,0,0,0.32)] md:px-10 md:py-12"
@@ -156,7 +157,9 @@ defineOptions({
                         :key="step"
                         class="h-1.5 rounded-full"
                         :class="
-                            step < resumeSection ? 'bg-[#02CD86]' : 'bg-white/10'
+                            step < resumeSection
+                                ? 'bg-[#02CD86]'
+                                : 'bg-white/10'
                         "
                     />
                 </div>
@@ -270,7 +273,10 @@ defineOptions({
                             }}
                         </p>
                         <p class="mt-1 text-xs text-white/35">
-                            {{ label('recommendation_statuses', item.status) }} ·
+                            {{
+                                label('recommendation_statuses', item.status)
+                            }}
+                            ·
                             {{
                                 item.generated_at
                                     ? new Date(

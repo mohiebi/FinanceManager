@@ -141,7 +141,9 @@
                     }}</span>
                 </p>
 
-                <div class="flex items-center gap-2 text-xs text-[#989898]">
+                <div
+                    class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-[#989898]"
+                >
                     <CalendarClock class="size-3.5 shrink-0" />
                     <span v-if="bill.recurrence_type === 'monthly'">
                         {{ t('finance.bills.recurrence_monthly') }} —
@@ -154,6 +156,33 @@
                     <span v-else>{{
                         t('finance.bills.recurrence_one_time')
                     }}</span>
+                    <span
+                        v-if="
+                            bill.recurrence_count !== null &&
+                            bill.next_occurrence?.payment_number
+                        "
+                        class="rounded-full bg-[#6C4EE9]/15 px-2 py-0.5 font-medium text-[#a995ff] ring-1 ring-[#6C4EE9]/25"
+                    >
+                        {{
+                            t('finance.bills.payment_progress', {
+                                current: bill.next_occurrence.payment_number,
+                                total: bill.recurrence_count,
+                            })
+                        }}
+                    </span>
+                    <span
+                        v-else-if="
+                            bill.recurrence_count !== null &&
+                            bill.payments_made >= bill.recurrence_count
+                        "
+                        class="rounded-full bg-[#02CD86]/10 px-2 py-0.5 font-medium text-[#02CD86] ring-1 ring-[#02CD86]/25"
+                    >
+                        {{
+                            t('finance.bills.payments_complete', {
+                                total: bill.recurrence_count,
+                            })
+                        }}
+                    </span>
                 </div>
 
                 <div
@@ -232,11 +261,25 @@
                         </div>
 
                         <!-- Bill title -->
-                        <p
-                            class="min-w-0 flex-1 truncate text-sm font-medium text-white"
-                        >
-                            <Ciphered :value="occ.title" table="bills" />
-                        </p>
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate text-sm font-medium text-white">
+                                <Ciphered :value="occ.title" table="bills" />
+                            </p>
+                            <p
+                                v-if="
+                                    occ.payment_number !== null &&
+                                    occ.payment_count !== null
+                                "
+                                class="mt-0.5 text-[10px] font-medium text-[#a995ff]"
+                            >
+                                {{
+                                    t('finance.bills.payment_progress', {
+                                        current: occ.payment_number,
+                                        total: occ.payment_count,
+                                    })
+                                }}
+                            </p>
+                        </div>
 
                         <!-- Status chip + amount -->
                         <div class="flex shrink-0 items-center gap-3">
@@ -500,6 +543,145 @@
                                 <InputError :message="form.errors.due_date" />
                             </div>
 
+                            <div
+                                v-if="form.recurrence_type === 'monthly'"
+                                class="rounded-xl border border-white/10 bg-white/[0.03] p-4"
+                            >
+                                <div class="grid gap-2">
+                                    <Label
+                                        class="finance-dialog-label"
+                                        for="bill-payment-duration"
+                                    >
+                                        {{
+                                            t('finance.bills.payment_duration')
+                                        }}
+                                    </Label>
+                                    <Select
+                                        v-model="form.recurrence_limit_type"
+                                    >
+                                        <SelectTrigger
+                                            id="bill-payment-duration"
+                                            :class="fieldClass"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent
+                                            class="finance-dialog-select-content"
+                                        >
+                                            <SelectItem value="infinite">
+                                                {{
+                                                    t(
+                                                        'finance.bills.continues_indefinitely',
+                                                    )
+                                                }}
+                                            </SelectItem>
+                                            <SelectItem value="count">
+                                                {{
+                                                    t(
+                                                        'finance.bills.limit_by_count',
+                                                    )
+                                                }}
+                                            </SelectItem>
+                                            <SelectItem value="date">
+                                                {{
+                                                    t(
+                                                        'finance.bills.limit_by_date',
+                                                    )
+                                                }}
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError
+                                        :message="
+                                            form.errors.recurrence_limit_type
+                                        "
+                                    />
+                                </div>
+
+                                <div
+                                    v-if="
+                                        form.recurrence_limit_type === 'count'
+                                    "
+                                    class="mt-4 grid gap-2"
+                                >
+                                    <Label
+                                        class="finance-dialog-label"
+                                        for="bill-recurrence-count"
+                                    >
+                                        {{ t('finance.bills.total_payments') }}
+                                    </Label>
+                                    <Input
+                                        id="bill-recurrence-count"
+                                        v-model="form.recurrence_count"
+                                        type="number"
+                                        :min="minimumPaymentCount"
+                                        max="600"
+                                        inputmode="numeric"
+                                        :class="fieldClass"
+                                    />
+                                    <p class="text-xs leading-5 text-[#989898]">
+                                        {{
+                                            t('finance.bills.count_hint', {
+                                                count:
+                                                    normalizedPreviewCount ??
+                                                    minimumPaymentCount,
+                                            })
+                                        }}
+                                    </p>
+                                    <InputError
+                                        :message="form.errors.recurrence_count"
+                                    />
+                                </div>
+
+                                <div
+                                    v-else-if="
+                                        form.recurrence_limit_type === 'date'
+                                    "
+                                    class="mt-4 grid gap-2"
+                                >
+                                    <Label
+                                        class="finance-dialog-label"
+                                        for="bill-recurrence-end-date"
+                                    >
+                                        {{
+                                            t('finance.bills.last_payment_date')
+                                        }}
+                                    </Label>
+                                    <Input
+                                        id="bill-recurrence-end-date"
+                                        v-model="form.recurrence_end_date"
+                                        type="date"
+                                        :min="minimumRecurrenceEndDate"
+                                        :class="fieldClass"
+                                    />
+                                    <p
+                                        v-if="normalizedPreviewCount !== null"
+                                        aria-live="polite"
+                                        class="text-xs leading-5 text-[#a995ff]"
+                                    >
+                                        {{
+                                            t(
+                                                'finance.bills.calculated_payments',
+                                                {
+                                                    count: normalizedPreviewCount,
+                                                },
+                                            )
+                                        }}
+                                    </p>
+                                    <p
+                                        v-else
+                                        class="text-xs leading-5 text-[#989898]"
+                                    >
+                                        {{ t('finance.bills.date_hint') }}
+                                    </p>
+                                    <InputError
+                                        :message="
+                                            form.errors.recurrence_end_date
+                                        "
+                                    />
+                                </div>
+                            </div>
+
                             <label
                                 class="flex cursor-pointer items-center gap-2.5"
                             >
@@ -650,6 +832,10 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { useVault } from '@/composables/useVault';
 import {
+    countMonthlyPaymentsThrough,
+    nextMonthlyDueDate,
+} from '@/lib/bill-recurrence';
+import {
     formatAppDate,
     jalaliMonthAbbreviations,
     monthBucketKeyFromIso,
@@ -666,7 +852,11 @@ import {
 import { pay as payBill } from '@/routes/bills/occurrences';
 import type { Encrypted } from '@/types/vault';
 
-type BillOccurrence = { id: number; due_date: string };
+type BillOccurrence = {
+    id: number;
+    due_date: string;
+    payment_number: number | null;
+};
 type Bill = {
     id: number;
     title: Encrypted<string>;
@@ -679,6 +869,11 @@ type Bill = {
     recurrence_type: 'one_time' | 'monthly';
     due_day_of_month: number | null;
     due_date: string | null;
+    recurrence_limit_type: 'count' | 'date' | null;
+    recurrence_count: number | null;
+    recurrence_end_date: string | null;
+    payments_made: number;
+    schedule_search_date: string;
     telegram_reminder_enabled: boolean;
     reminder_time: string;
     reminder_timezone: string;
@@ -705,6 +900,8 @@ type UpcomingOccurrence = {
     display_amount: string | null;
     display_currency: string;
     due_date: string;
+    payment_number: number | null;
+    payment_count: number | null;
     is_overdue: boolean;
     is_due_today: boolean;
 };
@@ -719,6 +916,7 @@ const props = defineProps<{
     monthlyBillSummary: MonthlyBillSummary;
     upcomingOccurrences: UpcomingOccurrence[];
     userCalendar: string;
+    today: string;
 }>();
 
 const { t } = useI18n();
@@ -837,6 +1035,7 @@ const fieldClass =
 
 const isDialogOpen = ref(false);
 const editingId = ref<number | null>(null);
+const editingBill = ref<Bill | null>(null);
 
 /** True while the browser is wrapping a payload, so the button stays disabled. */
 const sealing = ref(false);
@@ -849,9 +1048,70 @@ const form = useForm({
     recurrence_type: 'monthly' as 'one_time' | 'monthly',
     due_day_of_month: '1',
     due_date: '',
+    recurrence_limit_type: 'infinite' as 'infinite' | 'count' | 'date',
+    recurrence_count: '12',
+    recurrence_end_date: '',
     telegram_reminder_enabled: false,
     reminder_time: '09:00',
     reminder_timezone: accountTimezone.value,
+});
+
+const minimumPaymentCount = computed(() =>
+    Math.max(1, editingBill.value?.payments_made ?? 0),
+);
+
+const scheduleSearchDate = computed(
+    () => editingBill.value?.schedule_search_date ?? props.today,
+);
+
+const minimumRecurrenceEndDate = computed(() => {
+    const dueDay = Number(form.due_day_of_month);
+
+    if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31) {
+        return scheduleSearchDate.value;
+    }
+
+    return nextMonthlyDueDate(
+        dueDay,
+        props.userCalendar,
+        scheduleSearchDate.value,
+    );
+});
+
+const normalizedPreviewCount = computed<number | null>(() => {
+    if (
+        form.recurrence_type !== 'monthly' ||
+        form.recurrence_limit_type === 'infinite'
+    ) {
+        return null;
+    }
+
+    if (form.recurrence_limit_type === 'count') {
+        const count = Number(form.recurrence_count);
+
+        return Number.isInteger(count) && count > 0 ? count : null;
+    }
+
+    const dueDay = Number(form.due_day_of_month);
+
+    if (
+        !Number.isInteger(dueDay) ||
+        dueDay < 1 ||
+        dueDay > 31 ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(form.recurrence_end_date)
+    ) {
+        return null;
+    }
+
+    return (
+        (editingBill.value?.payments_made ?? 0) +
+        countMonthlyPaymentsThrough(
+            dueDay,
+            props.userCalendar,
+            scheduleSearchDate.value,
+            form.recurrence_end_date,
+        )
+    );
 });
 
 const timeOptions = Array.from(
@@ -941,11 +1201,15 @@ function multiplyBillTomanAmount(): void {
 
 function openCreateDialog(): void {
     editingId.value = null;
+    editingBill.value = null;
     form.clearErrors();
     form.reset();
     form.currency = props.currencies[0]?.value ?? 'toman';
     form.recurrence_type = 'monthly';
     form.due_day_of_month = '1';
+    form.recurrence_limit_type = 'infinite';
+    form.recurrence_count = '12';
+    form.recurrence_end_date = '';
     form.reminder_time = '09:00';
     form.reminder_timezone = accountTimezone.value;
     isDialogOpen.value = true;
@@ -953,6 +1217,7 @@ function openCreateDialog(): void {
 
 async function openEditDialog(bill: Bill): Promise<void> {
     editingId.value = bill.id;
+    editingBill.value = bill;
     form.clearErrors();
     form.title = (await revealAsync<string>(bill.title, 'bills')) ?? '';
     form.amount = normalizeMoneyInput(
@@ -972,6 +1237,9 @@ async function openEditDialog(bill: Bill): Promise<void> {
         ? String(bill.due_day_of_month)
         : '1';
     form.due_date = bill.due_date ?? '';
+    form.recurrence_limit_type = bill.recurrence_limit_type ?? 'infinite';
+    form.recurrence_count = String(bill.recurrence_count ?? 12);
+    form.recurrence_end_date = bill.recurrence_end_date ?? '';
     form.telegram_reminder_enabled = Boolean(bill.telegram_reminder_enabled);
     const storedHour =
         (bill.reminder_time ?? '09:00').split(':')[0]?.padStart(2, '0') ?? '09';
@@ -983,6 +1251,7 @@ async function openEditDialog(bill: Bill): Promise<void> {
 function closeDialog(): void {
     isDialogOpen.value = false;
     editingId.value = null;
+    editingBill.value = null;
     form.clearErrors();
 }
 
@@ -1118,6 +1387,21 @@ watch(
     (value) => {
         if (value === 'monthly' && !form.due_day_of_month) {
             form.due_day_of_month = '1';
+        }
+    },
+);
+
+watch(
+    () => form.recurrence_limit_type,
+    (value) => {
+        if (value === 'count' && !form.recurrence_count) {
+            form.recurrence_count = String(
+                Math.max(12, minimumPaymentCount.value),
+            );
+        }
+
+        if (value === 'date' && !form.recurrence_end_date) {
+            form.recurrence_end_date = minimumRecurrenceEndDate.value;
         }
     },
 );

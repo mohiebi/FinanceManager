@@ -58,6 +58,7 @@ class ProposeBillTool extends Tool
         // are never misread as ancient Gregorian dates.
         $request->merge([
             'due_date' => CalendarDates::normalizeToGregorian($request->get('due_date')),
+            'recurrence_end_date' => CalendarDates::normalizeToGregorian($request->get('recurrence_end_date')),
         ]);
 
         $validated = $request->validate(SaveBill::rules($user));
@@ -76,6 +77,9 @@ class ProposeBillTool extends Tool
             'recurrence_type' => $bill->recurrence_type->value,
             'due_day_of_month' => $bill->due_day_of_month,
             'due_date' => $bill->due_date?->toDateString(),
+            'recurrence_limit_type' => $bill->recurrence_limit_type?->value,
+            'recurrence_count' => $bill->recurrence_count,
+            'recurrence_end_date' => $bill->recurrence_end_date?->toDateString(),
         ] : [];
 
         $diff = $this->proposals->diff($payload, $old);
@@ -85,6 +89,11 @@ class ProposeBillTool extends Tool
         if (CalendarDates::isJalaliUser($user) && isset($diff['due_date'])) {
             $diff['due_date']['new_jalali'] = CalendarDates::toJalali($diff['due_date']['new']);
             $diff['due_date']['old_jalali'] = CalendarDates::toJalali($diff['due_date']['old']);
+        }
+
+        if (CalendarDates::isJalaliUser($user) && isset($diff['recurrence_end_date'])) {
+            $diff['recurrence_end_date']['new_jalali'] = CalendarDates::toJalali($diff['recurrence_end_date']['new']);
+            $diff['recurrence_end_date']['old_jalali'] = CalendarDates::toJalali($diff['recurrence_end_date']['old']);
         }
 
         $proposal = $this->proposals->propose(
@@ -114,6 +123,9 @@ class ProposeBillTool extends Tool
             'recurrence_type' => $schema->string()->enum(['one_time', 'monthly'])->description('Whether the bill repeats monthly or is due once.')->required(),
             'due_day_of_month' => $schema->integer()->description('For monthly bills: day of month it is due (1-31).'),
             'due_date' => $schema->string()->description('For one-time bills: due date (YYYY-MM-DD). Gregorian or Jalali — Jalali years (1100-1599) are auto-detected and converted server-side.'),
+            'recurrence_limit_type' => $schema->string()->enum(['infinite', 'count', 'date'])->description('For monthly bills: continue forever, stop after a count, or stop by date.'),
+            'recurrence_count' => $schema->integer()->description('Required when recurrence_limit_type is count: total number of payments, including payments already made.'),
+            'recurrence_end_date' => $schema->string()->description('Required when recurrence_limit_type is date: last allowed payment date. Gregorian or Jalali YYYY-MM-DD.'),
             'telegram_reminder_enabled' => $schema->boolean()->description('Send Telegram reminders for this bill (defaults to true).'),
             'reminder_time' => $schema->string()->description('Reminder time as HH:MM (24h).'),
             'reminder_timezone' => $schema->string()->description('IANA timezone for the reminder, e.g. Asia/Tehran.'),

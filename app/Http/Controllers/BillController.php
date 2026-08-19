@@ -47,13 +47,17 @@ class BillController extends Controller
             ->get()
             ->each(fn (Bill $bill) => $syncBillOccurrence->lookahead($bill, 3, $calendar, $bill->occurrences_max_due_date));
 
+        $paymentNumbers = $this->paymentNumbers($user);
+
         $bills = $user->bills()
             ->with(['category', 'occurrences' => fn ($query) => $query->whereNull('paid_at')->orderBy('due_date')])
+            ->withCount(['occurrences as paid_occurrence_count' => fn ($query) => $query->whereNotNull('paid_at')])
+            ->withMax('occurrences', 'due_date')
             ->withCount(['occurrences as month_occurrence_count' => fn ($query) => $query
                 ->whereDate('due_date', '>=', $monthFrom->toDateString())
                 ->whereDate('due_date', '<=', $monthTo->toDateString())])
             ->get()
-            ->map(function (Bill $bill) use ($currencyConverter, $request, $selectedCurrency, $vaultArmed, $user) {
+            ->map(function (Bill $bill) use ($currencyConverter, $request, $selectedCurrency, $vaultArmed, $user, $paymentNumbers) {
                 $next = $bill->occurrences->first();
                 $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
 
@@ -74,6 +78,15 @@ class BillController extends Controller
                     'recurrence_type' => $bill->recurrence_type->value,
                     'due_day_of_month' => $bill->due_day_of_month,
                     'due_date' => $bill->due_date?->toDateString(),
+                    'recurrence_limit_type' => $bill->recurrence_limit_type?->value,
+                    'recurrence_count' => $bill->recurrence_count,
+                    'recurrence_end_date' => $bill->recurrence_end_date?->toDateString(),
+                    'payments_made' => (int) $bill->paid_occurrence_count,
+                    'schedule_search_date' => $next
+                        ? $next->due_date->toDateString()
+                        : ($bill->occurrences_max_due_date
+                            ? Carbon::parse($bill->occurrences_max_due_date)->addDay()->toDateString()
+                            : Carbon::today()->toDateString()),
                     'telegram_reminder_enabled' => $bill->telegram_reminder_enabled,
                     'is_active' => $bill->is_active,
                     'category_id' => $bill->category_id,
@@ -83,6 +96,7 @@ class BillController extends Controller
                     'next_occurrence' => $next ? [
                         'id' => $next->id,
                         'due_date' => $next->due_date->toDateString(),
+                        'payment_number' => $paymentNumbers[$next->id] ?? null,
                     ] : null,
                 ];
             })
@@ -115,8 +129,9 @@ class BillController extends Controller
             // these are public market prices, so shipping them costs no privacy.
             'rates' => $vaultArmed ? $this->displayRates() : null,
             'monthlyBillSummary' => $this->monthlyBillSummary($user, $currencyConverter, $selectedCurrency, $vaultArmed, $monthFrom, $monthTo),
-            'upcomingOccurrences' => $this->upcomingOccurrences($user, $currencyConverter, $selectedCurrency, $vaultArmed),
+            'upcomingOccurrences' => $this->upcomingOccurrences($user, $currencyConverter, $selectedCurrency, $vaultArmed, $paymentNumbers),
             'userCalendar' => $calendar,
+            'today' => Carbon::today()->toDateString(),
         ]);
     }
 
@@ -184,6 +199,7 @@ class BillController extends Controller
         CurrencyConverter $currencyConverter,
         Currency $selectedCurrency,
         bool $vaultArmed,
+        array $paymentNumbers,
     ): array {
         $today = Carbon::today();
         $horizon = $today->copy()->addMonthNoOverflow()->endOfMonth();
@@ -198,7 +214,7 @@ class BillController extends Controller
             ->orderBy('due_date')
             ->get()
             ->filter(fn (BillOccurrence $occurrence) => $occurrence->bill !== null)
-            ->map(function (BillOccurrence $occurrence) use ($currencyConverter, $selectedCurrency, $today, $vaultArmed): array {
+            ->map(function (BillOccurrence $occurrence) use ($currencyConverter, $selectedCurrency, $today, $vaultArmed, $paymentNumbers): array {
                 $bill = $occurrence->bill;
                 $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
 
@@ -213,12 +229,39 @@ class BillController extends Controller
                         : $currencyConverter->format($bill->amount, $billCurrency, $selectedCurrency),
                     'display_currency' => $selectedCurrency->value,
                     'due_date' => $occurrence->due_date->toDateString(),
+                    'payment_number' => $paymentNumbers[$occurrence->id] ?? null,
+                    'payment_count' => $bill->recurrence_count,
                     'is_overdue' => $occurrence->due_date->lt($today),
                     'is_due_today' => $occurrence->due_date->isSameDay($today),
                 ];
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * Build exact ordinals in one query so cards and the timeline can say
+     * "payment 3 of 7" without an occurrence-count query per rendered row.
+     *
+     * @return array<int, int>
+     */
+    private function paymentNumbers(User $user): array
+    {
+        $numbers = [];
+        $billCounts = [];
+
+        BillOccurrence::query()
+            ->whereHas('bill', fn (Builder $query) => $query->where('user_id', $user->id))
+            ->orderBy('bill_id')
+            ->orderBy('due_date')
+            ->orderBy('id')
+            ->get(['id', 'bill_id'])
+            ->each(function (BillOccurrence $occurrence) use (&$numbers, &$billCounts): void {
+                $billCounts[$occurrence->bill_id] = ($billCounts[$occurrence->bill_id] ?? 0) + 1;
+                $numbers[$occurrence->id] = $billCounts[$occurrence->bill_id];
+            });
+
+        return $numbers;
     }
 
     private function localizedCategoryName(Request $request, ?Category $category): ?string

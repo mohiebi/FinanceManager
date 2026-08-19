@@ -151,6 +151,7 @@ class FinanceMutationApplier
         }
 
         $operation['due_date'] = CalendarDates::normalizeToGregorian($operation['due_date'] ?? null);
+        $operation['recurrence_end_date'] = CalendarDates::normalizeToGregorian($operation['recurrence_end_date'] ?? null);
         $validated = $this->validate($operation, SaveBill::rules($user));
         $payload = SaveBill::normalize(
             $validated,

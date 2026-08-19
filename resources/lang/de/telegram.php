@@ -2,6 +2,9 @@
 
 return [
     'buttons' => [
+        'limit_infinite' => 'Unbegrenzt',
+        'limit_count' => 'Zahlungsanzahl',
+        'limit_date' => 'Enddatum',
         'add_cost' => 'Ausgabe erfassen',
         'add_income' => 'Einnahme erfassen',
         'list_transactions' => 'Letzte 10 Buchungen',
@@ -85,6 +88,15 @@ return [
     ],
 
     'bill' => [
+        'choose_limit' => 'Wie lange soll diese monatliche Rechnung laufen?',
+        'use_limit_buttons' => 'Bitte wähle unbegrenzt, Zahlungsanzahl oder Enddatum über die Schaltflächen oben.',
+        'enter_recurrence_count' => 'Gib die Gesamtzahl der Zahlungen ein (1-600):',
+        'invalid_recurrence_count' => 'Bitte gib eine ganze Zahl von 1 bis 600 ein.',
+        'enter_recurrence_end_date' => 'Gib das letzte Zahlungsdatum als YYYY-MM-DD ein:',
+        'limit_infinite' => 'läuft unbegrenzt',
+        'limit_count' => ':count Zahlungen',
+        'limit_date' => 'bis :date',
+        'payment_progress' => 'Zahlung :current von :total',
         'start' => "*Rechnung anlegen*\n\nGib einen Titel ein, zum Beispiel: Miete",
         'empty_title' => 'Bitte gib einen nicht leeren Titel ein.',
         'enter_amount' => 'Gib den Betrag ein, zum Beispiel: 500000',

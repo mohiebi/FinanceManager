@@ -43,6 +43,7 @@ class ListBillsTool extends Tool
         // Bill amounts are encrypted at rest, so all shaping happens in PHP.
         $bills = $user->bills()
             ->with(['category', 'occurrences' => fn ($query) => $query->whereNull('paid_at')->orderBy('due_date')])
+            ->withCount(['occurrences as paid_occurrence_count' => fn ($query) => $query->whereNotNull('paid_at')])
             ->when($validated['only_active'] ?? true, fn ($query) => $query->where('is_active', true))
             ->get()
             ->map(function (Bill $bill) use ($isJalali): array {
@@ -56,6 +57,10 @@ class ListBillsTool extends Tool
                     'recurrence_type' => $bill->recurrence_type->value,
                     'due_day_of_month' => $bill->due_day_of_month,
                     'due_date' => $bill->due_date?->toDateString(),
+                    'recurrence_limit_type' => $bill->recurrence_limit_type?->value,
+                    'recurrence_count' => $bill->recurrence_count,
+                    'recurrence_end_date' => $bill->recurrence_end_date?->toDateString(),
+                    'payments_made' => (int) $bill->paid_occurrence_count,
                     'category' => $bill->category?->name,
                     'is_active' => $bill->is_active,
                     'next_due_date' => $next?->due_date->toDateString(),
@@ -63,9 +68,12 @@ class ListBillsTool extends Tool
                         ? CalendarDates::toJalali($next?->due_date)
                         : null,
                     'pending_occurrences' => $bill->occurrences
-                        ->map(fn ($occurrence): array => [
+                        ->map(fn ($occurrence, int $index): array => [
                             'id' => $occurrence->id,
                             'due_date' => $occurrence->due_date->toDateString(),
+                            'payment_number' => $bill->recurrence_count !== null
+                                ? (int) $bill->paid_occurrence_count + $index + 1
+                                : null,
                             'due_date_jalali' => $isJalali
                                 ? CalendarDates::toJalali($occurrence->due_date)
                                 : null,

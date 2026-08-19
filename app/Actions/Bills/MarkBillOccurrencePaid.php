@@ -64,6 +64,11 @@ class MarkBillOccurrencePaid
                 'transaction_id' => $transaction->id,
             ])->save();
 
+            if ($bill->recurrence_count !== null
+                && $bill->occurrences()->whereNotNull('paid_at')->count() >= $bill->recurrence_count) {
+                $bill->forceFill(['is_active' => false])->save();
+            }
+
             return $transaction;
         });
     }

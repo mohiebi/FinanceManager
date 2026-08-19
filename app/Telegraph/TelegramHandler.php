@@ -3,10 +3,11 @@
 namespace App\Telegraph;
 
 use App\Actions\Bills\MarkBillOccurrencePaid;
-use App\Actions\Bills\SyncBillOccurrence;
+use App\Actions\Bills\SaveBill;
 use App\Actions\Budgets\BuildBudgetProgress;
 use App\Actions\Gamification\RecordNoSpendDay;
 use App\Actions\Investments\BuildPortfolioBreakdown;
+use App\Enums\BillRecurrenceLimitType;
 use App\Enums\BillRecurrenceType;
 use App\Enums\BudgetRuleType;
 use App\Enums\Currency;
@@ -26,6 +27,7 @@ use Carbon\Carbon;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use Illuminate\Validation\ValidationException;
 use Morilog\Jalali\Jalalian;
 
 class TelegramHandler extends WebhookHandler
@@ -198,6 +200,7 @@ class TelegramHandler extends WebhookHandler
         $bills = $user->bills()
             ->where('is_active', true)
             ->with(['occurrences' => fn ($query) => $query->whereNull('paid_at')->orderBy('due_date')])
+            ->withCount(['occurrences as paid_occurrence_count' => fn ($query) => $query->whereNotNull('paid_at')])
             ->get()
             ->sortBy(function ($bill) {
                 $next = $bill->occurrences->first();
@@ -220,11 +223,17 @@ class TelegramHandler extends WebhookHandler
             $amount = $this->fmtAmount((float) $bill->amount, Currency::from($bill->currency));
 
             if ($next) {
-                $lines[] = __('telegram.bill.line', [
+                $line = __('telegram.bill.line', [
                     'title' => $bill->title,
                     'amount' => $amount,
                     'date' => DateFormatter::format($next->due_date, $calendar, 'Y-m-d'),
                 ]);
+                $lines[] = $bill->recurrence_count !== null
+                    ? $line.' — '.__('telegram.bill.payment_progress', [
+                        'current' => (int) $bill->paid_occurrence_count + 1,
+                        'total' => $bill->recurrence_count,
+                    ])
+                    : $line;
                 $payButtons[] = Button::make(__('telegram.buttons.mark_paid', ['title' => $bill->title]))
                     ->action('pay_bill')
                     ->param('bill', (string) $bill->id)
@@ -909,6 +918,12 @@ class TelegramHandler extends WebhookHandler
                     ->send();
                 break;
 
+            case 'recurrence_limit':
+                $this->chat->message(__('telegram.bill.use_limit_buttons'))
+                    ->keyboard($this->billRecurrenceLimitKeyboard())
+                    ->send();
+                break;
+
             case 'due_day':
                 $trimmed = trim($text);
 
@@ -921,6 +936,44 @@ class TelegramHandler extends WebhookHandler
                 }
 
                 $wizard['due_day_of_month'] = (int) $trimmed;
+                $wizard['step'] = 'recurrence_limit';
+                $this->chat->storage()->set('bill_wizard', $wizard);
+
+                $this->chat->message(__('telegram.bill.choose_limit'))
+                    ->keyboard($this->billRecurrenceLimitKeyboard())
+                    ->send();
+                break;
+
+            case 'recurrence_count':
+                $trimmed = trim($text);
+
+                if (! ctype_digit($trimmed) || (int) $trimmed < 1 || (int) $trimmed > 600) {
+                    $this->chat->message(__('telegram.bill.invalid_recurrence_count'))
+                        ->keyboard($this->cancelToMenuKeyboard())
+                        ->send();
+
+                    return;
+                }
+
+                $wizard['recurrence_count'] = (int) $trimmed;
+                $wizard['step'] = 'confirm';
+                $this->chat->storage()->set('bill_wizard', $wizard);
+
+                $this->sendBillConfirmation($wizard);
+                break;
+
+            case 'recurrence_end_date':
+                $date = $this->parseBillDate($text);
+
+                if ($date === null) {
+                    $this->chat->message(__('telegram.bill.invalid_due_date'))
+                        ->keyboard($this->cancelToMenuKeyboard())
+                        ->send();
+
+                    return;
+                }
+
+                $wizard['recurrence_end_date'] = $date;
                 $wizard['step'] = 'confirm';
                 $this->chat->storage()->set('bill_wizard', $wizard);
 
@@ -956,9 +1009,16 @@ class TelegramHandler extends WebhookHandler
             ->button(__('telegram.buttons.confirm'))->action('confirm_bill')->param('ok', '1')
             ->button(__('telegram.buttons.cancel'))->action('cancel_bill')->param('ok', '0');
 
-        $recurrence = $wizard['recurrence_type'] === BillRecurrenceType::Monthly->value
-            ? __('telegram.bill.recurrence_monthly', ['day' => $wizard['due_day_of_month']])
-            : __('telegram.bill.recurrence_one_time', ['date' => $wizard['due_date']]);
+        if ($wizard['recurrence_type'] === BillRecurrenceType::Monthly->value) {
+            $limit = match ($wizard['recurrence_limit_type'] ?? BillRecurrenceLimitType::Infinite->value) {
+                BillRecurrenceLimitType::Count->value => __('telegram.bill.limit_count', ['count' => $wizard['recurrence_count']]),
+                BillRecurrenceLimitType::Date->value => __('telegram.bill.limit_date', ['date' => $wizard['recurrence_end_date']]),
+                default => __('telegram.bill.limit_infinite'),
+            };
+            $recurrence = __('telegram.bill.recurrence_monthly', ['day' => $wizard['due_day_of_month']]).' — '.$limit;
+        } else {
+            $recurrence = __('telegram.bill.recurrence_one_time', ['date' => $wizard['due_date']]);
+        }
 
         $summary = __('telegram.bill.confirm', [
             'title' => $wizard['title'],
@@ -1112,6 +1172,55 @@ class TelegramHandler extends WebhookHandler
             ->send();
     }
 
+    public function bill_pick_limit(?string $type = null): void
+    {
+        $this->deleteKeyboardIfCallback();
+
+        $user = $this->resolveUser();
+
+        if (! $user || $this->featureLocked($user, Feature::Bills)) {
+            return;
+        }
+
+        $type = $type ?? $this->data->get('type');
+        $limitType = BillRecurrenceLimitType::tryFrom((string) $type);
+        $wizard = $this->chat->storage()->get('bill_wizard', []);
+
+        if (! $limitType || ($wizard['step'] ?? null) !== 'recurrence_limit') {
+            $this->chat->message(__('telegram.bill.draft_expired'))
+                ->keyboard($this->mainKeyboard())
+                ->send();
+
+            return;
+        }
+
+        $wizard['recurrence_limit_type'] = $limitType->value;
+
+        if ($limitType === BillRecurrenceLimitType::Count) {
+            $wizard['step'] = 'recurrence_count';
+            $this->chat->storage()->set('bill_wizard', $wizard);
+            $this->chat->message(__('telegram.bill.enter_recurrence_count'))
+                ->keyboard($this->cancelToMenuKeyboard())
+                ->send();
+
+            return;
+        }
+
+        if ($limitType === BillRecurrenceLimitType::Date) {
+            $wizard['step'] = 'recurrence_end_date';
+            $this->chat->storage()->set('bill_wizard', $wizard);
+            $this->chat->message(__('telegram.bill.enter_recurrence_end_date'))
+                ->keyboard($this->cancelToMenuKeyboard())
+                ->send();
+
+            return;
+        }
+
+        $wizard['step'] = 'confirm';
+        $this->chat->storage()->set('bill_wizard', $wizard);
+        $this->sendBillConfirmation($wizard);
+    }
+
     public function confirm_bill(): void
     {
         $this->deleteKeyboardIfCallback();
@@ -1134,7 +1243,7 @@ class TelegramHandler extends WebhookHandler
             return;
         }
 
-        $bill = $user->bills()->create([
+        $data = SaveBill::normalize([
             'title' => $wizard['title'],
             'amount' => $wizard['amount'],
             'currency' => $wizard['currency'],
@@ -1142,10 +1251,25 @@ class TelegramHandler extends WebhookHandler
             'recurrence_type' => $wizard['recurrence_type'],
             'due_day_of_month' => $wizard['due_day_of_month'] ?? null,
             'due_date' => $wizard['due_date'] ?? null,
+            'recurrence_limit_type' => $wizard['recurrence_limit_type'] ?? null,
+            'recurrence_count' => $wizard['recurrence_count'] ?? null,
+            'recurrence_end_date' => $wizard['recurrence_end_date'] ?? null,
             'telegram_reminder_enabled' => true,
-        ]);
+        ], $user, isset($wizard['category_id']), true);
 
-        app(SyncBillOccurrence::class)->ensureInitial($bill);
+        try {
+            $bill = app(SaveBill::class)->create(
+                $user,
+                $data,
+                FrontendLocalization::normalizeCalendar($user->calendar),
+            );
+        } catch (ValidationException $exception) {
+            $this->chat->message($exception->validator->errors()->first())
+                ->keyboard($this->cancelToMenuKeyboard())
+                ->send();
+
+            return;
+        }
 
         $this->chat->storage()->forget('bill_wizard');
         $this->chat->message(__('telegram.bill.saved', ['title' => $bill->title]))->keyboard($this->mainKeyboard())->send();
@@ -1518,6 +1642,16 @@ class TelegramHandler extends WebhookHandler
             Keyboard::make()
                 ->button(__('telegram.buttons.monthly'))->action('bill_pick_recurrence')->param('type', BillRecurrenceType::Monthly->value)->width(0.5)
                 ->button(__('telegram.buttons.one_time'))->action('bill_pick_recurrence')->param('type', BillRecurrenceType::OneTime->value)->width(0.5)
+        );
+    }
+
+    private function billRecurrenceLimitKeyboard(): Keyboard
+    {
+        return $this->withCancelToMenu(
+            Keyboard::make()
+                ->button(__('telegram.buttons.limit_infinite'))->action('bill_pick_limit')->param('type', BillRecurrenceLimitType::Infinite->value)->width(1)
+                ->button(__('telegram.buttons.limit_count'))->action('bill_pick_limit')->param('type', BillRecurrenceLimitType::Count->value)->width(0.5)
+                ->button(__('telegram.buttons.limit_date'))->action('bill_pick_limit')->param('type', BillRecurrenceLimitType::Date->value)->width(0.5)
         );
     }
 

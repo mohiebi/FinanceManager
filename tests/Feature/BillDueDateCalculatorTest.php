@@ -1,6 +1,7 @@
 <?php
 
 use App\Support\BillDueDateCalculator;
+use App\Support\BillRecurrenceSchedule;
 use Illuminate\Support\Carbon;
 use Morilog\Jalali\Jalalian;
 
@@ -59,4 +60,33 @@ test('jalali: rolls over to next jalali month when the due day already passed', 
 
     expect($jNext->getMonth())->toBe($jAfter->getMonth() === 12 ? 1 : $jAfter->getMonth() + 1)
         ->and($jNext->getDay())->toBe(1);
+});
+
+test('it counts every gregorian payment through an inclusive end date', function () {
+    $schedule = new BillRecurrenceSchedule(new BillDueDateCalculator);
+
+    $count = $schedule->countThrough(
+        15,
+        'gregorian',
+        Carbon::create(2026, 7, 10),
+        Carbon::create(2026, 10, 31),
+    );
+
+    expect($count)->toBe(4);
+});
+
+test('it counts jalali payments using jalali month boundaries', function () {
+    $schedule = new BillRecurrenceSchedule(new BillDueDateCalculator);
+    $from = Carbon::create(2026, 7, 1);
+    $jalaliFrom = Jalalian::fromCarbon($from);
+    $jalaliEnd = $jalaliFrom->addMonths(2);
+
+    $count = $schedule->countThrough(
+        $jalaliFrom->getDay(),
+        'jalali',
+        $from,
+        Carbon::instance($jalaliEnd->toCarbon()),
+    );
+
+    expect($count)->toBe(3);
 });

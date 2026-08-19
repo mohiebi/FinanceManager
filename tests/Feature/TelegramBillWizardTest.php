@@ -45,6 +45,7 @@ test('the full add-bill wizard creates a monthly bill with its first occurrence'
     $handler->bill_pick_category('0');
     $handler->bill_pick_recurrence('monthly');
     sendBillWizardText($handler, '15');
+    $handler->bill_pick_limit('infinite');
     $handler->confirm_bill();
 
     $bill = Bill::query()->sole();
@@ -57,6 +58,28 @@ test('the full add-bill wizard creates a monthly bill with its first occurrence'
         ->and($bill->category_id)->toBeNull();
 
     expect($bill->occurrences()->count())->toBe(1);
+});
+
+test('the add-bill wizard supports a finite monthly payment count', function () {
+    $user = User::factory()->withModules()->create(['telegram_chat_id' => '555112']);
+    $handler = telegramHandlerFor($user);
+
+    $handler->add_bill();
+    sendBillWizardText($handler, 'Phone installment');
+    sendBillWizardText($handler, '500000');
+    $handler->bill_pick_currency('toman');
+    $handler->bill_pick_category('0');
+    $handler->bill_pick_recurrence('monthly');
+    sendBillWizardText($handler, '15');
+    $handler->bill_pick_limit('count');
+    sendBillWizardText($handler, '7');
+    $handler->confirm_bill();
+
+    $bill = Bill::query()->sole();
+
+    expect($bill->recurrence_limit_type->value)->toBe('count')
+        ->and($bill->recurrence_count)->toBe(7)
+        ->and($bill->occurrences()->count())->toBe(1);
 });
 
 test('the add-bill wizard supports a one-time bill with a category', function () {

@@ -2,6 +2,9 @@
 
 return [
     'buttons' => [
+        'limit_infinite' => 'بدون پایان',
+        'limit_count' => 'تعداد پرداخت',
+        'limit_date' => 'تاریخ پایان',
         'add_cost' => 'ثبت هزینه',
         'add_income' => 'ثبت درآمد',
         'list_transactions' => '۱۰ تراکنش آخر',
@@ -85,6 +88,15 @@ return [
     ],
 
     'bill' => [
+        'choose_limit' => 'این قبض ماهانه تا چه زمانی ادامه داشته باشد؟',
+        'use_limit_buttons' => 'لطفاً با دکمه‌های بالا «بدون پایان»، «تعداد پرداخت» یا «تاریخ پایان» را انتخاب کنید.',
+        'enter_recurrence_count' => 'تعداد کل پرداخت‌ها را وارد کنید (۱ تا ۶۰۰):',
+        'invalid_recurrence_count' => 'لطفاً یک عدد صحیح از ۱ تا ۶۰۰ وارد کنید.',
+        'enter_recurrence_end_date' => 'آخرین تاریخ پرداخت را به شکل YYYY-MM-DD وارد کنید:',
+        'limit_infinite' => 'بدون تاریخ پایان',
+        'limit_count' => ':count پرداخت',
+        'limit_date' => 'تا :date',
+        'payment_progress' => 'پرداخت :current از :total',
         'start' => "*افزودن قبض*\n\nیک عنوان وارد کنید، برای مثال: اجاره",
         'empty_title' => 'لطفاً عنوانی خالی وارد نکنید.',
         'enter_amount' => 'مبلغ را وارد کنید، برای مثال: 500000',

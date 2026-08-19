@@ -156,6 +156,130 @@ test('it creates a recurring bill and generates the first occurrence', function 
     }
 });
 
+test('a payment-count limit stops monthly occurrence generation', function () {
+    Carbon::setTestNow(Carbon::create(2026, 7, 10));
+
+    try {
+        $user = User::factory()->withModules()->create();
+
+        $this->actingAs($user)
+            ->post(route('bills.store'), [
+                'title' => 'Phone installment',
+                'amount' => 750000,
+                'currency' => 'toman',
+                'recurrence_type' => 'monthly',
+                'due_day_of_month' => 15,
+                'recurrence_limit_type' => 'count',
+                'recurrence_count' => 2,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $bill = Bill::query()->sole();
+        app(SyncBillOccurrence::class)->lookahead($bill, 12);
+
+        expect($bill->recurrence_limit_type->value)->toBe('count')
+            ->and($bill->recurrence_count)->toBe(2)
+            ->and($bill->occurrences()->orderBy('due_date')->get()->map(
+                fn ($occurrence): string => $occurrence->due_date->toDateString(),
+            )->all())
+            ->toBe(['2026-07-15', '2026-08-15']);
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('an end date is converted into a total payment count and exposed with payment progress', function () {
+    Carbon::setTestNow(Carbon::create(2026, 7, 10));
+
+    try {
+        $user = User::factory()->withModules()->create();
+
+        $this->actingAs($user)
+            ->post(route('bills.store'), [
+                'title' => 'Course plan',
+                'amount' => 100,
+                'currency' => 'usd',
+                'recurrence_type' => 'monthly',
+                'due_day_of_month' => 15,
+                'recurrence_limit_type' => 'date',
+                'recurrence_end_date' => '2026-10-31',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $bill = Bill::query()->sole();
+
+        expect($bill->recurrence_count)->toBe(4)
+            ->and($bill->recurrence_end_date->toDateString())->toBe('2026-10-31');
+
+        $this->actingAs($user)
+            ->get(route('bills.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('bills.0.recurrence_limit_type', 'date')
+                ->where('bills.0.recurrence_count', 4)
+                ->where('bills.0.next_occurrence.payment_number', 1)
+                ->where('upcomingOccurrences.0.payment_number', 1)
+                ->where('upcomingOccurrences.0.payment_count', 4)
+            );
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('paying the final limited occurrence completes the bill', function () {
+    $user = User::factory()->withModules()->create();
+    $bill = $user->bills()->create([
+        'title' => 'Laptop installment',
+        'amount' => 100,
+        'currency' => 'usd',
+        'recurrence_type' => 'monthly',
+        'due_day_of_month' => 15,
+        'recurrence_limit_type' => 'count',
+        'recurrence_count' => 2,
+    ]);
+    $bill->occurrences()->create([
+        'due_date' => '2026-07-15',
+        'paid_at' => now()->subMonth(),
+    ]);
+    $finalOccurrence = $bill->occurrences()->create(['due_date' => '2026-08-15']);
+
+    app(MarkBillOccurrencePaid::class)($bill, $finalOccurrence);
+
+    expect($bill->fresh()->is_active)->toBeFalse()
+        ->and($finalOccurrence->fresh()->isPaid())->toBeTrue();
+});
+
+test('a finite total cannot be shortened below payments already made', function () {
+    $user = User::factory()->withModules()->create();
+    $bill = $user->bills()->create([
+        'title' => 'Loan',
+        'amount' => 100,
+        'currency' => 'usd',
+        'recurrence_type' => 'monthly',
+        'due_day_of_month' => 15,
+        'recurrence_limit_type' => 'count',
+        'recurrence_count' => 3,
+    ]);
+    $bill->occurrences()->create(['due_date' => '2026-06-15', 'paid_at' => now()]);
+    $bill->occurrences()->create(['due_date' => '2026-07-15', 'paid_at' => now()]);
+
+    $this->actingAs($user)
+        ->put(route('bills.update', $bill), [
+            'title' => 'Loan',
+            'amount' => 100,
+            'currency' => 'usd',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 15,
+            'recurrence_limit_type' => 'count',
+            'recurrence_count' => 1,
+        ])
+        ->assertSessionHasErrors('recurrence_count');
+
+    expect($bill->fresh()->recurrence_count)->toBe(3);
+});
+
 test('updating the due day recomputes the pending occurrence instead of leaving it stale', function () {
     Carbon::setTestNow(Carbon::create(2026, 7, 10));
 

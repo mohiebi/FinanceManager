@@ -2,12 +2,16 @@
 
 namespace App\Actions\Bills;
 
+use App\Enums\BillRecurrenceLimitType;
 use App\Enums\BillRecurrenceType;
 use App\Enums\TransactionType;
 use App\Models\Bill;
 use App\Models\Category;
 use App\Models\User;
+use App\Support\BillRecurrenceSchedule;
 use App\Support\Encryption\SealedField;
+use App\Support\FrontendLocalization;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -17,7 +21,10 @@ use Illuminate\Validation\ValidationException;
  */
 class SaveBill
 {
-    public function __construct(private readonly SyncBillOccurrence $syncBillOccurrence) {}
+    public function __construct(
+        private readonly SyncBillOccurrence $syncBillOccurrence,
+        private readonly BillRecurrenceSchedule $recurrenceSchedule,
+    ) {}
 
     /**
      * @param  bool  $vaultArmed  when true, title/amount arrive already encrypted by
@@ -50,6 +57,15 @@ class SaveBill
             'recurrence_type' => ['required', 'string', 'in:one_time,monthly'],
             'due_day_of_month' => ['required_if:recurrence_type,monthly', 'nullable', 'integer', 'min:1', 'max:31'],
             'due_date' => ['required_if:recurrence_type,one_time', 'nullable', 'date'],
+            'recurrence_limit_type' => ['nullable', 'string', 'in:infinite,count,date'],
+            'recurrence_count' => [
+                'required_if:recurrence_limit_type,count',
+                'nullable',
+                'integer',
+                'min:1',
+                'max:'.BillRecurrenceSchedule::MAX_OCCURRENCES,
+            ],
+            'recurrence_end_date' => ['required_if:recurrence_limit_type,date', 'nullable', 'date'],
             'telegram_reminder_enabled' => ['boolean'],
             'reminder_time' => ['nullable', 'string', 'regex:/^\d{2}:\d{2}$/'],
             'reminder_timezone' => ['nullable', 'string', 'max:50', 'timezone:all'],
@@ -79,8 +95,26 @@ class SaveBill
 
         if ($validated['recurrence_type'] === BillRecurrenceType::Monthly->value) {
             $validated['due_date'] = null;
+            $limitType = BillRecurrenceLimitType::tryFrom((string) ($validated['recurrence_limit_type'] ?? ''));
+            $validated['recurrence_limit_type'] = in_array($limitType, [
+                BillRecurrenceLimitType::Count,
+                BillRecurrenceLimitType::Date,
+            ], true) ? $limitType->value : null;
+
+            if ($limitType !== BillRecurrenceLimitType::Count) {
+                $validated['recurrence_count'] = null;
+            } else {
+                $validated['recurrence_count'] = (int) $validated['recurrence_count'];
+            }
+
+            if ($limitType !== BillRecurrenceLimitType::Date) {
+                $validated['recurrence_end_date'] = null;
+            }
         } else {
             $validated['due_day_of_month'] = null;
+            $validated['recurrence_limit_type'] = null;
+            $validated['recurrence_count'] = null;
+            $validated['recurrence_end_date'] = null;
         }
 
         // Wrapped so the cast stores the browser's ciphertext verbatim instead of
@@ -98,6 +132,7 @@ class SaveBill
     public function create(User $user, array $data, ?string $calendar = null): Bill
     {
         self::assertCategoryIsUsable($user, $data['category_id'] ?? null);
+        $data = $this->prepareRecurrenceLimit($user, $data, null, $calendar);
 
         $bill = $user->bills()->create($data);
 
@@ -114,10 +149,12 @@ class SaveBill
     public function update(Bill $bill, array $data, ?string $calendar = null): Bill
     {
         self::assertCategoryIsUsable($bill->user, $data['category_id'] ?? null);
+        $data = $this->prepareRecurrenceLimit($bill->user, $data, $bill, $calendar);
 
         $bill->update($data);
 
         $this->syncBillOccurrence->syncPending($bill, $calendar);
+        $this->syncBillOccurrence->trimToRecurrenceLimit($bill);
 
         return $bill;
     }
@@ -148,5 +185,97 @@ class SaveBill
                 'category_id' => __('finance.bills.invalid_category'),
             ]);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function prepareRecurrenceLimit(User $user, array $data, ?Bill $bill, ?string $calendar): array
+    {
+        if (($data['recurrence_type'] ?? null) !== BillRecurrenceType::Monthly->value) {
+            return $data;
+        }
+
+        $calendar ??= FrontendLocalization::normalizeCalendar($user->calendar);
+        $limitType = BillRecurrenceLimitType::tryFrom((string) ($data['recurrence_limit_type'] ?? ''));
+        $paidCount = $bill?->occurrences()->whereNotNull('paid_at')->count() ?? 0;
+
+        if ($limitType === BillRecurrenceLimitType::Count) {
+            $paymentCount = (int) $data['recurrence_count'];
+
+            if ($paymentCount < $paidCount) {
+                throw ValidationException::withMessages([
+                    'recurrence_count' => __('finance.bills.limit_before_paid', ['count' => $paidCount]),
+                ]);
+            }
+
+            $data['is_active'] = $paymentCount > $paidCount;
+
+            return $data;
+        }
+
+        if ($limitType === BillRecurrenceLimitType::Date) {
+            $futureCount = $this->recurrenceSchedule->countThrough(
+                (int) $data['due_day_of_month'],
+                $calendar,
+                $this->nextScheduleSearchDate($bill),
+                Carbon::parse($data['recurrence_end_date']),
+            );
+
+            if ($futureCount === 0) {
+                throw ValidationException::withMessages([
+                    'recurrence_end_date' => __('finance.bills.end_before_next'),
+                ]);
+            }
+
+            $paymentCount = $paidCount + $futureCount;
+
+            if ($paymentCount > BillRecurrenceSchedule::MAX_OCCURRENCES) {
+                throw ValidationException::withMessages([
+                    'recurrence_end_date' => __('finance.bills.limit_too_large', [
+                        'count' => BillRecurrenceSchedule::MAX_OCCURRENCES,
+                    ]),
+                ]);
+            }
+
+            $data['recurrence_count'] = $paymentCount;
+            $data['is_active'] = true;
+
+            return $data;
+        }
+
+        // Existing rows and clients that omit the new field remain infinite.
+        $data['recurrence_limit_type'] = null;
+        $data['recurrence_count'] = null;
+        $data['recurrence_end_date'] = null;
+        $data['is_active'] = true;
+
+        return $data;
+    }
+
+    private function nextScheduleSearchDate(?Bill $bill): Carbon
+    {
+        if (! $bill) {
+            return Carbon::today();
+        }
+
+        $nextUnpaid = $bill->occurrences()
+            ->whereNull('paid_at')
+            ->orderBy('due_date')
+            ->first();
+
+        if ($nextUnpaid) {
+            return $nextUnpaid->due_date->copy()->startOfDay();
+        }
+
+        $latestPaid = $bill->occurrences()
+            ->whereNotNull('paid_at')
+            ->orderByDesc('due_date')
+            ->first();
+
+        return $latestPaid
+            ? $latestPaid->due_date->copy()->addDay()->startOfDay()
+            : Carbon::today();
     }
 }

@@ -34,7 +34,9 @@
                 </p>
                 <p class="mt-3 text-2xl font-bold text-white">
                     <template v-if="props.pricesAvailable">
-                        {{ props.summary?.total_value_formatted }}
+                        <span :class="maskClass">{{
+                            props.summary?.total_value_formatted
+                        }}</span>
                         <span class="text-sm font-normal text-[#989898]">{{
                             currencySymbol
                         }}</span>
@@ -174,7 +176,9 @@
                                 </div>
                                 <p class="mt-4 text-lg font-bold text-white">
                                     <template v-if="asset.price_available">
-                                        {{ asset.price_formatted }}
+                                        <span :class="maskClass">{{
+                                            asset.price_formatted
+                                        }}</span>
                                         <span
                                             class="text-xs font-normal text-[#989898]"
                                             >{{ currencySymbol }}</span
@@ -218,7 +222,6 @@
                     {{ t('finance.actions.add_first_entry') }}
                 </Button>
             </div>
-
         </Deferred>
 
         <!-- ── Recent entries table ──────────────────────────────── -->
@@ -281,27 +284,27 @@
                     <thead>
                         <tr class="text-base">
                             <th
-                                class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                class="rounded-l-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                             >
                                 {{ t('finance.fields.asset') }}
                             </th>
                             <th
-                                class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                             >
                                 {{ t('finance.fields.quantity') }}
                             </th>
                             <th
-                                class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                             >
                                 {{ t('finance.fields.value') }}
                             </th>
                             <th
-                                class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
+                                class="hidden bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:table-cell sm:px-5"
                             >
                                 {{ t('finance.fields.date') }}
                             </th>
                             <th
-                                class="rounded-r-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                class="rounded-r-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                             ></th>
                         </tr>
                     </thead>
@@ -342,12 +345,12 @@
                                         !isCiphertext(entry.quantity)
                                     "
                                 >
-                                    {{
+                                    <span :class="maskClass">{{
                                         formatEntryValue(
                                             Number(entry.quantity),
                                             entry.asset_type,
                                         )
-                                    }}
+                                    }}</span>
                                     <span class="text-xs text-[#989898]">{{
                                         currencySymbol
                                     }}</span>
@@ -386,7 +389,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="rounded-md p-1.5 hover:bg-[#fff0f0]"
+                                        class="rounded-md p-1.5 hover:bg-[#2e0d0d]"
                                         @click="requestDeleteEntry(entry.id)"
                                     >
                                         <Trash2
@@ -439,6 +442,7 @@ import InvestmentEntryDialog from '@/components/investments/InvestmentEntryDialo
 import InvestmentSellDialog from '@/components/investments/InvestmentSellDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { useAmountMask } from '@/composables/useAmountMask';
 import { useRelativeTime } from '@/composables/useRelativeTime';
 import { formatAppDate } from '@/lib/date';
 import { dashboard } from '@/routes';
@@ -544,6 +548,12 @@ const props = defineProps<{
 const { formatRelativeTime } = useRelativeTime();
 const lastSyncedLabel = computed(() =>
     formatRelativeTime(props.pricesSyncedAt),
+);
+const { masked } = useAmountMask();
+const maskClass = computed(() =>
+    masked.value
+        ? 'blur-[6px] transition-[filter] duration-150 select-none'
+        : 'transition-[filter] duration-150',
 );
 
 defineOptions({

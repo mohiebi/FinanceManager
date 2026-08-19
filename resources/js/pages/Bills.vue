@@ -34,9 +34,11 @@
                             {{ t('finance.reports.this_month') }}
                         </p>
                         <p class="text-2xl leading-none font-bold text-white">
-                            <span v-if="monthlyTotal !== null">{{
-                                formatAmount(monthlyTotal)
-                            }}</span>
+                            <span
+                                v-if="monthlyTotal !== null"
+                                :class="maskClass"
+                                >{{ formatAmount(monthlyTotal) }}</span
+                            >
                             <span
                                 v-else
                                 aria-hidden="true"
@@ -117,7 +119,7 @@
                         </button>
                         <button
                             type="button"
-                            class="rounded-md p-1.5 hover:bg-[#fff0f0]"
+                            class="rounded-md p-1.5 hover:bg-[#2e0d0d]"
                             @click="void requestDelete(bill)"
                         >
                             <Trash2 class="size-3.5 text-[#E94E50]" />
@@ -830,6 +832,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { useAmountMask } from '@/composables/useAmountMask';
 import { useVault } from '@/composables/useVault';
 import {
     countMonthlyPaymentsThrough,
@@ -921,6 +924,12 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const { revealAsync, sealForSubmit, isArmed, trackKey } = useVault();
+const { masked } = useAmountMask();
+const maskClass = computed(() =>
+    masked.value
+        ? 'blur-[6px] transition-[filter] duration-150 select-none'
+        : 'transition-[filter] duration-150',
+);
 const page = usePage();
 /** The account timezone set in Settings > Preferences; new bill reminders
  *  default to it, though each bill can still override it. */

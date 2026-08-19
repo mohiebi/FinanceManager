@@ -97,7 +97,9 @@
                             </p>
                             <p class="mt-2 text-base font-bold text-white">
                                 <template v-if="props.pricesAvailable">
-                                    {{ summary.total_current_value_formatted }}
+                                    <span :class="maskClass">{{
+                                        summary.total_current_value_formatted
+                                    }}</span>
                                     <span
                                         class="text-xs font-normal text-[#989898]"
                                         >{{ currencySymbol }}</span
@@ -123,7 +125,9 @@
                             </p>
                             <p class="mt-2 text-base font-bold text-white">
                                 <template v-if="summary.has_cost_basis_data">
-                                    {{ summary.total_cost_basis_formatted }}
+                                    <span :class="maskClass">{{
+                                        summary.total_cost_basis_formatted
+                                    }}</span>
                                     <span
                                         class="text-xs font-normal text-[#989898]"
                                         >{{ currencySymbol }}</span
@@ -189,7 +193,9 @@
                                             ? '+'
                                             : '−'
                                     }}</span>
-                                    {{ summary.total_pnl_formatted }}
+                                    <span :class="maskClass">{{
+                                        summary.total_pnl_formatted
+                                    }}</span>
                                     {{ currencySymbol }}
                                     <span
                                         v-if="
@@ -249,7 +255,9 @@
                                         ? '+'
                                         : '−'
                                 }}</span>
-                                {{ summary.total_realised_pnl_formatted }}
+                                <span :class="maskClass">{{
+                                    summary.total_realised_pnl_formatted
+                                }}</span>
                                 <span
                                     class="text-xs font-normal text-[#989898]"
                                 >
@@ -315,6 +323,7 @@
                             <template v-if="props.pricesAvailable">
                                 <span
                                     class="text-[40px] leading-none font-bold tracking-tight text-white tabular-nums sm:text-[52px]"
+                                    :class="maskClass"
                                 >
                                     {{ summary.total_current_value_formatted }}
                                 </span>
@@ -360,7 +369,9 @@
                             </p>
                             <p class="mt-1.5 text-xl font-semibold text-white">
                                 <template v-if="summary.has_cost_basis_data">
-                                    {{ summary.total_cost_basis_formatted }}
+                                    <span :class="maskClass">{{
+                                        summary.total_cost_basis_formatted
+                                    }}</span>
                                     <span
                                         class="text-xs font-normal text-[#989898]"
                                         >{{ currencySymbol }}</span
@@ -410,7 +421,7 @@
                                         "
                                         class="size-4"
                                     />
-                                    <span>
+                                    <span :class="maskClass">
                                         {{
                                             summary.total_pnl_is_positive
                                                 ? '+'
@@ -494,7 +505,7 @@
                                 :class="[
                                     'cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition',
                                     selectedRange === rangeOption.value
-                                        ? 'bg-white/15 text-white'
+                                        ? 'bg-[#02cd86] text-[#101010]'
                                         : 'text-[#686868] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
                                 ]"
                                 @click="changeRange(rangeOption.value)"
@@ -579,7 +590,9 @@
                     </p>
                     <p class="mt-2 text-sm font-bold text-white">
                         <template v-if="props.pricesAvailable">
-                            {{ asset.current_value_formatted }}
+                            <span :class="maskClass">{{
+                                asset.current_value_formatted
+                            }}</span>
                             <span class="text-xs font-normal text-[#989898]">{{
                                 currencySymbol
                             }}</span>
@@ -614,36 +627,36 @@
                         <thead>
                             <tr class="text-base">
                                 <th
-                                    class="rounded-l-2xl bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="rounded-l-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.asset') }}
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.fields.quantity_short') }}
                                 </th>
                                 <th
-                                    class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:table-cell sm:px-5"
+                                    class="hidden bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:table-cell sm:px-5"
                                 >
                                     {{
                                         t('finance.fields.cost_basis_per_unit')
                                     }}
                                 </th>
                                 <th
-                                    class="hidden bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] lg:table-cell lg:px-5"
+                                    class="hidden bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] lg:table-cell lg:px-5"
                                 >
                                     {{
                                         t('finance.portfolio.total_cost_basis')
                                     }}
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.portfolio.current_value') }}
                                 </th>
                                 <th
-                                    class="bg-[#0d2620] px-3 py-4 text-center font-normal text-[#7ee8c4] sm:px-5"
+                                    class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
                                 >
                                     {{ t('finance.portfolio.profit_loss') }}
                                 </th>
@@ -681,6 +694,7 @@
                                     <span
                                         v-if="asset.avg_cost_basis_formatted"
                                         class="text-[15px] text-white"
+                                        :class="maskClass"
                                     >
                                         {{ asset.avg_cost_basis_formatted }}
                                         <span
@@ -698,6 +712,7 @@
                                     <span
                                         v-if="asset.total_cost_formatted"
                                         class="text-[15px] text-white"
+                                        :class="maskClass"
                                     >
                                         {{ asset.total_cost_formatted }}
                                         <span class="text-xs text-[#989898]">{{
@@ -712,7 +727,9 @@
                                     class="px-3 py-[14px] text-center text-[16px] leading-none font-bold text-white sm:px-5"
                                 >
                                     <template v-if="props.pricesAvailable">
-                                        {{ asset.current_value_formatted }}
+                                        <span :class="maskClass">{{
+                                            asset.current_value_formatted
+                                        }}</span>
                                         <span
                                             class="text-xs font-normal text-[#989898]"
                                             >{{ currencySymbol }}</span
@@ -744,9 +761,15 @@
                                         }}</span
                                     >
                                     <template v-else-if="asset.pnl !== null">
-                                        {{ asset.pnl_is_positive ? '+' : '−' }}
-                                        {{ asset.pnl_formatted }}
-                                        {{ currencySymbol }}
+                                        <span :class="maskClass">
+                                            {{
+                                                asset.pnl_is_positive
+                                                    ? '+'
+                                                    : '−'
+                                            }}
+                                            {{ asset.pnl_formatted }}
+                                            {{ currencySymbol }}
+                                        </span>
                                     </template>
                                     <span v-else>—</span>
                                 </td>
@@ -898,6 +921,7 @@ import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import GoalCard from '@/components/gamification/GoalCard.vue';
 import GoalDialog from '@/components/gamification/GoalDialog.vue';
 import { Spinner } from '@/components/ui/spinner';
+import { useAmountMask } from '@/composables/useAmountMask';
 import { useRelativeTime } from '@/composables/useRelativeTime';
 import { useVaultGoals } from '@/composables/useVaultGoals';
 import type { VaultGoalsPayload } from '@/composables/useVaultGoals';
@@ -948,6 +972,12 @@ const props = defineProps<{
 const selectedCurrency = ref(props.selectedCurrency);
 const { t } = useI18n();
 const page = usePage();
+const { masked } = useAmountMask();
+const maskClass = computed(() =>
+    masked.value
+        ? 'blur-[6px] transition-[filter] duration-150 select-none'
+        : 'transition-[filter] duration-150',
+);
 const displayCalendar = computed(
     () => (page.props.calendar as string | undefined) ?? 'gregorian',
 );
@@ -1064,7 +1094,9 @@ const ranges = [
 
 const selectedRange = ref(props.selectedRange);
 
-const donutSeries = computed(() => assets.value.map((asset) => asset.current_value));
+const donutSeries = computed(() =>
+    assets.value.map((asset) => asset.current_value),
+);
 const donutLabels = computed(() => assets.value.map((asset) => asset.label));
 const donutColors = computed(() => assets.value.map((asset) => asset.color));
 
@@ -1072,7 +1104,9 @@ const donutColors = computed(() => assets.value.map((asset) => asset.color));
 function assetAllocation(asset: PortfolioAsset): number {
     const total = summary.value.total_current_value;
 
-    return total > 0 ? Math.round((asset.current_value / total) * 1000) / 10 : 0;
+    return total > 0
+        ? Math.round((asset.current_value / total) * 1000) / 10
+        : 0;
 }
 
 const availableSeries = computed<ChartSeries[]>(

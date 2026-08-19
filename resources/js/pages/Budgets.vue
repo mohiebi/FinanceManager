@@ -108,7 +108,9 @@
                         {{ t('budgets.income') }}
                     </p>
                     <p class="mt-2 text-base font-bold text-white">
-                        {{ formatAmount(plan.income) }}
+                        <span :class="maskClass">{{
+                            formatAmount(plan.income)
+                        }}</span>
                         <span class="text-xs font-normal text-[#989898]">{{
                             currencyLabel
                         }}</span>
@@ -125,7 +127,9 @@
                         {{ t('budgets.allocated') }}
                     </p>
                     <p class="mt-2 text-base font-bold text-white">
-                        {{ formatAmount(plan.allocated) }}
+                        <span :class="maskClass">{{
+                            formatAmount(plan.allocated)
+                        }}</span>
                         <span class="text-xs font-normal text-[#989898]">{{
                             currencyLabel
                         }}</span>
@@ -142,7 +146,9 @@
                         {{ t('budgets.unallocated') }}
                     </p>
                     <p class="mt-2 text-base font-bold text-white">
-                        {{ formatAmount(plan.unallocated) }}
+                        <span :class="maskClass">{{
+                            formatAmount(plan.unallocated)
+                        }}</span>
                         <span class="text-xs font-normal text-[#989898]">{{
                             currencyLabel
                         }}</span>
@@ -159,7 +165,9 @@
                         {{ t('budgets.spent') }}
                     </p>
                     <p class="mt-2 text-base font-bold text-white">
-                        {{ formatAmount(plan.actual) }}
+                        <span :class="maskClass">{{
+                            formatAmount(plan.actual)
+                        }}</span>
                         <span class="text-xs font-normal text-[#989898]">{{
                             currencyLabel
                         }}</span>
@@ -214,7 +222,9 @@
                             </div>
 
                             <p class="text-sm font-semibold text-white">
-                                {{ formatAmount(line.allocated) }}
+                                <span :class="maskClass">{{
+                                    formatAmount(line.allocated)
+                                }}</span>
                                 <span class="text-xs font-normal text-[#989898]"
                                     >{{ currencyLabel }}
                                 </span>
@@ -518,6 +528,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useAmountMask } from '@/composables/useAmountMask';
 import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { useVault } from '@/composables/useVault';
 import { useVaultBudget } from '@/composables/useVaultBudget';
@@ -552,6 +563,12 @@ const props = defineProps<{
 const { t } = useI18n();
 const { navigationName } = useNavigationNaming();
 const { revealAsync, sealForSubmit } = useVault();
+const { masked } = useAmountMask();
+const maskClass = computed(() =>
+    masked.value
+        ? 'blur-[6px] transition-[filter] duration-150 select-none'
+        : 'transition-[filter] duration-150',
+);
 
 const { progress: vaultProgress } = useVaultBudget(() => props.vaultBudget);
 

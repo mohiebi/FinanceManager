@@ -253,8 +253,11 @@ html[dir='rtl'] body {
 
 @layer components {
     /* Pages that own their complete bottom spacing opt out of the shared
-       scroller padding, preventing an extra strip after their background. */
-    .app-page-scroll:has(> [data-app-flush-bottom]) {
+       scroller padding, preventing an extra strip after their background.
+       Descendant rather than direct-child: the 1440px content-width wrapper
+       in AppSidebarLayout sits between the scroller and every page's root
+       element now, one level deeper than when this rule was direct-child. */
+    .app-page-scroll:has([data-app-flush-bottom]) {
         padding-bottom: 0;
     }
 

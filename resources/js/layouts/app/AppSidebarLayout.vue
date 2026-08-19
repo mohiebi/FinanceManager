@@ -24,7 +24,14 @@ withDefaults(defineProps<Props>(), {
             class="app-page-scroll h-svh min-h-0 overflow-x-hidden overflow-y-auto pb-4"
         >
             <AppSidebarHeader :breadcrumbs="breadcrumbs" />
-            <slot />
+            <!-- Caps content width on wide monitors, same as the v3 design's
+                 1440px content frame — a full-bleed grid of cards past that
+                 width stops reading as a page and starts reading as a table.
+                 Centered within the space beside the sidebar, not the whole
+                 viewport. -->
+            <div class="mx-auto w-full max-w-[1440px]">
+                <slot />
+            </div>
         </AppContent>
     </AppShell>
 </template>

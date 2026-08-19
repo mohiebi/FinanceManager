@@ -540,6 +540,18 @@ html[dir='rtl'] body {
         letter-spacing: -0.01em;
     }
 
+    /* Keeps a number's digit order left-to-right even inside an RTL-flowing
+       paragraph, so "1,234" (or a Persian-digit rendering of it) never gets
+       reordered by the bidi algorithm. Apply to any inline numeric/amount/date
+       span that sits inside otherwise-RTL text; for a standalone numeric cell
+       (a table column, a calendar day), wrapping the cell in dir="ltr" instead
+       is the other half of this pattern — see the redesign design tokens. */
+    .tabular-ltr {
+        font-variant-numeric: tabular-nums;
+        direction: ltr;
+        unicode-bidi: isolate;
+    }
+
     /* ── KPI card colour accent strips ───────────────────────── */
     .kpi-card-income {
         border-top: 2.5px solid #02cd86;

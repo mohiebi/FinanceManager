@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
+import { useAmountMask } from '@/composables/useAmountMask';
 import { useVault } from '@/composables/useVault';
 import { format as formatMoney } from '@/lib/money';
 import type { CurrencyCode, Rates } from '@/lib/money';
@@ -19,6 +20,7 @@ const props = withDefaults(
 );
 
 const { reveal, revealAsync, trackKey } = useVault();
+const { masked } = useAmountMask();
 
 const resolved = ref<string | number | undefined>(reveal(props.amount));
 
@@ -68,7 +70,15 @@ const formatted = computed(() => {
 </script>
 
 <template>
-    <span v-if="formatted !== undefined">{{ formatted }}</span>
+    <span
+        v-if="formatted !== undefined"
+        :class="
+            masked
+                ? 'blur-[6px] transition-[filter] duration-150 select-none'
+                : 'transition-[filter] duration-150'
+        "
+        >{{ formatted }}</span
+    >
     <span
         v-else
         aria-hidden="true"

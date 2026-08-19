@@ -16,4 +16,6 @@ return [
     'year' => 'Year',
     'language' => 'Language',
     'calendar' => 'Calendar',
+    'hide_amounts' => 'Hide',
+    'show_amounts' => 'Show',
 ];

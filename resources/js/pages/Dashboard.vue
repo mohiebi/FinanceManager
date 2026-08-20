@@ -7,7 +7,7 @@
         <!-- ── Hero: safe to spend + decision/period ─────────────────── -->
         <div class="grid gap-[18px] px-[18px] pt-[18px] lg:grid-cols-2">
             <div
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <p
                     class="text-xs font-semibold tracking-[0.2em] text-[#02CD86] uppercase"
@@ -43,14 +43,10 @@
                  progress card otherwise — never an empty slot. -->
             <div
                 v-if="needsDecision"
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-[#E94E50]/28"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-[#E94E50]/28"
             >
-                <div class="flex items-center gap-2.5">
-                    <span
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#2e0d0d]"
-                    >
-                        <AlertTriangle class="size-[18px] text-[#E94E50]" />
-                    </span>
+                <div class="flex items-center gap-2">
+                    <span class="size-1.5 shrink-0 rounded-full bg-[#E94E50]" />
                     <p
                         class="text-xs font-semibold tracking-[0.2em] text-[#E94E50] uppercase"
                     >
@@ -69,7 +65,7 @@
             </div>
             <div
                 v-else
-                class="kpi-card-period overflow-hidden rounded-[22px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
@@ -117,17 +113,11 @@
         >
             <!-- Income KPI -->
             <article
-                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
-                <div class="flex items-center gap-2.5">
-                    <span
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0d2e22]"
-                    >
-                        <TrendingUp class="size-[18px] text-[#02CD86]" />
-                    </span>
-                    <p
-                        class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase"
-                    >
+                <div class="flex items-center gap-2">
+                    <span class="size-1.5 shrink-0 rounded-full bg-[#02CD86]" />
+                    <p class="text-xs text-[#989898]">
                         {{ t('finance.metrics.income') }}
                     </p>
                 </div>
@@ -151,17 +141,11 @@
             </article>
             <!-- Cost KPI -->
             <article
-                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
-                <div class="flex items-center gap-2.5">
-                    <span
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#24212f]"
-                    >
-                        <TrendingDown class="size-[18px] text-[#6C4EE9]" />
-                    </span>
-                    <p
-                        class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase"
-                    >
+                <div class="flex items-center gap-2">
+                    <span class="size-1.5 shrink-0 rounded-full bg-[#6C4EE9]" />
+                    <p class="text-xs text-[#989898]">
                         {{ t('finance.metrics.costs') }}
                     </p>
                 </div>
@@ -185,26 +169,14 @@
             </article>
             <!-- Balance KPI -->
             <article
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
-                :class="balance >= 0 ? 'kpi-card-income' : 'kpi-card-cost'"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
-                <div class="flex items-center gap-2.5">
+                <div class="flex items-center gap-2">
                     <span
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                        :class="balance >= 0 ? 'bg-[#0d2e22]' : 'bg-[#2e0d0d]'"
-                    >
-                        <Wallet
-                            class="size-[18px]"
-                            :class="
-                                balance >= 0
-                                    ? 'text-[#02CD86]'
-                                    : 'text-[#E94E50]'
-                            "
-                        />
-                    </span>
-                    <p
-                        class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase"
-                    >
+                        class="size-1.5 shrink-0 rounded-full"
+                        :class="balance >= 0 ? 'bg-[#02CD86]' : 'bg-[#E94E50]'"
+                    />
+                    <p class="text-xs text-[#989898]">
                         {{ t('finance.metrics.balance') }}
                     </p>
                 </div>
@@ -236,17 +208,11 @@
             <!-- Net worth KPI -->
             <article
                 v-if="features?.portfolio?.enabled"
-                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
-                <div class="flex items-center gap-2.5">
-                    <span
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0d2e22]"
-                    >
-                        <ChartPie class="size-[18px] text-[#02CD86]" />
-                    </span>
-                    <p
-                        class="text-xs font-medium tracking-[0.15em] text-[#989898] uppercase"
-                    >
+                <div class="flex items-center gap-2">
+                    <span class="size-1.5 shrink-0 rounded-full bg-[#02CD86]" />
+                    <p class="text-xs text-[#989898]">
                         {{ t('finance.dashboard.net_worth') }}
                     </p>
                 </div>
@@ -305,28 +271,19 @@
         >
             <div
                 v-if="features?.bills?.enabled"
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="flex items-center justify-between gap-3">
-                    <div class="flex items-center gap-2.5">
-                        <span
-                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#24212f]"
-                        >
-                            <CalendarClock class="size-[18px] text-[#6C4EE9]" />
-                        </span>
-                        <p
-                            class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-                        >
-                            {{ t('finance.dashboard.needs_you_this_week') }}
-                        </p>
-                    </div>
+                    <p class="text-[14.5px] font-medium text-white">
+                        {{ t('finance.dashboard.needs_you_this_week') }}
+                    </p>
                     <Link
                         :href="
                             billsIndex.url({
                                 query: { currency: props.selectedCurrency },
                             })
                         "
-                        class="text-xs text-[#6C4EE9] hover:underline"
+                        class="text-xs text-[#02CD86] hover:underline"
                     >
                         {{ t('finance.bills.title') }}
                     </Link>
@@ -378,12 +335,24 @@
 
             <!-- Where it went -->
             <div
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 :class="features?.bills?.enabled ? '' : 'xl:col-span-2'"
             >
-                <h2 class="text-[17px] font-normal text-white">
-                    {{ t('finance.dashboard.where_it_went') }}
-                </h2>
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-[14.5px] font-medium text-white">
+                        {{ t('finance.dashboard.where_it_went') }}
+                    </p>
+                    <Link
+                        :href="
+                            reportRoute.url({
+                                query: { currency: props.selectedCurrency },
+                            })
+                        "
+                        class="text-xs text-[#02CD86] hover:underline"
+                    >
+                        {{ t('finance.reports.title') }}
+                    </Link>
+                </div>
                 <template v-if="categoryLegend.length > 0">
                     <div
                         class="mt-4 flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-white/10"
@@ -437,7 +406,7 @@
         <!-- ── Cash flow this month ────────────────────────────────────── -->
         <div class="px-[18px] pt-[18px] pb-[38px]">
             <div
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -479,14 +448,6 @@
 
 <script setup lang="ts">
 import { Deferred, Head, Link, usePage } from '@inertiajs/vue3';
-import {
-    AlertTriangle,
-    CalendarClock,
-    ChartPie,
-    TrendingDown,
-    TrendingUp,
-    Wallet,
-} from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import LineChart from '@/components/charts/LineChart.vue';
@@ -494,11 +455,16 @@ import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
 import { useAmountMask } from '@/composables/useAmountMask';
 import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
+import { usePageSubtitle } from '@/composables/usePageSubtitle';
 import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
 import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
 import { formatAppDate } from '@/lib/date';
 import type { CurrencyCode, Rates } from '@/lib/money';
-import { dashboard, portfolio as portfolioRoute } from '@/routes';
+import {
+    dashboard,
+    portfolio as portfolioRoute,
+    report as reportRoute,
+} from '@/routes';
 import { index as billsIndex } from '@/routes/bills';
 import { index as transactionsIndex } from '@/routes/transactions';
 import type { Logbook, Streak } from '@/types/gamification';
@@ -740,6 +706,15 @@ const totalsReady = computed(
  *  dividing by it on the last day of the month still means something. */
 const daysRemaining = computed(() =>
     Math.max(1, props.period.daysInMonth - props.period.dayOfMonth + 1),
+);
+
+// The mock's per-page header subtitle: "{month} {year} · {N} days left".
+usePageSubtitle(() =>
+    t('finance.dashboard.subtitle', {
+        month: props.period.month,
+        year: props.period.year,
+        days: t('finance.calendar.days_left', { days: daysRemaining.value }),
+    }),
 );
 
 /** A positive balance spread over the days left; null while totals are still

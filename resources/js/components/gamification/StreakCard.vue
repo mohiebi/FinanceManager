@@ -61,7 +61,7 @@ function markNoSpend(): void {
 
 <template>
     <article
-        class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+        class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
     >
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-2.5">

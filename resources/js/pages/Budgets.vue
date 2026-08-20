@@ -28,7 +28,7 @@
         <!-- ── Empty state ────────────────────────────────────────── -->
         <div
             v-if="props.budget === null"
-            class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+            class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[16px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
             <Target class="size-10 text-[#6C4EE9]" />
             <h2 class="mt-4 text-lg font-semibold text-white">
@@ -48,7 +48,7 @@
         <!-- ── Skeleton while the browser opens the amounts ────────── -->
         <div
             v-else-if="plan === null"
-            class="mx-[18px] my-[18px] flex items-center justify-center gap-2 rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+            class="mx-[18px] my-[18px] flex items-center justify-center gap-2 rounded-[16px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
             <Spinner class="size-5 text-[#989898]" />
             <span class="text-sm text-[#989898]">{{
@@ -75,7 +75,7 @@
             <!-- ── One or more lines already over their own limit ──── -->
             <div
                 v-if="overspentLines.length > 0"
-                class="mx-[18px] mt-[18px] flex flex-wrap items-center justify-between gap-4 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-[#E94E50]/28"
+                class="mx-[18px] mt-[18px] flex flex-wrap items-center justify-between gap-4 rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-[#E94E50]/28"
             >
                 <div class="flex items-center gap-3">
                     <span
@@ -104,7 +104,7 @@
 
             <!-- ── Lines ──────────────────────────────────────────── -->
             <section
-                class="mx-[18px] my-[18px] rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
+                class="mx-[18px] my-[18px] rounded-[16px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
             >
                 <h2 class="text-sm font-semibold text-white">
                     {{ t('budgets.lines') }}

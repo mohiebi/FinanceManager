@@ -284,7 +284,7 @@ const settingsLabel = computed(() =>
                     class="hidden w-full shrink-0 lg:sticky lg:top-[92px] lg:block lg:w-60"
                 >
                     <nav
-                        class="space-y-4 overflow-hidden rounded-[22px] bg-[#1a1a1a] p-3 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                        class="space-y-4 overflow-hidden rounded-[16px] bg-[#1a1a1a] p-3 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                         :aria-label="t('settings.title')"
                     >
                         <div v-for="group in navGroups" :key="group.label">

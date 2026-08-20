@@ -9,7 +9,7 @@
              title), but this stays: bills have no other page to manage
              them from. ────────────────────────────────────────────── -->
         <section
-            class="mx-[18px] mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            class="mx-[18px] mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
             <div>
                 <p
@@ -44,7 +44,7 @@
         <!-- ── Empty state ────────────────────────────────────────── -->
         <div
             v-if="bills.length === 0"
-            class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+            class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[16px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
             <span
                 class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#24212f]"
@@ -67,7 +67,7 @@
             <div
                 v-for="bill in bills"
                 :key="bill.id"
-                class="flex flex-col gap-4 overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="flex flex-col gap-4 overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">

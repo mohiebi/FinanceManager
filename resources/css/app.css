@@ -555,23 +555,6 @@ html[dir='rtl'] body {
         unicode-bidi: isolate;
     }
 
-    /* ── KPI card colour accent strips ───────────────────────── */
-    .kpi-card-income {
-        border-top: 2.5px solid #02cd86;
-    }
-    .kpi-card-cost {
-        border-top: 2.5px solid #6c4ee9;
-    }
-    .kpi-card-balance {
-        border-top: 2.5px solid #f59e0b;
-    }
-    .kpi-card-period {
-        border-top: 2.5px solid #9478ff;
-    }
-    .kpi-card-neutral {
-        border-top: 2.5px solid #aaaaaa;
-    }
-
     /* ── Dark page row hover ─────────────────────────────────── */
     .finance-table-row {
         cursor: default;

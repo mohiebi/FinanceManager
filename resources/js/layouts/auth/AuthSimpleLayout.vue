@@ -22,16 +22,18 @@ withDefaults(
 const page = usePage();
 const { t } = useI18n();
 
-const locale = computed(() => (page.props.locale as string | undefined) ?? 'en');
+const locale = computed(
+    () => (page.props.locale as string | undefined) ?? 'en',
+);
 
 const illustration = computed(() => {
     if (locale.value === 'fa') {
-return AuthIllustrationFa;
-}
+        return AuthIllustrationFa;
+    }
 
     if (locale.value === 'de') {
-return AuthIllustrationDe;
-}
+        return AuthIllustrationDe;
+    }
 
     return AuthIllustration;
 });
@@ -49,7 +51,7 @@ return AuthIllustrationDe;
             class="mx-auto flex min-h-[calc(100svh-2rem)] max-w-[1318px] items-center lg:min-h-svh"
         >
             <div
-                class="grid w-full gap-0 overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 lg:h-[min(894px,calc(100svh-4rem))] lg:min-h-[760px] lg:grid-cols-[minmax(0,688px)_minmax(0,1fr)]"
+                class="grid w-full gap-0 overflow-hidden rounded-[16px] bg-[#1a1a1a] ring-1 ring-white/10 lg:h-[min(894px,calc(100svh-4rem))] lg:min-h-[760px] lg:grid-cols-[minmax(0,688px)_minmax(0,1fr)]"
             >
                 <aside
                     class="flex min-h-[20rem] flex-col bg-[#161616] p-6 text-white sm:p-8 lg:min-h-0 lg:border-r lg:border-white/10 lg:px-10 lg:py-[35px]"

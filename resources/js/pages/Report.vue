@@ -6,7 +6,7 @@
     >
         <!-- Filters -->
         <section
-            class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            class="mx-[18px] mt-5 rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
             <div class="flex flex-col gap-5">
                 <div class="flex flex-col gap-4">
@@ -146,7 +146,7 @@
             class="grid gap-[18px] px-[18px] pt-[18px] sm:grid-cols-2 xl:grid-cols-4"
         >
             <article
-                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
@@ -169,7 +169,7 @@
             </article>
 
             <article
-                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#6C4EE9] uppercase"
@@ -192,7 +192,7 @@
             </article>
 
             <article
-                class="kpi-card-neutral overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
@@ -212,7 +212,7 @@
             </article>
 
             <article
-                class="kpi-card-neutral overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <p
                     class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
@@ -229,7 +229,7 @@
              not a restatement of the KPI cards above it. -->
         <section
             v-if="reportReady"
-            class="mx-[18px] mt-[18px] rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            class="mx-[18px] mt-[18px] rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
             <p
                 class="text-xs font-semibold tracking-[0.2em] text-[#02CD86] uppercase"
@@ -254,7 +254,7 @@
         >
             <!-- Cash flow over time — income vs costs -->
             <section
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="mb-4 flex items-center justify-between">
                     <h2 class="text-[18px] leading-none font-normal text-white">
@@ -276,7 +276,7 @@
 
             <!-- Top spending categories — ranked -->
             <section
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="mb-4 flex items-center justify-between">
                     <h2 class="text-[18px] leading-none font-normal text-white">
@@ -301,7 +301,7 @@
 
             <!-- Net savings per bucket -->
             <section
-                class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="mb-4 flex items-center justify-between">
                     <h2 class="text-[18px] leading-none font-normal text-white">
@@ -331,7 +331,7 @@
         >
             <!-- Costs table -->
             <section
-                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div
                     class="flex items-center justify-between gap-4 px-5 py-[29px]"
@@ -496,7 +496,7 @@
 
             <!-- Incomes table -->
             <section
-                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div
                     class="flex items-center justify-between gap-4 px-5 py-[29px]"

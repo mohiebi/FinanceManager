@@ -114,7 +114,7 @@ defineOptions({
         class="min-h-[calc(100svh-72px)] bg-background px-[18px] py-5 text-white lg:min-h-[calc(100svh-92px)]"
     >
         <section
-            class="mx-auto max-w-6xl overflow-hidden rounded-[28px] border border-white/10 bg-[#171a19] shadow-[0_24px_70px_rgba(0,0,0,0.3)]"
+            class="mx-auto max-w-6xl overflow-hidden rounded-[16px] border border-white/10 bg-[#171a19] shadow-[0_24px_70px_rgba(0,0,0,0.3)]"
         >
             <div class="grid lg:grid-cols-[0.8fr_1.2fr]">
                 <div
@@ -230,7 +230,7 @@ defineOptions({
         </section>
 
         <section
-            class="mx-auto mt-[18px] max-w-6xl rounded-[24px] border border-[#02CD86]/20 bg-[linear-gradient(135deg,rgba(2,205,134,0.09),rgba(23,26,25,1)_50%)] p-6 md:flex md:items-center md:justify-between md:gap-8"
+            class="mx-auto mt-[18px] max-w-6xl rounded-[16px] border border-[#02CD86]/20 bg-[linear-gradient(135deg,rgba(2,205,134,0.09),rgba(23,26,25,1)_50%)] p-6 md:flex md:items-center md:justify-between md:gap-8"
         >
             <div>
                 <h2 class="flex items-center gap-2 text-lg font-semibold">
@@ -275,7 +275,7 @@ defineOptions({
 
         <div class="mx-auto mt-[18px] grid max-w-6xl gap-[18px] lg:grid-cols-2">
             <section
-                class="rounded-[22px] border border-white/10 bg-[#171a19] p-6"
+                class="rounded-[16px] border border-white/10 bg-[#171a19] p-6"
             >
                 <h2 class="flex items-center gap-2 font-semibold">
                     <ShieldCheck class="size-4 text-[#02CD86]" />{{
@@ -298,7 +298,7 @@ defineOptions({
                 </div>
             </section>
             <section
-                class="rounded-[22px] border border-white/10 bg-[#171a19] p-6"
+                class="rounded-[16px] border border-white/10 bg-[#171a19] p-6"
             >
                 <h2 class="flex items-center gap-2 font-semibold">
                     <LockKeyhole class="size-4 text-[#60a5fa]" />{{
@@ -358,7 +358,7 @@ defineOptions({
         </div>
 
         <section
-            class="mx-auto mt-[18px] max-w-6xl rounded-[22px] border border-white/10 bg-[#171a19] p-6"
+            class="mx-auto mt-[18px] max-w-6xl rounded-[16px] border border-white/10 bg-[#171a19] p-6"
         >
             <h2 class="font-semibold">{{ t('advisor.profile.assets') }}</h2>
             <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">

@@ -159,7 +159,12 @@ onMounted(async () => {
 });
 
 watch(
-    () => [props.series, props.labels, props.centerValue, props.tooltipFormatter],
+    () => [
+        props.series,
+        props.labels,
+        props.centerValue,
+        props.tooltipFormatter,
+    ],
     () => chart?.updateOptions(buildOptions(), false, true),
     { deep: true },
 );

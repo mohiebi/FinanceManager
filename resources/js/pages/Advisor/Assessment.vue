@@ -570,8 +570,6 @@ function finish(): void {
     );
 }
 
-
-
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -636,7 +634,7 @@ defineOptions({
         </header>
 
         <main
-            class="mx-auto mt-[18px] max-w-5xl rounded-[26px] border border-white/10 bg-[#171a19] p-5 shadow-[0_22px_65px_rgba(0,0,0,0.28)] md:p-8"
+            class="mx-auto mt-[18px] max-w-5xl rounded-[16px] border border-white/10 bg-[#171a19] p-5 shadow-[0_22px_65px_rgba(0,0,0,0.28)] md:p-8"
         >
             <div
                 v-if="!hydrated"
@@ -686,7 +684,9 @@ defineOptions({
                             <label
                                 :for="`${key}-proportion`"
                                 class="mb-2 block text-xs text-white/40"
-                                >{{ t('advisor.questions.liquidity_amount') }}</label
+                                >{{
+                                    t('advisor.questions.liquidity_amount')
+                                }}</label
                             >
                             <select
                                 :id="`${key}-proportion`"
@@ -701,7 +701,11 @@ defineOptions({
                                 class="advisor-input"
                             >
                                 <option value="" disabled>
-                                    {{ t('advisor.questions.liquidity_amount_placeholder') }}
+                                    {{
+                                        t(
+                                            'advisor.questions.liquidity_amount_placeholder',
+                                        )
+                                    }}
                                 </option>
                                 <option
                                     v-for="option in definition.questions[key]
@@ -717,7 +721,9 @@ defineOptions({
                             <label
                                 :for="`${key}-speed`"
                                 class="mb-2 block text-xs text-white/40"
-                                >{{ t('advisor.questions.liquidity_speed') }}</label
+                                >{{
+                                    t('advisor.questions.liquidity_speed')
+                                }}</label
                             >
                             <select
                                 :id="`${key}-speed`"
@@ -732,7 +738,11 @@ defineOptions({
                                 class="advisor-input"
                             >
                                 <option value="" disabled>
-                                    {{ t('advisor.questions.liquidity_speed_placeholder') }}
+                                    {{
+                                        t(
+                                            'advisor.questions.liquidity_speed_placeholder',
+                                        )
+                                    }}
                                 </option>
                                 <option
                                     v-for="option in definition.questions[key]
@@ -1116,7 +1126,9 @@ defineOptions({
                                     >
                                     <label class="advisor-field"
                                         ><span>{{
-                                            t('advisor.portfolio.holding_period')
+                                            t(
+                                                'advisor.portfolio.holding_period',
+                                            )
                                         }}</span
                                         ><select
                                             v-model="asset.holding_period"
@@ -1172,7 +1184,8 @@ defineOptions({
                                         maxlength="300"
                                         rows="2"
                                         class="advisor-input resize-none"
-                                /></label>
+                                    />
+                                </label>
                             </div>
                         </article>
                     </div>
@@ -1270,7 +1283,9 @@ defineOptions({
                                     :key="value"
                                     :value="value"
                                 >
-                                    {{ label('options_experience_years', value) }}
+                                    {{
+                                        label('options_experience_years', value)
+                                    }}
                                 </option>
                             </select></label
                         >

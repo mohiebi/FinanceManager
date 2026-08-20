@@ -197,7 +197,7 @@ const commands = computed(() => {
 
                 <div
                     v-if="deepLink"
-                    class="rounded-[22px] bg-[#252525] p-5 ring-1 ring-white/10"
+                    class="rounded-[16px] bg-[#252525] p-5 ring-1 ring-white/10"
                 >
                     <p class="font-medium text-white">
                         {{ t('settings.telegram.link_ready') }}

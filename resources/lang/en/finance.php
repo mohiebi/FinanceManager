@@ -277,6 +277,7 @@ return [
         'allocation' => 'Allocation',
         'by_current_value' => 'by current value',
         'value_over_time' => 'Value over time',
+        'add_a_series' => 'Add a series',
         'hero_title' => 'Your holdings, cost basis & P/L at a glance.',
         'hero_description' => 'Add a cost basis when logging investment entries to unlock profit/loss tracking here.',
         'export_profit_loss' => 'Export P&L',

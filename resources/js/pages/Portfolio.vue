@@ -247,17 +247,15 @@
                 <section
                     class="flex flex-col overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 >
-                    <div class="mb-4 flex items-center justify-between">
-                        <h2
-                            class="text-[18px] leading-none font-normal text-white"
-                        >
+                    <div class="mb-4 flex items-baseline justify-between">
+                        <p class="text-[14.5px] font-medium text-white">
                             {{ t('finance.portfolio.allocation') }}
-                        </h2>
-                        <span class="text-xs text-[#989898]">{{
+                        </p>
+                        <span class="text-[11.5px] text-[#686868]">{{
                             t('finance.portfolio.by_current_value')
                         }}</span>
                     </div>
-                    <div class="flex flex-1 items-center">
+                    <div class="mx-auto mb-4.5 w-full max-w-[180px]">
                         <DonutChart
                             :series="donutSeries"
                             :labels="donutLabels"
@@ -270,8 +268,36 @@
                                       currencySymbol
                                     : t('finance.price_unavailable')
                             "
+                            hide-legend
                             @slice-click="onSliceClick"
                         />
+                    </div>
+                    <div class="flex flex-1 flex-col justify-center gap-2.5">
+                        <div
+                            v-for="asset in allocationLegend"
+                            :key="asset.key"
+                            class="flex items-center gap-2.5"
+                        >
+                            <span
+                                class="size-2.5 shrink-0 rounded-full"
+                                :style="{ backgroundColor: asset.color }"
+                            />
+                            <span
+                                class="min-w-0 flex-1 truncate text-[13px] text-[#e5e5e5]"
+                                >{{ asset.label }}</span
+                            >
+                            <span
+                                class="text-[12.5px] text-[#989898] tabular-nums"
+                                :class="maskClass"
+                                dir="ltr"
+                                >{{ asset.value_formatted }}</span
+                            >
+                            <span
+                                class="w-10 shrink-0 text-end text-xs text-[#686868]"
+                                dir="ltr"
+                                >{{ asset.pct }}%</span
+                            >
+                        </div>
                     </div>
                 </section>
 
@@ -280,25 +306,25 @@
                     class="flex flex-col overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 >
                     <div
-                        class="mb-4 flex flex-wrap items-center justify-between gap-3"
+                        class="mb-1 flex flex-wrap items-center justify-between gap-3"
                     >
-                        <h2
-                            class="text-[18px] leading-none font-normal text-white"
-                        >
+                        <p class="text-[14.5px] font-medium text-white">
                             {{ t('finance.portfolio.value_over_time') }}
-                        </h2>
+                        </p>
                         <!-- Range buttons — currency is switched from the global
                              header selector, not duplicated here. -->
-                        <div class="flex flex-wrap gap-1.5">
+                        <div
+                            class="flex gap-0.5 rounded-[9px] bg-[#252525] p-[3px] ring-1 ring-white/[0.08]"
+                        >
                             <button
                                 v-for="rangeOption in ranges"
                                 :key="rangeOption.value"
                                 type="button"
                                 :class="[
-                                    'cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition',
+                                    'cursor-pointer rounded-[7px] px-3 py-1 text-xs font-medium transition',
                                     selectedRange === rangeOption.value
                                         ? 'bg-[#02cd86] text-[#101010]'
-                                        : 'text-[#686868] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
+                                        : 'text-[#686868] hover:text-white',
                                 ]"
                                 @click="changeRange(rangeOption.value)"
                             >
@@ -307,14 +333,25 @@
                         </div>
                     </div>
 
-                    <!-- Series toggle chips -->
-                    <div class="mb-3 flex flex-wrap gap-2">
+                    <LineChart
+                        :series="filteredChartSeries"
+                        :categories="props.chartData?.categories ?? []"
+                        :calendar="displayCalendar"
+                        :height="340"
+                    />
+
+                    <div
+                        class="mt-3.5 flex flex-wrap items-center gap-2.5 border-t border-white/[0.07] pt-3.5"
+                    >
+                        <span class="text-xs text-[#686868]">{{
+                            t('finance.portfolio.add_a_series')
+                        }}</span>
                         <button
                             v-for="seriesItem in availableSeries"
                             :key="seriesItem.key"
                             type="button"
                             :class="[
-                                'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition',
+                                'flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition',
                                 activeSeries.has(seriesItem.key)
                                     ? 'text-white'
                                     : 'bg-white/5 text-[#686868] ring-1 ring-white/10 hover:text-white',
@@ -333,13 +370,6 @@
                             {{ seriesItem.name }}
                         </button>
                     </div>
-
-                    <LineChart
-                        :series="filteredChartSeries"
-                        :categories="props.chartData?.categories ?? []"
-                        :calendar="displayCalendar"
-                        :height="340"
-                    />
                 </section>
             </div>
 
@@ -606,6 +636,24 @@ const donutSeries = computed(() =>
 );
 const donutLabels = computed(() => assets.value.map((asset) => asset.label));
 const donutColors = computed(() => assets.value.map((asset) => asset.color));
+
+/** The mock's own dot + name + value + percent legend rows — DonutChart's
+ *  built-in legend can't express this exact shape, so it stays off and this
+ *  drives the list beneath the chart instead. */
+const allocationLegend = computed(() => {
+    const total = summary.value.total_current_value;
+
+    return assets.value.map((asset) => ({
+        key: asset.key,
+        label: asset.label,
+        color: asset.color,
+        value_formatted: `${asset.current_value_formatted} ${currencySymbol.value}`,
+        pct:
+            total > 0
+                ? Math.round((asset.current_value / total) * 1000) / 10
+                : 0,
+    }));
+});
 
 const availableSeries = computed<ChartSeries[]>(
     () => props.chartData?.series ?? [],

@@ -270,6 +270,7 @@ return [
         'allocation' => 'Allokation',
         'by_current_value' => 'nach aktuellem Wert',
         'value_over_time' => 'Wert im Zeitverlauf',
+        'add_a_series' => 'Serie hinzufügen',
         'hero_title' => 'Deine Bestände, Kostenbasis und G/V auf einen Blick.',
         'hero_description' => 'Füge beim Erfassen von Investitionseinträgen eine Kostenbasis hinzu, um hier die Gewinn-/Verlustverfolgung freizuschalten.',
         'export_profit_loss' => 'G/V exportieren',

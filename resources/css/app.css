@@ -194,10 +194,10 @@ html[dir='rtl'] body {
     --auth-outline-border: rgb(255 255 255 / 10%);
     --auth-button-bg: #02cd86;
     --auth-button-foreground: #101010;
-    --auth-radius-frame: 1.375rem;
-    --auth-radius-panel: 1.375rem;
+    --auth-radius-frame: 1rem;
+    --auth-radius-panel: 1rem;
     --auth-radius-control: 0.75rem;
-    --auth-control-height: 2.25rem;
+    --auth-control-height: 2.75rem;
     --auth-shadow-frame: 0 32px 80px rgb(0 0 0 / 28%);
 }
 
@@ -358,7 +358,7 @@ html[dir='rtl'] body {
     }
 
     .auth-otp-slot {
-        height: var(--auth-control-height);
+        height: var(--auth-control-height) !important;
         width: 100%;
         min-width: 0;
         border-radius: var(--auth-radius-control);
@@ -553,23 +553,6 @@ html[dir='rtl'] body {
         font-variant-numeric: tabular-nums;
         direction: ltr;
         unicode-bidi: isolate;
-    }
-
-    /* ── KPI card colour accent strips ───────────────────────── */
-    .kpi-card-income {
-        border-top: 2.5px solid #02cd86;
-    }
-    .kpi-card-cost {
-        border-top: 2.5px solid #6c4ee9;
-    }
-    .kpi-card-balance {
-        border-top: 2.5px solid #f59e0b;
-    }
-    .kpi-card-period {
-        border-top: 2.5px solid #9478ff;
-    }
-    .kpi-card-neutral {
-        border-top: 2.5px solid #aaaaaa;
     }
 
     /* ── Dark page row hover ─────────────────────────────────── */

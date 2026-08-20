@@ -79,7 +79,7 @@ function quantity(value: number): string {
 
 <template>
     <article
-        class="relative overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+        class="relative overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         :class="props.goal.reached ? 'goal-reached ring-[#02CD86]/40' : ''"
     >
         <!-- Confetti. Purely decorative, so it is hidden from assistive tech —

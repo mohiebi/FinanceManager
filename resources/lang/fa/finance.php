@@ -72,6 +72,7 @@ return [
         'current_period' => 'دوره فعلی',
         'day_of_month' => 'روز {day} از {days}',
         'elapsed' => '{progress}٪ از ماه سپری شده',
+        'days_left' => '{days} روز باقی مانده',
     ],
     'currencies' => [
         'toman' => 'تومان',
@@ -103,6 +104,7 @@ return [
     ],
     'dashboard' => [
         'title' => 'داشبورد',
+        'subtitle' => '{month} {year} · {days}',
         'eyebrow' => 'مرکز فرمان مالی',
         'heading' => 'پول شما، در حالت خلبان خودکار.',
         'welcome' => 'خوش برگشتید،',

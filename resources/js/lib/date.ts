@@ -115,7 +115,11 @@ export function monthBucketsBetween(
             from.getMonth() + 1,
             from.getDate(),
         );
-        const end = toJalaali(to.getFullYear(), to.getMonth() + 1, to.getDate());
+        const end = toJalaali(
+            to.getFullYear(),
+            to.getMonth() + 1,
+            to.getDate(),
+        );
 
         let jy = start.jy;
         let jm = start.jm;

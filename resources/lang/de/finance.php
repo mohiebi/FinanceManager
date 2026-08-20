@@ -69,6 +69,7 @@ return [
         'current_period' => 'Aktueller Zeitraum',
         'day_of_month' => 'Tag {day} von {days}',
         'elapsed' => '{progress}% des Monats vergangen',
+        'days_left' => 'Noch {days} Tage',
     ],
     'currencies' => [
         'toman' => 'TOMAN',
@@ -100,6 +101,7 @@ return [
     ],
     'dashboard' => [
         'title' => 'Dashboard',
+        'subtitle' => '{month} {year} · {days}',
         'eyebrow' => 'Finanzzentrale',
         'heading' => 'Dein Geld auf Autopilot.',
         'welcome' => 'Willkommen zurück,',

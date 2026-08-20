@@ -293,12 +293,54 @@
 
         <!-- bar chart -->
         <g>
-            <rect x="234" y="320" width="20" height="46" rx="6" fill="#333333" />
-            <rect x="264" y="296" width="20" height="70" rx="6" fill="#02CD86" />
-            <rect x="294" y="334" width="20" height="32" rx="6" fill="#333333" />
-            <rect x="324" y="284" width="20" height="82" rx="6" fill="#6C4EE9" />
-            <rect x="354" y="310" width="20" height="56" rx="6" fill="#333333" />
-            <rect x="384" y="302" width="20" height="64" rx="6" fill="#02CD86" />
+            <rect
+                x="234"
+                y="320"
+                width="20"
+                height="46"
+                rx="6"
+                fill="#333333"
+            />
+            <rect
+                x="264"
+                y="296"
+                width="20"
+                height="70"
+                rx="6"
+                fill="#02CD86"
+            />
+            <rect
+                x="294"
+                y="334"
+                width="20"
+                height="32"
+                rx="6"
+                fill="#333333"
+            />
+            <rect
+                x="324"
+                y="284"
+                width="20"
+                height="82"
+                rx="6"
+                fill="#6C4EE9"
+            />
+            <rect
+                x="354"
+                y="310"
+                width="20"
+                height="56"
+                rx="6"
+                fill="#333333"
+            />
+            <rect
+                x="384"
+                y="302"
+                width="20"
+                height="64"
+                rx="6"
+                fill="#02CD86"
+            />
             <line
                 x1="234"
                 y1="372"

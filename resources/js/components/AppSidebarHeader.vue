@@ -39,9 +39,11 @@ import type { BreadcrumbItem } from '@/types';
 const props = withDefaults(
     defineProps<{
         breadcrumbs?: BreadcrumbItem[];
+        subtitle?: string | null;
     }>(),
     {
         breadcrumbs: () => [],
+        subtitle: null,
     },
 );
 
@@ -164,11 +166,19 @@ function changeLocale(value: string) {
             <div
                 class="flex w-full items-center justify-between gap-2 lg:w-auto"
             >
-                <h1
-                    class="truncate text-[17px] font-semibold tracking-[-0.015em] text-white lg:text-[19px]"
-                >
-                    {{ pageTitle }}
-                </h1>
+                <div class="min-w-0">
+                    <h1
+                        class="truncate text-[17px] font-semibold tracking-[-0.015em] text-white lg:text-[19px]"
+                    >
+                        {{ pageTitle }}
+                    </h1>
+                    <p
+                        v-if="subtitle"
+                        class="mt-0.5 truncate text-xs text-[#989898]"
+                    >
+                        {{ subtitle }}
+                    </p>
+                </div>
 
                 <div class="flex shrink-0 items-center gap-1.5 lg:hidden">
                     <NotificationBell />

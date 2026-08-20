@@ -5,7 +5,7 @@
         class="finance-dense flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
     >
         <section
-            class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            class="mx-[18px] mt-5 rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
             <div class="flex flex-wrap items-end gap-3">
                 <div class="grid min-w-[160px] flex-1 gap-1.5 sm:max-w-[220px]">
@@ -99,7 +99,7 @@
             class="grid items-start gap-[18px] px-[18px] py-6 sm:py-[38px] xl:grid-cols-2"
         >
             <section
-                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div
                     class="flex flex-wrap items-center justify-between gap-3 px-5 py-5"
@@ -273,7 +273,7 @@
             </section>
 
             <section
-                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div
                     class="flex flex-wrap items-center justify-between gap-3 px-5 py-5"

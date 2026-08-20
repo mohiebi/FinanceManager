@@ -389,7 +389,7 @@ onKeyStroke('Escape', () => {
                 @click.self="pendingUpgrade = null"
             >
                 <div
-                    class="w-full max-w-sm rounded-[22px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
+                    class="w-full max-w-sm rounded-[16px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
                 >
                     <span
                         class="flex size-10 items-center justify-center rounded-xl bg-[#6C4EE9]/15 text-[#a89bf3]"
@@ -458,7 +458,7 @@ onKeyStroke('Escape', () => {
                 @click.self="pendingDisable = null"
             >
                 <div
-                    class="w-full max-w-sm rounded-[22px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
+                    class="w-full max-w-sm rounded-[16px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
                 >
                     <p
                         id="module-disable-title"

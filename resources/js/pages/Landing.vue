@@ -276,16 +276,13 @@ onUnmounted(() => {
         />
     </Head>
 
-    <div class="min-h-screen overflow-x-hidden bg-[#0a0a0a] text-white">
-        <!-- ══════════════════════════════════════════════════════
-             FLOATING NAVBAR
-        ═════════════════════════════════════════════════════════ -->
+    <div class="min-h-screen overflow-x-hidden bg-[#111111] text-white">
         <nav
             :aria-label="t('landing.a11y.main_navigation')"
-            class="fixed top-4 right-4 left-4 z-50 mx-auto max-w-6xl"
+            class="sticky top-0 z-50 border-b border-white/[0.08] bg-[#111111]/85 backdrop-blur-xl"
         >
             <div
-                class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.06] px-5 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl"
+                class="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-4 sm:px-6"
             >
                 <!-- Logo -->
                 <Link
@@ -295,15 +292,15 @@ onUnmounted(() => {
                     <img
                         :src="logoGreen"
                         alt="CashPilot logo"
-                        class="h-12 w-10"
+                        class="h-7 w-6"
                     />
-                    <span class="text-[17px] font-bold text-white"
+                    <span class="text-base font-semibold text-white"
                         >CashPilot</span
                     >
                 </Link>
 
                 <!-- Desktop nav links -->
-                <div class="hidden items-center gap-7 lg:flex">
+                <div class="hidden items-center gap-7 xl:flex">
                     <a
                         v-for="link in navLinks"
                         :key="link.key"
@@ -315,12 +312,12 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Desktop CTAs -->
-                <div class="hidden items-center gap-3 lg:flex">
+                <div class="hidden items-center gap-2 xl:flex">
                     <!-- Language switcher -->
                     <div class="relative">
                         <button
                             type="button"
-                            class="flex cursor-pointer items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-white/60 transition-colors duration-200 hover:text-white"
+                            class="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-[#989898] transition-colors duration-200 hover:text-white"
                             :aria-expanded="langMenuOpen"
                             aria-haspopup="listbox"
                             @click="langMenuOpen = !langMenuOpen"
@@ -334,7 +331,7 @@ onUnmounted(() => {
                         </button>
                         <div
                             v-if="langMenuOpen"
-                            class="absolute end-0 top-full z-50 mt-2 min-w-36 rounded-xl border border-white/10 bg-[#161616] p-1 shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+                            class="absolute end-0 top-full z-50 mt-2 min-w-36 rounded-xl border border-white/10 bg-[#1a1a1a] p-1 shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
                             role="listbox"
                         >
                             <a
@@ -358,7 +355,7 @@ onUnmounted(() => {
                     <template v-if="isLoggedIn">
                         <Link
                             :href="dashboard()"
-                            class="flex cursor-pointer items-center gap-1.5 rounded-xl bg-[#02CD86] px-4 py-2 text-sm font-semibold text-[#0a0a0a] transition-all duration-200 hover:bg-[#00b876]"
+                            class="flex cursor-pointer items-center gap-1.5 rounded-[10px] bg-[#02CD86] px-4 py-2 text-sm font-semibold text-[#101010] transition-all duration-200 hover:bg-[#00b876]"
                         >
                             <LayoutDashboard class="size-4" />
                             {{ t('landing.nav.dashboard') }}
@@ -367,13 +364,13 @@ onUnmounted(() => {
                     <template v-else>
                         <Link
                             :href="login()"
-                            class="cursor-pointer rounded-xl px-4 py-2 text-sm font-medium text-white/70 transition-colors duration-200 hover:text-white"
+                            class="cursor-pointer rounded-[10px] px-3 py-2 text-sm font-medium text-[#989898] transition-colors duration-200 hover:text-white"
                         >
                             {{ t('landing.nav.sign_in') }}
                         </Link>
                         <Link
                             :href="login()"
-                            class="flex cursor-pointer items-center gap-1.5 rounded-xl bg-[#02CD86] px-4 py-2 text-sm font-semibold text-[#0a0a0a] transition-all duration-200 hover:bg-[#00b876]"
+                            class="flex cursor-pointer items-center gap-1.5 rounded-[10px] bg-[#02CD86] px-4 py-2 text-sm font-semibold text-[#101010] transition-all duration-200 hover:bg-[#00b876]"
                         >
                             {{ t('landing.nav.get_started') }}
                             <ArrowRight class="size-3.5 rtl:rotate-180" />
@@ -384,7 +381,7 @@ onUnmounted(() => {
                 <!-- Mobile menu toggle -->
                 <button
                     type="button"
-                    class="flex cursor-pointer items-center justify-center rounded-lg p-2 text-white/70 transition-colors hover:text-white lg:hidden"
+                    class="flex cursor-pointer items-center justify-center rounded-lg p-2 text-white/70 transition-colors hover:text-white xl:hidden"
                     :aria-label="
                         mobileMenuOpen
                             ? t('landing.a11y.close_menu')
@@ -401,7 +398,7 @@ onUnmounted(() => {
             <!-- Mobile menu dropdown -->
             <div
                 v-if="mobileMenuOpen"
-                class="mt-2 rounded-2xl border border-white/10 bg-[#141414]/95 px-5 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl lg:hidden"
+                class="mx-4 mt-2 rounded-2xl border border-white/10 bg-[#1a1a1a]/95 px-5 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl xl:hidden"
             >
                 <div class="flex flex-col gap-3">
                     <a
@@ -471,23 +468,23 @@ onUnmounted(() => {
              HERO SECTION
         ═════════════════════════════════════════════════════════ -->
         <section
-            class="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 pt-32 pb-20"
+            class="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 overflow-hidden px-4 py-20 sm:px-6 lg:min-h-[620px] lg:grid-cols-[1.1fr_.9fr] lg:gap-14 lg:py-24"
             :aria-label="t('landing.a11y.hero')"
         >
             <!-- Ambient gradient glows -->
             <div
                 aria-hidden="true"
-                class="pointer-events-none absolute top-0 left-1/4 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/3 rounded-full bg-[#02CD86]/[0.12] blur-[100px]"
+                class="pointer-events-none absolute top-0 left-1/4 hidden h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/3 rounded-full bg-[#02CD86]/[0.12] blur-[100px]"
             />
             <div
                 aria-hidden="true"
-                class="pointer-events-none absolute right-1/4 bottom-0 h-[500px] w-[500px] translate-x-1/2 translate-y-1/3 rounded-full bg-[#6C4EE9]/[0.14] blur-[100px]"
+                class="pointer-events-none absolute right-1/4 bottom-0 hidden h-[500px] w-[500px] translate-x-1/2 translate-y-1/3 rounded-full bg-[#6C4EE9]/[0.14] blur-[100px]"
             />
 
-            <div class="relative z-10 mx-auto max-w-5xl text-center">
+            <div class="relative z-10 max-w-xl text-center lg:text-start">
                 <!-- Badge -->
                 <div
-                    class="mb-6 inline-flex items-center gap-2 rounded-full border border-[#02CD86]/30 bg-[#02CD86]/10 px-4 py-1.5 text-sm font-medium text-[#02CD86]"
+                    class="mb-5 inline-flex items-center gap-2 rounded-full bg-[#02CD86]/10 px-3.5 py-1.5 text-[13px] font-medium text-[#02CD86]"
                 >
                     <span class="relative flex h-2 w-2">
                         <span
@@ -502,53 +499,53 @@ onUnmounted(() => {
 
                 <!-- Headline -->
                 <h1
-                    class="mb-6 text-5xl leading-tight font-bold tracking-tight text-white sm:text-6xl lg:text-7xl rtl:tracking-normal"
+                    class="mb-5 text-5xl leading-[1.08] font-medium tracking-tight text-white sm:text-[52px] rtl:tracking-normal"
                 >
                     {{ t('landing.hero.title_top') }}
                     <br />
-                    <span
-                        class="bg-gradient-to-r from-[#02CD86] to-[#00f5a3] bg-clip-text text-transparent"
-                    >
+                    <span class="text-[#02CD86]">
                         {{ t('landing.hero.title_highlight') }}
                     </span>
                 </h1>
 
                 <!-- Sub-headline -->
                 <p
-                    class="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-white/60 sm:text-xl"
+                    class="mx-auto mb-8 max-w-xl text-[18px] leading-relaxed text-[#989898] lg:mx-0"
                 >
                     {{ t('landing.hero.subtitle') }}
                 </p>
 
                 <!-- CTA buttons -->
                 <div
-                    class="flex flex-col items-center justify-center gap-4 sm:flex-row"
+                    class="flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start"
                 >
                     <Link
                         :href="login()"
-                        class="flex cursor-pointer items-center gap-2 rounded-2xl bg-[#02CD86] px-8 py-4 text-base font-bold text-[#0a0a0a] shadow-[0_0_40px_rgba(2,205,134,0.3)] transition-all duration-200 hover:bg-[#00b876] hover:shadow-[0_0_60px_rgba(2,205,134,0.45)]"
+                        class="flex cursor-pointer items-center gap-2 rounded-xl bg-[#02CD86] px-[22px] py-3 text-[15px] font-semibold text-[#101010] transition-all duration-200 hover:bg-[#00b876]"
                     >
                         {{ t('landing.hero.cta_primary') }}
                         <ArrowRight class="size-5 rtl:rotate-180" />
                     </Link>
                     <a
                         href="#features"
-                        class="flex cursor-pointer items-center gap-2 rounded-2xl border border-white/20 px-8 py-4 text-base font-medium text-white/80 transition-all duration-200 hover:border-white/40 hover:bg-white/5 hover:text-white"
+                        class="flex cursor-pointer items-center gap-2 rounded-xl border border-white/[0.08] bg-[#1a1a1a] px-[22px] py-3 text-[15px] font-medium text-white transition-all duration-200 hover:border-white/20 hover:bg-[#252525]"
                     >
                         {{ t('landing.hero.cta_secondary') }}
                     </a>
                 </div>
 
                 <!-- Social proof micro-copy -->
-                <p class="mt-6 text-sm text-white/40">
+                <p class="mt-4 text-[13px] text-[#686868]">
                     {{ t('landing.hero.microcopy') }}
                 </p>
             </div>
 
             <!-- Mock dashboard preview -->
-            <div class="relative z-10 mt-20 w-full max-w-5xl px-4">
+            <div
+                class="relative z-10 w-full max-w-[460px] justify-self-center px-0 lg:justify-self-end"
+            >
                 <div
-                    class="rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_40px_80px_rgba(0,0,0,0.6)] backdrop-blur-md sm:p-6"
+                    class="rounded-2xl border border-white/[0.08] bg-[#1a1a1a] p-5 shadow-none sm:p-6"
                     aria-hidden="true"
                     role="presentation"
                 >
@@ -720,17 +717,14 @@ onUnmounted(() => {
         <!-- ══════════════════════════════════════════════════════
              TRUST STRIP
         ═════════════════════════════════════════════════════════ -->
-        <section
-            class="border-y border-white/[0.06] bg-white/[0.02] px-4 py-10"
-            :aria-label="t('landing.a11y.trust')"
-        >
+        <section class="px-4 pb-12" :aria-label="t('landing.a11y.trust')">
             <div
-                class="mx-auto grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
+                class="mx-auto grid max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
             >
                 <div
                     v-for="item in trustItems"
                     :key="item.key"
-                    class="flex items-start gap-3"
+                    class="flex items-start gap-3 rounded-2xl border border-white/[0.08] bg-[#1a1a1a] p-5"
                 >
                     <div
                         class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"

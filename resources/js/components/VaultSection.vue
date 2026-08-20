@@ -357,7 +357,7 @@ async function finishDisable(): Promise<void> {
                  this is the only screen where the trade is spelled out, and the
                  old max-w-md truncated it into two sentences of hedging. -->
             <div
-                class="my-auto w-full max-w-2xl rounded-[22px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10 sm:p-8"
+                class="my-auto w-full max-w-2xl rounded-[16px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10 sm:p-8"
             >
                 <template v-if="step === 'tradeoff' || step === 'disable'">
                     <div class="flex items-start gap-3">

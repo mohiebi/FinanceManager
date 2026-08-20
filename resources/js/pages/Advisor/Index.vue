@@ -104,7 +104,7 @@ defineOptions({
         class="min-h-[calc(100svh-72px)] bg-background px-[18px] py-5 text-white lg:min-h-[calc(100svh-92px)]"
     >
         <section
-            class="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#171a19] px-6 py-8 shadow-[0_24px_70px_rgba(0,0,0,0.32)] md:px-10 md:py-12"
+            class="relative overflow-hidden rounded-[16px] border border-white/10 bg-[#171a19] px-6 py-8 shadow-[0_24px_70px_rgba(0,0,0,0.32)] md:px-10 md:py-12"
         >
             <div
                 class="pointer-events-none absolute -top-32 -right-24 size-80 rounded-full bg-[#02CD86]/10 blur-3xl"
@@ -213,7 +213,7 @@ defineOptions({
 
         <section class="mt-[18px] grid gap-[18px] lg:grid-cols-3">
             <article
-                class="rounded-[22px] border border-white/10 bg-[#171a19] p-6"
+                class="rounded-[16px] border border-white/10 bg-[#171a19] p-6"
             >
                 <ShieldCheck class="size-5 text-[#02CD86]" />
                 <h2 class="mt-5 text-lg font-semibold">
@@ -224,7 +224,7 @@ defineOptions({
                 </p>
             </article>
             <article
-                class="rounded-[22px] border border-white/10 bg-[#171a19] p-6"
+                class="rounded-[16px] border border-white/10 bg-[#171a19] p-6"
             >
                 <Sparkles class="size-5 text-[#a78bfa]" />
                 <h2 class="mt-5 text-lg font-semibold">
@@ -235,7 +235,7 @@ defineOptions({
                 </p>
             </article>
             <article
-                class="rounded-[22px] border border-white/10 bg-[#171a19] p-6"
+                class="rounded-[16px] border border-white/10 bg-[#171a19] p-6"
             >
                 <LockKeyhole class="size-5 text-[#60a5fa]" />
                 <h2 class="mt-5 text-lg font-semibold">
@@ -248,7 +248,7 @@ defineOptions({
         </section>
 
         <section
-            class="mt-[18px] rounded-[22px] border border-white/10 bg-[#171a19] p-6"
+            class="mt-[18px] rounded-[16px] border border-white/10 bg-[#171a19] p-6"
         >
             <h2 class="text-lg font-semibold">{{ t('advisor.history') }}</h2>
             <p
@@ -273,9 +273,7 @@ defineOptions({
                             }}
                         </p>
                         <p class="mt-1 text-xs text-white/35">
-                            {{
-                                label('recommendation_statuses', item.status)
-                            }}
+                            {{ label('recommendation_statuses', item.status) }}
                             ·
                             {{
                                 item.generated_at

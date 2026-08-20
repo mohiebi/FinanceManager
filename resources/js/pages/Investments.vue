@@ -21,7 +21,7 @@
         >
             <template #fallback>
                 <div
-                    class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+                    class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[16px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
                 >
                     <Spinner class="size-8 text-[#02CD86]" />
                     <p class="mt-4 text-sm text-[#989898]">
@@ -32,7 +32,7 @@
 
             <section
                 v-if="visibleMarketPriceRows.length > 0"
-                class="mx-[18px] mt-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="mx-[18px] mt-[18px] overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div
                     class="mb-5 flex flex-wrap items-end justify-between gap-3"
@@ -136,7 +136,7 @@
             <!-- ── Empty state when no entries yet ──────────────────── -->
             <div
                 v-if="(props.assets ?? []).length === 0"
-                class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+                class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[16px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
             >
                 <span
                     class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#24212f]"
@@ -162,7 +162,7 @@
         <!-- ── Recent entries table ──────────────────────────────── -->
         <div
             v-if="props.entries.length > 0"
-            class="mx-[18px] mt-[18px] mb-[38px] overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            class="mx-[18px] mt-[18px] mb-[38px] overflow-hidden rounded-[16px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
             <div
                 class="flex flex-wrap items-center justify-between gap-4 px-5 py-[29px]"

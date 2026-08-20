@@ -6,13 +6,14 @@ import {
     Bot,
     Coins,
     CreditCard,
+    Search,
     ShieldCheck,
     SlidersHorizontal,
     Sparkles,
     Tags,
     User,
 } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
@@ -51,24 +52,34 @@ const showBilling = computed(
 
 type SettingsNavItem = NavItem & {
     icon: Component;
-    /** Matches `settings.navigation.descriptions.*`, shown in the page header. */
+    /** Matches `settings.navigation.descriptions.*`, shown in search results. */
     description: string;
 };
 
-type SettingsNavGroup = { label: string; items: SettingsNavItem[] };
+type SettingsNavGroup = {
+    id: string;
+    label: string;
+    /** One line describing what lives in the group — the v3 tab card's summary. */
+    summary: string;
+    items: SettingsNavItem[];
+};
 
 /**
- * Grouped rather than a flat list of nine.
+ * Four tab cards, not ten links in a sidebar.
  *
- * Nine links in a row is past the point where scanning works — "Categories"
- * and "Assets" are shaped nothing like "Profile", and a flat list says they
- * are. Groups also survive a module being switched off: an empty one drops out
- * rather than leaving a stray heading.
+ * The v3 design collapses every settings page into four groups (Account /
+ * Money / Connections / App), shown as a grid of cards up top rather than a
+ * nav rail down the side — this file still routes to eleven real pages
+ * underneath (keeping every page's own controller, form and dialog intact),
+ * it just changes what gets you there. A group also survives a module being
+ * switched off: an empty one drops out rather than leaving a stray card.
  */
 const navGroups = computed<SettingsNavGroup[]>(() =>
     [
         {
+            id: 'account',
             label: t('settings.navigation.groups.account'),
+            summary: t('settings.navigation.groups_summary.account'),
             items: [
                 {
                     title: t('settings.navigation.profile'),
@@ -97,7 +108,9 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
             ],
         },
         {
+            id: 'money',
             label: t('settings.navigation.groups.money'),
+            summary: t('settings.navigation.groups_summary.money'),
             items: [
                 {
                     title: t('settings.navigation.preferences'),
@@ -130,7 +143,9 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
             ],
         },
         {
+            id: 'connections',
             label: t('settings.navigation.groups.connections'),
+            summary: t('settings.navigation.groups_summary.connections'),
             items: [
                 ...(showTelegram.value
                     ? [
@@ -167,7 +182,9 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
             ],
         },
         {
+            id: 'app',
             label: t('settings.navigation.groups.app'),
+            summary: t('settings.navigation.groups_summary.app'),
             items: [
                 {
                     title: t('settings.navigation.modules'),
@@ -182,170 +199,238 @@ const navGroups = computed<SettingsNavGroup[]>(() =>
 
 const { isCurrentOrParentUrl } = useCurrentUrl();
 
-const flatNavItems = computed<SettingsNavItem[]>(() =>
-    navGroups.value.flatMap((group) => group.items),
+type FlatSettingsNavItem = SettingsNavItem & { groupLabel: string };
+
+const flatNavItems = computed<FlatSettingsNavItem[]>(() =>
+    navGroups.value.flatMap((group) =>
+        group.items.map((item) => ({ ...item, groupLabel: group.label })),
+    ),
 );
 
-/**
- * The section being viewed, so the header can name it.
- *
- * Every settings page used to sit under one heading that said "Settings",
- * with the only answer to "which page am I on" being a tinted nav link — and
- * two of the pages then hid a second `<h1>` behind `sr-only`, so a screen
- * reader heard the word twice and a sighted reader never saw it once. The
- * shell names the active section instead, and owns the page's only `<h1>`.
- *
- * Falls back to the generic title rather than rendering an empty heading: a
- * settings page reachable by URL but absent from the nav (a module switched
- * off mid-visit) still needs something above it.
- */
-const activeItem = computed<SettingsNavItem | undefined>(() =>
-    flatNavItems.value.find((item) => isCurrentOrParentUrl(item.href)),
+/** The tab whose card is tinted green, and whose pages fill the sub-nav. */
+const activeGroup = computed<SettingsNavGroup | undefined>(() =>
+    navGroups.value.find((group) =>
+        group.items.some((item) => isCurrentOrParentUrl(item.href)),
+    ),
 );
 
 const settingsLabel = computed(() =>
     navigationName('settings.title', 'navigation.settings_subtitle'),
 );
+
+/**
+ * Live search across every settings page's title and description.
+ *
+ * The v3 mock searches every row on one in-memory page; these eleven pages
+ * are separate routes with their own controllers, so a row-level index isn't
+ * available without loading all of them up front. Searching the page index
+ * instead — title, description, and group — still answers "where do I turn
+ * this off" from a couple of letters, just one level coarser than the mock.
+ */
+const query = ref('');
+const searching = computed(() => query.value.trim().length > 1);
+const needle = computed(() => query.value.trim().toLowerCase());
+
+const searchResults = computed<FlatSettingsNavItem[]>(() => {
+    if (!searching.value) {
+        return [];
+    }
+
+    return flatNavItems.value.filter((item) =>
+        `${item.title} ${item.description} ${item.groupLabel}`
+            .toLowerCase()
+            .includes(needle.value),
+    );
+});
+
+const searchSummary = computed(() => {
+    const count = searchResults.value.length;
+
+    return t(
+        count === 1
+            ? 'settings.search.matches_one'
+            : 'settings.search.matches_many',
+        {
+            count,
+            query: query.value.trim(),
+        },
+    );
+});
 </script>
 
 <template>
     <div
         class="flex h-full min-h-[calc(100vh-92px)] flex-col bg-[#101010] px-[18px] py-[18px]"
     >
-        <div class="w-full">
-            <div class="mb-[18px]">
-                <!-- Kicker, then the section name. The pair keeps "where am I
-                     in the app" and "which page is this" both on screen, which
-                     one line saying "Settings" on all ten pages could not. -->
-                <p
-                    class="text-[11px] font-medium tracking-[0.2em] text-[#6f6f6f] uppercase"
-                >
-                    {{ settingsLabel }}
-                </p>
-                <h1 class="mt-1 text-[22px] font-normal text-white">
-                    {{ activeItem?.title ?? settingsLabel }}
-                </h1>
-                <p class="mt-1 max-w-[68ch] text-sm text-[#989898]">
-                    {{ activeItem?.description ?? t('settings.description') }}
-                </p>
+        <div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
+            <div class="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                    <h1
+                        class="text-2xl font-semibold tracking-tight text-white"
+                    >
+                        {{ settingsLabel }}
+                    </h1>
+                    <p class="mt-1 max-w-[60ch] text-sm text-[#989898]">
+                        {{ t('settings.description') }}
+                    </p>
+                </div>
+
+                <div class="relative w-full max-w-xs">
+                    <Search
+                        class="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-[#686868]"
+                        aria-hidden="true"
+                    />
+                    <input
+                        v-model="query"
+                        type="search"
+                        :placeholder="t('settings.search.placeholder')"
+                        :aria-label="t('settings.search.placeholder')"
+                        class="settings-input h-11 w-full rounded-xl ps-10 pe-3 text-sm"
+                    />
+                </div>
             </div>
 
-            <div class="flex flex-col gap-[18px] lg:flex-row lg:items-start">
-                <!-- Below lg the sidebar became a ten-link stack that pushed the
-                     page someone had just tapped an entire screen down. Same
-                     links, laid out as one scrollable rail instead, so the
-                     content starts where the header ends. -->
+            <template v-if="searching">
+                <p class="text-sm text-[#989898]" aria-live="polite">
+                    {{ searchSummary }}
+                </p>
+
+                <div
+                    v-if="searchResults.length > 0"
+                    class="flex flex-col gap-2"
+                >
+                    <Link
+                        v-for="item in searchResults"
+                        :key="toUrl(item.href)"
+                        :href="item.href"
+                        class="flex items-center gap-3 rounded-xl bg-[#1a1a1a] px-4 py-3 ring-1 ring-white/10 transition-colors duration-200 hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101010] focus-visible:outline-none"
+                    >
+                        <span
+                            class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#02CD86]/10 text-[#02CD86]"
+                        >
+                            <component
+                                :is="item.icon"
+                                class="size-[18px]"
+                                aria-hidden="true"
+                            />
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span class="flex items-center gap-2">
+                                <span class="text-sm font-medium text-white">{{
+                                    item.title
+                                }}</span>
+                                <span
+                                    class="text-[11px] font-medium tracking-[0.12em] text-[#6f6f6f] uppercase"
+                                    >{{ item.groupLabel }}</span
+                                >
+                            </span>
+                            <span
+                                class="mt-0.5 block truncate text-xs text-[#989898]"
+                                >{{ item.description }}</span
+                            >
+                        </span>
+                    </Link>
+                </div>
+
+                <div
+                    v-else
+                    class="flex flex-col items-center gap-1 rounded-2xl border border-white/10 px-6 py-12 text-center"
+                >
+                    <p class="text-sm font-medium text-white">
+                        {{ t('settings.search.empty_title') }}
+                    </p>
+                    <p class="max-w-[46ch] text-xs text-[#989898]">
+                        {{ t('settings.search.empty_body') }}
+                    </p>
+                </div>
+            </template>
+
+            <template v-else>
+                <!-- The 2x2 grid of tab cards. Each links straight to the
+                     group's first page; the active group's card gets the
+                     green tint the v3 design uses for the selected tab. -->
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <Link
+                        v-for="group in navGroups"
+                        :key="group.id"
+                        :href="group.items[0].href"
+                        :aria-current="
+                            activeGroup?.id === group.id ? 'page' : undefined
+                        "
+                        :class="[
+                            'min-h-11 rounded-xl p-4 text-start transition-colors duration-200',
+                            'focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101010] focus-visible:outline-none',
+                            activeGroup?.id === group.id
+                                ? 'bg-[#02CD86]/8 ring-1 ring-[#02CD86]/40'
+                                : 'bg-[#1a1a1a] ring-1 ring-white/10 hover:bg-white/[0.06]',
+                        ]"
+                    >
+                        <span class="flex items-center justify-between gap-2">
+                            <span
+                                class="text-sm font-medium"
+                                :class="
+                                    activeGroup?.id === group.id
+                                        ? 'text-[#02CD86]'
+                                        : 'text-white'
+                                "
+                                >{{ group.label }}</span
+                            >
+                            <span class="text-xs text-[#989898] tabular-nums">{{
+                                group.items.length
+                            }}</span>
+                        </span>
+                        <p class="mt-2 truncate text-xs text-[#989898]">
+                            {{ group.summary }}
+                        </p>
+                    </Link>
+                </div>
+
+                <!-- Which real page inside the active tab. Below lg and above
+                     it alike — there is no longer a sidebar to compete with
+                     for space, so one scrollable pill row covers every
+                     width. -->
                 <nav
-                    class="-mx-[18px] overflow-x-auto px-[18px] pb-1 lg:hidden [&::-webkit-scrollbar]:hidden"
+                    v-if="activeGroup && activeGroup.items.length > 1"
+                    class="-mx-[18px] overflow-x-auto px-[18px] pb-1 [&::-webkit-scrollbar]:hidden"
                     style="scrollbar-width: none"
                     :aria-label="t('settings.navigation.jump_to')"
                 >
                     <div class="flex w-max items-center gap-2">
-                        <template
-                            v-for="(group, groupIndex) in navGroups"
-                            :key="group.label"
+                        <Link
+                            v-for="item in activeGroup.items"
+                            :key="toUrl(item.href)"
+                            :href="item.href"
+                            :aria-current="
+                                isCurrentOrParentUrl(item.href)
+                                    ? 'page'
+                                    : undefined
+                            "
+                            :class="[
+                                'inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full px-4 text-sm whitespace-nowrap transition-colors duration-200',
+                                'focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101010] focus-visible:outline-none',
+                                isCurrentOrParentUrl(item.href)
+                                    ? 'bg-[#02CD86] font-medium text-[#101010]'
+                                    : 'bg-[#1a1a1a] text-[#989898] ring-1 ring-white/10 hover:text-white',
+                            ]"
                         >
-                            <span
-                                v-if="groupIndex > 0"
-                                class="h-6 w-px shrink-0 bg-white/10"
+                            <component
+                                :is="item.icon"
+                                class="size-4 shrink-0"
                                 aria-hidden="true"
                             />
-                            <Link
-                                v-for="item in group.items"
-                                :key="toUrl(item.href)"
-                                :href="item.href"
-                                :aria-current="
-                                    isCurrentOrParentUrl(item.href)
-                                        ? 'page'
-                                        : undefined
-                                "
-                                :class="[
-                                    'inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full px-4 text-sm whitespace-nowrap transition-colors duration-200',
-                                    'focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101010] focus-visible:outline-none',
-                                    isCurrentOrParentUrl(item.href)
-                                        ? 'bg-[#02CD86] font-medium text-[#101010]'
-                                        : 'bg-[#1a1a1a] text-[#989898] ring-1 ring-white/10 hover:text-white',
-                                ]"
-                            >
-                                <component
-                                    :is="item.icon"
-                                    class="size-4 shrink-0"
-                                    aria-hidden="true"
-                                />
-                                {{ item.title }}
-                            </Link>
-                        </template>
+                            {{ item.title }}
+                        </Link>
                     </div>
                 </nav>
 
-                <!-- Settings nav. Sticky from lg up so it stays reachable while
-                     a long pane scrolls; 92px clears the app header. -->
-                <aside
-                    class="hidden w-full shrink-0 lg:sticky lg:top-[92px] lg:block lg:w-60"
-                >
-                    <nav
-                        class="space-y-4 overflow-hidden rounded-[22px] bg-[#1a1a1a] p-3 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
-                        :aria-label="t('settings.title')"
-                    >
-                        <div v-for="group in navGroups" :key="group.label">
-                            <p
-                                :id="`settings-nav-${group.label}`"
-                                class="px-3 pb-1 text-[11px] font-medium tracking-[0.2em] text-[#6f6f6f] uppercase"
-                            >
-                                {{ group.label }}
-                            </p>
-                            <div
-                                role="group"
-                                :aria-labelledby="`settings-nav-${group.label}`"
-                            >
-                                <Link
-                                    v-for="item in group.items"
-                                    :key="toUrl(item.href)"
-                                    :href="item.href"
-                                    :aria-current="
-                                        isCurrentOrParentUrl(item.href)
-                                            ? 'page'
-                                            : undefined
-                                    "
-                                    :class="[
-                                        'relative flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-colors duration-200',
-                                        'focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none',
-                                        isCurrentOrParentUrl(item.href)
-                                            ? 'bg-[#02CD86]/10 font-medium text-[#02CD86]'
-                                            : 'text-[#989898] hover:bg-white/5 hover:text-white',
-                                    ]"
-                                >
-                                    <!-- Second marker on the active link, so it
-                                         is not tint alone doing the work for
-                                         anyone who cannot separate the two
-                                         greens. -->
-                                    <span
-                                        v-if="isCurrentOrParentUrl(item.href)"
-                                        class="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-[#02CD86]"
-                                        aria-hidden="true"
-                                    />
-                                    <component
-                                        :is="item.icon"
-                                        class="size-4 shrink-0"
-                                        aria-hidden="true"
-                                    />
-                                    <span class="truncate">{{
-                                        item.title
-                                    }}</span>
-                                </Link>
-                            </div>
-                        </div>
-                    </nav>
-                </aside>
-
                 <!-- No card of its own any more: each page composes its own
                      SettingsSection cards, so a form and a destructive action
-                     stop sharing one surface. Fills whatever width it is given;
-                     SettingsRow is what keeps controls readable inside it. -->
+                     stop sharing one surface. SettingsRow is what keeps
+                     controls readable inside it. -->
                 <div class="min-w-0 flex-1 space-y-[18px]">
                     <slot />
                 </div>
-            </div>
+            </template>
         </div>
     </div>
 </template>

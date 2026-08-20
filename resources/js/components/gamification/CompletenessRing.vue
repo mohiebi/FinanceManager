@@ -38,13 +38,17 @@ const rankHint = computed(() =>
 
 <template>
     <article
-        class="overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+        class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
     >
         <div class="flex flex-wrap items-center justify-between gap-3">
             <p
                 class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
             >
-                {{ t('gamification.logbook.title', { month: props.logbook.month }) }}
+                {{
+                    t('gamification.logbook.title', {
+                        month: props.logbook.month,
+                    })
+                }}
             </p>
             <span
                 class="rounded-full bg-white/5 px-2.5 py-1 text-xs text-[#989898]"

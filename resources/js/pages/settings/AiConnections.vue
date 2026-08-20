@@ -256,7 +256,7 @@ defineOptions({
              connected assistant at once, not just one at a time. -->
         <div
             v-if="connections.length > 0"
-            class="flex flex-wrap items-center justify-between gap-4 rounded-[22px] bg-[#02CD86]/8 p-5 ring-1 ring-[#02CD86]/20"
+            class="flex flex-wrap items-center justify-between gap-4 rounded-[16px] bg-[#02CD86]/8 p-5 ring-1 ring-[#02CD86]/20"
         >
             <div class="flex items-center gap-3">
                 <span
@@ -291,7 +291,7 @@ defineOptions({
             <div class="space-y-5">
                 <!-- Connect your assistant -->
                 <div
-                    class="rounded-[22px] bg-[#252525] p-5 ring-1 ring-white/10"
+                    class="rounded-[16px] bg-[#252525] p-5 ring-1 ring-white/10"
                 >
                     <p class="font-medium text-white">
                         {{ t('settings.ai.connect.title') }}

@@ -28,7 +28,7 @@
             <div
                 v-for="index in 2"
                 :key="index"
-                class="h-[210px] animate-pulse rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10"
+                class="h-[210px] animate-pulse rounded-[16px] bg-[#1a1a1a] ring-1 ring-white/10"
             />
         </div>
 
@@ -50,7 +50,7 @@
 
                 <p
                     v-else
-                    class="rounded-[22px] bg-[#1a1a1a] px-6 py-8 text-center text-sm text-[#989898] ring-1 ring-white/10"
+                    class="rounded-[16px] bg-[#1a1a1a] px-6 py-8 text-center text-sm text-[#989898] ring-1 ring-white/10"
                 >
                     {{ t('gamification.goals.empty') }}
                 </p>

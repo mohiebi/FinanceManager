@@ -624,7 +624,7 @@ defineOptions({
         class="min-h-[calc(100svh-72px)] bg-background px-[18px] py-5 text-white lg:min-h-[calc(100svh-92px)]"
     >
         <header
-            class="mx-auto max-w-6xl rounded-[24px] border border-white/10 bg-[#171a19] p-6 md:flex md:items-center md:justify-between md:gap-8"
+            class="mx-auto max-w-6xl rounded-[16px] border border-white/10 bg-[#171a19] p-6 md:flex md:items-center md:justify-between md:gap-8"
         >
             <div>
                 <p
@@ -682,7 +682,7 @@ defineOptions({
              the reassurance about leaving is now true. -->
         <section
             v-if="isGenerating || (awaitsClaim && props.vaultArmed)"
-            class="mx-auto mt-[18px] grid min-h-72 max-w-6xl place-items-center rounded-[24px] border border-white/10 bg-[#171a19] px-6 py-10"
+            class="mx-auto mt-[18px] grid min-h-72 max-w-6xl place-items-center rounded-[16px] border border-white/10 bg-[#171a19] px-6 py-10"
             role="status"
             aria-live="polite"
         >
@@ -719,7 +719,7 @@ defineOptions({
 
         <section
             v-else-if="!payload && props.recommendation.status !== 'failed'"
-            class="mx-auto mt-[18px] grid min-h-72 max-w-6xl place-items-center rounded-[24px] border border-white/10 bg-[#171a19] text-sm text-white/40"
+            class="mx-auto mt-[18px] grid min-h-72 max-w-6xl place-items-center rounded-[16px] border border-white/10 bg-[#171a19] text-sm text-white/40"
         >
             <div class="text-center">
                 <Sparkles class="mx-auto size-6 animate-pulse text-[#a78bfa]" />
@@ -731,7 +731,7 @@ defineOptions({
 
         <section
             v-else-if="props.recommendation.status === 'failed'"
-            class="mx-auto mt-[18px] max-w-6xl rounded-[24px] border border-red-400/15 bg-[#171a19] p-8 text-center"
+            class="mx-auto mt-[18px] max-w-6xl rounded-[16px] border border-red-400/15 bg-[#171a19] p-8 text-center"
         >
             <AlertTriangle class="mx-auto size-7 text-red-300" />
             <h2 class="mt-4 text-lg font-semibold">
@@ -750,7 +750,7 @@ defineOptions({
 
         <section
             v-else-if="isGuidance && payload"
-            class="mx-auto mt-[18px] max-w-4xl rounded-[24px] border border-amber-300/20 bg-[linear-gradient(135deg,rgba(245,158,11,0.1),rgba(23,26,25,1)_48%)] p-6 md:p-8"
+            class="mx-auto mt-[18px] max-w-4xl rounded-[16px] border border-amber-300/20 bg-[linear-gradient(135deg,rgba(245,158,11,0.1),rgba(23,26,25,1)_48%)] p-6 md:p-8"
             role="status"
         >
             <div class="flex items-start gap-4">
@@ -802,7 +802,7 @@ defineOptions({
 
         <section
             v-else-if="payload?.status === 'needs_clarification'"
-            class="mx-auto mt-[18px] max-w-3xl rounded-[24px] border border-[#a78bfa]/20 bg-[#171a19] p-6 md:p-8"
+            class="mx-auto mt-[18px] max-w-3xl rounded-[16px] border border-[#a78bfa]/20 bg-[#171a19] p-6 md:p-8"
         >
             <HelpCircle class="size-6 text-[#a78bfa]" />
             <h2 class="mt-4 text-xl font-semibold">
@@ -909,7 +909,7 @@ defineOptions({
         >
             <section
                 v-if="payload.fit_status === 'closest_fit'"
-                class="mx-auto mt-[18px] max-w-6xl rounded-[22px] border border-amber-300/20 bg-amber-300/[0.07] p-5"
+                class="mx-auto mt-[18px] max-w-6xl rounded-[16px] border border-amber-300/20 bg-amber-300/[0.07] p-5"
                 role="status"
             >
                 <div class="flex items-start gap-3">
@@ -957,7 +957,7 @@ defineOptions({
             </p>
 
             <section
-                class="mx-auto mt-[18px] max-w-6xl rounded-[26px] border border-white/10 bg-[#171a19] p-6 md:p-8"
+                class="mx-auto mt-[18px] max-w-6xl rounded-[16px] border border-white/10 bg-[#171a19] p-6 md:p-8"
             >
                 <p
                     class="text-[11px] font-semibold tracking-[0.25em] text-[#02CD86] uppercase"
@@ -1239,7 +1239,7 @@ defineOptions({
 
             <section
                 v-if="payload.transition_plan"
-                class="mx-auto mt-[18px] max-w-6xl rounded-[24px] border border-white/10 bg-[#171a19] p-6"
+                class="mx-auto mt-[18px] max-w-6xl rounded-[16px] border border-white/10 bg-[#171a19] p-6"
             >
                 <h2 class="font-semibold">
                     {{ t('advisor.recommendation.transition') }}
@@ -1380,7 +1380,7 @@ defineOptions({
                             : null,
                     ].filter(Boolean) as PortfolioPlan[]"
                     :key="alternative.name"
-                    class="rounded-[22px] border border-white/10 bg-[#171a19] p-6"
+                    class="rounded-[16px] border border-white/10 bg-[#171a19] p-6"
                 >
                     <p class="text-xs text-white/35">
                         {{
@@ -1432,7 +1432,7 @@ defineOptions({
             </section>
 
             <section
-                class="mx-auto mt-[18px] max-w-6xl rounded-[24px] border border-[#a78bfa]/18 bg-[#171a19] p-6"
+                class="mx-auto mt-[18px] max-w-6xl rounded-[16px] border border-[#a78bfa]/18 bg-[#171a19] p-6"
             >
                 <h2 class="flex items-center gap-2 font-semibold">
                     <Bot class="size-5 text-[#a78bfa]" />{{

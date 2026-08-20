@@ -1212,7 +1212,7 @@ onKeyStroke('Escape', () => {
                 @click.self="dismissActivation"
             >
                 <div
-                    class="w-full max-w-sm rounded-[22px] bg-[#1a1a1a] p-6 text-center shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
+                    class="w-full max-w-sm rounded-[16px] bg-[#1a1a1a] p-6 text-center shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
                 >
                     <span
                         class="mx-auto flex size-12 items-center justify-center rounded-2xl bg-[#02CD86]/12 text-[#02CD86]"

@@ -7,7 +7,7 @@
         <Deferred :data="['assets', 'summary', 'chartData', 'pricesAvailable']">
             <template #fallback>
                 <div
-                    class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+                    class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[16px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
                 >
                     <Spinner class="size-8 text-[#02CD86]" />
                     <p class="mt-4 text-sm text-[#989898]">
@@ -19,7 +19,7 @@
             <!-- ── Net worth ─────────────────────────────────────────── -->
             <div
                 v-if="assets.length > 0"
-                class="relative mx-[18px] mt-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10 sm:p-7"
+                class="relative mx-[18px] mt-[18px] overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10 sm:p-7"
             >
                 <div
                     class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(2,205,134,0.10),transparent_55%)]"
@@ -237,7 +237,7 @@
             >
                 <!-- Donut / allocation chart -->
                 <section
-                    class="flex flex-col overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                    class="flex flex-col overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 >
                     <div class="mb-4 flex items-center justify-between">
                         <h2
@@ -269,7 +269,7 @@
 
                 <!-- Line chart — value over time -->
                 <section
-                    class="flex flex-col overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                    class="flex flex-col overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 >
                     <div
                         class="mb-4 flex flex-wrap items-center justify-between gap-3"
@@ -338,7 +338,7 @@
             <!-- ── Holdings detail ───────────────────────────────── -->
             <div
                 v-if="assets.length > 0"
-                class="mx-[18px] my-[18px] overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="mx-[18px] my-[18px] overflow-hidden rounded-[16px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div class="px-5 py-[29px]">
                     <h2 class="text-[22px] leading-none font-normal text-white">
@@ -512,7 +512,7 @@
                  spinner, so the empty state waits for the real one. -->
             <div
                 v-if="decrypting"
-                class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+                class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[16px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
             >
                 <Spinner class="size-8 text-[#02CD86]" />
                 <p class="mt-4 text-sm text-[#989898]">
@@ -523,7 +523,7 @@
             <!-- ── Empty state ───────────────────────────────────────── -->
             <div
                 v-else-if="assets.length === 0"
-                class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+                class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[16px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
             >
                 <span
                     class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#24212f]"

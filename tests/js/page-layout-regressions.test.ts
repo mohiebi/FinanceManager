@@ -10,6 +10,7 @@ const assessment = source('../../resources/js/pages/Advisor/Assessment.vue');
 const appLayout = source('../../resources/js/layouts/app/AppSidebarLayout.vue');
 const styles = source('../../resources/css/app.css');
 const preferences = source('../../resources/js/pages/settings/Preferences.vue');
+const appHeader = source('../../resources/js/components/AppSidebarHeader.vue');
 
 test('advisor assessment owns its bottom spacing and uses the shell background', () => {
     assert.match(appLayout, /app-page-scroll/);
@@ -28,4 +29,9 @@ test('advisor assessment owns its bottom spacing and uses the shell background',
 test('the time zone select matches the other preference control widths', () => {
     assert.doesNotMatch(preferences, /sm:w-\[320px\]/);
     assert.match(preferences, /id="timezone"[\s\S]*?sm:w-\[220px\]/);
+});
+
+test('the application header remains visible while settings content scrolls', () => {
+    assert.match(appHeader, /class="sticky top-0 z-40/);
+    assert.doesNotMatch(appHeader, /lg:static/);
 });

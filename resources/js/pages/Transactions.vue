@@ -74,7 +74,7 @@
         >
             <!-- ── Money going out ──────────────────────────────────────── -->
             <section
-                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
+                class="overflow-x-auto rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
             >
                 <div
                     class="mb-4 flex flex-wrap items-start justify-between gap-3.5"
@@ -93,9 +93,10 @@
                         <p
                             class="text-[25px] leading-none font-semibold text-white"
                         >
-                            <CompactNumber
+                            <CompactMoney
                                 v-if="summaryCost !== null"
                                 :value="summaryCost"
+                                :currency="selectedCurrency"
                             />
                             <span v-else class="text-base text-[#686868]"
                                 >—</span
@@ -117,18 +118,22 @@
                 </div>
 
                 <div
-                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px] items-center gap-3 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase"
+                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px_68px] items-center gap-3 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase"
                 >
                     <div>{{ t('finance.fields.subject') }}</div>
                     <div>{{ t('finance.fields.category') }}</div>
                     <div>{{ t('finance.fields.date') }}</div>
-                    <div class="text-end">{{ t('finance.fields.amount') }}</div>
+                    <div class="text-end">
+                        {{ t('finance.fields.amount') }}
+                        <span dir="ltr">({{ selectedCurrencySymbol }})</span>
+                    </div>
+                    <div class="sr-only">{{ t('common.actions') }}</div>
                 </div>
 
                 <div
                     v-for="transaction in props.transactions.costs"
                     :key="transaction.id"
-                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px] items-center gap-3 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02]"
+                    class="group grid grid-cols-[minmax(120px,1fr)_112px_92px_118px_68px] items-center gap-3 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02]"
                 >
                     <div class="min-w-0">
                         <p class="truncate text-sm text-white">
@@ -167,6 +172,28 @@
                             :rates="props.rates"
                         />
                     </span>
+                    <div
+                        class="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
+                    >
+                        <button
+                            type="button"
+                            :aria-label="t('common.edit')"
+                            :title="t('common.edit')"
+                            class="grid size-8 cursor-pointer place-items-center rounded-md text-[#947BFF] transition-colors hover:bg-[#947BFF]/10 focus-visible:ring-2 focus-visible:ring-[#947BFF] focus-visible:outline-none"
+                            @click="openEditForm(transaction)"
+                        >
+                            <Pencil class="size-3.5" aria-hidden="true" />
+                        </button>
+                        <button
+                            type="button"
+                            :aria-label="t('common.delete')"
+                            :title="t('common.delete')"
+                            class="grid size-8 cursor-pointer place-items-center rounded-md text-[#E94E50] transition-colors hover:bg-[#E94E50]/10 focus-visible:ring-2 focus-visible:ring-[#E94E50] focus-visible:outline-none"
+                            @click="void requestDelete(transaction)"
+                        >
+                            <Trash2 class="size-3.5" aria-hidden="true" />
+                        </button>
+                    </div>
                 </div>
 
                 <p
@@ -224,7 +251,7 @@
 
             <!-- ── Money coming in ──────────────────────────────────────── -->
             <section
-                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
+                class="overflow-x-auto rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
             >
                 <div
                     class="mb-4 flex flex-wrap items-start justify-between gap-3.5"
@@ -243,9 +270,10 @@
                         <p
                             class="text-[25px] leading-none font-semibold text-white"
                         >
-                            <CompactNumber
+                            <CompactMoney
                                 v-if="summaryIncome !== null"
                                 :value="summaryIncome"
+                                :currency="selectedCurrency"
                             />
                             <span v-else class="text-base text-[#686868]"
                                 >—</span
@@ -267,18 +295,22 @@
                 </div>
 
                 <div
-                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px] items-center gap-3 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase"
+                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px_68px] items-center gap-3 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase"
                 >
                     <div>{{ t('finance.fields.subject') }}</div>
                     <div>{{ t('finance.fields.category') }}</div>
                     <div>{{ t('finance.fields.date') }}</div>
-                    <div class="text-end">{{ t('finance.fields.amount') }}</div>
+                    <div class="text-end">
+                        {{ t('finance.fields.amount') }}
+                        <span dir="ltr">({{ selectedCurrencySymbol }})</span>
+                    </div>
+                    <div class="sr-only">{{ t('common.actions') }}</div>
                 </div>
 
                 <div
                     v-for="transaction in props.transactions.incomes"
                     :key="transaction.id"
-                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px] items-center gap-3 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02]"
+                    class="group grid grid-cols-[minmax(120px,1fr)_112px_92px_118px_68px] items-center gap-3 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02]"
                 >
                     <div class="min-w-0">
                         <p class="truncate text-sm text-white">
@@ -317,6 +349,28 @@
                             :rates="props.rates"
                         />
                     </span>
+                    <div
+                        class="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
+                    >
+                        <button
+                            type="button"
+                            :aria-label="t('common.edit')"
+                            :title="t('common.edit')"
+                            class="grid size-8 cursor-pointer place-items-center rounded-md text-[#02CD86] transition-colors hover:bg-[#02CD86]/10 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:outline-none"
+                            @click="openEditForm(transaction)"
+                        >
+                            <Pencil class="size-3.5" aria-hidden="true" />
+                        </button>
+                        <button
+                            type="button"
+                            :aria-label="t('common.delete')"
+                            :title="t('common.delete')"
+                            class="grid size-8 cursor-pointer place-items-center rounded-md text-[#E94E50] transition-colors hover:bg-[#E94E50]/10 focus-visible:ring-2 focus-visible:ring-[#E94E50] focus-visible:outline-none"
+                            @click="void requestDelete(transaction)"
+                        >
+                            <Trash2 class="size-3.5" aria-hidden="true" />
+                        </button>
+                    </div>
                 </div>
 
                 <p
@@ -400,6 +454,19 @@
             :transaction="editingTransaction"
             :categories="props.categories"
             :currencies="props.currencies"
+        />
+
+        <ConfirmDeleteModal
+            :open="deleteTarget !== null"
+            :title="
+                t('finance.delete.transaction_title', {
+                    title: deleteTargetTitle,
+                })
+            "
+            :description="t('finance.delete.transaction_description')"
+            :processing="deleteForm.processing"
+            @update:open="(open) => !open && (deleteTarget = null)"
+            @confirm="confirmDelete"
         />
 
         <!-- ── Import ─────────────────────────────────────────────── -->
@@ -635,7 +702,10 @@
                                     <td class="px-3 py-3">
                                         {{
                                             row.data
-                                                ? formatAmount(row.data.amount)
+                                                ? formatCurrencyDisplay(
+                                                      row.data.amount,
+                                                      row.data.currency,
+                                                  )
                                                 : (row.original.amount ?? '-')
                                         }}
                                     </td>
@@ -714,6 +784,8 @@ import {
     Clipboard,
     ClipboardCheck,
     FileDown,
+    Pencil,
+    Trash2,
     Upload,
 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
@@ -721,7 +793,8 @@ import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
-import CompactNumber from '@/components/CompactNumber.vue';
+import CompactMoney from '@/components/CompactMoney.vue';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import CategoryChip from '@/components/transactions/CategoryChip.vue';
 import TransactionDialog from '@/components/transactions/TransactionDialog.vue';
@@ -746,10 +819,19 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAmountMask } from '@/composables/useAmountMask';
 import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
 import { usePageSubtitle } from '@/composables/usePageSubtitle';
+import { useVault } from '@/composables/useVault';
 import { formatAppDate } from '@/lib/date';
+import {
+    currencySymbol,
+    formatCurrencyDisplay,
+    formatCurrencyNumber,
+} from '@/lib/money';
 import type { Rates } from '@/lib/money';
 import { dashboard } from '@/routes';
-import { index as transactionsIndex } from '@/routes/transactions';
+import {
+    destroy as destroyTransaction,
+    index as transactionsIndex,
+} from '@/routes/transactions';
 import type { Encrypted } from '@/types/vault';
 
 type TransactionType = 'cost' | 'income';
@@ -878,6 +960,7 @@ const dialogTransactionType = ref<TransactionType>('cost');
 const editingTransaction = ref<Transaction | null>(null);
 const page = usePage();
 const { t } = useI18n();
+const { revealAsync } = useVault();
 const { masked } = useAmountMask();
 const maskClass = computed(() =>
     masked.value
@@ -894,6 +977,9 @@ const selectedCurrencyLabel = computed(
         props.currencies.find(
             (currency) => currency.value === selectedCurrency.value,
         )?.label ?? t(`finance.currencies.${selectedCurrency.value}`),
+);
+const selectedCurrencySymbol = computed(() =>
+    currencySymbol(selectedCurrency.value),
 );
 const filterSearch = ref(props.filters.search);
 const filterCategory = ref(props.filters.category?.toString() ?? 'all');
@@ -991,12 +1077,7 @@ const summaryIncome = computed<string | null>(() => {
 });
 
 function formatAmount(amount: string | number): string {
-    const numericAmount = Number(String(amount).replace(/,/g, ''));
-
-    return new Intl.NumberFormat('en-US', {
-        maximumFractionDigits: 2,
-        minimumFractionDigits: numericAmount % 1 === 0 ? 0 : 2,
-    }).format(numericAmount);
+    return formatCurrencyNumber(amount, selectedCurrency.value);
 }
 
 usePageSubtitle(() =>
@@ -1013,6 +1094,40 @@ const openCreateForm = (type: TransactionType) => {
     editingTransaction.value = null;
     isDialogOpen.value = true;
 };
+
+function openEditForm(transaction: Transaction): void {
+    dialogTransactionType.value = transaction.type;
+    editingTransaction.value = transaction;
+    isDialogOpen.value = true;
+}
+
+const deleteTarget = ref<Transaction | null>(null);
+const deleteTargetTitle = ref('');
+const deleteForm = useForm({});
+
+async function requestDelete(transaction: Transaction): Promise<void> {
+    deleteTarget.value = transaction;
+    deleteTargetTitle.value =
+        (await revealAsync<string>(
+            transaction.title,
+            'transactions',
+            'string',
+        )) ?? '';
+}
+
+function confirmDelete(): void {
+    if (!deleteTarget.value) {
+        return;
+    }
+
+    deleteForm.delete(destroyTransaction.url(deleteTarget.value.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            deleteTarget.value = null;
+            deleteTargetTitle.value = '';
+        },
+    });
+}
 
 watch(
     () => props.selectedCurrency,

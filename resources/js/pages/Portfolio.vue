@@ -59,14 +59,13 @@
 
                         <p class="mt-3 flex items-baseline gap-2">
                             <template v-if="props.pricesAvailable">
-                                <CompactNumber
-                                    :value="summary.total_current_value"
+                                <CompactMoney
+                                    :value="
+                                        summary.total_current_value_formatted
+                                    "
+                                    :currency="selectedCurrency as CurrencyCode"
                                     class="text-[40px] leading-none font-bold tracking-tight text-white tabular-nums sm:text-[52px]"
                                 />
-                                <span
-                                    class="text-base font-medium text-[#989898]"
-                                    >{{ currencySymbol }}</span
-                                >
                             </template>
                             <span
                                 v-else
@@ -105,13 +104,14 @@
                             </p>
                             <p class="mt-1.5 text-xl font-semibold text-white">
                                 <template v-if="summary.has_cost_basis_data">
-                                    <CompactNumber
-                                        :value="summary.total_cost_basis"
+                                    <CompactMoney
+                                        :value="
+                                            summary.total_cost_basis_formatted
+                                        "
+                                        :currency="
+                                            selectedCurrency as CurrencyCode
+                                        "
                                     />
-                                    <span
-                                        class="text-xs font-normal text-[#989898]"
-                                        >{{ currencySymbol }}</span
-                                    >
                                 </template>
                                 <span
                                     v-else
@@ -146,13 +146,14 @@
                                         summary.total_pnl !== null
                                     "
                                 >
-                                    <span>{{
-                                        summary.total_pnl_is_positive
-                                            ? '+'
-                                            : '−'
-                                    }}</span>
-                                    <CompactNumber
-                                        :value="Math.abs(summary.total_pnl)"
+                                    <span v-if="summary.total_pnl_is_positive"
+                                        >+</span
+                                    >
+                                    <CompactMoney
+                                        :value="summary.total_pnl ?? 0"
+                                        :currency="
+                                            selectedCurrency as CurrencyCode
+                                        "
                                     />
                                 </template>
                                 <span
@@ -187,11 +188,17 @@
                                 <template
                                     v-if="summary.total_pnl_percent !== null"
                                 >
-                                    {{
-                                        summary.total_pnl_is_positive
-                                            ? '+'
-                                            : '−'
-                                    }}{{ Math.abs(summary.total_pnl_percent) }}%
+                                    <template
+                                        v-if="summary.total_pnl_is_positive"
+                                        >+{{
+                                            Math.abs(summary.total_pnl_percent)
+                                        }}%</template
+                                    >
+                                    <template v-else
+                                        >({{
+                                            Math.abs(summary.total_pnl_percent)
+                                        }}%)</template
+                                    >
                                 </template>
                                 <span
                                     v-else
@@ -222,16 +229,16 @@
                                             : 'text-[#E94E50]'
                                     "
                                 >
-                                    <span>{{
-                                        summary.total_realised_pnl_is_positive
-                                            ? '+'
-                                            : '−'
-                                    }}</span>
-                                    <CompactNumber
-                                        :value="
-                                            Math.abs(
-                                                summary.total_realised_pnl ?? 0,
-                                            )
+                                    <span
+                                        v-if="
+                                            summary.total_realised_pnl_is_positive
+                                        "
+                                        >+</span
+                                    >
+                                    <CompactMoney
+                                        :value="summary.total_realised_pnl ?? 0"
+                                        :currency="
+                                            selectedCurrency as CurrencyCode
                                         "
                                     />
                                 </p>
@@ -266,9 +273,10 @@
                             :center-label="t('finance.portfolio.current_value')"
                             :center-value="
                                 props.pricesAvailable
-                                    ? summary.total_current_value_formatted +
-                                      ' ' +
-                                      currencySymbol
+                                    ? formatCurrencyDisplay(
+                                          summary.total_current_value_formatted,
+                                          selectedCurrency as CurrencyCode,
+                                      )
                                     : t('finance.price_unavailable')
                             "
                             hide-legend
@@ -399,15 +407,19 @@
                     </div>
                     <div class="text-end">
                         {{ t('finance.fields.cost_basis_per_unit') }}
+                        <span dir="ltr">({{ selectedCurrencySymbol }})</span>
                     </div>
                     <div class="text-end">
                         {{ t('finance.portfolio.total_cost_basis') }}
+                        <span dir="ltr">({{ selectedCurrencySymbol }})</span>
                     </div>
                     <div class="text-end">
                         {{ t('finance.portfolio.current_value') }}
+                        <span dir="ltr">({{ selectedCurrencySymbol }})</span>
                     </div>
                     <div class="text-end">
                         {{ t('finance.portfolio.profit_loss') }}
+                        <span dir="ltr">({{ selectedCurrencySymbol }})</span>
                     </div>
                 </div>
 
@@ -441,7 +453,12 @@
                         :class="maskClass"
                     >
                         <template v-if="asset.avg_cost_basis_formatted">
-                            {{ asset.avg_cost_basis_formatted }}
+                            {{
+                                formatCurrencyNumber(
+                                    asset.avg_cost_basis_formatted,
+                                    selectedCurrency as CurrencyCode,
+                                )
+                            }}
                         </template>
                         <span v-else class="text-[#686868]">—</span>
                     </div>
@@ -450,7 +467,12 @@
                         :class="maskClass"
                     >
                         <template v-if="asset.total_cost_formatted">
-                            {{ asset.total_cost_formatted }}
+                            {{
+                                formatCurrencyNumber(
+                                    asset.total_cost_formatted,
+                                    selectedCurrency as CurrencyCode,
+                                )
+                            }}
                         </template>
                         <span v-else class="text-[#686868]">—</span>
                     </div>
@@ -459,7 +481,12 @@
                         :class="maskClass"
                     >
                         <template v-if="props.pricesAvailable">
-                            {{ asset.current_value_formatted }}
+                            {{
+                                formatCurrencyNumber(
+                                    asset.current_value_formatted,
+                                    selectedCurrency as CurrencyCode,
+                                )
+                            }}
                         </template>
                         <span v-else class="text-sm font-normal text-[#989898]">
                             {{ t('finance.price_unavailable') }}
@@ -482,8 +509,13 @@
                             >{{ t('finance.price_unavailable') }}</span
                         >
                         <template v-else-if="asset.pnl !== null">
-                            {{ asset.pnl_is_positive ? '+' : '−'
-                            }}{{ asset.pnl_formatted }}
+                            <span v-if="asset.pnl_is_positive">+</span
+                            >{{
+                                formatCurrencyNumber(
+                                    asset.pnl,
+                                    selectedCurrency as CurrencyCode,
+                                )
+                            }}
                         </template>
                         <span v-else>—</span>
                     </div>
@@ -532,12 +564,17 @@ import AssetIcon from '@/components/AssetIcon.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import type { ChartSeries } from '@/components/charts/LineChart.vue';
-import CompactNumber from '@/components/CompactNumber.vue';
+import CompactMoney from '@/components/CompactMoney.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { useAmountMask } from '@/composables/useAmountMask';
 import { useRelativeTime } from '@/composables/useRelativeTime';
 import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
 import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
+import {
+    currencySymbol,
+    formatCurrencyDisplay,
+    formatCurrencyNumber,
+} from '@/lib/money';
 import type { CurrencyCode } from '@/lib/money';
 import type { PortfolioAsset, PortfolioSummary } from '@/lib/portfolio';
 import { dashboard, portfolio } from '@/routes';
@@ -569,6 +606,9 @@ const props = defineProps<{
 }>();
 
 const selectedCurrency = ref(props.selectedCurrency);
+const selectedCurrencySymbol = computed(() =>
+    currencySymbol(selectedCurrency.value as CurrencyCode),
+);
 const { t } = useI18n();
 const page = usePage();
 const { masked } = useAmountMask();
@@ -613,17 +653,6 @@ const lastSyncedLabel = computed(() =>
     formatRelativeTime(props.pricesSyncedAt),
 );
 
-const currencySymbol = computed(() => {
-    switch (selectedCurrency.value) {
-        case 'usd':
-            return '$';
-        case 'eur':
-            return '€';
-        default:
-            return 'T';
-    }
-});
-
 // ── Allocation donut + value-over-time chart ─────────────────────────────
 const ranges = [
     { label: '1W', value: '1w' },
@@ -651,7 +680,10 @@ const allocationLegend = computed(() => {
         key: asset.key,
         label: asset.label,
         color: asset.color,
-        value_formatted: `${asset.current_value_formatted} ${currencySymbol.value}`,
+        value_formatted: formatCurrencyDisplay(
+            asset.current_value_formatted,
+            selectedCurrency.value as CurrencyCode,
+        ),
         pct:
             total > 0
                 ? Math.round((asset.current_value / total) * 1000) / 10

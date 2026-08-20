@@ -102,7 +102,10 @@
                                 <p class="text-[15px] font-semibold text-white">
                                     <template v-if="asset.price_available">
                                         <span :class="maskClass">{{
-                                            asset.price_formatted
+                                            formatCurrencyNumber(
+                                                asset.price_formatted,
+                                                selectedCurrency as CurrencyCode,
+                                            )
                                         }}</span>
                                     </template>
                                     <span
@@ -375,6 +378,8 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAmountMask } from '@/composables/useAmountMask';
 import { useRelativeTime } from '@/composables/useRelativeTime';
 import { formatAppDate } from '@/lib/date';
+import { formatCurrencyDisplay, formatCurrencyNumber } from '@/lib/money';
+import type { CurrencyCode } from '@/lib/money';
 import { dashboard } from '@/routes';
 import { index as investmentsIndex } from '@/routes/investments';
 import type { Encrypted } from '@/types/vault';
@@ -508,17 +513,6 @@ const selectedCurrencyLabel = computed(
         )?.label ?? t(`finance.currencies.${selectedCurrency.value}`),
 );
 
-const currencySymbol = computed(() => {
-    switch (selectedCurrency.value) {
-        case 'usd':
-            return '$';
-        case 'eur':
-            return '€';
-        default:
-            return 'T';
-    }
-});
-
 const pricesResolved = computed(() => props.pricesAvailable !== undefined);
 const visibleMarketPriceRows = computed<MarketPriceRow[]>(() =>
     (props.marketPriceRows ?? []).filter((row) => row.assets.length > 0),
@@ -572,7 +566,10 @@ const entryGroups = computed<EntryGroup[]>(() => {
             label: asset.label,
             color: asset.color,
             qtyDisplay: `${asset.quantity_display} ${asset.unit}`,
-            totalFormatted: `${asset.value_formatted} ${currencySymbol.value}`,
+            totalFormatted: formatCurrencyDisplay(
+                asset.value_formatted,
+                selectedCurrency.value as CurrencyCode,
+            ),
             entries: props.entries.filter(
                 (entry) => entry.asset_type === asset.key,
             ),
@@ -661,12 +658,11 @@ function formatEntryValue(quantity: number, assetType: AssetKey): string {
     const price = (props.prices ?? {})[assetType] ?? 0;
     const valueInToman = quantity * price;
     const converted = convertFromToman(valueInToman, selectedCurrency.value);
-    const decimals = selectedCurrency.value === 'toman' ? 0 : 2;
 
-    return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-    }).format(converted);
+    return formatCurrencyDisplay(
+        converted,
+        selectedCurrency.value as CurrencyCode,
+    );
 }
 
 function displayDate(value: string): string {

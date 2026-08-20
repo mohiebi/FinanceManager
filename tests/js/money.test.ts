@@ -4,6 +4,10 @@ import { test } from 'node:test';
 
 import {
     convert,
+    currencySymbol,
+    formatCompactCurrencyDisplay,
+    formatCurrencyDisplay,
+    formatCurrencyNumber,
     format,
     sumFormatted,
 } from '../../resources/js/lib/money.ts';
@@ -67,4 +71,35 @@ test('rounding breaks ties away from zero, as PHP does', () => {
 test('a non-numeric amount is treated as zero rather than NaN', () => {
     assert.equal(convert('', 'usd', 'usd', rates), 0);
     assert.equal(format('nonsense', 'usd', 'toman', rates), '0.00');
+});
+
+test('currency symbols keep their financial reading order', () => {
+    assert.equal(formatCurrencyDisplay('1,250', 'toman'), '1,250\u00a0T');
+    assert.equal(formatCurrencyDisplay('8.50', 'usd'), '$8.50');
+    assert.equal(formatCurrencyDisplay('7.25', 'eur'), '€7.25');
+    assert.equal(formatCurrencyDisplay('-1250', 'usd'), '($1,250.00)');
+    assert.equal(formatCurrencyDisplay('-1250', 'eur'), '(€1,250.00)');
+    assert.equal(formatCurrencyDisplay('-1250', 'toman'), '(1,250\u00a0T)');
+    assert.equal(currencySymbol('toman'), 'T');
+});
+
+test('currency precision follows the selected unit', () => {
+    assert.equal(formatCurrencyNumber('1250.49', 'toman'), '1,250');
+    assert.equal(formatCurrencyNumber('1250', 'usd'), '1,250.00');
+    assert.equal(formatCurrencyNumber('1250.5', 'eur'), '1,250.50');
+    assert.equal(formatCurrencyNumber('-1250.5', 'eur'), '(1,250.50)');
+});
+
+test('compact currency values retain symbol and sign order', () => {
+    assert.equal(
+        formatCompactCurrencyDisplay('1250000', 'toman'),
+        '1.3M\u00a0T',
+    );
+    assert.equal(formatCompactCurrencyDisplay('1250', 'usd'), '$1.3K');
+    assert.equal(formatCompactCurrencyDisplay('-1250', 'usd'), '($1.3K)');
+    assert.equal(formatCompactCurrencyDisplay('-1250', 'eur'), '(€1.3K)');
+    assert.equal(
+        formatCompactCurrencyDisplay('-1250000', 'toman'),
+        '(1.3M\u00a0T)',
+    );
 });

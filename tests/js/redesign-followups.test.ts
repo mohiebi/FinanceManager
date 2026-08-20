@@ -8,7 +8,11 @@ function source(path: string): string {
 
 const bills = source('../../resources/js/pages/Bills.vue');
 const cipheredMoney = source('../../resources/js/components/CipheredMoney.vue');
+const compactMoney = source('../../resources/js/components/CompactMoney.vue');
 const modules = source('../../resources/js/pages/settings/Modules.vue');
+const amountMask = source('../../resources/js/composables/useAmountMask.ts');
+const portfolio = source('../../resources/js/pages/Portfolio.vue');
+const preferences = source('../../resources/js/pages/settings/Preferences.vue');
 const report = source('../../resources/js/pages/Report.vue');
 const transactions = source('../../resources/js/pages/Transactions.vue');
 
@@ -17,7 +21,7 @@ test('compact figures are limited to totals and preserve exact table values', ()
     assert.doesNotMatch(cipheredMoney, /notation:\s*'compact'/);
     assert.match(transactions, /:value="summaryCost"/);
     assert.match(transactions, /:value="summaryIncome"/);
-    assert.match(report, /<CompactNumber\s+:value="balanceTotal"/);
+    assert.match(report, /<CompactMoney[\s\S]*?:value="balanceTotal"/);
 });
 
 test('transaction and report actions use their redesigned footers', () => {
@@ -36,6 +40,36 @@ test('due-soon Telegram reminders show their remaining due time', () => {
 test('the dark-only module screen does not render appearance controls', () => {
     assert.doesNotMatch(modules, /modules\.display\.appearance/);
     assert.doesNotMatch(modules, /modules\.display\.dark/);
+});
+
+test('compact figures lives under Money preferences, not App modules', () => {
+    assert.doesNotMatch(modules, /control-id="compact_figures_enabled"/);
+    assert.match(preferences, /control-id="compact_figures_enabled"/);
+});
+
+test('portfolio summary totals use selected-currency values', () => {
+    assert.match(portfolio, /summary\.total_current_value_formatted/);
+    assert.match(portfolio, /summary\.total_cost_basis_formatted/);
+    assert.match(portfolio, /:value="summary\.total_pnl \?\? 0"/);
+    assert.match(portfolio, /:value="\s*summary\.total_realised_pnl \?\? 0/);
+});
+
+test('compact money exposes exact tooltips and colours accounting losses red', () => {
+    assert.match(compactMoney, /formatCompactCurrencyDisplay/);
+    assert.match(compactMoney, /<TooltipContent/);
+    assert.match(compactMoney, /!text-\[#E94E50\]/);
+    assert.match(cipheredMoney, /!text-\[#E94E50\]/);
+});
+
+test('transaction rows expose edit and delete actions', () => {
+    assert.match(transactions, /@click="openEditForm\(transaction\)"/);
+    assert.match(transactions, /@click="void requestDelete\(transaction\)"/);
+    assert.match(transactions, /<ConfirmDeleteModal/);
+});
+
+test('amount-mask device state is scoped per user', () => {
+    assert.match(amountMask, /page\.props\.auth\.user\?\.id/);
+    assert.match(amountMask, /STORAGE_KEY_PREFIX \+ ':'/);
 });
 
 test('category filters remain in the same responsive row as search', () => {

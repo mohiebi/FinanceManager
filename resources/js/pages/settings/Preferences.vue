@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { EyeOff, Globe, Plane } from 'lucide-vue-next';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { EyeOff, Globe, Palette, Plane } from 'lucide-vue-next';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import InputError from '@/components/InputError.vue';
 import SettingsRow from '@/components/settings/SettingsRow.vue';
@@ -18,6 +19,9 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useAmountMask } from '@/composables/useAmountMask';
+import { useCompactFigures } from '@/composables/useCompactFigures';
+import { update as updateDisplay } from '@/routes/display';
+import { edit as editPreferences } from '@/routes/preferences';
 
 type Option = {
     label: string;
@@ -40,6 +44,7 @@ const props = defineProps<{
 const page = usePage();
 const { t } = useI18n();
 const { setMasked } = useAmountMask();
+const { compact: compactFigures } = useCompactFigures();
 
 const form = useForm({
     locale: (page.props.locale as string | undefined) ?? 'en',
@@ -54,9 +59,27 @@ const form = useForm({
 
 defineOptions({
     layout: {
-        breadcrumbs: [{ title: 'Preferences', href: '/settings/preferences' }],
+        breadcrumbs: [{ title: 'Preferences', href: editPreferences() }],
     },
 });
+
+const processingDisplay = ref(false);
+
+function toggleCompactFigures(value: boolean): void {
+    processingDisplay.value = true;
+
+    router.patch(
+        updateDisplay.url(),
+        { compact_figures_enabled: value },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => {
+                processingDisplay.value = false;
+            },
+        },
+    );
+}
 
 function submit(): void {
     form.patch('/settings/preferences', {
@@ -256,6 +279,25 @@ function discard(): void {
                         "
                     />
                     <InputError :message="form.errors.amount_mask_default" />
+                </SettingsRow>
+            </SettingsSection>
+
+            <SettingsSection
+                :icon="Palette"
+                :title="t('modules.display.heading')"
+            >
+                <SettingsRow
+                    :label="t('modules.display.compact_figures_label')"
+                    :help="t('modules.display.compact_figures_description')"
+                    control-id="compact_figures_enabled"
+                    last
+                >
+                    <Switch
+                        id="compact_figures_enabled"
+                        :checked="compactFigures"
+                        :disabled="processingDisplay"
+                        @update:checked="toggleCompactFigures($event === true)"
+                    />
                 </SettingsRow>
             </SettingsSection>
 

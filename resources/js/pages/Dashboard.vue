@@ -16,11 +16,10 @@
                 </p>
                 <p class="mt-3 flex flex-wrap items-baseline gap-2">
                     <template v-if="safeToSpendPerDay !== null">
-                        <span
+                        <CompactNumber
                             class="text-[36px] leading-none font-bold text-white sm:text-[44px]"
-                            :class="maskClass"
-                            >{{ formatAmount(safeToSpendPerDay) }}</span
-                        >
+                            :value="safeToSpendPerDay"
+                        />
                         <span class="text-sm font-medium text-[#989898]">
                             {{ selectedCurrencyLabel }} ·
                             {{ t('finance.dashboard.per_day') }}
@@ -122,9 +121,10 @@
                     </p>
                 </div>
                 <p class="mt-3 text-[20px] leading-none font-bold text-white">
-                    <span v-if="summaryIncome !== null" :class="maskClass">{{
-                        formatAmount(summaryIncome)
-                    }}</span>
+                    <CompactNumber
+                        v-if="summaryIncome !== null"
+                        :value="summaryIncome"
+                    />
                     <span
                         v-else
                         aria-hidden="true"
@@ -150,9 +150,10 @@
                     </p>
                 </div>
                 <p class="mt-3 text-[20px] leading-none font-bold text-white">
-                    <span v-if="summaryCost !== null" :class="maskClass">{{
-                        formatAmount(summaryCost)
-                    }}</span>
+                    <CompactNumber
+                        v-if="summaryCost !== null"
+                        :value="summaryCost"
+                    />
                     <span
                         v-else
                         aria-hidden="true"
@@ -184,9 +185,9 @@
                     class="mt-3 text-[20px] leading-none font-bold"
                     :class="balance >= 0 ? 'text-[#02CD86]' : 'text-[#E94E50]'"
                 >
-                    <span v-if="totalsReady" :class="maskClass">
+                    <span v-if="totalsReady">
                         {{ balance >= 0 ? '+' : '−'
-                        }}{{ formatAmount(Math.abs(balance)) }}
+                        }}<CompactNumber :value="Math.abs(balance)" />
                     </span>
                     <span
                         v-else
@@ -229,11 +230,9 @@
                         class="mt-3 text-[20px] leading-none font-bold text-white"
                     >
                         <template v-if="portfolioSnapshot">
-                            <span :class="maskClass">{{
-                                formatAmount(
-                                    portfolioSnapshot.net_worth_formatted,
-                                )
-                            }}</span>
+                            <CompactNumber
+                                :value="portfolioSnapshot.net_worth_formatted"
+                            />
                             <span class="text-xs font-normal text-[#989898]">{{
                                 selectedCurrencyLabel
                             }}</span>
@@ -453,6 +452,7 @@ import { useI18n } from 'vue-i18n';
 import LineChart from '@/components/charts/LineChart.vue';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
+import CompactNumber from '@/components/CompactNumber.vue';
 import { useAmountMask } from '@/composables/useAmountMask';
 import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
 import { usePageSubtitle } from '@/composables/usePageSubtitle';

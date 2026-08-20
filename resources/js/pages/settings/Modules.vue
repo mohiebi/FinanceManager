@@ -25,7 +25,6 @@ import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SettingsRow from '@/components/settings/SettingsRow.vue';
 import SettingsSection from '@/components/settings/SettingsSection.vue';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useCompactFigures } from '@/composables/useCompactFigures';
@@ -399,14 +398,15 @@ onKeyStroke('Escape', () => {
         <!-- The v3 mock's "Display" group. Table density has no backing
              setting anywhere in the app and would mean touching every table
              component, so it stays out. Compact figures is real, wired
-             through CipheredMoney.vue. Appearance is a disabled button
-             saying CashPilot has no light mode, replacing the empty stub
-             Appearance.vue showed before this. -->
+             through CompactNumber.vue. Appearance was a disabled button
+             saying CashPilot has no light mode — removed outright rather
+             than shown disabled, since there's nothing to ever turn on. -->
         <SettingsSection :icon="Palette" :title="t('modules.display.heading')">
             <SettingsRow
                 :label="t('modules.display.compact_figures_label')"
                 :help="t('modules.display.compact_figures_description')"
                 control-id="compact_figures_enabled"
+                last
             >
                 <Switch
                     id="compact_figures_enabled"
@@ -414,16 +414,6 @@ onKeyStroke('Escape', () => {
                     :disabled="processingDisplay"
                     @update:checked="toggleCompactFigures($event === true)"
                 />
-            </SettingsRow>
-
-            <SettingsRow
-                :label="t('modules.display.appearance_label')"
-                :help="t('modules.display.appearance_description')"
-                last
-            >
-                <Button variant="outline" size="sm" disabled>
-                    {{ t('modules.display.appearance_button') }}
-                </Button>
             </SettingsRow>
         </SettingsSection>
     </div>

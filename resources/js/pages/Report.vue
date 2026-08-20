@@ -46,7 +46,10 @@
                     >
                         <SelectTrigger
                             id="report_category"
-                            :class="filterFieldClass"
+                            :class="[
+                                filterFieldClass,
+                                '!w-full shrink-0 sm:!w-[240px]',
+                            ]"
                             :aria-label="t('finance.fields.category')"
                         >
                             <SelectValue
@@ -152,12 +155,12 @@
                 <p
                     class="text-[25px] leading-none font-semibold text-[#02CD86]"
                 >
-                    <span v-if="incomeTotal !== null" :class="maskClass">{{
-                        formatMoney(
-                            incomeTotal.toFixed(2),
-                            props.selectedCurrency,
-                        )
-                    }}</span>
+                    <template v-if="incomeTotal !== null">
+                        <CompactNumber :value="incomeTotal" />
+                        <span class="text-sm font-normal">
+                            {{ currencyLabel(props.selectedCurrency) }}
+                        </span>
+                    </template>
                     <span
                         v-else
                         aria-hidden="true"
@@ -181,12 +184,12 @@
                 <p
                     class="text-[25px] leading-none font-semibold text-[#947BFF]"
                 >
-                    <span v-if="costTotal !== null" :class="maskClass">{{
-                        formatMoney(
-                            costTotal.toFixed(2),
-                            props.selectedCurrency,
-                        )
-                    }}</span>
+                    <template v-if="costTotal !== null">
+                        <CompactNumber :value="costTotal" />
+                        <span class="text-sm font-normal">
+                            {{ currencyLabel(props.selectedCurrency) }}
+                        </span>
+                    </template>
                     <span
                         v-else
                         aria-hidden="true"
@@ -203,9 +206,12 @@
                     {{ currencyLabel(props.selectedCurrency) }}
                 </p>
                 <p class="text-[25px] leading-none font-semibold text-white">
-                    <span v-if="balanceLabel !== null" :class="maskClass">{{
-                        balanceLabel
-                    }}</span>
+                    <template v-if="balanceTotal !== null">
+                        <CompactNumber :value="balanceTotal" />
+                        <span class="text-sm font-normal text-[#989898]">
+                            {{ currencyLabel(props.selectedCurrency) }}
+                        </span>
+                    </template>
                     <span
                         v-else
                         aria-hidden="true"
@@ -578,6 +584,22 @@
                 </div>
             </section>
         </div>
+
+        <!-- Export belongs with the completed report tables, not among the
+             filters that define the report. -->
+        <div
+            class="mx-[18px] mb-[38px] flex flex-wrap items-center justify-between gap-4 rounded-[16px] bg-[#1a1a1a] px-[22px] py-[18px] ring-1 ring-white/10"
+        >
+            <p class="text-[13.5px] text-[#989898]">
+                {{ t('finance.reports.export_hint') }}
+            </p>
+            <a
+                href="/transactions/export"
+                class="cursor-pointer rounded-[10px] bg-[#252525] px-[15px] py-2 text-[13.5px] text-white ring-1 ring-white/[0.14] transition-colors hover:bg-[#2e2e2e]"
+            >
+                {{ t('finance.actions.export_transactions') }}
+            </a>
+        </div>
     </div>
 </template>
 
@@ -591,6 +613,7 @@ import PulseChart from '@/components/charts/PulseChart.vue';
 import RankedBarChart from '@/components/charts/RankedBarChart.vue';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
+import CompactNumber from '@/components/CompactNumber.vue';
 import CategoryChip from '@/components/transactions/CategoryChip.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -786,15 +809,12 @@ const incomeTotal = computed(() =>
 );
 const costTotal = computed(() => totalOf(props.analyticsTransactions.costs));
 
-const balanceLabel = computed(() => {
+const balanceTotal = computed(() => {
     if (incomeTotal.value === null || costTotal.value === null) {
         return null;
     }
 
-    return formatMoney(
-        (incomeTotal.value - costTotal.value).toFixed(2),
-        props.selectedCurrency,
-    );
+    return incomeTotal.value - costTotal.value;
 });
 
 const chartPalette = [

@@ -59,12 +59,10 @@
 
                         <p class="mt-3 flex items-baseline gap-2">
                             <template v-if="props.pricesAvailable">
-                                <span
+                                <CompactNumber
+                                    :value="summary.total_current_value"
                                     class="text-[40px] leading-none font-bold tracking-tight text-white tabular-nums sm:text-[52px]"
-                                    :class="maskClass"
-                                >
-                                    {{ summary.total_current_value_formatted }}
-                                </span>
+                                />
                                 <span
                                     class="text-base font-medium text-[#989898]"
                                     >{{ currencySymbol }}</span
@@ -107,9 +105,9 @@
                             </p>
                             <p class="mt-1.5 text-xl font-semibold text-white">
                                 <template v-if="summary.has_cost_basis_data">
-                                    <span :class="maskClass">{{
-                                        summary.total_cost_basis_formatted
-                                    }}</span>
+                                    <CompactNumber
+                                        :value="summary.total_cost_basis"
+                                    />
                                     <span
                                         class="text-xs font-normal text-[#989898]"
                                         >{{ currencySymbol }}</span
@@ -148,13 +146,14 @@
                                         summary.total_pnl !== null
                                     "
                                 >
-                                    <span :class="maskClass">
-                                        {{
-                                            summary.total_pnl_is_positive
-                                                ? '+'
-                                                : '−'
-                                        }}{{ summary.total_pnl_formatted }}
-                                    </span>
+                                    <span>{{
+                                        summary.total_pnl_is_positive
+                                            ? '+'
+                                            : '−'
+                                    }}</span>
+                                    <CompactNumber
+                                        :value="Math.abs(summary.total_pnl)"
+                                    />
                                 </template>
                                 <span
                                     v-else
@@ -228,9 +227,13 @@
                                             ? '+'
                                             : '−'
                                     }}</span>
-                                    <span :class="maskClass">{{
-                                        summary.total_realised_pnl_formatted
-                                    }}</span>
+                                    <CompactNumber
+                                        :value="
+                                            Math.abs(
+                                                summary.total_realised_pnl ?? 0,
+                                            )
+                                        "
+                                    />
                                 </p>
                             </div>
                         </template>
@@ -529,6 +532,7 @@ import AssetIcon from '@/components/AssetIcon.vue';
 import DonutChart from '@/components/charts/DonutChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import type { ChartSeries } from '@/components/charts/LineChart.vue';
+import CompactNumber from '@/components/CompactNumber.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { useAmountMask } from '@/composables/useAmountMask';
 import { useRelativeTime } from '@/composables/useRelativeTime';

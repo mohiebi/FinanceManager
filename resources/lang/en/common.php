@@ -6,6 +6,7 @@ return [
     'confirm' => 'Confirm',
     'edit' => 'Edit',
     'delete' => 'Delete',
+    'actions' => 'Actions',
     'select' => 'Select',
     'clear' => 'Clear',
     'more' => 'More',

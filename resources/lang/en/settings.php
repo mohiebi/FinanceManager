@@ -351,9 +351,9 @@ return [
         ],
         'groups_summary' => [
             'account' => 'Profile, sign-in, sessions & billing',
-            'money' => 'Currency, categories, assets & privacy',
+            'money' => 'Currency, display, categories, assets & privacy',
             'connections' => 'Telegram, AI assistants & notifications',
-            'app' => 'Modules & display',
+            'app' => 'Modules',
         ],
         'profile' => 'Profile',
         'notifications' => 'Notifications',

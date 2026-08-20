@@ -2,7 +2,11 @@
 import { computed, ref, watchEffect } from 'vue';
 import { useAmountMask } from '@/composables/useAmountMask';
 import { useVault } from '@/composables/useVault';
-import { format as formatMoney } from '@/lib/money';
+import {
+    format as formatMoney,
+    formatCurrencyDisplay,
+    formatCurrencyNumber,
+} from '@/lib/money';
 import type { CurrencyCode, Rates } from '@/lib/money';
 import type { Encrypted } from '@/types/vault';
 
@@ -13,10 +17,12 @@ const props = withDefaults(
         currency: CurrencyCode;
         displayCurrency: CurrencyCode;
         rates: Rates | null;
+        /** Include the currency symbol when no table header provides it. */
+        showCurrency?: boolean;
         /** Table the amount came from — needed to rebuild the AAD. */
         table?: string;
     }>(),
-    { table: 'transactions' },
+    { showCurrency: false, table: 'transactions' },
 );
 
 const { reveal, revealAsync, trackKey } = useVault();
@@ -46,42 +52,42 @@ watchEffect(async () => {
 });
 
 // Row-level values remain exact. Compact figures are deliberately applied only
-// to summary totals through CompactNumber, where the full value is available in
+// to summary totals through CompactMoney, where the full value is available in
 // a tooltip rather than silently rounding bookkeeping data.
-const numberFormatter = new Intl.NumberFormat('en-US');
-
 const formatted = computed(() => {
+    let value: string | number;
+
     if (props.displayAmount !== null && props.displayAmount !== undefined) {
-        return numberFormatter.format(
-            Number(String(props.displayAmount).replace(/,/g, '')) || 0,
+        value = props.displayAmount;
+    } else {
+        if (resolved.value === undefined || props.rates === null) {
+            return undefined;
+        }
+
+        value = formatMoney(
+            resolved.value,
+            props.currency,
+            props.displayCurrency,
+            props.rates,
         );
     }
 
-    if (resolved.value === undefined || props.rates === null) {
-        return undefined;
-    }
-
-    return numberFormatter.format(
-        Number(
-            formatMoney(
-                resolved.value,
-                props.currency,
-                props.displayCurrency,
-                props.rates,
-            ),
-        ) || 0,
-    );
+    return props.showCurrency
+        ? formatCurrencyDisplay(value, props.displayCurrency)
+        : formatCurrencyNumber(value, props.displayCurrency);
 });
+const isNegative = computed(() => formatted.value?.startsWith('(') ?? false);
 </script>
 
 <template>
     <span
         v-if="formatted !== undefined"
-        :class="
+        :class="[
             masked
                 ? 'blur-[6px] transition-[filter] duration-150 select-none'
-                : 'transition-[filter] duration-150'
-        "
+                : 'transition-[filter] duration-150',
+            isNegative ? '!text-[#E94E50]' : '',
+        ]"
         >{{ formatted }}</span
     >
     <span

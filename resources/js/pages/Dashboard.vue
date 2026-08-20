@@ -16,12 +16,12 @@
                 </p>
                 <p class="mt-3 flex flex-wrap items-baseline gap-2">
                     <template v-if="safeToSpendPerDay !== null">
-                        <CompactNumber
+                        <CompactMoney
                             class="text-[36px] leading-none font-bold text-white sm:text-[44px]"
                             :value="safeToSpendPerDay"
+                            :currency="props.selectedCurrency"
                         />
                         <span class="text-sm font-medium text-[#989898]">
-                            {{ selectedCurrencyLabel }} ·
                             {{ t('finance.dashboard.per_day') }}
                         </span>
                     </template>
@@ -121,18 +121,16 @@
                     </p>
                 </div>
                 <p class="mt-3 text-[20px] leading-none font-bold text-white">
-                    <CompactNumber
+                    <CompactMoney
                         v-if="summaryIncome !== null"
                         :value="summaryIncome"
+                        :currency="props.selectedCurrency"
                     />
                     <span
                         v-else
                         aria-hidden="true"
                         class="inline-block h-[0.8em] w-24 animate-pulse rounded bg-white/10 align-middle"
                     />
-                    <span class="text-xs font-normal text-[#989898]">{{
-                        selectedCurrencyLabel
-                    }}</span>
                 </p>
                 <p class="mt-1.5 text-xs text-[#989898]">
                     {{ props.transactions.incomes.length }}
@@ -150,18 +148,16 @@
                     </p>
                 </div>
                 <p class="mt-3 text-[20px] leading-none font-bold text-white">
-                    <CompactNumber
+                    <CompactMoney
                         v-if="summaryCost !== null"
                         :value="summaryCost"
+                        :currency="props.selectedCurrency"
                     />
                     <span
                         v-else
                         aria-hidden="true"
                         class="inline-block h-[0.8em] w-24 animate-pulse rounded bg-white/10 align-middle"
                     />
-                    <span class="text-xs font-normal text-[#989898]">{{
-                        selectedCurrencyLabel
-                    }}</span>
                 </p>
                 <p class="mt-1.5 text-xs text-[#989898]">
                     {{ props.transactions.costs.length }}
@@ -186,17 +182,17 @@
                     :class="balance >= 0 ? 'text-[#02CD86]' : 'text-[#E94E50]'"
                 >
                     <span v-if="totalsReady">
-                        {{ balance >= 0 ? '+' : '−'
-                        }}<CompactNumber :value="Math.abs(balance)" />
+                        <span v-if="balance > 0">+</span
+                        ><CompactMoney
+                            :value="balance"
+                            :currency="props.selectedCurrency"
+                        />
                     </span>
                     <span
                         v-else
                         aria-hidden="true"
                         class="inline-block h-[0.8em] w-24 animate-pulse rounded bg-white/10 align-middle"
                     />
-                    <span class="text-xs font-normal text-[#989898]">{{
-                        selectedCurrencyLabel
-                    }}</span>
                 </p>
                 <p class="mt-1.5 text-xs text-[#989898]">
                     {{
@@ -230,12 +226,10 @@
                         class="mt-3 text-[20px] leading-none font-bold text-white"
                     >
                         <template v-if="portfolioSnapshot">
-                            <CompactNumber
+                            <CompactMoney
                                 :value="portfolioSnapshot.net_worth_formatted"
+                                :currency="props.selectedCurrency"
                             />
-                            <span class="text-xs font-normal text-[#989898]">{{
-                                selectedCurrencyLabel
-                            }}</span>
                         </template>
                         <span
                             v-else-if="portfolioDecrypting"
@@ -321,6 +315,7 @@
                                 :currency="bill.currency"
                                 :display-currency="bill.display_currency"
                                 :rates="props.rates"
+                                show-currency
                                 table="bills"
                             />
                         </span>
@@ -383,7 +378,13 @@
                             <span
                                 class="text-sm font-semibold text-white"
                                 :class="maskClass"
-                                >{{ formatAmount(entry.value) }}</span
+                                dir="ltr"
+                                >{{
+                                    formatCurrencyDisplay(
+                                        entry.value,
+                                        props.selectedCurrency,
+                                    )
+                                }}</span
                             >
                             <span class="w-10 text-end text-xs text-[#989898]"
                                 >{{ entry.pct }}%</span
@@ -452,13 +453,14 @@ import { useI18n } from 'vue-i18n';
 import LineChart from '@/components/charts/LineChart.vue';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
-import CompactNumber from '@/components/CompactNumber.vue';
+import CompactMoney from '@/components/CompactMoney.vue';
 import { useAmountMask } from '@/composables/useAmountMask';
 import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
 import { usePageSubtitle } from '@/composables/usePageSubtitle';
 import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
 import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
 import { formatAppDate } from '@/lib/date';
+import { formatCurrencyDisplay, formatCurrencyNumber } from '@/lib/money';
 import type { CurrencyCode, Rates } from '@/lib/money';
 import {
     dashboard,
@@ -617,13 +619,6 @@ const displayCalendar = computed(
     () => (page.props.calendar as string | undefined) ?? 'gregorian',
 );
 const period = computed(() => props.period);
-const selectedCurrencyLabel = computed(
-    () =>
-        props.currencies.find(
-            (currency) => currency.value === props.selectedCurrency,
-        )?.label ?? t(`finance.currencies.${props.selectedCurrency}`),
-);
-
 function displayDate(value: string): string {
     return formatAppDate(value, displayCalendar.value);
 }
@@ -730,11 +725,20 @@ const safeToSpendPerDay = computed(() => {
 
 const safeToSpendExplanation = computed(() =>
     t('finance.dashboard.safe_to_spend_explanation', {
-        cost: `${formatAmount(costNum.value)} ${selectedCurrencyLabel.value}`,
-        income: `${formatAmount(incomeNum.value)} ${selectedCurrencyLabel.value}`,
+        cost: formatCurrencyDisplay(
+            formatAmount(costNum.value),
+            props.selectedCurrency,
+        ),
+        income: formatCurrencyDisplay(
+            formatAmount(incomeNum.value),
+            props.selectedCurrency,
+        ),
         month: props.period.month,
         days: daysRemaining.value,
-        amount: `${formatAmount(safeToSpendPerDay.value ?? 0)} ${selectedCurrencyLabel.value}`,
+        amount: formatCurrencyDisplay(
+            formatAmount(safeToSpendPerDay.value ?? 0),
+            props.selectedCurrency,
+        ),
     }),
 );
 
@@ -746,7 +750,10 @@ const needsDecision = computed(() => totalsReady.value && balance.value < 0);
 
 const needsDecisionBody = computed(() =>
     t('finance.dashboard.needs_decision_body', {
-        amount: `${formatAmount(Math.abs(balance.value))} ${selectedCurrencyLabel.value}`,
+        amount: formatCurrencyDisplay(
+            formatAmount(Math.abs(balance.value)),
+            props.selectedCurrency,
+        ),
         month: props.period.month,
     }),
 );
@@ -870,12 +877,7 @@ const cashFlowSeries = computed(() => [
 ]);
 
 function formatAmount(amount: string | number): string {
-    const numericAmount = Number(String(amount).replace(/,/g, ''));
-
-    return new Intl.NumberFormat('en-US', {
-        maximumFractionDigits: 2,
-        minimumFractionDigits: numericAmount % 1 === 0 ? 0 : 2,
-    }).format(numericAmount);
+    return formatCurrencyNumber(amount, props.selectedCurrency);
 }
 
 function findCategory(transaction: Transaction): Category | null {

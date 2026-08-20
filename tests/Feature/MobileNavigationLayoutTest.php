@@ -13,7 +13,7 @@ test('mobile navigation uses the sticky top header without a bottom nav', functi
         ->and($layout)->not->toContain('lg:pb-0')
         ->and($shell)->toContain('class="h-svh min-h-svh flex-col overflow-hidden lg:flex-row"')
         ->and($header)->toContain('class="sticky top-0')
-        ->and($header)->toContain('lg:static')
+        ->and($header)->not->toContain('lg:static')
         ->and($styles)->not->toContain('app-mobile-bottom-nav')
         ->and($styles)->not->toContain('--mobile-bottom-nav-height');
 });

@@ -62,7 +62,8 @@ test('long settings pages split distinct concerns into separate cards', () => {
     assert.equal(sectionCount(settingsPages.assets), 2);
     assert.equal(sectionCount(settingsPages.aiConnections), 3);
     assert.equal(sectionCount(settingsPages.appearance), 1);
-    assert.equal(sectionCount(settingsPages.modules), 3);
+    assert.equal(sectionCount(settingsPages.modules), 2);
+    assert.equal(sectionCount(settingsPages.preferences), 4);
 });
 
 test('the shell owns the only h1, now a static "Settings" rather than the page name', () => {

@@ -39,6 +39,19 @@ test('users can set their amount-mask default', function () {
     expect($user->refresh()->amount_mask_default)->toBeTrue();
 });
 
+test('new users show amounts by default', function () {
+    $user = User::factory()->create();
+
+    expect($user->amount_mask_default)->toBeFalse();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('amountMaskDefault', false),
+        );
+});
+
 test('the amount-mask default is shared with inertia pages', function () {
     $user = User::factory()->create(['amount_mask_default' => true]);
 

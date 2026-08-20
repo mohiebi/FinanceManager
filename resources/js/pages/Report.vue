@@ -156,10 +156,10 @@
                     class="text-[25px] leading-none font-semibold text-[#02CD86]"
                 >
                     <template v-if="incomeTotal !== null">
-                        <CompactNumber :value="incomeTotal" />
-                        <span class="text-sm font-normal">
-                            {{ currencyLabel(props.selectedCurrency) }}
-                        </span>
+                        <CompactMoney
+                            :value="incomeTotal"
+                            :currency="props.selectedCurrency"
+                        />
                     </template>
                     <span
                         v-else
@@ -185,10 +185,10 @@
                     class="text-[25px] leading-none font-semibold text-[#947BFF]"
                 >
                     <template v-if="costTotal !== null">
-                        <CompactNumber :value="costTotal" />
-                        <span class="text-sm font-normal">
-                            {{ currencyLabel(props.selectedCurrency) }}
-                        </span>
+                        <CompactMoney
+                            :value="costTotal"
+                            :currency="props.selectedCurrency"
+                        />
                     </template>
                     <span
                         v-else
@@ -207,10 +207,10 @@
                 </p>
                 <p class="text-[25px] leading-none font-semibold text-white">
                     <template v-if="balanceTotal !== null">
-                        <CompactNumber :value="balanceTotal" />
-                        <span class="text-sm font-normal text-[#989898]">
-                            {{ currencyLabel(props.selectedCurrency) }}
-                        </span>
+                        <CompactMoney
+                            :value="balanceTotal"
+                            :currency="props.selectedCurrency"
+                        />
                     </template>
                     <span
                         v-else
@@ -361,7 +361,10 @@
                     <div>{{ t('finance.fields.subject') }}</div>
                     <div>{{ t('finance.fields.category') }}</div>
                     <div>{{ t('finance.fields.date') }}</div>
-                    <div class="text-end">{{ t('finance.fields.amount') }}</div>
+                    <div class="text-end">
+                        {{ t('finance.fields.amount') }}
+                        <span dir="ltr">({{ selectedCurrencySymbol }})</span>
+                    </div>
                 </div>
 
                 <div
@@ -484,7 +487,10 @@
                     <div>{{ t('finance.fields.subject') }}</div>
                     <div>{{ t('finance.fields.category') }}</div>
                     <div>{{ t('finance.fields.date') }}</div>
-                    <div class="text-end">{{ t('finance.fields.amount') }}</div>
+                    <div class="text-end">
+                        {{ t('finance.fields.amount') }}
+                        <span dir="ltr">({{ selectedCurrencySymbol }})</span>
+                    </div>
                 </div>
 
                 <div
@@ -613,7 +619,7 @@ import PulseChart from '@/components/charts/PulseChart.vue';
 import RankedBarChart from '@/components/charts/RankedBarChart.vue';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
-import CompactNumber from '@/components/CompactNumber.vue';
+import CompactMoney from '@/components/CompactMoney.vue';
 import CategoryChip from '@/components/transactions/CategoryChip.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -635,6 +641,7 @@ import {
     monthBucketKeyFromIso,
     monthBucketsBetween,
 } from '@/lib/date';
+import { currencySymbol, formatCurrencyDisplay } from '@/lib/money';
 import type { Rates } from '@/lib/money';
 import { dashboard, report } from '@/routes';
 import type { Encrypted } from '@/types/vault';
@@ -758,6 +765,9 @@ const toDate = ref(props.filters.to);
 const search = ref(props.filters.search);
 const selectedCategory = ref(props.filters.category?.toString() ?? 'all');
 const excludeInvestments = ref(props.filters.exclude_investments);
+const selectedCurrencySymbol = computed(() =>
+    currencySymbol(props.selectedCurrency),
+);
 
 /**
  * Names what the figure below it actually is.
@@ -1076,12 +1086,7 @@ function applyExcludeInvestments(checked: boolean | 'indeterminate'): void {
 }
 
 function formatMoney(amount: string | number, currency: Currency): string {
-    const value = Number(amount);
-
-    return `${new Intl.NumberFormat('en-US', {
-        maximumFractionDigits: 2,
-        minimumFractionDigits: value % 1 === 0 ? 0 : 2,
-    }).format(value)} ${currencyLabel(currency)}`;
+    return formatCurrencyDisplay(amount, currency);
 }
 
 function currencyLabel(value: Currency): string {

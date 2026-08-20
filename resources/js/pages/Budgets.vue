@@ -51,12 +51,12 @@
                         {{ t('finance.dashboard.safe_to_spend') }}
                     </p>
                     <p class="mt-3 flex flex-wrap items-baseline gap-2">
-                        <CompactNumber
+                        <CompactMoney
                             :value="safeToSpendPerDay"
+                            :currency="budgetCurrency"
                             class="text-[36px] leading-none font-bold text-white sm:text-[44px]"
                         />
                         <span class="text-sm font-medium text-[#989898]">
-                            {{ currencyLabel }} ·
                             {{ t('finance.dashboard.per_day') }}
                         </span>
                     </p>
@@ -130,7 +130,7 @@
             >
                 {{
                     t('budgets.over_allocated', {
-                        amount: `${formatAmount(plan.over_allocated)} ${currencyLabel}`,
+                        amount: overAllocatedDisplay,
                     })
                 }}
                 <span class="text-[#E94E50]/70">{{
@@ -469,7 +469,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { Plus, Target, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import CompactNumber from '@/components/CompactNumber.vue';
+import CompactMoney from '@/components/CompactMoney.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -489,6 +489,8 @@ import { useVault } from '@/composables/useVault';
 import { useVaultBudget } from '@/composables/useVaultBudget';
 import type { VaultBudgetPayload } from '@/composables/useVaultBudget';
 import type { BudgetRule } from '@/lib/budget';
+import { formatCurrencyDisplay, formatCurrencyNumber } from '@/lib/money';
+import type { CurrencyCode } from '@/lib/money';
 import { dashboard } from '@/routes';
 import {
     destroy as destroyBudget,
@@ -572,13 +574,22 @@ const currencyLabel = computed(() => {
     );
 });
 
-const formatAmount = (value: number | string): string => {
-    const amount = Number(value);
+const budgetCurrency = computed(
+    () =>
+        (plan.value?.currency ??
+            props.budget?.currency ??
+            'toman') as CurrencyCode,
+);
 
-    return new Intl.NumberFormat('en-US', {
-        maximumFractionDigits: 2,
-        minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
-    }).format(amount);
+const overAllocatedDisplay = computed(() =>
+    formatCurrencyDisplay(
+        formatAmount(plan.value?.over_allocated ?? 0),
+        budgetCurrency.value,
+    ),
+);
+
+const formatAmount = (value: number | string): string => {
+    return formatCurrencyNumber(value, budgetCurrency.value);
 };
 
 /** Whole days left in the period, today included — never less than 1, so
@@ -607,10 +618,19 @@ const safeToSpendExplanation = computed(() => {
     }
 
     return t('budgets.safe_to_spend_explanation', {
-        actual: `${formatAmount(plan.value.actual)} ${currencyLabel.value}`,
-        income: `${formatAmount(plan.value.income)} ${currencyLabel.value}`,
+        actual: formatCurrencyDisplay(
+            formatAmount(plan.value.actual),
+            budgetCurrency.value,
+        ),
+        income: formatCurrencyDisplay(
+            formatAmount(plan.value.income),
+            budgetCurrency.value,
+        ),
         days: daysRemaining.value,
-        amount: `${formatAmount(safeToSpendPerDay.value)} ${currencyLabel.value}`,
+        amount: formatCurrencyDisplay(
+            formatAmount(safeToSpendPerDay.value),
+            budgetCurrency.value,
+        ),
     });
 });
 
@@ -644,13 +664,21 @@ function remainingLabel(line: BudgetLineProgress): string {
 
     if (line.remaining < 0) {
         return t('budgets.overspent', {
-            amount: formatAmount(Math.abs(line.remaining)),
+            amount: formatCurrencyDisplay(
+                Math.abs(line.remaining),
+                budgetCurrency.value,
+            ),
         });
     }
 
     return line.remaining === 0
         ? t('budgets.on_target')
-        : t('budgets.remaining', { amount: formatAmount(line.remaining) });
+        : t('budgets.remaining', {
+              amount: formatCurrencyDisplay(
+                  line.remaining,
+                  budgetCurrency.value,
+              ),
+          });
 }
 
 type FormLine = {

@@ -8,8 +8,14 @@ import { ref, watch } from 'vue';
  * so every `CipheredMoney` on the page (and the header toggle that flips it)
  * shares one switch instead of drifting per-component.
  */
-const STORAGE_KEY = 'cashpilot:amount-mask';
+const STORAGE_KEY_PREFIX = 'cashpilot:amount-mask';
 const page = usePage();
+
+function storageKey(): string {
+    const userId = page.props.auth.user?.id;
+
+    return STORAGE_KEY_PREFIX + ':' + (userId ?? 'guest');
+}
 
 /**
  * localStorage wins when this device already has an explicit choice — that
@@ -24,7 +30,7 @@ function readInitial(): boolean {
     }
 
     try {
-        const stored = window.localStorage.getItem(STORAGE_KEY);
+        const stored = window.localStorage.getItem(storageKey());
 
         return stored === null
             ? page.props.amountMaskDefault === true
@@ -44,11 +50,20 @@ watch(masked, (value) => {
     }
 
     try {
-        window.localStorage.setItem(STORAGE_KEY, value ? '1' : '0');
+        window.localStorage.setItem(storageKey(), value ? '1' : '0');
     } catch {
         // Nothing to fall back to — the toggle still works for this tab.
     }
 });
+
+watch(
+    () => page.props.auth.user?.id,
+    (userId, previousUserId) => {
+        if (userId !== previousUserId) {
+            masked.value = readInitial();
+        }
+    },
+);
 
 export type UseAmountMaskReturn = {
     masked: typeof masked;

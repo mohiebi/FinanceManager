@@ -15,6 +15,111 @@
  */
 export type CurrencyCode = 'toman' | 'usd' | 'eur';
 
+const TOMAN_SEPARATOR = '\u00a0';
+
+export function currencySymbol(currency: CurrencyCode): '$' | '€' | 'T' {
+    switch (currency) {
+        case 'usd':
+            return '$';
+        case 'eur':
+            return '€';
+        default:
+            return 'T';
+    }
+}
+
+export function currencySymbolIsPrefix(currency: CurrencyCode): boolean {
+    return currency !== 'toman';
+}
+
+function numericCurrencyValue(value: string | number): number {
+    const normalized = String(value)
+        .replace(/,/g, '')
+        .replace(/\u2212/g, '-')
+        .trim();
+    const numeric = Number(normalized);
+
+    return Number.isFinite(numeric) && numeric !== 0 ? numeric : 0;
+}
+
+export function isNegativeCurrencyValue(value: string | number): boolean {
+    return numericCurrencyValue(value) < 0;
+}
+
+function accountingNumber(formattedNumber: string, value: number): string {
+    return value < 0
+        ? `(${formattedNumber.replace('-', '')})`
+        : formattedNumber;
+}
+
+/**
+ * Format just the numeric part of an amount. Dense tables use this alongside a
+ * currency-bearing column header so every row stays exact without repeating the
+ * same symbol.
+ */
+export function formatCurrencyNumber(
+    value: string | number,
+    currency: CurrencyCode,
+): string {
+    const numeric = numericCurrencyValue(value);
+    const fractionDigits = currency === 'toman' ? 0 : 2;
+
+    return accountingNumber(
+        new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: fractionDigits,
+            maximumFractionDigits: fractionDigits,
+        }).format(numeric),
+        numeric,
+    );
+}
+
+/** Compact numeric part for dashboard totals. */
+export function formatCompactCurrencyNumber(value: string | number): string {
+    const numeric = numericCurrencyValue(value);
+
+    return accountingNumber(
+        new Intl.NumberFormat('en-US', {
+            notation: 'compact',
+            maximumFractionDigits: 1,
+        }).format(numeric),
+        numeric,
+    );
+}
+
+function joinCurrency(formattedNumber: string, currency: CurrencyCode): string {
+    const symbol = currencySymbol(currency);
+    const isNegative =
+        formattedNumber.startsWith('(') && formattedNumber.endsWith(')');
+    const unsignedNumber = isNegative
+        ? formattedNumber.slice(1, -1)
+        : formattedNumber;
+    const amount = currencySymbolIsPrefix(currency)
+        ? `${symbol}${unsignedNumber}`
+        : `${unsignedNumber}${TOMAN_SEPARATOR}${symbol}`;
+
+    return isNegative ? `(${amount})` : amount;
+}
+
+/**
+ * Exact financial display: Toman has no decimals, while dollars and euros have
+ * two. Negative values use accounting parentheses; Toman uses a non-breaking
+ * suffix space.
+ */
+export function formatCurrencyDisplay(
+    value: string | number,
+    currency: CurrencyCode,
+): string {
+    return joinCurrency(formatCurrencyNumber(value, currency), currency);
+}
+
+/** Compact financial display for summary cards and charts. */
+export function formatCompactCurrencyDisplay(
+    value: string | number,
+    currency: CurrencyCode,
+): string {
+    return joinCurrency(formatCompactCurrencyNumber(value), currency);
+}
+
 export type Rates = {
     /** Toman per 1 USD. 0 when live prices are unavailable. */
     tomanPerUsd: number;

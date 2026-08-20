@@ -16,9 +16,12 @@
                     {{ currencyLabel(props.monthlyBillSummary.currency) }}
                 </p>
                 <p class="text-[30px] leading-none font-semibold text-white">
-                    <CompactNumber
+                    <CompactMoney
                         v-if="monthlyTotal !== null"
                         :value="monthlyTotal"
+                        :currency="
+                            props.monthlyBillSummary.currency as CurrencyCode
+                        "
                     />
                     <span
                         v-else
@@ -123,6 +126,7 @@
                                     bill.display_currency as CurrencyCode
                                 "
                                 :rates="props.rates"
+                                show-currency
                                 table="bills"
                             />
                         </span>
@@ -699,7 +703,7 @@ import { computed, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
-import CompactNumber from '@/components/CompactNumber.vue';
+import CompactMoney from '@/components/CompactMoney.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';

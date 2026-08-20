@@ -10,81 +10,6 @@
     <div
         class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
     >
-        <!-- ── Page actions ──────────────────────────────────────── -->
-        <div
-            class="flex flex-wrap items-center gap-x-3 gap-y-2 px-[18px] pt-[18px]"
-        >
-            <span
-                v-if="lastSyncedLabel"
-                class="max-w-full min-w-0 text-xs break-words text-[#989898]"
-            >
-                {{ t('finance.last_synced', { time: lastSyncedLabel }) }}
-            </span>
-        </div>
-
-        <!-- ── Summary stat cards ────────────────────────────────── -->
-        <div class="grid gap-[18px] px-[18px] pt-3 md:grid-cols-3">
-            <article
-                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
-            >
-                <p
-                    class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
-                >
-                    {{ t('finance.investments.total_portfolio_value') }}
-                </p>
-                <p class="mt-3 text-2xl font-bold text-white">
-                    <template v-if="props.pricesAvailable">
-                        <span :class="maskClass">{{
-                            props.summary?.total_value_formatted
-                        }}</span>
-                        <span class="text-sm font-normal text-[#989898]">{{
-                            currencySymbol
-                        }}</span>
-                    </template>
-                    <span
-                        v-else-if="pricesResolved"
-                        class="text-base font-medium text-[#989898]"
-                        >{{ t('finance.price_unavailable') }}</span
-                    >
-                    <span v-else class="text-base font-medium text-[#989898]">{{
-                        t('finance.calculating')
-                    }}</span>
-                </p>
-            </article>
-
-            <article
-                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
-            >
-                <p
-                    class="text-xs font-medium tracking-[0.2em] text-[#6C4EE9] uppercase"
-                >
-                    {{ t('finance.investments.asset_types') }}
-                </p>
-                <p class="mt-3 text-2xl font-bold text-white">
-                    {{ props.assetTypeCount }}
-                    <span class="text-sm font-normal text-[#989898]">{{
-                        t('finance.investments.held')
-                    }}</span>
-                </p>
-            </article>
-
-            <article
-                class="kpi-card-neutral overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
-            >
-                <p
-                    class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-                >
-                    {{ t('finance.investments.total_entries') }}
-                </p>
-                <p class="mt-3 text-2xl font-bold text-white">
-                    {{ props.entryCount }}
-                    <span class="text-sm font-normal text-[#989898]">{{
-                        t('finance.investments.records')
-                    }}</span>
-                </p>
-            </article>
-        </div>
-
         <Deferred
             :data="[
                 'assets',
@@ -121,6 +46,16 @@
                         <h2 class="mt-2 text-[22px] leading-none text-white">
                             {{ t('finance.investments.market_prices_title') }}
                         </h2>
+                        <p
+                            v-if="lastSyncedLabel"
+                            class="mt-1 text-xs text-[#989898]"
+                        >
+                            {{
+                                t('finance.last_synced', {
+                                    time: lastSyncedLabel,
+                                })
+                            }}
+                        </p>
                     </div>
                     <span class="text-xs text-[#989898]">
                         {{

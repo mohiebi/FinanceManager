@@ -121,6 +121,8 @@ return [
         'review_transactions' => 'Transaktionen prüfen',
         'needs_you_this_week' => 'Braucht diese Woche deine Aufmerksamkeit',
         'where_it_went' => 'Wohin es ging',
+        'cash_flow' => 'Cashflow diesen Monat',
+        'cash_flow_hint' => 'Fahre über einen Tag für die genauen Zahlen',
         'net_worth' => 'Nettovermögen',
         'per_day' => 'pro Tag',
     ],

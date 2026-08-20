@@ -289,30 +289,6 @@ defineOptions({
             :description="t('settings.ai.description')"
         >
             <div class="space-y-5">
-                <section
-                    class="flex gap-3 rounded-2xl bg-[#02CD86]/8 p-4 ring-1 ring-[#02CD86]/20"
-                    aria-labelledby="ai-safety-title"
-                >
-                    <div
-                        class="grid size-9 shrink-0 place-items-center rounded-xl bg-[#02CD86]/12"
-                    >
-                        <ShieldCheck class="size-4 text-[#02CD86]" />
-                    </div>
-                    <div>
-                        <p
-                            id="ai-safety-title"
-                            class="text-sm font-medium text-white"
-                        >
-                            {{ t('settings.ai.safety.title') }}
-                        </p>
-                        <p
-                            class="mt-1 max-w-prose text-sm leading-6 text-[#989898]"
-                        >
-                            {{ t('settings.ai.safety.description') }}
-                        </p>
-                    </div>
-                </section>
-
                 <!-- Connect your assistant -->
                 <div
                     class="rounded-[22px] bg-[#252525] p-5 ring-1 ring-white/10"

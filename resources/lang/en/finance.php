@@ -130,6 +130,8 @@ return [
         'review_transactions' => 'Review transactions',
         'needs_you_this_week' => 'Needs you this week',
         'where_it_went' => 'Where it went',
+        'cash_flow' => 'Cash flow this month',
+        'cash_flow_hint' => 'Hover a day to see the exact figures',
         'net_worth' => 'Net worth',
         'per_day' => 'per day',
     ],

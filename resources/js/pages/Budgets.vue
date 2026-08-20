@@ -8,61 +8,22 @@
     <div
         class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-auto bg-[#111111]"
     >
-        <!-- ── Header ─────────────────────────────────────────────── -->
-        <section
-            class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+        <!-- ── Edit trigger — the mock's own screen has no header of its
+             own (the shell already owns the page title), but budgets have
+             no other page to manage them from, so this stays. The empty
+             state below carries its own "create" call to action. ──────── -->
+        <div
+            v-if="props.budget !== null"
+            class="mx-[18px] mt-5 flex justify-end"
         >
-            <div
-                class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+            <Button
+                class="h-11 w-max shrink-0 rounded-full bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-5 text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
+                @click="openDialog()"
             >
-                <div class="min-w-0">
-                    <p
-                        class="text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase"
-                    >
-                        {{ t('budgets.period') }}
-                    </p>
-                    <h1
-                        class="mt-1 text-2xl font-semibold tracking-tight text-white"
-                    >
-                        {{
-                            navigationName(
-                                'navigation.budgets',
-                                'navigation.budgets_subtitle',
-                            )
-                        }}
-                    </h1>
-                    <p class="mt-1 max-w-lg text-sm text-[#989898]">
-                        {{ t('budgets.description') }}
-                    </p>
-                </div>
-
-                <div class="flex shrink-0 items-center gap-2">
-                    <span
-                        v-if="plan !== null"
-                        class="rounded-full bg-white/5 px-3 py-1.5 text-xs text-[#989898] ring-1 ring-white/10"
-                    >
-                        {{ plan.period.label }} ·
-                        {{
-                            t('budgets.days_remaining', {
-                                count: plan.period.days_remaining,
-                            })
-                        }}
-                    </span>
-                    <Button
-                        class="h-11 w-max shrink-0 rounded-full bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-5 text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
-                        @click="openDialog()"
-                    >
-                        <Plus v-if="props.budget === null" class="size-4" />
-                        <Pencil v-else class="size-4" />
-                        {{
-                            props.budget === null
-                                ? t('budgets.create')
-                                : t('budgets.edit')
-                        }}
-                    </Button>
-                </div>
-            </div>
-        </section>
+                <Pencil class="size-4" />
+                {{ t('budgets.edit') }}
+            </Button>
+        </div>
 
         <!-- ── Empty state ────────────────────────────────────────── -->
         <div
@@ -96,85 +57,6 @@
         </div>
 
         <template v-else>
-            <!-- ── Summary tiles ──────────────────────────────────── -->
-            <section class="mx-[18px] mt-[18px] grid gap-3 sm:grid-cols-4">
-                <div
-                    class="rounded-[14px] border border-white/10 bg-[#252525] p-4"
-                    style="border-top: 2.5px solid #02cd86"
-                >
-                    <p
-                        class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
-                    >
-                        {{ t('budgets.income') }}
-                    </p>
-                    <p class="mt-2 text-base font-bold text-white">
-                        <span :class="maskClass">{{
-                            formatAmount(plan.income)
-                        }}</span>
-                        <span class="text-xs font-normal text-[#989898]">{{
-                            currencyLabel
-                        }}</span>
-                    </p>
-                </div>
-
-                <div
-                    class="rounded-[14px] border border-white/10 bg-[#252525] p-4"
-                    style="border-top: 2.5px solid #6c4ee9"
-                >
-                    <p
-                        class="text-xs font-medium tracking-[0.2em] text-[#6C4EE9] uppercase"
-                    >
-                        {{ t('budgets.allocated') }}
-                    </p>
-                    <p class="mt-2 text-base font-bold text-white">
-                        <span :class="maskClass">{{
-                            formatAmount(plan.allocated)
-                        }}</span>
-                        <span class="text-xs font-normal text-[#989898]">{{
-                            currencyLabel
-                        }}</span>
-                    </p>
-                </div>
-
-                <div
-                    class="rounded-[14px] border border-white/10 bg-[#252525] p-4"
-                    style="border-top: 2.5px solid #989898"
-                >
-                    <p
-                        class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-                    >
-                        {{ t('budgets.unallocated') }}
-                    </p>
-                    <p class="mt-2 text-base font-bold text-white">
-                        <span :class="maskClass">{{
-                            formatAmount(plan.unallocated)
-                        }}</span>
-                        <span class="text-xs font-normal text-[#989898]">{{
-                            currencyLabel
-                        }}</span>
-                    </p>
-                </div>
-
-                <div
-                    class="rounded-[14px] border border-white/10 bg-[#252525] p-4"
-                    style="border-top: 2.5px solid #e94e50"
-                >
-                    <p
-                        class="text-xs font-medium tracking-[0.2em] text-[#E94E50] uppercase"
-                    >
-                        {{ t('budgets.spent') }}
-                    </p>
-                    <p class="mt-2 text-base font-bold text-white">
-                        <span :class="maskClass">{{
-                            formatAmount(plan.actual)
-                        }}</span>
-                        <span class="text-xs font-normal text-[#989898]">{{
-                            currencyLabel
-                        }}</span>
-                    </p>
-                </div>
-            </section>
-
             <!-- ── Over-allocation warning ────────────────────────── -->
             <p
                 v-if="plan.over_allocated > 0"

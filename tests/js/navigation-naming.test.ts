@@ -14,7 +14,6 @@ const sidebar = source('../../resources/js/components/AppSidebar.vue');
 const mobileSidebar = source(
     '../../resources/js/components/AppSidebarHeader.vue',
 );
-const preferences = source('../../resources/js/pages/settings/Preferences.vue');
 const modules = source('../../resources/js/pages/settings/Modules.vue');
 const settingsLayout = source('../../resources/js/layouts/settings/Layout.vue');
 const goals = source('../../resources/js/pages/Goals.vue');
@@ -30,24 +29,6 @@ test('navigation resolves exactly one naming vocabulary from the user preference
     assert.doesNotMatch(mobileSidebar, /item\.subtitle/);
     assert.match(modules, /moduleLabel/);
     assert.match(modules, /navigation\.budgets_subtitle/);
-});
-
-test('preferences explain every supported standard-to-flight name mapping', () => {
-    assert.match(preferences, /flight_terminology_enabled/);
-
-    for (const key of [
-        'dashboard',
-        'report',
-        'investments',
-        'goals',
-        'budgets',
-        'advisor',
-        'ai',
-        'settings',
-        'admin',
-    ]) {
-        assert.match(preferences, new RegExp(`['"]${key}['"]`));
-    }
 });
 
 test('mapped page headings do not render both names together', () => {

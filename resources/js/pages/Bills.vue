@@ -4,21 +4,18 @@
     <div
         class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-auto bg-[#111111]"
     >
-        <!-- ── Summary bar — total due + add trigger. The mock's own screen
-             has no header of its own (the shell already owns the page
-             title), but this stays: bills have no other page to manage
-             them from. ────────────────────────────────────────────── -->
+        <!-- ── Summary bar — total due for this month. The mock's own
+             screen has no header of its own (the shell already owns the
+             page title). ─────────────────────────────────────────────── -->
         <section
-            class="mx-[18px] mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            class="mx-[18px] mt-5 flex flex-wrap items-center gap-5 rounded-[16px] bg-[#1a1a1a] px-6 py-5 ring-1 ring-white/10"
         >
             <div>
-                <p
-                    class="text-[10px] font-medium tracking-widest text-[#6b6b6b] uppercase"
-                >
-                    {{ t('finance.fields.total_cost') }} ·
-                    {{ t('finance.reports.this_month') }}
+                <p class="mb-2 text-xs text-[#989898]">
+                    {{ t('finance.reports.this_month') }} ·
+                    {{ currencyLabel(props.monthlyBillSummary.currency) }}
                 </p>
-                <p class="mt-0.5 text-2xl leading-none font-bold text-white">
+                <p class="text-[30px] leading-none font-semibold text-white">
                     <span v-if="monthlyTotal !== null" :class="maskClass">{{
                         formatAmount(monthlyTotal)
                     }}</span>
@@ -27,18 +24,8 @@
                         aria-hidden="true"
                         class="inline-block h-[1em] w-24 animate-pulse rounded bg-white/10 align-middle"
                     />
-                    <span class="ml-1 text-xs font-normal text-[#989898]">{{
-                        currencyLabel(props.monthlyBillSummary.currency)
-                    }}</span>
                 </p>
             </div>
-            <Button
-                class="h-11 w-max shrink-0 rounded-full bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-5 text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
-                @click="openCreateDialog()"
-            >
-                <Plus class="size-4" />
-                {{ t('finance.bills.add_bill') }}
-            </Button>
         </section>
 
         <!-- ── Empty state ────────────────────────────────────────── -->
@@ -57,141 +44,117 @@
             <p class="mt-2 max-w-sm text-center text-sm text-[#989898]">
                 {{ t('finance.bills.empty_description') }}
             </p>
+            <Button
+                class="mt-6 h-11 rounded-full bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-5 text-[#101010]"
+                @click="openCreateDialog()"
+            >
+                {{ t('finance.bills.add_bill') }}
+            </Button>
         </div>
 
-        <!-- ── Bill cards ─────────────────────────────────────────── -->
-        <div
+        <!-- ── Scheduled ──────────────────────────────────────────── -->
+        <section
             v-else
-            class="mx-[18px] my-[18px] grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3"
+            class="mx-[18px] my-[18px] overflow-x-auto rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
         >
+            <div
+                class="mb-3 flex min-w-[520px] items-center justify-between gap-3"
+            >
+                <p class="text-[14.5px] font-medium text-white">
+                    {{ t('finance.bills.upcoming') }}
+                </p>
+                <button
+                    type="button"
+                    class="cursor-pointer text-[12.5px] text-[#02CD86] hover:underline"
+                    @click="openCreateDialog()"
+                >
+                    + {{ t('finance.bills.add_bill') }}
+                </button>
+            </div>
+
             <div
                 v-for="bill in bills"
                 :key="bill.id"
-                class="flex flex-col gap-4 overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="group grid min-w-[520px] grid-cols-[8px_minmax(130px,1fr)_112px_112px_124px] items-center gap-3.5 border-t border-white/[0.06] py-3.5 transition-colors hover:bg-white/[0.02]"
             >
-                <div class="flex items-start justify-between gap-2">
-                    <div class="min-w-0">
-                        <p class="truncate text-base font-semibold text-white">
-                            <!-- Passes plaintext straight through today; the same
-                                 markup handles ciphertext once a vault is armed. -->
-                            <Ciphered :value="bill.title" table="bills" />
-                        </p>
-                        <p
-                            v-if="bill.category_name"
-                            class="mt-0.5 truncate text-xs text-[#989898]"
-                        >
-                            {{ bill.category_name }}
-                        </p>
-                    </div>
+                <span
+                    class="size-2 shrink-0 rounded-full"
+                    :style="{ backgroundColor: statusDotColor(bill) }"
+                />
+                <div class="min-w-0">
+                    <p class="truncate text-sm text-white">
+                        <Ciphered :value="bill.title" table="bills" />
+                    </p>
+                    <p
+                        class="mt-0.5 truncate text-[11px] text-[#686868]"
+                        dir="ltr"
+                    >
+                        {{ cadenceLabel(bill) }}
+                    </p>
+                </div>
+                <span class="text-[12.5px] text-[#989898]">
+                    {{
+                        bill.next_occurrence
+                            ? displayDate(bill.next_occurrence.due_date)
+                            : t('finance.bills.no_upcoming')
+                    }}
+                </span>
+                <span
+                    class="text-[12.5px] font-medium"
+                    :style="{ color: statusDotColor(bill) }"
+                >
+                    {{ statusLabel(bill) }}
+                </span>
+                <div class="flex items-center justify-end gap-2">
+                    <span
+                        class="text-[14.5px] text-white tabular-nums"
+                        :class="maskClass"
+                        dir="ltr"
+                    >
+                        <CipheredMoney
+                            :amount="bill.amount"
+                            :display-amount="bill.display_amount"
+                            :currency="bill.currency as CurrencyCode"
+                            :display-currency="
+                                bill.display_currency as CurrencyCode
+                            "
+                            :rates="props.rates"
+                            table="bills"
+                        />
+                    </span>
                     <div
-                        class="flex shrink-0 items-center gap-1.5 opacity-0 transition group-hover:opacity-100 sm:opacity-100"
+                        class="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100"
                     >
                         <button
+                            v-if="bill.next_occurrence"
                             type="button"
-                            class="rounded-md bg-white/5 px-2 py-1 text-xs text-[#6C4EE9] ring-1 ring-white/10 hover:bg-white/10"
+                            :disabled="payingId === bill.next_occurrence.id"
+                            :aria-label="t('finance.bills.mark_paid')"
+                            class="cursor-pointer rounded-md p-1 text-[#02CD86] hover:bg-[#02CD86]/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            @click="void markPaid(bill)"
+                        >
+                            <Check class="size-3.5" />
+                        </button>
+                        <button
+                            type="button"
+                            :aria-label="t('common.edit')"
+                            class="cursor-pointer rounded-md p-1 text-[#6C4EE9] hover:bg-[#6C4EE9]/10"
                             @click="void openEditDialog(bill)"
                         >
-                            {{ t('common.edit') }}
+                            <Pencil class="size-3.5" />
                         </button>
                         <button
                             type="button"
-                            class="rounded-md p-1.5 hover:bg-[#2e0d0d]"
+                            :aria-label="t('common.delete')"
+                            class="cursor-pointer rounded-md p-1 text-[#E94E50] hover:bg-[#E94E50]/10"
                             @click="void requestDelete(bill)"
                         >
-                            <Trash2 class="size-3.5 text-[#E94E50]" />
+                            <Trash2 class="size-3.5" />
                         </button>
                     </div>
                 </div>
-
-                <p class="text-2xl font-bold text-white">
-                    <CipheredMoney
-                        :amount="bill.amount"
-                        :display-amount="bill.display_amount"
-                        :currency="bill.currency as CurrencyCode"
-                        :display-currency="
-                            bill.display_currency as CurrencyCode
-                        "
-                        :rates="props.rates"
-                        table="bills"
-                    />
-                    <span class="text-sm font-normal text-[#989898]">{{
-                        currencyLabel(bill.display_currency)
-                    }}</span>
-                </p>
-
-                <div
-                    class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-[#989898]"
-                >
-                    <CalendarClock class="size-3.5 shrink-0" />
-                    <span v-if="bill.recurrence_type === 'monthly'">
-                        {{ t('finance.bills.recurrence_monthly') }} —
-                        {{
-                            t('finance.bills.due_day_label', {
-                                day: bill.due_day_of_month,
-                            })
-                        }}
-                    </span>
-                    <span v-else>{{
-                        t('finance.bills.recurrence_one_time')
-                    }}</span>
-                    <span
-                        v-if="
-                            bill.recurrence_count !== null &&
-                            bill.next_occurrence?.payment_number
-                        "
-                        class="rounded-full bg-[#6C4EE9]/15 px-2 py-0.5 font-medium text-[#a995ff] ring-1 ring-[#6C4EE9]/25"
-                    >
-                        {{
-                            t('finance.bills.payment_progress', {
-                                current: bill.next_occurrence.payment_number,
-                                total: bill.recurrence_count,
-                            })
-                        }}
-                    </span>
-                    <span
-                        v-else-if="
-                            bill.recurrence_count !== null &&
-                            bill.payments_made >= bill.recurrence_count
-                        "
-                        class="rounded-full bg-[#02CD86]/10 px-2 py-0.5 font-medium text-[#02CD86] ring-1 ring-[#02CD86]/25"
-                    >
-                        {{
-                            t('finance.bills.payments_complete', {
-                                total: bill.recurrence_count,
-                            })
-                        }}
-                    </span>
-                </div>
-
-                <div
-                    class="mt-auto flex items-center justify-between gap-3 border-t border-white/10 pt-4"
-                >
-                    <div>
-                        <p
-                            class="text-[10px] font-medium tracking-wide text-[#6b6b6b] uppercase"
-                        >
-                            {{ t('finance.bills.next_due') }}
-                        </p>
-                        <p class="mt-0.5 text-sm font-medium text-white">
-                            {{
-                                bill.next_occurrence
-                                    ? displayDate(bill.next_occurrence.due_date)
-                                    : t('finance.bills.no_upcoming')
-                            }}
-                        </p>
-                    </div>
-                    <button
-                        v-if="bill.next_occurrence"
-                        type="button"
-                        :disabled="payingId === bill.next_occurrence.id"
-                        class="shrink-0 cursor-pointer rounded-full bg-[#02CD86]/10 px-3 py-1.5 text-xs font-medium text-[#02CD86] ring-1 ring-[#02CD86]/25 transition-colors hover:bg-[#02CD86]/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        @click="void markPaid(bill)"
-                    >
-                        {{ t('finance.bills.mark_paid') }}
-                    </button>
-                </div>
             </div>
-        </div>
+        </section>
 
         <!-- ── Add / Edit dialog ──────────────────────────────────── -->
         <Dialog :open="isDialogOpen" @update:open="handleDialogOpenChange">
@@ -672,7 +635,7 @@
 
 <script setup lang="ts">
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { CalendarClock, Plus, Receipt, Trash2 } from 'lucide-vue-next';
+import { Check, Pencil, Receipt, Trash2 } from 'lucide-vue-next';
 import { computed, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Ciphered from '@/components/Ciphered.vue';
@@ -867,6 +830,47 @@ const formatAmount = (value: number | string): string => {
 const currencyLabel = (value: string): string =>
     props.currencies.find((currency) => currency.value === value)?.label ??
     t(`finance.currencies.${value}`);
+
+function cadenceLabel(bill: Bill): string {
+    return bill.recurrence_type === 'monthly'
+        ? `${t('finance.bills.recurrence_monthly')} — ${t('finance.bills.due_day_label', { day: bill.due_day_of_month })}`
+        : t('finance.bills.recurrence_one_time');
+}
+
+/** Overdue once past today's date, due today on it, scheduled otherwise —
+ *  the same "nothing left to check" once a bill has no next occurrence at
+ *  all reads as scheduled too, since there is nothing urgent to flag. */
+function statusLabel(bill: Bill): string {
+    if (!bill.next_occurrence) {
+        return t('finance.bills.scheduled');
+    }
+
+    if (bill.next_occurrence.due_date < props.today) {
+        return t('finance.bills.overdue');
+    }
+
+    if (bill.next_occurrence.due_date === props.today) {
+        return t('finance.bills.due_today');
+    }
+
+    return t('finance.bills.scheduled');
+}
+
+function statusDotColor(bill: Bill): string {
+    if (!bill.next_occurrence) {
+        return '#686868';
+    }
+
+    if (bill.next_occurrence.due_date < props.today) {
+        return '#E94E50';
+    }
+
+    if (bill.next_occurrence.due_date === props.today) {
+        return '#F59E0B';
+    }
+
+    return '#686868';
+}
 
 const fieldClass =
     'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25';

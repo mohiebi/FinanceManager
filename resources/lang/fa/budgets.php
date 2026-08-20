@@ -49,8 +49,11 @@ return [
     'line_over_title_many' => '{count} خط بیش از حد',
     'line_over_body' => '{names} از سقف تعیین‌شده گذشته است.',
     'edit_limits' => 'ویرایش سقف‌ها',
+    'safe_to_spend_explanation' => 'تا اینجای دوره {actual} از {income} را خرج کرده‌اید و {days} روز باقی مانده است. با این روند، حدود {amount} در روز باقی می‌ماند.',
 
     'lines' => 'خط‌های طرح',
+    'lines_hint' => 'به تفکیک دسته، در برابر چیزی که طرح کنار گذاشته',
+    'rollover_badge' => 'انتقال از ماه قبل',
     'add_line' => 'افزودن خط',
     'remove_line' => 'حذف خط',
     'category' => 'دسته',

@@ -322,5 +322,6 @@ return [
     ],
     'transactions' => [
         'title' => 'تراکنش‌ها',
+        'subtitle' => '{count} رکورد در این دوره',
     ],
 ];

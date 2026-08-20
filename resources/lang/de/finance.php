@@ -311,5 +311,6 @@ return [
     ],
     'transactions' => [
         'title' => 'Transaktionen',
+        'subtitle' => '{count} Einträge in diesem Zeitraum',
     ],
 ];

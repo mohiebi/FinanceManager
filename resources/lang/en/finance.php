@@ -322,5 +322,6 @@ return [
     ],
     'transactions' => [
         'title' => 'Transactions',
+        'subtitle' => '{count} entries this period',
     ],
 ];

@@ -478,6 +478,7 @@ type Category = {
     name: string;
     slug: string;
     type: TransactionType;
+    color: string | null;
     is_default: boolean;
 };
 
@@ -760,33 +761,46 @@ const chartPalette = [
 ];
 
 // This month's costs grouped by category — top 5 plus an "other" bucket.
+// Coloured by the category's own colour when it has one (matching the chip
+// on Transactions/Report), and only falling back to the palette rotation for
+// categories nobody has coloured, so the same category reads the same
+// colour everywhere in the app rather than shifting with sort order.
 const categoryBreakdown = computed(() => {
-    const totals = new Map<string, number>();
+    const totals = new Map<string, { value: number; color: string | null }>();
 
     for (const transaction of props.transactions.costs) {
         const name = categoryName(transaction);
-        totals.set(name, (totals.get(name) ?? 0) + amountOf(transaction));
+        const existing = totals.get(name);
+
+        totals.set(name, {
+            value: (existing?.value ?? 0) + amountOf(transaction),
+            color: existing?.color ?? categoryColor(transaction),
+        });
     }
 
     const sorted = [...totals.entries()].sort(
-        (left, right) => right[1] - left[1],
+        (left, right) => right[1].value - left[1].value,
     );
     const top = sorted.slice(0, 5);
     const restTotal = sorted
         .slice(5)
-        .reduce((acc, [, value]) => acc + value, 0);
+        .reduce((acc, [, entry]) => acc + entry.value, 0);
 
     if (restTotal > 0) {
-        top.push([t('finance.categories.cost.other'), restTotal]);
+        top.push([
+            t('finance.categories.cost.other'),
+            { value: restTotal, color: null },
+        ]);
     }
 
     return {
         labels: top.map(([label]) => label),
-        series: top.map(([, value]) => Math.round(value * 100) / 100),
+        series: top.map(([, entry]) => Math.round(entry.value * 100) / 100),
         colors: top.map(
-            (_, index) => chartPalette[index % chartPalette.length],
+            ([, entry], index) =>
+                entry.color ?? chartPalette[index % chartPalette.length],
         ),
-        total: top.reduce((acc, [, value]) => acc + value, 0),
+        total: top.reduce((acc, [, entry]) => acc + entry.value, 0),
     };
 });
 
@@ -864,15 +878,25 @@ function formatAmount(amount: string | number): string {
     }).format(numericAmount);
 }
 
-function categoryName(transaction: Transaction): string {
-    if (transaction.category?.name) {
-        return transaction.category.name;
+function findCategory(transaction: Transaction): Category | null {
+    if (transaction.category) {
+        return transaction.category;
     }
 
     return (
         (props.categories[transaction.type] ?? []).find(
             (category) => category.id === transaction.category_id,
-        )?.name ?? t('finance.categories.uncategorized')
+        ) ?? null
     );
+}
+
+function categoryName(transaction: Transaction): string {
+    return (
+        findCategory(transaction)?.name ?? t('finance.categories.uncategorized')
+    );
+}
+
+function categoryColor(transaction: Transaction): string | null {
+    return findCategory(transaction)?.color ?? null;
 }
 </script>

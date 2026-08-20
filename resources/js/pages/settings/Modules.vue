@@ -9,6 +9,7 @@ import {
     Check,
     Crown,
     Lock,
+    Palette,
     Plane,
     Receipt,
     ReceiptText,
@@ -22,7 +23,9 @@ import {
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
+import SettingsRow from '@/components/settings/SettingsRow.vue';
 import SettingsSection from '@/components/settings/SettingsSection.vue';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useNavigationNaming } from '@/composables/useNavigationNaming';
@@ -370,6 +373,23 @@ onKeyStroke('Escape', () => {
                     </p>
                 </li>
             </ul>
+        </SettingsSection>
+
+        <!-- The v3 mock's "Display" group: table density and compact figures
+             have no backing setting anywhere in the app yet, so only the one
+             row that is real — CashPilot has no light mode — is here. The
+             disabled button says so rather than the empty stub Appearance.vue
+             showed before this. -->
+        <SettingsSection :icon="Palette" :title="t('modules.display.heading')">
+            <SettingsRow
+                :label="t('modules.display.appearance_label')"
+                :help="t('modules.display.appearance_description')"
+                last
+            >
+                <Button variant="outline" size="sm" disabled>
+                    {{ t('modules.display.appearance_button') }}
+                </Button>
+            </SettingsRow>
         </SettingsSection>
     </div>
 

@@ -92,4 +92,11 @@ return [
         'label' => 'Telegram Bot',
         'description' => 'Use CashPilot from Telegram to add entries, review summaries, and receive reminders.',
     ],
+
+    'display' => [
+        'heading' => 'Display',
+        'appearance_label' => 'Appearance',
+        'appearance_description' => 'CashPilot is built for dark. Light mode is not available yet.',
+        'appearance_button' => 'Dark',
+    ],
 ];

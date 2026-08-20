@@ -92,4 +92,11 @@ return [
         'label' => 'Telegram-Bot',
         'description' => 'Nutze CashPilot in Telegram, um Eintraege zu erfassen, Zusammenfassungen zu pruefen und Erinnerungen zu erhalten.',
     ],
+
+    'display' => [
+        'heading' => 'Anzeige',
+        'appearance_label' => 'Erscheinungsbild',
+        'appearance_description' => 'CashPilot ist für den dunklen Modus gebaut. Der helle Modus ist noch nicht verfügbar.',
+        'appearance_button' => 'Dunkel',
+    ],
 ];

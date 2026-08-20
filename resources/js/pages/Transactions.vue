@@ -117,7 +117,7 @@
                         class="shrink-0 cursor-pointer rounded-[10px] bg-[#6C4EE9] px-3.5 py-2 text-[13px] font-medium text-white transition hover:brightness-110"
                         @click="openCreateForm('cost')"
                     >
-                        + {{ t('finance.filters.add_cost') }}
+                        + {{ t('finance.form.add_cost') }}
                     </button>
                 </div>
 
@@ -268,7 +268,7 @@
                         class="shrink-0 cursor-pointer rounded-[10px] bg-[#02CD86] px-3.5 py-2 text-[13px] font-medium text-[#101010] transition hover:brightness-110"
                         @click="openCreateForm('income')"
                     >
-                        + {{ t('finance.filters.add_income') }}
+                        + {{ t('finance.form.add_income') }}
                     </button>
                 </div>
 

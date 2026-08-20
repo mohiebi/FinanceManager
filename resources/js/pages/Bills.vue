@@ -16,9 +16,10 @@
                     {{ currencyLabel(props.monthlyBillSummary.currency) }}
                 </p>
                 <p class="text-[30px] leading-none font-semibold text-white">
-                    <span v-if="monthlyTotal !== null" :class="maskClass">{{
-                        formatAmount(monthlyTotal)
-                    }}</span>
+                    <CompactNumber
+                        v-if="monthlyTotal !== null"
+                        :value="monthlyTotal"
+                    />
                     <span
                         v-else
                         aria-hidden="true"
@@ -52,109 +53,167 @@
             </Button>
         </div>
 
-        <!-- ── Scheduled ──────────────────────────────────────────── -->
-        <section
+        <!-- ── Scheduled + Telegram reminders ──────────────────────── -->
+        <div
             v-else
-            class="mx-[18px] my-[18px] overflow-x-auto rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
+            class="grid items-start gap-[18px] px-[18px] py-[18px] xl:grid-cols-2"
         >
-            <div
-                class="mb-3 flex min-w-[520px] items-center justify-between gap-3"
+            <section
+                class="overflow-x-auto rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
             >
-                <p class="text-[14.5px] font-medium text-white">
-                    {{ t('finance.bills.upcoming') }}
-                </p>
-                <button
-                    type="button"
-                    class="cursor-pointer text-[12.5px] text-[#02CD86] hover:underline"
-                    @click="openCreateDialog()"
+                <div
+                    class="mb-3 flex min-w-[520px] items-center justify-between gap-3"
                 >
-                    + {{ t('finance.bills.add_bill') }}
-                </button>
-            </div>
-
-            <div
-                v-for="bill in bills"
-                :key="bill.id"
-                class="group grid min-w-[520px] grid-cols-[8px_minmax(130px,1fr)_112px_112px_124px] items-center gap-3.5 border-t border-white/[0.06] py-3.5 transition-colors hover:bg-white/[0.02]"
-            >
-                <span
-                    class="size-2 shrink-0 rounded-full"
-                    :style="{ backgroundColor: statusDotColor(bill) }"
-                />
-                <div class="min-w-0">
-                    <p class="truncate text-sm text-white">
-                        <Ciphered :value="bill.title" table="bills" />
+                    <p class="text-[14.5px] font-medium text-white">
+                        {{ t('finance.bills.upcoming') }}
                     </p>
-                    <p
-                        class="mt-0.5 truncate text-[11px] text-[#686868]"
-                        dir="ltr"
+                    <button
+                        type="button"
+                        class="cursor-pointer text-[12.5px] text-[#02CD86] hover:underline"
+                        @click="openCreateDialog()"
                     >
-                        {{ cadenceLabel(bill) }}
-                    </p>
+                        + {{ t('finance.bills.add_bill') }}
+                    </button>
                 </div>
-                <span class="text-[12.5px] text-[#989898]">
-                    {{
-                        bill.next_occurrence
-                            ? displayDate(bill.next_occurrence.due_date)
-                            : t('finance.bills.no_upcoming')
-                    }}
-                </span>
-                <span
-                    class="text-[12.5px] font-medium"
-                    :style="{ color: statusDotColor(bill) }"
+
+                <div
+                    v-for="bill in bills"
+                    :key="bill.id"
+                    class="group grid min-w-[520px] grid-cols-[8px_minmax(130px,1fr)_112px_112px_124px] items-center gap-3.5 border-t border-white/[0.06] py-3.5 transition-colors hover:bg-white/[0.02]"
                 >
-                    {{ statusLabel(bill) }}
-                </span>
-                <div class="flex items-center justify-end gap-2">
                     <span
-                        class="text-[14.5px] text-white tabular-nums"
-                        :class="maskClass"
-                        dir="ltr"
-                    >
-                        <CipheredMoney
-                            :amount="bill.amount"
-                            :display-amount="bill.display_amount"
-                            :currency="bill.currency as CurrencyCode"
-                            :display-currency="
-                                bill.display_currency as CurrencyCode
-                            "
-                            :rates="props.rates"
-                            table="bills"
-                        />
+                        class="size-2 shrink-0 rounded-full"
+                        :style="{ backgroundColor: statusDotColor(bill) }"
+                    />
+                    <div class="min-w-0">
+                        <p class="truncate text-sm text-white">
+                            <Ciphered :value="bill.title" table="bills" />
+                        </p>
+                        <p
+                            class="mt-0.5 truncate text-[11px] text-[#686868]"
+                            dir="ltr"
+                        >
+                            {{ cadenceLabel(bill) }}
+                        </p>
+                    </div>
+                    <span class="text-[12.5px] text-[#989898]">
+                        {{
+                            bill.next_occurrence
+                                ? displayDate(bill.next_occurrence.due_date)
+                                : t('finance.bills.no_upcoming')
+                        }}
                     </span>
-                    <div
-                        class="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100"
+                    <span
+                        class="text-[12.5px] font-medium"
+                        :style="{ color: statusDotColor(bill) }"
                     >
-                        <button
-                            v-if="bill.next_occurrence"
-                            type="button"
-                            :disabled="payingId === bill.next_occurrence.id"
-                            :aria-label="t('finance.bills.mark_paid')"
-                            class="cursor-pointer rounded-md p-1 text-[#02CD86] hover:bg-[#02CD86]/10 disabled:cursor-not-allowed disabled:opacity-50"
-                            @click="void markPaid(bill)"
+                        {{ statusLabel(bill) }}
+                    </span>
+                    <div class="flex items-center justify-end gap-2">
+                        <span
+                            class="text-[14.5px] text-white tabular-nums"
+                            :class="maskClass"
+                            dir="ltr"
                         >
-                            <Check class="size-3.5" />
-                        </button>
-                        <button
-                            type="button"
-                            :aria-label="t('common.edit')"
-                            class="cursor-pointer rounded-md p-1 text-[#6C4EE9] hover:bg-[#6C4EE9]/10"
-                            @click="void openEditDialog(bill)"
+                            <CipheredMoney
+                                :amount="bill.amount"
+                                :display-amount="bill.display_amount"
+                                :currency="bill.currency as CurrencyCode"
+                                :display-currency="
+                                    bill.display_currency as CurrencyCode
+                                "
+                                :rates="props.rates"
+                                table="bills"
+                            />
+                        </span>
+                        <div
+                            class="flex shrink-0 items-center gap-1 opacity-100 transition md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
                         >
-                            <Pencil class="size-3.5" />
-                        </button>
-                        <button
-                            type="button"
-                            :aria-label="t('common.delete')"
-                            class="cursor-pointer rounded-md p-1 text-[#E94E50] hover:bg-[#E94E50]/10"
-                            @click="void requestDelete(bill)"
-                        >
-                            <Trash2 class="size-3.5" />
-                        </button>
+                            <button
+                                v-if="bill.next_occurrence"
+                                type="button"
+                                :disabled="payingId === bill.next_occurrence.id"
+                                :aria-label="t('finance.bills.mark_paid')"
+                                class="cursor-pointer rounded-md p-1 text-[#02CD86] hover:bg-[#02CD86]/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                @click="void markPaid(bill)"
+                            >
+                                <Check class="size-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                :aria-label="t('common.edit')"
+                                class="cursor-pointer rounded-md p-1 text-[#6C4EE9] hover:bg-[#6C4EE9]/10"
+                                @click="void openEditDialog(bill)"
+                            >
+                                <Pencil class="size-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                :aria-label="t('common.delete')"
+                                class="cursor-pointer rounded-md p-1 text-[#E94E50] hover:bg-[#E94E50]/10"
+                                @click="void requestDelete(bill)"
+                            >
+                                <Trash2 class="size-3.5" />
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+
+            <!-- ── Telegram reminders — real per-bill reminder status, not the
+             mock's account-wide toggle set: this app's reminders are set per
+             bill (enable + time + timezone, from the edit dialog), and there
+             is no "day before / weekly digest" preference to turn a toggle
+             into without inventing settings that don't exist. ───────────── -->
+            <section
+                class="rounded-[16px] bg-[#1a1a1a] p-[22px] ring-1 ring-white/10"
+            >
+                <p
+                    class="mb-3.5 text-[11px] font-medium tracking-[0.13em] text-[#0EA5E9] uppercase"
+                >
+                    {{ t('finance.bills.telegram_reminders_title') }}
+                </p>
+                <p class="mb-4.5 text-[13px] leading-[1.6] text-[#989898]">
+                    {{ t('finance.bills.telegram_reminders_description') }}
+                </p>
+
+                <div
+                    v-if="remindedBills.length > 0"
+                    class="flex flex-col gap-1.5"
+                >
+                    <div
+                        v-for="bill in remindedBills"
+                        :key="bill.id"
+                        class="flex items-center justify-between gap-3 rounded-xl bg-[#252525] px-[15px] py-3"
+                    >
+                        <span class="min-w-0 truncate text-sm text-[#e5e5e5]">
+                            <Ciphered :value="bill.title" table="bills" />
+                        </span>
+                        <div class="shrink-0 text-end">
+                            <p
+                                v-if="reminderDueLabel(bill)"
+                                class="text-xs font-medium"
+                                :class="reminderDueClass(bill)"
+                            >
+                                {{ reminderDueLabel(bill) }}
+                            </p>
+                            <p
+                                class="mt-0.5 text-[11px] text-[#686868]"
+                                dir="ltr"
+                            >
+                                {{ bill.reminder_time }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <p
+                    v-else
+                    class="rounded-xl bg-[#252525] px-[15px] py-3 text-[13px] text-[#686868]"
+                >
+                    {{ t('finance.bills.telegram_reminders_empty') }}
+                </p>
+            </section>
+        </div>
 
         <!-- ── Add / Edit dialog ──────────────────────────────────── -->
         <Dialog :open="isDialogOpen" @update:open="handleDialogOpenChange">
@@ -640,6 +699,7 @@ import { computed, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
+import CompactNumber from '@/components/CompactNumber.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -762,6 +822,10 @@ const accountTimezone = computed(
 );
 const bills = computed(() => props.bills);
 
+const remindedBills = computed(() =>
+    props.bills.filter((bill) => bill.telegram_reminder_enabled),
+);
+
 /**
  * The month's bill total.
  *
@@ -819,14 +883,6 @@ watchEffect(async () => {
 
 const displayDate = (value: string): string =>
     formatAppDate(value, props.userCalendar);
-const formatAmount = (value: number | string): string => {
-    const amount = Number(value);
-
-    return new Intl.NumberFormat('en-US', {
-        maximumFractionDigits: 2,
-        minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
-    }).format(amount);
-};
 const currencyLabel = (value: string): string =>
     props.currencies.find((currency) => currency.value === value)?.label ??
     t(`finance.currencies.${value}`);
@@ -837,39 +893,61 @@ function cadenceLabel(bill: Bill): string {
         : t('finance.bills.recurrence_one_time');
 }
 
-/** Overdue once past today's date, due today on it, scheduled otherwise —
- *  the same "nothing left to check" once a bill has no next occurrence at
- *  all reads as scheduled too, since there is nothing urgent to flag. */
-function statusLabel(bill: Bill): string {
+/** Whole days between today and the next occurrence — negative once it's
+ *  overdue. Null when there is no next occurrence to count toward. */
+function daysUntilDue(bill: Bill): number | null {
     if (!bill.next_occurrence) {
+        return null;
+    }
+
+    const due = new Date(`${bill.next_occurrence.due_date}T00:00:00`);
+    const today = new Date(`${props.today}T00:00:00`);
+
+    return Math.round((due.getTime() - today.getTime()) / 86_400_000);
+}
+
+/** Overdue once past today's date; a literal day count once it's inside the
+ *  next week, so the row itself carries the urgency instead of a flat
+ *  "scheduled" for everything not yet due; scheduled beyond that, or with no
+ *  next occurrence at all — nothing urgent left to flag. */
+function statusLabel(bill: Bill): string {
+    const days = daysUntilDue(bill);
+
+    if (days === null || days >= 7) {
         return t('finance.bills.scheduled');
     }
 
-    if (bill.next_occurrence.due_date < props.today) {
+    if (days < 0) {
         return t('finance.bills.overdue');
     }
 
-    if (bill.next_occurrence.due_date === props.today) {
+    if (days === 0) {
         return t('finance.bills.due_today');
     }
 
-    return t('finance.bills.scheduled');
+    return t('finance.bills.due_in_days', { days });
 }
 
 function statusDotColor(bill: Bill): string {
-    if (!bill.next_occurrence) {
-        return '#686868';
+    const days = daysUntilDue(bill);
+
+    if (days === null || days >= 3) {
+        return days !== null && days < 7 ? '#F59E0B' : '#686868';
     }
 
-    if (bill.next_occurrence.due_date < props.today) {
-        return '#E94E50';
-    }
+    return '#E94E50';
+}
 
-    if (bill.next_occurrence.due_date === props.today) {
-        return '#F59E0B';
-    }
+function reminderDueLabel(bill: Bill): string | null {
+    const days = daysUntilDue(bill);
 
-    return '#686868';
+    return days !== null && days < 7 ? `* ${statusLabel(bill)}` : null;
+}
+
+function reminderDueClass(bill: Bill): string {
+    const days = daysUntilDue(bill);
+
+    return days !== null && days < 3 ? 'text-[#E94E50]' : 'text-[#F59E0B]';
 }
 
 const fieldClass =

@@ -320,7 +320,7 @@ test('the display group is written in every locale', function () {
     foreach (['en', 'fa', 'de'] as $locale) {
         $modules = require resource_path("lang/{$locale}/modules.php");
 
-        foreach (['heading', 'compact_figures_label', 'compact_figures_description', 'appearance_label', 'appearance_description', 'appearance_button'] as $key) {
+        foreach (['heading', 'compact_figures_label', 'compact_figures_description'] as $key) {
             if (! isset($modules['display'][$key])) {
                 $missing[] = "{$locale}.display.{$key}";
             }

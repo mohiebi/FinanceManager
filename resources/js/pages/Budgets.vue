@@ -51,11 +51,10 @@
                         {{ t('finance.dashboard.safe_to_spend') }}
                     </p>
                     <p class="mt-3 flex flex-wrap items-baseline gap-2">
-                        <span
+                        <CompactNumber
+                            :value="safeToSpendPerDay"
                             class="text-[36px] leading-none font-bold text-white sm:text-[44px]"
-                            :class="maskClass"
-                            >{{ formatAmount(safeToSpendPerDay) }}</span
-                        >
+                        />
                         <span class="text-sm font-medium text-[#989898]">
                             {{ currencyLabel }} ·
                             {{ t('finance.dashboard.per_day') }}
@@ -470,6 +469,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { Plus, Target, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import CompactNumber from '@/components/CompactNumber.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';

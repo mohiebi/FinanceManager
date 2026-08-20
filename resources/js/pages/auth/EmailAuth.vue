@@ -128,13 +128,14 @@ const returnToEmail = () => {
 const googleError = computed(() => page.props.errors.google);
 const formClass = 'auth-login-form mx-auto grid w-full max-w-[418px] gap-5';
 const profileFormClass =
-    'auth-login-form mx-auto -mt-20 grid w-full max-w-[418px] gap-4';
+    'auth-login-form mx-auto grid w-full max-w-[418px] gap-4';
 const fieldClass = 'auth-field text-base font-light';
 const labelClass = 'auth-label text-base font-normal';
-const primaryButtonClass = 'auth-primary-button w-full text-xl font-normal';
-const secondaryButtonClass = 'auth-secondary-button w-full text-xl font-normal';
+const primaryButtonClass = 'auth-primary-button w-full text-base font-medium';
+const secondaryButtonClass =
+    'auth-secondary-button w-full text-base font-normal';
 const linkClass =
-    'auth-inline-link cursor-pointer bg-transparent p-0 text-xl font-normal underline decoration-transparent underline-offset-4 transition hover:decoration-current';
+    'auth-inline-link cursor-pointer bg-transparent p-0 text-[15px] font-normal underline decoration-transparent underline-offset-4 transition hover:decoration-current';
 </script>
 
 <template>

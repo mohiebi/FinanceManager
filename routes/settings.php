@@ -51,6 +51,7 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
 
     Route::get('settings/modules', [ModuleController::class, 'edit'])->name('modules.edit');
     Route::patch('settings/modules', [ModuleController::class, 'update'])->name('modules.update');
+    Route::patch('settings/display', [ModuleController::class, 'updateDisplay'])->name('display.update');
 
     // Billing is not a Feature module, so it carries no EnsureFeatureEnabled —
     // and no RejectWhenVaultArmed either: these rows are plaintext by design,

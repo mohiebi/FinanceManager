@@ -9,6 +9,7 @@ import {
     Check,
     Crown,
     Lock,
+    Palette,
     Plane,
     Receipt,
     ReceiptText,
@@ -22,11 +23,15 @@ import {
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
+import SettingsRow from '@/components/settings/SettingsRow.vue';
 import SettingsSection from '@/components/settings/SettingsSection.vue';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
+import { useCompactFigures } from '@/composables/useCompactFigures';
 import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { edit as billingEdit } from '@/routes/billing';
+import { update as updateDisplay } from '@/routes/display';
 import { update as updateModules } from '@/routes/modules';
 import type { CoreModuleCard, FeatureKey, ModuleCard } from '@/types/features';
 
@@ -39,6 +44,7 @@ const props = defineProps<{
 const { t } = useI18n();
 const { navigationName } = useNavigationNaming();
 const page = usePage();
+const { compact: compactFigures } = useCompactFigures();
 
 // The same kill switch the settings nav reads. With billing off there is nothing
 // to sell, and `billing.edit` 404s — so the dialog explains Pro and stops there
@@ -158,6 +164,24 @@ function confirmDisable(): void {
 
 function togglePromo(module: ModuleCard, hidden: boolean): void {
     submit(module.key, { show_promo: !hidden });
+}
+
+const processingDisplay = ref(false);
+
+function toggleCompactFigures(value: boolean): void {
+    processingDisplay.value = true;
+
+    router.patch(
+        updateDisplay.url(),
+        { compact_figures_enabled: value },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => {
+                processingDisplay.value = false;
+            },
+        },
+    );
 }
 
 // Escape closes whichever dialog is open — a modal that only the mouse can
@@ -370,6 +394,37 @@ onKeyStroke('Escape', () => {
                     </p>
                 </li>
             </ul>
+        </SettingsSection>
+
+        <!-- The v3 mock's "Display" group. Table density has no backing
+             setting anywhere in the app and would mean touching every table
+             component, so it stays out. Compact figures is real, wired
+             through CipheredMoney.vue. Appearance is a disabled button
+             saying CashPilot has no light mode, replacing the empty stub
+             Appearance.vue showed before this. -->
+        <SettingsSection :icon="Palette" :title="t('modules.display.heading')">
+            <SettingsRow
+                :label="t('modules.display.compact_figures_label')"
+                :help="t('modules.display.compact_figures_description')"
+                control-id="compact_figures_enabled"
+            >
+                <Switch
+                    id="compact_figures_enabled"
+                    :checked="compactFigures"
+                    :disabled="processingDisplay"
+                    @update:checked="toggleCompactFigures($event === true)"
+                />
+            </SettingsRow>
+
+            <SettingsRow
+                :label="t('modules.display.appearance_label')"
+                :help="t('modules.display.appearance_description')"
+                last
+            >
+                <Button variant="outline" size="sm" disabled>
+                    {{ t('modules.display.appearance_button') }}
+                </Button>
+            </SettingsRow>
         </SettingsSection>
     </div>
 

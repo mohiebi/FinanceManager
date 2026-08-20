@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
 import { useAmountMask } from '@/composables/useAmountMask';
+import { useCompactFigures } from '@/composables/useCompactFigures';
 import { useVault } from '@/composables/useVault';
 import { format as formatMoney } from '@/lib/money';
 import type { CurrencyCode, Rates } from '@/lib/money';
@@ -21,6 +22,7 @@ const props = withDefaults(
 
 const { reveal, revealAsync, trackKey } = useVault();
 const { masked } = useAmountMask();
+const { compact } = useCompactFigures();
 
 const resolved = ref<string | number | undefined>(reveal(props.amount));
 
@@ -45,9 +47,20 @@ watchEffect(async () => {
     );
 });
 
+// notation:'compact' is what actually produces "988.7M" — everything else
+// about the two formatters is identical, so this is the only branch needed.
+const numberFormatter = computed(() =>
+    compact.value
+        ? new Intl.NumberFormat('en-US', {
+              notation: 'compact',
+              maximumFractionDigits: 1,
+          })
+        : new Intl.NumberFormat('en-US'),
+);
+
 const formatted = computed(() => {
     if (props.displayAmount !== null && props.displayAmount !== undefined) {
-        return new Intl.NumberFormat('en-US').format(
+        return numberFormatter.value.format(
             Number(String(props.displayAmount).replace(/,/g, '')) || 0,
         );
     }
@@ -56,7 +69,7 @@ const formatted = computed(() => {
         return undefined;
     }
 
-    return new Intl.NumberFormat('en-US').format(
+    return numberFormatter.value.format(
         Number(
             formatMoney(
                 resolved.value,

@@ -8,81 +8,73 @@
         <section
             class="mx-[18px] mt-5 rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
         >
-            <div class="flex flex-col gap-5">
-                <div class="flex flex-col gap-4">
-                    <!-- Range buttons -->
-                    <div class="flex flex-wrap gap-2">
+            <div class="flex flex-col gap-4">
+                <!-- One dense row: range pills, search, category — matching
+                     the mock exactly, no field labels. -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <div
+                        class="flex flex-wrap gap-0.5 rounded-[10px] bg-[#252525] p-[3px] ring-1 ring-white/[0.08]"
+                    >
                         <button
                             v-for="range in ranges"
                             :key="range.value"
                             type="button"
                             :class="[
-                                'rounded-full px-4 py-1.5 text-sm font-normal transition',
+                                'rounded-[7px] px-3.5 py-1.5 text-[13px] font-normal transition',
                                 selectedRange === range.value
                                     ? 'bg-[#02cd86] text-[#101010]'
-                                    : 'bg-white/5 text-[#989898] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
+                                    : 'text-[#989898] hover:text-white',
                             ]"
                             @click="selectRange(range.value)"
                         >
                             {{ range.label }}
                         </button>
                     </div>
-                </div>
 
-                <!-- Search / category filters -->
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div class="grid gap-2">
-                        <Label for="report_search">{{
-                            t('finance.fields.search')
-                        }}</Label>
-                        <Input
-                            id="report_search"
-                            v-model="search"
+                    <Input
+                        id="report_search"
+                        v-model="search"
+                        :class="[filterFieldClass, 'min-w-[180px] flex-1']"
+                        :placeholder="t('finance.filters.title_or_note')"
+                        :aria-label="t('finance.fields.search')"
+                        @keyup.enter="applyFilters()"
+                    />
+
+                    <Select
+                        v-model="selectedCategory"
+                        @update:model-value="applyFilters()"
+                    >
+                        <SelectTrigger
+                            id="report_category"
                             :class="filterFieldClass"
-                            :placeholder="t('finance.filters.title_or_note')"
-                            @keyup.enter="applyFilters()"
-                        />
-                    </div>
-
-                    <div class="grid gap-2">
-                        <Label for="report_category">{{
-                            t('finance.fields.category')
-                        }}</Label>
-                        <Select
-                            v-model="selectedCategory"
-                            @update:model-value="applyFilters()"
+                            :aria-label="t('finance.fields.category')"
                         >
-                            <SelectTrigger
-                                id="report_category"
-                                :class="filterFieldClass"
-                            >
-                                <SelectValue
-                                    :placeholder="
-                                        t('finance.filters.all_categories')
-                                    "
-                                />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">{{
+                            <SelectValue
+                                :placeholder="
                                     t('finance.filters.all_categories')
-                                }}</SelectItem>
-                                <SelectItem
-                                    v-for="category in reportCategories"
-                                    :key="category.id"
-                                    :value="category.id.toString()"
-                                >
-                                    {{ category.name }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                                "
+                            />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">{{
+                                t('finance.filters.all_categories')
+                            }}</SelectItem>
+                            <SelectItem
+                                v-for="category in reportCategories"
+                                :key="category.id"
+                                :value="category.id.toString()"
+                            >
+                                {{ category.name }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 <!-- Hidden entirely when there is no investment category to
                      exclude, so the toggle is never a no-op. -->
                 <label
                     v-if="props.hasInvestmentCategory"
-                    class="flex w-fit cursor-pointer items-center gap-2.5"
+                    class="flex w-fit cursor-pointer items-center gap-2.5 border-t border-white/[0.07] pt-4"
                 >
                     <Checkbox
                         :checked="excludeInvestments"
@@ -148,12 +140,18 @@
             <article
                 class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
+                <div class="mb-2.5 flex items-center gap-2">
+                    <span
+                        class="size-[7px] shrink-0 rounded-[2px] bg-[#02CD86]"
+                    />
+                    <p class="text-xs text-[#989898]">
+                        {{ t('finance.metrics.income') }} ·
+                        {{ currencyLabel(props.selectedCurrency) }}
+                    </p>
+                </div>
                 <p
-                    class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
+                    class="text-[25px] leading-none font-semibold text-[#02CD86]"
                 >
-                    {{ t('finance.metrics.income') }}
-                </p>
-                <p class="mt-3 text-2xl font-semibold text-white">
                     <span v-if="incomeTotal !== null" :class="maskClass">{{
                         formatMoney(
                             incomeTotal.toFixed(2),
@@ -171,12 +169,18 @@
             <article
                 class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
+                <div class="mb-2.5 flex items-center gap-2">
+                    <span
+                        class="size-[7px] shrink-0 rounded-[2px] bg-[#6C4EE9]"
+                    />
+                    <p class="text-xs text-[#989898]">
+                        {{ costsLabel }} ·
+                        {{ currencyLabel(props.selectedCurrency) }}
+                    </p>
+                </div>
                 <p
-                    class="text-xs font-medium tracking-[0.2em] text-[#6C4EE9] uppercase"
+                    class="text-[25px] leading-none font-semibold text-[#947BFF]"
                 >
-                    {{ costsLabel }}
-                </p>
-                <p class="mt-3 text-2xl font-semibold text-white">
                     <span v-if="costTotal !== null" :class="maskClass">{{
                         formatMoney(
                             costTotal.toFixed(2),
@@ -194,12 +198,11 @@
             <article
                 class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
-                <p
-                    class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-                >
-                    {{ t('finance.metrics.balance') }}
+                <p class="mb-2.5 text-xs text-[#989898]">
+                    {{ t('finance.metrics.balance') }} ·
+                    {{ currencyLabel(props.selectedCurrency) }}
                 </p>
-                <p class="mt-3 text-2xl font-semibold text-white">
+                <p class="text-[25px] leading-none font-semibold text-white">
                     <span v-if="balanceLabel !== null" :class="maskClass">{{
                         balanceLabel
                     }}</span>
@@ -214,12 +217,10 @@
             <article
                 class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
-                <p
-                    class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
-                >
+                <p class="mb-2.5 text-xs text-[#989898]">
                     {{ t('finance.metrics.entries') }}
                 </p>
-                <p class="mt-3 text-2xl font-semibold text-white">
+                <p class="text-[25px] leading-none font-semibold text-white">
                     {{ props.summary.count }}
                 </p>
             </article>
@@ -331,126 +332,86 @@
         >
             <!-- Costs table -->
             <section
-                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
             >
-                <div
-                    class="flex items-center justify-between gap-4 px-5 py-[29px]"
-                >
-                    <div>
-                        <p class="text-xs font-medium text-[#6C4EE9] uppercase">
-                            {{ t('finance.metrics.costs') }}
-                        </p>
-                        <h2
-                            class="text-[22px] leading-none font-normal text-white"
-                        >
-                            {{ t('finance.tables.money_going_out') }}
-                        </h2>
-                    </div>
-                    <span class="text-xs text-[#989898]">
+                <div class="mb-4 flex items-center gap-2">
+                    <span
+                        class="size-[7px] shrink-0 rounded-[2px] bg-[#6C4EE9]"
+                    />
+                    <p
+                        class="text-[11px] font-medium tracking-[0.13em] text-[#947BFF] uppercase"
+                    >
+                        {{ t('finance.tables.money_going_out') }}
+                    </p>
+                    <span class="ml-auto text-[11.5px] text-[#686868]">
                         {{ props.transactions.meta.costs.total }}
                         {{ t('finance.metrics.entries') }}
                     </span>
                 </div>
 
-                <div class="overflow-x-auto px-3 pb-5">
-                    <table
-                        class="w-full border-separate border-spacing-y-0 text-sm"
-                    >
-                        <thead>
-                            <tr class="text-left text-base">
-                                <th
-                                    class="rounded-l-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
-                                >
-                                    {{ t('finance.fields.subject') }}
-                                </th>
-                                <th
-                                    class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
-                                >
-                                    {{ t('finance.fields.category') }}
-                                </th>
-                                <th
-                                    class="hidden bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:table-cell sm:px-5"
-                                >
-                                    {{ t('finance.fields.date') }}
-                                </th>
-                                <th
-                                    class="rounded-r-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
-                                >
-                                    {{ t('finance.fields.amount') }}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="transaction in props.transactions.costs"
-                                :key="transaction.id"
-                                class="group"
-                            >
-                                <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
-                                >
-                                    <Ciphered
-                                        :value="transaction.title"
-                                        table="transactions"
-                                    />
-                                    <div
-                                        v-if="transaction.description"
-                                        class="mt-1 line-clamp-1 text-xs text-[#989898]"
-                                    >
-                                        <Ciphered
-                                            :value="transaction.description"
-                                            table="transactions"
-                                        />
-                                    </div>
-                                </td>
-                                <td class="px-3 py-[17px] text-center sm:px-5">
-                                    <span
-                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
-                                    >
-                                        {{
-                                            transaction.category?.name ??
-                                            t(
-                                                'finance.categories.uncategorized',
-                                            )
-                                        }}
-                                    </span>
-                                </td>
-                                <td
-                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
-                                >
-                                    {{ displayDate(transaction.occurred_at) }}
-                                </td>
-                                <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-semibold text-[#6C4EE9] sm:px-5"
-                                >
-                                    <CipheredMoney
-                                        :amount="transaction.amount"
-                                        :display-amount="
-                                            transaction.display_amount
-                                        "
-                                        :currency="transaction.currency"
-                                        :display-currency="
-                                            transaction.display_currency
-                                        "
-                                        :rates="props.rates"
-                                    />
-                                </td>
-                            </tr>
-                            <tr v-if="props.transactions.costs.length === 0">
-                                <td
-                                    colspan="4"
-                                    class="px-5 py-12 text-center text-[#989898]"
-                                >
-                                    {{ t('finance.dashboard.no_costs') }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div
+                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px] items-center gap-3 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase"
+                >
+                    <div>{{ t('finance.fields.subject') }}</div>
+                    <div>{{ t('finance.fields.category') }}</div>
+                    <div>{{ t('finance.fields.date') }}</div>
+                    <div class="text-end">{{ t('finance.fields.amount') }}</div>
                 </div>
 
                 <div
+                    v-for="transaction in props.transactions.costs"
+                    :key="transaction.id"
+                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px] items-center gap-3 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02]"
+                >
+                    <div class="min-w-0">
+                        <p class="truncate text-sm text-white">
+                            <Ciphered
+                                :value="transaction.title"
+                                table="transactions"
+                            />
+                        </p>
+                        <p
+                            v-if="transaction.description"
+                            class="mt-0.5 truncate text-[11px] text-[#686868]"
+                        >
+                            <Ciphered
+                                :value="transaction.description"
+                                table="transactions"
+                            />
+                        </p>
+                    </div>
+                    <CategoryChip
+                        :name="categoryName(transaction)"
+                        :color="categoryColor(transaction)"
+                    />
+                    <span dir="ltr" class="text-xs text-[#686868] tabular-nums">
+                        {{ displayDate(transaction.occurred_at) }}
+                    </span>
+                    <span
+                        class="text-end text-[14.5px] text-[#947BFF] tabular-nums"
+                        :class="maskClass"
+                        dir="ltr"
+                    >
+                        <CipheredMoney
+                            :amount="transaction.amount"
+                            :display-amount="transaction.display_amount"
+                            :currency="transaction.currency"
+                            :display-currency="transaction.display_currency"
+                            :rates="props.rates"
+                        />
+                    </span>
+                </div>
+
+                <p
+                    v-if="props.transactions.costs.length === 0"
+                    class="py-10 text-center text-sm text-[#989898]"
+                >
+                    {{ t('finance.dashboard.no_costs') }}
+                </p>
+
+                <div
                     v-if="props.transactions.meta.costs.last_page > 1"
-                    class="flex items-center justify-center gap-3 border-t border-white/[0.07] px-5 py-3 text-xs"
+                    class="flex items-center justify-center gap-3 py-4 text-xs text-[#686868]"
                 >
                     <button
                         type="button"
@@ -458,22 +419,20 @@
                         :disabled="
                             props.transactions.meta.costs.current_page <= 1
                         "
-                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        class="cursor-pointer rounded-[7px] bg-[#252525] px-[11px] py-[5px] text-white transition-colors hover:bg-[#2e2e2e] disabled:cursor-not-allowed disabled:opacity-40"
                         @click="
                             changeCostPage(
                                 props.transactions.meta.costs.current_page - 1,
                             )
                         "
                     >
-                        ←
+                        ‹
                     </button>
-                    <span class="text-[#989898]">
-                        {{ props.transactions.meta.costs.current_page }}
-                        /
-                        {{ props.transactions.meta.costs.last_page }}
-                        <span class="ml-1 text-[#6b6b6b]">
-                            ({{ props.transactions.meta.costs.total }})
-                        </span>
+                    <span>
+                        {{ props.transactions.meta.costs.current_page }} /
+                        {{ props.transactions.meta.costs.last_page }} ·
+                        {{ props.transactions.meta.costs.total }}
+                        {{ t('finance.metrics.entries') }}
                     </span>
                     <button
                         type="button"
@@ -482,141 +441,100 @@
                             props.transactions.meta.costs.current_page >=
                             props.transactions.meta.costs.last_page
                         "
-                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        class="cursor-pointer rounded-[7px] bg-[#252525] px-[11px] py-[5px] text-white transition-colors hover:bg-[#2e2e2e] disabled:cursor-not-allowed disabled:opacity-40"
                         @click="
                             changeCostPage(
                                 props.transactions.meta.costs.current_page + 1,
                             )
                         "
                     >
-                        →
+                        ›
                     </button>
                 </div>
             </section>
 
             <!-- Incomes table -->
             <section
-                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
             >
-                <div
-                    class="flex items-center justify-between gap-4 px-5 py-[29px]"
-                >
-                    <div>
-                        <p class="text-xs font-medium text-[#02CD86] uppercase">
-                            {{ t('finance.filters.incomes') }}
-                        </p>
-                        <h2
-                            class="text-[22px] leading-none font-normal text-white"
-                        >
-                            {{ t('finance.tables.money_coming_in') }}
-                        </h2>
-                    </div>
-                    <span class="text-xs text-[#989898]">
+                <div class="mb-4 flex items-center gap-2">
+                    <span
+                        class="size-[7px] shrink-0 rounded-[2px] bg-[#02CD86]"
+                    />
+                    <p
+                        class="text-[11px] font-medium tracking-[0.13em] text-[#02CD86] uppercase"
+                    >
+                        {{ t('finance.tables.money_coming_in') }}
+                    </p>
+                    <span class="ml-auto text-[11.5px] text-[#686868]">
                         {{ props.transactions.meta.incomes.total }}
                         {{ t('finance.metrics.entries') }}
                     </span>
                 </div>
 
-                <div class="overflow-x-auto px-3 pb-5">
-                    <table
-                        class="w-full border-separate border-spacing-y-0 text-sm"
-                    >
-                        <thead>
-                            <tr class="text-left text-base">
-                                <th
-                                    class="rounded-l-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
-                                >
-                                    {{ t('finance.fields.subject') }}
-                                </th>
-                                <th
-                                    class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
-                                >
-                                    {{ t('finance.fields.category') }}
-                                </th>
-                                <th
-                                    class="hidden bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:table-cell sm:px-5"
-                                >
-                                    {{ t('finance.fields.date') }}
-                                </th>
-                                <th
-                                    class="rounded-r-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
-                                >
-                                    {{ t('finance.fields.amount') }}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="transaction in props.transactions
-                                    .incomes"
-                                :key="transaction.id"
-                                class="group"
-                            >
-                                <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:px-5"
-                                >
-                                    <Ciphered
-                                        :value="transaction.title"
-                                        table="transactions"
-                                    />
-                                    <div
-                                        v-if="transaction.description"
-                                        class="mt-1 line-clamp-1 text-xs text-[#989898]"
-                                    >
-                                        <Ciphered
-                                            :value="transaction.description"
-                                            table="transactions"
-                                        />
-                                    </div>
-                                </td>
-                                <td class="px-3 py-[17px] text-center sm:px-5">
-                                    <span
-                                        class="inline-flex min-w-[118px] justify-center rounded-md bg-white/10 px-4 py-2 text-[17px] leading-none font-normal text-white"
-                                    >
-                                        {{
-                                            transaction.category?.name ??
-                                            t(
-                                                'finance.categories.uncategorized',
-                                            )
-                                        }}
-                                    </span>
-                                </td>
-                                <td
-                                    class="hidden px-3 py-[17px] text-center text-[17px] leading-none font-normal text-white sm:table-cell sm:px-5"
-                                >
-                                    {{ displayDate(transaction.occurred_at) }}
-                                </td>
-                                <td
-                                    class="px-3 py-[17px] text-center text-[17px] leading-none font-semibold text-[#02CD86] sm:px-5"
-                                >
-                                    <CipheredMoney
-                                        :amount="transaction.amount"
-                                        :display-amount="
-                                            transaction.display_amount
-                                        "
-                                        :currency="transaction.currency"
-                                        :display-currency="
-                                            transaction.display_currency
-                                        "
-                                        :rates="props.rates"
-                                    />
-                                </td>
-                            </tr>
-                            <tr v-if="props.transactions.incomes.length === 0">
-                                <td
-                                    colspan="4"
-                                    class="px-5 py-12 text-center text-[#989898]"
-                                >
-                                    {{ t('finance.dashboard.no_incomes') }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div
+                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px] items-center gap-3 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase"
+                >
+                    <div>{{ t('finance.fields.subject') }}</div>
+                    <div>{{ t('finance.fields.category') }}</div>
+                    <div>{{ t('finance.fields.date') }}</div>
+                    <div class="text-end">{{ t('finance.fields.amount') }}</div>
                 </div>
 
                 <div
+                    v-for="transaction in props.transactions.incomes"
+                    :key="transaction.id"
+                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px] items-center gap-3 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02]"
+                >
+                    <div class="min-w-0">
+                        <p class="truncate text-sm text-white">
+                            <Ciphered
+                                :value="transaction.title"
+                                table="transactions"
+                            />
+                        </p>
+                        <p
+                            v-if="transaction.description"
+                            class="mt-0.5 truncate text-[11px] text-[#686868]"
+                        >
+                            <Ciphered
+                                :value="transaction.description"
+                                table="transactions"
+                            />
+                        </p>
+                    </div>
+                    <CategoryChip
+                        :name="categoryName(transaction)"
+                        :color="categoryColor(transaction)"
+                    />
+                    <span dir="ltr" class="text-xs text-[#686868] tabular-nums">
+                        {{ displayDate(transaction.occurred_at) }}
+                    </span>
+                    <span
+                        class="text-end text-[14.5px] text-[#02CD86] tabular-nums"
+                        :class="maskClass"
+                        dir="ltr"
+                    >
+                        <CipheredMoney
+                            :amount="transaction.amount"
+                            :display-amount="transaction.display_amount"
+                            :currency="transaction.currency"
+                            :display-currency="transaction.display_currency"
+                            :rates="props.rates"
+                        />
+                    </span>
+                </div>
+
+                <p
+                    v-if="props.transactions.incomes.length === 0"
+                    class="py-10 text-center text-sm text-[#989898]"
+                >
+                    {{ t('finance.dashboard.no_incomes') }}
+                </p>
+
+                <div
                     v-if="props.transactions.meta.incomes.last_page > 1"
-                    class="flex items-center justify-center gap-3 border-t border-white/[0.07] px-5 py-3 text-xs"
+                    class="flex items-center justify-center gap-3 py-4 text-xs text-[#686868]"
                 >
                     <button
                         type="button"
@@ -624,7 +542,7 @@
                         :disabled="
                             props.transactions.meta.incomes.current_page <= 1
                         "
-                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        class="cursor-pointer rounded-[7px] bg-[#252525] px-[11px] py-[5px] text-white transition-colors hover:bg-[#2e2e2e] disabled:cursor-not-allowed disabled:opacity-40"
                         @click="
                             changeIncomePage(
                                 props.transactions.meta.incomes.current_page -
@@ -632,15 +550,13 @@
                             )
                         "
                     >
-                        ←
+                        ‹
                     </button>
-                    <span class="text-[#989898]">
-                        {{ props.transactions.meta.incomes.current_page }}
-                        /
-                        {{ props.transactions.meta.incomes.last_page }}
-                        <span class="ml-1 text-[#6b6b6b]">
-                            ({{ props.transactions.meta.incomes.total }})
-                        </span>
+                    <span>
+                        {{ props.transactions.meta.incomes.current_page }} /
+                        {{ props.transactions.meta.incomes.last_page }} ·
+                        {{ props.transactions.meta.incomes.total }}
+                        {{ t('finance.metrics.entries') }}
                     </span>
                     <button
                         type="button"
@@ -649,7 +565,7 @@
                             props.transactions.meta.incomes.current_page >=
                             props.transactions.meta.incomes.last_page
                         "
-                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        class="cursor-pointer rounded-[7px] bg-[#252525] px-[11px] py-[5px] text-white transition-colors hover:bg-[#2e2e2e] disabled:cursor-not-allowed disabled:opacity-40"
                         @click="
                             changeIncomePage(
                                 props.transactions.meta.incomes.current_page +
@@ -657,7 +573,7 @@
                             )
                         "
                     >
-                        →
+                        ›
                     </button>
                 </div>
             </section>
@@ -675,6 +591,7 @@ import PulseChart from '@/components/charts/PulseChart.vue';
 import RankedBarChart from '@/components/charts/RankedBarChart.vue';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
+import CategoryChip from '@/components/transactions/CategoryChip.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -709,6 +626,7 @@ type Category = {
     name: string;
     slug: string;
     type: TransactionType;
+    color: string | null;
     is_default: boolean;
 };
 
@@ -809,7 +727,7 @@ const ranges = computed<Array<{ label: string; value: ReportRange }>>(() => [
 ]);
 
 const filterFieldClass =
-    'h-9 w-full rounded-md !border-white/10 !bg-[#252525] px-3 text-sm font-normal !text-white shadow-none [color-scheme:dark] placeholder:!text-[#686868] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 [&_svg]:!text-[#989898]';
+    'h-9 w-full rounded-[10px] !border-white/[0.08] !bg-[#252525] px-3 text-[13px] font-normal !text-[#e5e5e5] shadow-none [color-scheme:dark] placeholder:!text-[#686868] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 [&_svg]:!text-[#989898]';
 
 const selectedRange = ref<ReportRange>(props.filters.range);
 const fromDate = ref(props.filters.from);
@@ -1155,5 +1073,30 @@ function currencyLabel(value: Currency): string {
 
 function displayDate(value: string): string {
     return formatAppDate(value, displayCalendar.value);
+}
+
+// The mock's per-row category tag colours text on a fixed dark chip using
+// each category's own colour — never a generic badge. Falls back to the
+// prop lookup for rows whose relation wasn't eager-loaded.
+function findCategory(transaction: Transaction): Category | null {
+    if (transaction.category) {
+        return transaction.category;
+    }
+
+    return (
+        (props.categories[transaction.type] ?? []).find(
+            (category) => category.id === transaction.category_id,
+        ) ?? null
+    );
+}
+
+function categoryName(transaction: Transaction): string {
+    return (
+        findCategory(transaction)?.name ?? t('finance.categories.uncategorized')
+    );
+}
+
+function categoryColor(transaction: Transaction): string | null {
+    return findCategory(transaction)?.color ?? null;
 }
 </script>

@@ -266,3 +266,66 @@ test('the upgrade dialog is written in every locale', function () {
 
     expect($missing)->toBe([]);
 });
+
+test('a user can turn compact figures on and off from settings/display', function () {
+    $user = User::factory()->create(['compact_figures_enabled' => false]);
+
+    $this->actingAs($user)
+        ->patch(route('display.update'), ['compact_figures_enabled' => true])
+        ->assertRedirect();
+
+    expect($user->refresh()->compact_figures_enabled)->toBeTrue();
+
+    $this->actingAs($user)
+        ->patch(route('display.update'), ['compact_figures_enabled' => false])
+        ->assertRedirect();
+
+    expect($user->refresh()->compact_figures_enabled)->toBeFalse();
+});
+
+test('turning on compact figures for one user never touches another', function () {
+    $user = User::factory()->create(['compact_figures_enabled' => false]);
+    $other = User::factory()->create(['compact_figures_enabled' => false]);
+
+    $this->actingAs($user)
+        ->patch(route('display.update'), ['compact_figures_enabled' => true])
+        ->assertRedirect();
+
+    expect($user->refresh()->compact_figures_enabled)->toBeTrue()
+        ->and($other->refresh()->compact_figures_enabled)->toBeFalse();
+});
+
+test('display settings reject a non-boolean value', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('display.update'), ['compact_figures_enabled' => 'sometimes'])
+        ->assertSessionHasErrors(['compact_figures_enabled']);
+});
+
+test('compact figures is shared with inertia pages', function () {
+    $user = User::factory()->create(['compact_figures_enabled' => true]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('compactFiguresEnabled', true),
+        );
+});
+
+test('the display group is written in every locale', function () {
+    $missing = [];
+
+    foreach (['en', 'fa', 'de'] as $locale) {
+        $modules = require resource_path("lang/{$locale}/modules.php");
+
+        foreach (['heading', 'compact_figures_label', 'compact_figures_description', 'appearance_label', 'appearance_description', 'appearance_button'] as $key) {
+            if (! isset($modules['display'][$key])) {
+                $missing[] = "{$locale}.display.{$key}";
+            }
+        }
+    }
+
+    expect($missing)->toBe([]);
+});

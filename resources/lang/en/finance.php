@@ -55,6 +55,7 @@ return [
         'no_upcoming' => 'No upcoming due date',
         'due_today' => 'Due today',
         'overdue' => 'Overdue',
+        'scheduled' => 'Scheduled',
         'mark_paid' => 'Mark as paid',
         'paid' => 'Paid',
         'empty' => 'No bills yet',
@@ -224,6 +225,9 @@ return [
     'investments' => [
         'title' => 'Investments',
         'sell' => 'Sell Entity',
+        'kind_buy' => 'Buy',
+        'kind_sell' => 'Sell',
+        'entries_grouped_by_asset' => '{count} records, grouped by asset',
         'nothing_to_sell' => 'You have nothing to sell yet.',
         'sell_asset' => 'Sell {asset}',
         'sell_quantity' => 'How much are you selling?',
@@ -244,6 +248,7 @@ return [
         'total_portfolio_value' => 'Total Portfolio Value',
         'asset_types' => 'Asset Types',
         'held' => 'held',
+        'yours' => 'Yours',
         'total_entries' => 'Total Entries',
         'records' => 'records',
         'investment_entries' => 'Investment entries',
@@ -272,6 +277,7 @@ return [
         'allocation' => 'Allocation',
         'by_current_value' => 'by current value',
         'value_over_time' => 'Value over time',
+        'add_a_series' => 'Add a series',
         'hero_title' => 'Your holdings, cost basis & P/L at a glance.',
         'hero_description' => 'Add a cost basis when logging investment entries to unlock profit/loss tracking here.',
         'export_profit_loss' => 'Export P&L',
@@ -279,6 +285,7 @@ return [
         'cost_basis' => 'Cost basis',
         'total_cost_basis' => 'Total cost basis',
         'profit_loss' => 'Profit / Loss',
+        'return' => 'Return',
         'pnl_by_asset' => 'Profit / Loss by asset',
         'invested' => 'Invested',
         'no_cost_basis' => 'No cost basis yet',
@@ -322,5 +329,6 @@ return [
     ],
     'transactions' => [
         'title' => 'Transactions',
+        'subtitle' => '{count} entries this period',
     ],
 ];

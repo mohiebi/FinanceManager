@@ -49,8 +49,11 @@ return [
     'line_over_title_many' => '{count} lines over',
     'line_over_body' => '{names} already spent past the limit.',
     'edit_limits' => 'Edit limits',
+    'safe_to_spend_explanation' => 'You have spent {actual} of {income} so far this period, with {days} days left. At this pace, that leaves about {amount} a day.',
 
     'lines' => 'Plan lines',
+    'lines_hint' => 'Per category, against what the plan set aside',
+    'rollover_badge' => 'Rollover',
     'add_line' => 'Add line',
     'remove_line' => 'Remove line',
     'category' => 'Category',

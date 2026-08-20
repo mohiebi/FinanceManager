@@ -6,16 +6,41 @@
     <div
         class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
     >
-        <!-- ── New-goal trigger — the mock's own screen has no header of
-             its own (the shell already owns the page title), but goals
-             have no other page to manage them from, so this stays. ──── -->
-        <div class="mx-[18px] mt-5 flex justify-end">
+        <!-- ── Insight bar — the only place goals can be managed from, so
+             the "+ New goal" trigger stays here rather than being dropped
+             for lack of a mock header. ─────────────────────────────────── -->
+        <div
+            v-if="!loading"
+            class="mx-[18px] mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[16px] bg-[#1a1a1a] px-6 py-5 ring-1 ring-white/10"
+        >
+            <div v-if="landingSoonCount > 0" class="min-w-0">
+                <p class="text-[14.5px] font-medium text-white">
+                    {{
+                        landingSoonCount === 1
+                            ? t('gamification.goals.landing_soon_title_one')
+                            : t('gamification.goals.landing_soon_title_many', {
+                                  count: landingSoonCount,
+                              })
+                    }}
+                </p>
+                <p class="mt-1 text-[13px] leading-[1.55] text-[#989898]">
+                    {{
+                        onTrackCount > 0
+                            ? t('gamification.goals.landing_soon_body_some', {
+                                  count: onTrackCount,
+                              })
+                            : t('gamification.goals.landing_soon_body_none')
+                    }}
+                </p>
+            </div>
+            <p v-else class="text-[14.5px] font-medium text-white">
+                {{ t('gamification.goals.title') }}
+            </p>
             <Button
-                class="h-11 w-max shrink-0 rounded-full bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-5 text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
+                class="h-10 w-max shrink-0 rounded-[10px] bg-[#02CD86] px-4 text-sm font-medium text-[#101010] shadow-none hover:brightness-105"
                 @click="openGoalDialog(null)"
             >
-                <Plus class="size-4" />
-                {{ t('gamification.goals.new') }}
+                + {{ t('gamification.goals.new') }}
             </Button>
         </div>
 
@@ -75,7 +100,6 @@
 
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { Plus } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
@@ -119,6 +143,24 @@ const allGoals = computed<GoalCardData[]>(
  */
 const loading = computed(
     () => props.goals === null && vaultGoalCards.value === null,
+);
+
+/** Neither reached nor further out than a year — the same rough window the
+ *  mock's own "lands this year" reading implies, without the calendar-year
+ *  edge cases a literal year-boundary check would add. */
+const landingSoonCount = computed(
+    () =>
+        allGoals.value.filter(
+            (goal) => !goal.reached && goal.days_remaining <= 365,
+        ).length,
+);
+
+const onTrackCount = computed(
+    () =>
+        allGoals.value.filter(
+            (goal) =>
+                !goal.reached && goal.days_remaining <= 365 && goal.on_track,
+        ).length,
 );
 
 const goalDialogOpen = ref(false);

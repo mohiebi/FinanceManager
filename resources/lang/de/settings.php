@@ -335,6 +335,12 @@ return [
                 'admin' => ['standard' => 'Admin', 'flight' => 'Kontrollturm'],
             ],
         ],
+        'privacy' => [
+            'title' => 'Datenschutz',
+            'description' => 'Was standardmäßig auf dem Bildschirm zu sehen ist, auf jedem Gerät.',
+            'amount_mask_label' => 'Beträge standardmäßig ausblenden',
+            'amount_mask_help' => 'Beträge starten verschwommen, bis du sie aufdeckst. Der Schalter im Kopfbereich kann dies weiterhin pro Gerät überschreiben.',
+        ],
     ],
     'navigation' => [
         'groups' => [

@@ -49,8 +49,11 @@ return [
     'line_over_title_many' => '{count} Zeilen über dem Limit',
     'line_over_body' => '{names} hat das Limit bereits überschritten.',
     'edit_limits' => 'Limits bearbeiten',
+    'safe_to_spend_explanation' => 'Du hast bisher {actual} von {income} in diesem Zeitraum ausgegeben, {days} Tage bleiben. In diesem Tempo bleiben etwa {amount} pro Tag.',
 
     'lines' => 'Planzeilen',
+    'lines_hint' => 'Nach Kategorie, gegen das, was der Plan vorgesehen hat',
+    'rollover_badge' => 'Übertrag',
     'add_line' => 'Zeile hinzufügen',
     'remove_line' => 'Zeile entfernen',
     'category' => 'Kategorie',

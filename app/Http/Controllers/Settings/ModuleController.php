@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Actions\Features\UpdateUserFeature;
 use App\Enums\Feature;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Settings\DisplayUpdateRequest;
 use App\Http\Requests\Settings\ModulesUpdateRequest;
 use App\Models\User;
 use App\Support\FeatureSet;
@@ -62,6 +63,18 @@ class ModuleController extends Controller
         }
 
         return back()->with('status', $this->statusFor($result->enabledByCascade(), $result->disabledByCascade()));
+    }
+
+    /**
+     * The App tab's "Display" group — separate from update() on purpose: it is
+     * a plain account preference, not a Feature toggle, so it carries none of
+     * that method's cascade/entitlement logic.
+     */
+    public function updateDisplay(DisplayUpdateRequest $request): RedirectResponse
+    {
+        $request->user()->update($request->validated());
+
+        return back();
     }
 
     /**

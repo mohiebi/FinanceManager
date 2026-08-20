@@ -13,6 +13,7 @@ test('users can update language, calendar, timezone and naming preferences', fun
             'calendar' => 'gregorian',
             'timezone' => 'Europe/Berlin',
             'flight_terminology_enabled' => false,
+            'amount_mask_default' => false,
         ])
         ->assertRedirect();
 
@@ -20,6 +21,41 @@ test('users can update language, calendar, timezone and naming preferences', fun
         ->and($user->calendar)->toBe('gregorian')
         ->and($user->timezone)->toBe('Europe/Berlin')
         ->and($user->flight_terminology_enabled)->toBeFalse();
+});
+
+test('users can set their amount-mask default', function () {
+    $user = User::factory()->create(['amount_mask_default' => false]);
+
+    $this->actingAs($user)
+        ->patch('/settings/preferences', [
+            'locale' => 'en',
+            'calendar' => 'gregorian',
+            'timezone' => 'UTC',
+            'flight_terminology_enabled' => false,
+            'amount_mask_default' => true,
+        ])
+        ->assertRedirect();
+
+    expect($user->refresh()->amount_mask_default)->toBeTrue();
+});
+
+test('the amount-mask default is shared with inertia pages', function () {
+    $user = User::factory()->create(['amount_mask_default' => true]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('amountMaskDefault', true),
+        );
+});
+
+test('a page with no signed in user gets an unmasked default', function () {
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('amountMaskDefault', false),
+        );
 });
 
 test('the timezone decides when a user\'s day starts', function () {

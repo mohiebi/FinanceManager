@@ -35,29 +35,27 @@
                 class="mx-[18px] mt-[18px] overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
                 <div
-                    class="mb-5 flex flex-wrap items-end justify-between gap-3"
+                    class="mb-3.5 flex flex-wrap items-baseline justify-between gap-3"
                 >
-                    <div>
-                        <p
-                            class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
-                        >
-                            {{ t('finance.investments.market_prices_kicker') }}
-                        </p>
-                        <h2 class="mt-2 text-[22px] leading-none text-white">
-                            {{ t('finance.investments.market_prices_title') }}
-                        </h2>
-                        <p
+                    <div class="flex items-center gap-2.5">
+                        <span
+                            class="size-1.5 shrink-0 rounded-full bg-[#02CD86]"
+                        />
+                        <span class="text-[13.5px] font-medium text-white">{{
+                            t('finance.investments.market_prices_title')
+                        }}</span>
+                        <span
                             v-if="lastSyncedLabel"
-                            class="mt-1 text-xs text-[#989898]"
+                            class="text-[11.5px] text-[#686868]"
                         >
                             {{
                                 t('finance.last_synced', {
                                     time: lastSyncedLabel,
                                 })
                             }}
-                        </p>
+                        </span>
                     </div>
-                    <span class="text-xs text-[#989898]">
+                    <span class="text-[11.5px] text-[#686868]">
                         {{
                             t('finance.investments.market_prices_unit', {
                                 currency: selectedCurrencyLabel,
@@ -75,49 +73,37 @@
                             <span class="h-px flex-1 bg-white/10" />
                         </div>
                         <div
-                            class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+                            class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.06] sm:grid-cols-3 lg:grid-cols-5"
                         >
                             <article
                                 v-for="asset in row.assets"
                                 :key="asset.key"
-                                class="min-w-0 rounded-2xl bg-[#111111] p-4 ring-1 ring-white/10"
-                                :style="{
-                                    borderTop: `2.5px solid ${asset.color}`,
-                                }"
+                                class="min-w-0 bg-[#1a1a1a] p-[13px]"
                             >
-                                <div class="flex items-center gap-3">
-                                    <AssetIcon
-                                        :icon="asset.icon"
-                                        :icon-svg="asset.icon_svg"
-                                        :label="asset.label"
-                                        :color="asset.color"
-                                        size="sm"
+                                <div class="mb-2 flex items-center gap-2">
+                                    <span
+                                        class="size-1.5 shrink-0 rounded-full"
+                                        :style="{
+                                            backgroundColor: asset.color,
+                                        }"
                                     />
-                                    <div class="min-w-0">
-                                        <p
-                                            class="truncate text-sm font-semibold text-white"
-                                        >
-                                            {{ asset.label }}
-                                        </p>
-                                        <p class="text-xs text-[#989898]">
-                                            {{
-                                                t(
-                                                    'finance.investments.per_unit',
-                                                    { unit: asset.unit },
-                                                )
-                                            }}
-                                        </p>
-                                    </div>
+                                    <p
+                                        class="min-w-0 flex-1 truncate text-[12.5px] text-[#989898]"
+                                    >
+                                        {{ asset.label }}
+                                    </p>
+                                    <span
+                                        v-if="heldAssetKeys.has(asset.key)"
+                                        class="shrink-0 rounded-full bg-[#6C4EE9]/15 px-1.5 py-0.5 text-[9.5px] font-medium text-[#a89bf3]"
+                                    >
+                                        {{ t('finance.investments.yours') }}
+                                    </span>
                                 </div>
-                                <p class="mt-4 text-lg font-bold text-white">
+                                <p class="text-[15px] font-semibold text-white">
                                     <template v-if="asset.price_available">
                                         <span :class="maskClass">{{
                                             asset.price_formatted
                                         }}</span>
-                                        <span
-                                            class="text-xs font-normal text-[#989898]"
-                                            >{{ currencySymbol }}</span
-                                        >
                                     </template>
                                     <span
                                         v-else
@@ -159,120 +145,141 @@
             </div>
         </Deferred>
 
-        <!-- ── Recent entries table ──────────────────────────────── -->
+        <!-- ── Entries, grouped by asset ──────────────────────────── -->
         <div
             v-if="props.entries.length > 0"
-            class="mx-[18px] mt-[18px] mb-[38px] overflow-hidden rounded-[16px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            class="mx-[18px] mt-[18px] mb-[38px] overflow-x-auto rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
         >
             <div
-                class="flex flex-wrap items-center justify-between gap-4 px-5 py-[29px]"
+                class="mb-3 flex min-w-[640px] flex-wrap items-center justify-between gap-4"
             >
-                <div class="flex flex-wrap items-center gap-3">
-                    <h2 class="text-[22px] leading-none font-normal text-white">
+                <div>
+                    <p class="text-[14.5px] font-medium text-white">
                         {{ t('finance.investments.investment_entries') }}
-                    </h2>
-                    <a
-                        :href="`/investments/export?currency=${props.selectedCurrency}`"
-                        class="inline-flex shrink-0 items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm whitespace-nowrap text-white ring-1 ring-white/20 transition-colors hover:bg-white/15"
-                    >
-                        <Download class="size-4" />
-                        Export
-                    </a>
+                    </p>
+                    <p class="mt-0.5 text-[12.5px] text-[#989898]">
+                        {{
+                            t('finance.investments.entries_grouped_by_asset', {
+                                count: props.entries.length,
+                            })
+                        }}
+                    </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
+                    <a
+                        :href="`/investments/export?currency=${props.selectedCurrency}`"
+                        class="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] bg-white/5 px-3 py-2 text-xs whitespace-nowrap text-[#989898] ring-1 ring-white/10 transition-colors hover:bg-white/10 hover:text-white"
+                    >
+                        <Download class="size-3.5" />
+                        {{ t('finance.actions.export_transactions') }}
+                    </a>
                     <!-- Selling never deletes the purchase — it writes a disposal
-                         row, so history and cost basis both survive.
-
-                         Sized like Add Entry beside it, but in the cost gradient
-                         Add Cost uses on the dashboard and transactions pages —
-                         money leaving is the same kind of action either way. -->
-                    <Button
+                         row, so history and cost basis both survive. -->
+                    <button
                         v-if="sellableAssets.length > 0"
-                        class="h-12 w-max justify-between rounded-md bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-3.5 text-lg font-bold text-white shadow-[0_10px_20px_rgba(108,78,233,0.22)] transition hover:brightness-105"
+                        type="button"
+                        class="cursor-pointer rounded-[10px] bg-[#6C4EE9] px-3.5 py-2 text-[13px] font-medium text-white transition hover:brightness-110"
                         @click="isSellDialogOpen = true"
                     >
-                        <span>{{ t('finance.investments.sell') }}</span>
-                        <span
-                            class="ml-2 grid h-[1.55em] w-[1.55em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
-                        >
-                            <Minus class="size-4" />
-                        </span>
-                    </Button>
-                    <Button
-                        class="h-12 w-max justify-between rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-3.5 text-lg font-bold text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
+                        {{ t('finance.investments.sell') }} −
+                    </button>
+                    <button
+                        type="button"
+                        class="cursor-pointer rounded-[10px] bg-[#02CD86] px-3.5 py-2 text-[13px] font-medium text-[#101010] transition hover:brightness-110"
                         @click="openCreateDialog()"
                     >
-                        <span>{{ t('finance.actions.add_entry') }}</span>
-                        <span
-                            class="ml-2 grid h-[1.55em] w-[1.55em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
-                        >
-                            <Plus class="size-4" />
-                        </span>
-                    </Button>
+                        {{ t('finance.actions.add_entry') }} +
+                    </button>
                 </div>
             </div>
 
-            <div class="overflow-x-auto px-3 pb-5">
-                <table
-                    class="w-full border-separate border-spacing-y-0 text-sm"
+            <!-- Entries arrive eagerly, but the asset totals grouping them
+                 are deferred — wait for both rather than showing groups
+                 with an empty total that fills in a beat later. -->
+            <div
+                v-if="props.assets === undefined"
+                class="flex min-w-[640px] items-center justify-center gap-2 py-10"
+            >
+                <Spinner class="size-4 text-[#989898]" />
+                <span class="text-sm text-[#989898]">{{
+                    t('finance.calculating')
+                }}</span>
+            </div>
+
+            <div
+                v-for="group in entryGroups"
+                v-else
+                :key="group.key"
+                class="min-w-[640px] border-t border-white/[0.06]"
+            >
+                <button
+                    type="button"
+                    class="grid w-full cursor-pointer grid-cols-[20px_minmax(140px,1fr)_100px_130px_150px] items-center gap-3.5 py-3.5 text-start"
+                    @click="toggleGroup(group.key)"
                 >
-                    <thead>
-                        <tr class="text-base">
-                            <th
-                                class="rounded-l-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
-                            >
-                                {{ t('finance.fields.asset') }}
-                            </th>
-                            <th
-                                class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
-                            >
-                                {{ t('finance.fields.quantity') }}
-                            </th>
-                            <th
-                                class="bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
-                            >
-                                {{ t('finance.fields.value') }}
-                            </th>
-                            <th
-                                class="hidden bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:table-cell sm:px-5"
-                            >
-                                {{ t('finance.fields.date') }}
-                            </th>
-                            <th
-                                class="rounded-r-2xl bg-[#252525] px-3 py-4 text-center font-normal text-[#989898] sm:px-5"
-                            ></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="entry in props.entries"
-                            :key="entry.id"
-                            class="group"
+                    <span class="text-[11px] text-[#686868]">{{
+                        expandedGroups.has(group.key) ? '⌄' : '›'
+                    }}</span>
+                    <span class="flex min-w-0 items-center gap-2.5">
+                        <span
+                            class="size-1.5 shrink-0 rounded-full"
+                            :style="{ backgroundColor: group.color }"
+                        />
+                        <span class="min-w-0 truncate text-sm text-white">{{
+                            group.label
+                        }}</span>
+                    </span>
+                    <span class="text-xs text-[#686868]" dir="ltr">
+                        {{ group.entries.length }}
+                    </span>
+                    <span
+                        class="text-end text-[13px] text-[#989898] tabular-nums"
+                        dir="ltr"
+                    >
+                        {{ group.qtyDisplay }}
+                    </span>
+                    <span
+                        class="text-end text-[14.5px] text-white tabular-nums"
+                        :class="maskClass"
+                        dir="ltr"
+                    >
+                        {{ group.totalFormatted }}
+                    </span>
+                </button>
+
+                <div v-if="expandedGroups.has(group.key)">
+                    <div
+                        v-for="entry in group.entries"
+                        :key="entry.id"
+                        class="group grid grid-cols-[20px_minmax(140px,1fr)_100px_130px_150px] items-center gap-3.5 border-t border-white/[0.04] py-2.5 transition-colors hover:bg-white/[0.02]"
+                    >
+                        <span></span>
+                        <span class="text-[12.5px] text-[#686868]">
+                            {{
+                                entry.kind === 'sell'
+                                    ? t('finance.investments.kind_sell')
+                                    : t('finance.investments.kind_buy')
+                            }}
+                        </span>
+                        <span class="text-xs text-[#686868]" dir="ltr">
+                            {{ displayDate(entry.occurred_at) }}
+                        </span>
+                        <span
+                            class="text-end text-[12.5px] text-[#989898] tabular-nums"
+                            dir="ltr"
                         >
-                            <td
-                                class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-white sm:px-5"
-                            >
-                                <AssetIcon
-                                    :icon="entry.asset_icon"
-                                    :icon-svg="entry.asset_icon_svg"
-                                    :label="entry.asset_label"
-                                    :color="entry.asset_color"
-                                    size="sm"
-                                />
-                                {{ entry.asset_label }}
-                            </td>
-                            <td
-                                class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-white sm:px-5"
-                            >
-                                <Ciphered
-                                    :value="entry.quantity"
-                                    table="investments"
-                                    type="decimal"
-                                />
-                                {{ entry.asset_unit }}
-                            </td>
-                            <td
-                                class="px-3 py-[14px] text-center text-[16px] leading-none font-normal text-white sm:px-5"
+                            <Ciphered
+                                :value="entry.quantity"
+                                table="investments"
+                                type="decimal"
+                            />
+                            {{ entry.asset_unit }}
+                        </span>
+                        <div class="flex items-center justify-end gap-2">
+                            <span
+                                class="text-[13px] tabular-nums"
+                                :class="maskClass"
+                                dir="ltr"
                             >
                                 <template
                                     v-if="
@@ -280,62 +287,51 @@
                                         !isCiphertext(entry.quantity)
                                     "
                                 >
-                                    <span :class="maskClass">{{
+                                    {{
                                         formatEntryValue(
                                             Number(entry.quantity),
                                             entry.asset_type,
                                         )
-                                    }}</span>
-                                    <span class="text-xs text-[#989898]">{{
-                                        currencySymbol
-                                    }}</span>
+                                    }}
                                 </template>
                                 <span
                                     v-else-if="pricesResolved"
-                                    class="text-xs text-[#989898]"
+                                    class="text-xs text-[#686868]"
                                     >{{ t('finance.price_unavailable') }}</span
                                 >
-                                <span v-else class="text-xs text-[#989898]">{{
+                                <span v-else class="text-xs text-[#686868]">{{
                                     t('finance.calculating')
                                 }}</span>
-                            </td>
-                            <td
-                                class="hidden px-3 py-[14px] text-center text-[16px] leading-none font-normal text-[#989898] sm:table-cell sm:px-5"
+                            </span>
+                            <!-- Always visible: hover-only actions are invisible
+                                 on touch, and undiscoverable everywhere else. -->
+                            <div
+                                class="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100"
                             >
-                                {{ displayDate(entry.occurred_at) }}
-                            </td>
-                            <td class="px-3 py-[14px] text-center sm:px-5">
-                                <!-- Always visible: hover-only actions are invisible
-                                     on touch, and undiscoverable everywhere else. -->
-                                <div
-                                    class="flex items-center justify-center gap-2"
+                                <!-- Purchases only. This dialog speaks cost, not
+                                     proceeds, so it cannot express a sale — which
+                                     is deleted and re-recorded instead. -->
+                                <button
+                                    v-if="entry.kind !== 'sell'"
+                                    type="button"
+                                    :aria-label="t('common.edit')"
+                                    class="cursor-pointer rounded-md p-1 text-[#6C4EE9] hover:bg-[#6C4EE9]/10"
+                                    @click="openEditDialog(entry)"
                                 >
-                                    <!-- Purchases only. This dialog speaks cost,
-                                         not proceeds, so it cannot express a
-                                         sale — which is deleted and re-recorded
-                                         instead. -->
-                                    <button
-                                        v-if="entry.kind !== 'sell'"
-                                        type="button"
-                                        class="rounded-md bg-white/5 px-2 py-1 text-xs text-[#6C4EE9] ring-1 ring-white/10 hover:bg-white/10"
-                                        @click="openEditDialog(entry)"
-                                    >
-                                        {{ t('common.edit') }}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="rounded-md p-1.5 hover:bg-[#2e0d0d]"
-                                        @click="requestDeleteEntry(entry.id)"
-                                    >
-                                        <Trash2
-                                            class="size-3.5 text-[#E94E50]"
-                                        />
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                    <Pencil class="size-3.5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    :aria-label="t('common.delete')"
+                                    class="cursor-pointer rounded-md p-1 text-[#E94E50] hover:bg-[#E94E50]/10"
+                                    @click="requestDeleteEntry(entry.id)"
+                                >
+                                    <Trash2 class="size-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -367,10 +363,9 @@
 
 <script setup lang="ts">
 import { Deferred, Head, router, usePage } from '@inertiajs/vue3';
-import { Download, Minus, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
+import { Download, Pencil, Plus, Trash2, TrendingUp } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import AssetIcon from '@/components/AssetIcon.vue';
 import Ciphered from '@/components/Ciphered.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InvestmentEntryDialog from '@/components/investments/InvestmentEntryDialog.vue';
@@ -529,6 +524,17 @@ const visibleMarketPriceRows = computed<MarketPriceRow[]>(() =>
     (props.marketPriceRows ?? []).filter((row) => row.assets.length > 0),
 );
 
+/** Which market-price tiles the account actually holds, for the "yours" tag —
+ *  a held asset reads differently from every other price on the board. */
+const heldAssetKeys = computed(
+    () =>
+        new Set(
+            (props.assets ?? [])
+                .filter((asset) => asset.quantity > 0)
+                .map((asset) => asset.key),
+        ),
+);
+
 watch(
     () => props.selectedCurrency,
     (value) => {
@@ -538,6 +544,55 @@ watch(
 
 const isDialogOpen = ref(false);
 const isSellDialogOpen = ref(false);
+
+type EntryGroup = {
+    key: AssetKey;
+    label: string;
+    color: string;
+    qtyDisplay: string;
+    totalFormatted: string;
+    entries: Entry[];
+};
+
+/**
+ * Entries by asset, driven by `assets` rather than the entries themselves —
+ * `assets` already carries the right net quantity and current value (buys
+ * minus sells, correctly converted), so this reuses that instead of trying
+ * to re-derive a total from raw entries and risking a wrong figure. Assets
+ * with no entries at all (nothing bought or sold) are naturally excluded.
+ */
+const entryGroups = computed<EntryGroup[]>(() => {
+    if (props.assets === undefined) {
+        return [];
+    }
+
+    return props.assets
+        .map((asset) => ({
+            key: asset.key,
+            label: asset.label,
+            color: asset.color,
+            qtyDisplay: `${asset.quantity_display} ${asset.unit}`,
+            totalFormatted: `${asset.value_formatted} ${currencySymbol.value}`,
+            entries: props.entries.filter(
+                (entry) => entry.asset_type === asset.key,
+            ),
+        }))
+        .filter((group) => group.entries.length > 0);
+});
+
+const expandedGroups = ref<Set<AssetKey>>(new Set());
+
+function toggleGroup(key: AssetKey): void {
+    const next = new Set(expandedGroups.value);
+
+    if (next.has(key)) {
+        next.delete(key);
+    } else {
+        next.add(key);
+    }
+
+    expandedGroups.value = next;
+}
 
 /**
  * What can actually be sold, with the average cost each unit carries.

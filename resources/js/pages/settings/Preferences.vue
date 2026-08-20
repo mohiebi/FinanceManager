@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { Globe, Plane } from 'lucide-vue-next';
+import { EyeOff, Globe, Plane } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import InputError from '@/components/InputError.vue';
 import SettingsRow from '@/components/settings/SettingsRow.vue';
@@ -16,6 +16,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { useAmountMask } from '@/composables/useAmountMask';
 
 type Option = {
     label: string;
@@ -37,6 +39,7 @@ const props = defineProps<{
 
 const page = usePage();
 const { t } = useI18n();
+const { setMasked } = useAmountMask();
 
 const form = useForm({
     locale: (page.props.locale as string | undefined) ?? 'en',
@@ -45,6 +48,8 @@ const form = useForm({
     default_currency: props.defaultCurrency ?? null,
     flight_terminology_enabled:
         (page.props.flightTerminologyEnabled as boolean | undefined) ?? true,
+    amount_mask_default:
+        (page.props.amountMaskDefault as boolean | undefined) ?? false,
 });
 
 defineOptions({
@@ -56,6 +61,11 @@ defineOptions({
 function submit(): void {
     form.patch('/settings/preferences', {
         preserveScroll: true,
+        // Reflects the new default on this device immediately, instead of
+        // waiting for a reload to pick up the fresh `amountMaskDefault` prop —
+        // matters most the first time someone turns this on and expects
+        // figures to blur right away.
+        onSuccess: () => setMasked(form.amount_mask_default),
     });
 }
 
@@ -224,6 +234,28 @@ function discard(): void {
                     <InputError
                         :message="form.errors.flight_terminology_enabled"
                     />
+                </SettingsRow>
+            </SettingsSection>
+
+            <SettingsSection
+                :icon="EyeOff"
+                :title="t('settings.preferences.privacy.title')"
+                :description="t('settings.preferences.privacy.description')"
+            >
+                <SettingsRow
+                    :label="t('settings.preferences.privacy.amount_mask_label')"
+                    :help="t('settings.preferences.privacy.amount_mask_help')"
+                    control-id="amount_mask_default"
+                    last
+                >
+                    <Switch
+                        id="amount_mask_default"
+                        :checked="form.amount_mask_default"
+                        @update:checked="
+                            form.amount_mask_default = $event === true
+                        "
+                    />
+                    <InputError :message="form.errors.amount_mask_default" />
                 </SettingsRow>
             </SettingsSection>
 

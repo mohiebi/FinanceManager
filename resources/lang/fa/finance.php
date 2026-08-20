@@ -55,6 +55,7 @@ return [
         'no_upcoming' => 'سررسید آینده‌ای ثبت نشده',
         'due_today' => 'سررسید امروز',
         'overdue' => 'از موعد گذشته',
+        'scheduled' => 'زمان‌بندی‌شده',
         'mark_paid' => 'پرداخت شد',
         'paid' => 'پرداخت‌شده',
         'empty' => 'هنوز قبضی ثبت نکرده‌اید',
@@ -224,6 +225,9 @@ return [
     'investments' => [
         'title' => 'سرمایه‌گذاری‌ها',
         'sell' => 'فروش دارایی',
+        'kind_buy' => 'خرید',
+        'kind_sell' => 'فروش',
+        'entries_grouped_by_asset' => '{count} رکورد، به تفکیک دارایی',
         'nothing_to_sell' => 'هنوز چیزی برای فروش ندارید.',
         'sell_asset' => 'فروش {asset}',
         'sell_quantity' => 'چه مقدار می‌فروشید؟',
@@ -244,6 +248,7 @@ return [
         'total_portfolio_value' => 'ارزش کل پرتفوی',
         'asset_types' => 'نوع دارایی‌ها',
         'held' => 'در اختیار',
+        'yours' => 'مال شما',
         'total_entries' => 'کل رکوردها',
         'records' => 'رکورد',
         'investment_entries' => 'رکوردهای سرمایه‌گذاری',
@@ -272,6 +277,7 @@ return [
         'allocation' => 'ترکیب سبد',
         'by_current_value' => 'بر اساس ارزش فعلی',
         'value_over_time' => 'ارزش در گذر زمان',
+        'add_a_series' => 'افزودن سری',
         'hero_title' => 'دارایی‌ها، بهای تمام‌شده و سود و زیان شما، در یک نگاه.',
         'hero_description' => 'هنگام ثبت رکوردهای سرمایه‌گذاری، بهای تمام‌شده را هم وارد کنید تا محاسبه سود و زیان اینجا فعال شود.',
         'export_profit_loss' => 'خروجی سود و زیان',
@@ -279,6 +285,7 @@ return [
         'cost_basis' => 'بهای تمام‌شده',
         'total_cost_basis' => 'کل بهای تمام‌شده',
         'profit_loss' => 'سود / زیان',
+        'return' => 'بازده',
         'pnl_by_asset' => 'سود / زیان به تفکیک دارایی',
         'invested' => 'سرمایه‌گذاری‌شده',
         'no_cost_basis' => 'هنوز بهای تمام‌شده ثبت نشده',
@@ -322,5 +329,6 @@ return [
     ],
     'transactions' => [
         'title' => 'تراکنش‌ها',
+        'subtitle' => '{count} رکورد در این دوره',
     ],
 ];

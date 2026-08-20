@@ -95,6 +95,8 @@ return [
 
     'display' => [
         'heading' => 'Anzeige',
+        'compact_figures_label' => 'Kompakte Zahlen',
+        'compact_figures_description' => 'Zeigt 988,7 Mio. statt 988.691.514 bei Zahlen, die nur auf einen Blick zählen, nicht für die Buchhaltung.',
         'appearance_label' => 'Erscheinungsbild',
         'appearance_description' => 'CashPilot ist für den dunklen Modus gebaut. Der helle Modus ist noch nicht verfügbar.',
         'appearance_button' => 'Dunkel',

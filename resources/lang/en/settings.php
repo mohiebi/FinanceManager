@@ -335,6 +335,12 @@ return [
                 'admin' => ['standard' => 'Admin', 'flight' => 'Control tower'],
             ],
         ],
+        'privacy' => [
+            'title' => 'Privacy',
+            'description' => 'What shows on screen by default, on any device.',
+            'amount_mask_label' => 'Hide amounts by default',
+            'amount_mask_help' => 'Figures start blurred until revealed. The header toggle still overrides this per device.',
+        ],
     ],
     'navigation' => [
         'groups' => [

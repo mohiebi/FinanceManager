@@ -95,6 +95,8 @@ return [
 
     'display' => [
         'heading' => 'نمایش',
+        'compact_figures_label' => 'ارقام فشرده',
+        'compact_figures_description' => 'به‌جای ۹۸۸٬۶۹۱٬۵۱۴ عدد ۹۸۸٫۷M را نشان می‌دهد، در جاهایی که فقط یک نگاه سریع لازم است نه حسابداری دقیق.',
         'appearance_label' => 'ظاهر',
         'appearance_description' => 'کش‌پایلوت برای حالت تیره ساخته شده. حالت روشن هنوز در دسترس نیست.',
         'appearance_button' => 'تیره',

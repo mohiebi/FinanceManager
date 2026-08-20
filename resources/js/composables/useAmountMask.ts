@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 
 /**
@@ -8,17 +9,30 @@ import { ref, watch } from 'vue';
  * shares one switch instead of drifting per-component.
  */
 const STORAGE_KEY = 'cashpilot:amount-mask';
+const page = usePage();
 
+/**
+ * localStorage wins when this device already has an explicit choice — that
+ * per-device override is the whole point of storing it there. Only a device
+ * that has never touched the toggle (a fresh browser, a new phone) falls back
+ * to `amountMaskDefault`, the account-wide default set from Settings > Money >
+ * Privacy, instead of hard-coding "unmasked".
+ */
 function readInitial(): boolean {
     if (typeof window === 'undefined') {
-        return false;
+        return page.props.amountMaskDefault === true;
     }
 
     try {
-        return window.localStorage.getItem(STORAGE_KEY) === '1';
+        const stored = window.localStorage.getItem(STORAGE_KEY);
+
+        return stored === null
+            ? page.props.amountMaskDefault === true
+            : stored === '1';
     } catch {
-        // Storage can be unavailable (private mode, disabled) — default open.
-        return false;
+        // Storage can be unavailable (private mode, disabled) — the account
+        // default is still a real answer, so use it rather than "unmasked".
+        return page.props.amountMaskDefault === true;
     }
 }
 
@@ -39,6 +53,7 @@ watch(masked, (value) => {
 export type UseAmountMaskReturn = {
     masked: typeof masked;
     toggle: () => void;
+    setMasked: (value: boolean) => void;
 };
 
 export function useAmountMask(): UseAmountMaskReturn {
@@ -46,5 +61,14 @@ export function useAmountMask(): UseAmountMaskReturn {
         masked.value = !masked.value;
     }
 
-    return { masked, toggle };
+    /**
+     * Applies a value directly rather than flipping it — for the Settings
+     * page, right after it saves a new account-wide default, so this device
+     * reflects the change immediately instead of waiting for its next load.
+     */
+    function setMasked(value: boolean) {
+        masked.value = value;
+    }
+
+    return { masked, toggle, setMasked };
 }

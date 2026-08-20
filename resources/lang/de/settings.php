@@ -343,6 +343,12 @@ return [
             'connections' => 'Verbindungen',
             'app' => 'App',
         ],
+        'groups_summary' => [
+            'account' => 'Profil, Anmeldung, Sitzungen & Abrechnung',
+            'money' => 'Währung, Kategorien, Assets & Datenschutz',
+            'connections' => 'Telegram, KI-Assistenten & Benachrichtigungen',
+            'app' => 'Module & Anzeige',
+        ],
         'profile' => 'Profil',
         'notifications' => 'Benachrichtigungen',
         'security' => 'Datenschutz & Sicherheit',
@@ -372,6 +378,13 @@ return [
     'save_bar' => [
         'unsaved' => 'Du hast ungespeicherte Änderungen',
         'discard' => 'Verwerfen',
+    ],
+    'search' => [
+        'placeholder' => 'Einstellungen durchsuchen…',
+        'matches_one' => '{count} Seite passt zu „{query}“',
+        'matches_many' => '{count} Seiten passen zu „{query}“',
+        'empty_title' => 'Nichts gefunden',
+        'empty_body' => 'Versuche ein kürzeres Wort — zum Beispiel „Währung“, „Tresor“ oder „Telegram“.',
     ],
     'ai' => [
         'title' => 'KI-Verbindungen',
@@ -496,5 +509,5 @@ return [
         'description' => 'Verwalte dein Profil und deine Kontoeinstellungen',
     ],
     'title' => 'Einstellungen',
-    'description' => 'Verwalte dein Profil und deine Kontoeinstellungen',
+    'description' => 'Alles zu deinem Konto, deinem Geld und dem, worauf CashPilot zugreifen darf.',
 ];

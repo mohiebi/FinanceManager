@@ -343,6 +343,12 @@ return [
             'connections' => 'Connections',
             'app' => 'App',
         ],
+        'groups_summary' => [
+            'account' => 'Profile, sign-in, sessions & billing',
+            'money' => 'Currency, categories, assets & privacy',
+            'connections' => 'Telegram, AI assistants & notifications',
+            'app' => 'Modules & display',
+        ],
         'profile' => 'Profile',
         'notifications' => 'Notifications',
         'security' => 'Privacy & security',
@@ -372,6 +378,13 @@ return [
     'save_bar' => [
         'unsaved' => 'You have unsaved changes',
         'discard' => 'Discard',
+    ],
+    'search' => [
+        'placeholder' => 'Search settings…',
+        'matches_one' => '{count} page matches "{query}"',
+        'matches_many' => '{count} pages match "{query}"',
+        'empty_title' => 'Nothing matched',
+        'empty_body' => 'Try a shorter word — for example "currency", "vault" or "Telegram".',
     ],
     'ai' => [
         'title' => 'AI connections',
@@ -496,5 +509,5 @@ return [
         'description' => 'Manage your profile and account settings',
     ],
     'title' => 'Settings',
-    'description' => 'Manage your profile and account settings',
+    'description' => 'Everything about your account, your money and what CashPilot may touch.',
 ];

@@ -2,6 +2,7 @@
 import type ApexCharts from 'apexcharts';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { formatChartDateLabel } from '@/lib/date';
+import { formatCompactCurrencyNumber } from '@/lib/money';
 
 export type ChartSeries = {
     name: string;
@@ -24,6 +25,12 @@ const props = defineProps<{
     rawLabels?: boolean;
     valuePrefix?: string;
     valueSuffix?: string;
+    /** Use compact values for axes and tooltips. Defaults to preserve the
+     * existing compact charts outside the Portfolio page. */
+    compactValues?: boolean;
+    /** Exact values retain the selected currency's precision when compact
+     * figures are disabled. */
+    valueFractionDigits?: number;
     noDataText?: string;
     // Plot the second series on an opposite y-axis so series with very
     // different magnitudes (e.g. new vs cumulative customers) stay readable.
@@ -33,28 +40,31 @@ const props = defineProps<{
 const chartRef = ref<HTMLElement | null>(null);
 let chart: ApexCharts | null = null;
 
-const abbreviate = (amount: number): string => {
-    if (amount >= 1_000_000_000) {
-        return (amount / 1_000_000_000).toFixed(1) + 'B';
-    }
+const formatExactValue = (amount: number): string => {
+    const fractionDigits = Math.min(
+        Math.max(props.valueFractionDigits ?? 0, 0),
+        20,
+    );
 
-    if (amount >= 1_000_000) {
-        return (amount / 1_000_000).toFixed(1) + 'M';
-    }
-
-    if (amount >= 1_000) {
-        return (amount / 1_000).toFixed(0) + 'K';
-    }
-
-    return amount.toFixed(0);
+    return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+    }).format(Number.isFinite(amount) ? amount : 0);
 };
 
+const formatChartValue = (amount: number): string =>
+    props.compactValues === false
+        ? formatExactValue(amount)
+        : formatCompactCurrencyNumber(amount);
+
 const formatAxisValue = (amount: number): string =>
-    (props.valuePrefix ?? '') + abbreviate(amount) + (props.valueSuffix ?? '');
+    (props.valuePrefix ?? '') +
+    formatChartValue(amount) +
+    (props.valueSuffix ?? '');
 
 const formatTooltipValue = (amount: number): string =>
     (props.valuePrefix ?? '') +
-    abbreviate(amount) +
+    formatChartValue(amount) +
     (props.valueSuffix ?? ' T');
 
 const hasMixedTypes = () => props.series.some((s) => s.type === 'column');
@@ -199,6 +209,8 @@ watch(
         props.calendar,
         props.valuePrefix,
         props.valueSuffix,
+        props.compactValues,
+        props.valueFractionDigits,
     ],
     () => chart?.updateOptions(buildOptions(), false, true),
     { deep: true },

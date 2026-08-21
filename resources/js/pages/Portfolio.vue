@@ -350,6 +350,8 @@
                         :calendar="displayCalendar"
                         :value-prefix="chartValuePrefix"
                         :value-suffix="chartValueSuffix"
+                        :compact-values="shouldCompactChartValues"
+                        :value-fraction-digits="chartValueFractionDigits"
                         :height="340"
                     />
 
@@ -591,6 +593,7 @@ import type { ChartSeries } from '@/components/charts/LineChart.vue';
 import CompactMoney from '@/components/CompactMoney.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { useAmountMask } from '@/composables/useAmountMask';
+import { useCompactFigures } from '@/composables/useCompactFigures';
 import { useRelativeTime } from '@/composables/useRelativeTime';
 import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
 import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
@@ -633,6 +636,13 @@ const props = defineProps<{
 const selectedCurrency = ref(props.selectedCurrency);
 const selectedCurrencySymbol = computed(() =>
     currencySymbol(selectedCurrency.value as CurrencyCode),
+);
+const { compact: compactFigures } = useCompactFigures();
+const shouldCompactChartValues = computed(
+    () => compactFigures.value || selectedCurrency.value === 'toman',
+);
+const chartValueFractionDigits = computed(() =>
+    selectedCurrency.value === 'toman' ? 0 : 2,
 );
 const chartValuePrefix = computed(() =>
     currencySymbolIsPrefix(selectedCurrency.value as CurrencyCode)

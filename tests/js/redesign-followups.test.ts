@@ -62,8 +62,19 @@ test('portfolio summary totals use selected-currency values', () => {
     );
     assert.match(portfolio, /:value-prefix="chartValuePrefix"/);
     assert.match(portfolio, /:value-suffix="chartValueSuffix"/);
+    assert.match(portfolio, /:compact-values="shouldCompactChartValues"/);
+    assert.match(
+        portfolio,
+        /compactFigures\.value \|\| selectedCurrency\.value === 'toman'/,
+    );
+    assert.match(
+        portfolio,
+        /:value-fraction-digits="chartValueFractionDigits"/,
+    );
     assert.match(lineChart, /formatter: formatAxisValue/);
     assert.match(lineChart, /formatter: formatTooltipValue/);
+    assert.match(lineChart, /props\.compactValues === false/);
+    assert.match(lineChart, /formatCompactCurrencyNumber/);
 });
 
 test('compact money exposes exact tooltips and colours accounting losses red', () => {

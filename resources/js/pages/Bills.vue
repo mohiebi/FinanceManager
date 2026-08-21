@@ -905,7 +905,10 @@ import {
     nextMonthlyDueDate,
 } from '@/lib/bill-recurrence';
 import { buildCalendarMonth, formatAppDate } from '@/lib/date';
-import { convert as convertMoney, formatCompactCurrencyNumber } from '@/lib/money';
+import {
+    convert as convertMoney,
+    formatCompactCurrencyNumber,
+} from '@/lib/money';
 import type { CurrencyCode, Rates } from '@/lib/money';
 import { dashboard } from '@/routes';
 import {
@@ -1033,63 +1036,11 @@ const remindedBills = computed(() =>
 );
 
 /**
- * The month's bill total.
+ * Total due over the rolling 30-day "due soon" window.
  *
  * Comes straight off the server unless the vault is armed, in which case the
  * amounts are ciphertext and the sum has to be rebuilt here from the decrypted
- * values and each bill's occurrence count for the month.
- */
-const clientMonthlyTotal = ref<number | null>(null);
-
-const monthlyTotal = computed<number | string | null>(
-    () => props.monthlyBillSummary.amount ?? clientMonthlyTotal.value,
-);
-
-watchEffect(async () => {
-    // Tracked before any await, so unlocking fills the header total in place.
-    trackKey();
-
-    if (props.monthlyBillSummary.amount !== null || props.rates === null) {
-        clientMonthlyTotal.value = null;
-
-        return;
-    }
-
-    const target = props.monthlyBillSummary.currency as CurrencyCode;
-    let total = 0;
-
-    for (const bill of props.bills) {
-        if (bill.month_occurrence_count === 0) {
-            continue;
-        }
-
-        const amount = await revealAsync<string | number>(
-            bill.amount,
-            'bills',
-            'decimal',
-        );
-
-        if (amount === undefined) {
-            clientMonthlyTotal.value = null;
-
-            return;
-        }
-
-        total +=
-            convertMoney(
-                amount,
-                bill.currency as CurrencyCode,
-                target,
-                props.rates,
-            ) * bill.month_occurrence_count;
-    }
-
-    clientMonthlyTotal.value = Math.round(total * 100) / 100;
-});
-
-/**
- * Total due over the rolling 30-day "due soon" window, mirroring
- * `clientMonthlyTotal`'s vault-reveal fallback above.
+ * values and each bill's occurrence count within the window.
  */
 const clientDueSoonTotal = ref<number | null>(null);
 
@@ -1148,9 +1099,7 @@ const spare = computed<number | null>(() => {
         return null;
     }
 
-    return (
-        props.balanceSummary.balance - Number(props.dueSoonSummary.amount)
-    );
+    return props.balanceSummary.balance - Number(props.dueSoonSummary.amount);
 });
 
 const overdueCount = computed(

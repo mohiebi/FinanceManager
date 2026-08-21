@@ -758,6 +758,37 @@ test('the due soon summary totals occurrences within the next 30 days, independe
     }
 });
 
+test('the due soon summary excludes an occurrence already paid ahead of its due date', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-06 09:00:00'));
+
+    try {
+        $user = User::factory()->withModules()->create();
+
+        $bill = $user->bills()->create([
+            'title' => 'Paid early',
+            'amount' => 100,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 20,
+        ]);
+        // Due within the window, but already paid — should not count toward
+        // "still owed", since the balance already absorbed this expense.
+        $bill->occurrences()->create(['due_date' => '2026-07-20', 'paid_at' => now()]);
+
+        $this->actingAs($user)
+            ->get(route('bills.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Bills')
+                ->where('dueSoonSummary.amount', '0.00')
+                ->where('dueSoonSummary.count', 0)
+                ->where('bills.0.due_soon_occurrence_count', 0)
+            );
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
 test('calendarOccurrences lists every occurrence due this month, paid or not', function () {
     Carbon::setTestNow(Carbon::parse('2026-07-15 09:00:00'));
 

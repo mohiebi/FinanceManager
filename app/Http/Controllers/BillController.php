@@ -63,6 +63,7 @@ class BillController extends Controller
                 ->whereDate('due_date', '>=', $monthFrom->toDateString())
                 ->whereDate('due_date', '<=', $monthTo->toDateString())])
             ->withCount(['occurrences as due_soon_occurrence_count' => fn ($query) => $query
+                ->whereNull('paid_at')
                 ->whereDate('due_date', '>=', $dueSoonFrom->toDateString())
                 ->whereDate('due_date', '<=', $dueSoonTo->toDateString())])
             ->get()
@@ -376,9 +377,13 @@ class BillController extends Controller
     }
 
     /**
-     * Total due across a rolling 30-day window from today — the figure the
-     * "due soon" summary bar shows, deliberately not tied to calendar-month
-     * boundaries so a bill landing just after month-end still counts.
+     * Total still owed across a rolling 30-day window from today — the
+     * figure the "due soon" summary bar shows, and what the balance
+     * reassurance line is measured against. Deliberately not tied to
+     * calendar-month boundaries so a bill landing just after month-end still
+     * counts, and deliberately excludes already-paid occurrences — an early
+     * payment would otherwise double-count against the balance, which has
+     * already absorbed it on the cost side.
      *
      * @return array{amount: string|null, currency: string, count: int, from: string, to: string}
      */
@@ -392,6 +397,7 @@ class BillController extends Controller
     ): array {
         $bills = $user->bills()
             ->with(['occurrences' => fn ($query) => $query
+                ->whereNull('paid_at')
                 ->whereDate('due_date', '>=', $fromDate->toDateString())
                 ->whereDate('due_date', '<=', $toDate->toDateString())])
             ->get();

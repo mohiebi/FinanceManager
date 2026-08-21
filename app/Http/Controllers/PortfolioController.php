@@ -79,7 +79,7 @@ class PortfolioController extends Controller
             ...$common,
             'assets' => Inertia::defer(fn () => $breakdownBuilder->handle($allEntries, $selectedCurrency)['assets']),
             'summary' => Inertia::defer(fn () => $breakdownBuilder->handle($allEntries, $selectedCurrency)['summary']),
-            'chartData' => Inertia::defer(fn () => $breakdownBuilder->history($allEntries, $range, $priceService)),
+            'chartData' => Inertia::defer(fn () => $breakdownBuilder->history($allEntries, $range, $priceService, $selectedCurrency)),
             'goals' => $showsGoals
                 ? Inertia::defer(fn () => $goalBuilder->forPortfolio($user, $allEntries))
                 : [],

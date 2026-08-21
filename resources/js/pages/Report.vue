@@ -11,9 +11,11 @@
             <div class="flex flex-col gap-4">
                 <!-- One dense row: range pills, search, category — matching
                      the mock exactly, no field labels. -->
-                <div class="flex flex-wrap items-center gap-2.5">
+                <div
+                    class="flex flex-col items-stretch gap-2.5 sm:flex-row sm:flex-wrap sm:items-center"
+                >
                     <div
-                        class="flex flex-wrap gap-0.5 rounded-[10px] bg-[#252525] p-[3px] ring-1 ring-white/[0.08]"
+                        class="flex w-fit flex-wrap gap-0.5 rounded-[10px] bg-[#252525] p-[3px] ring-1 ring-white/[0.08]"
                     >
                         <button
                             v-for="range in ranges"
@@ -34,7 +36,10 @@
                     <Input
                         id="report_search"
                         v-model="search"
-                        :class="[filterFieldClass, 'min-w-[180px] flex-1']"
+                        :class="[
+                            filterFieldClass,
+                            'w-full min-w-0 sm:min-w-[180px] sm:flex-1',
+                        ]"
                         :placeholder="t('finance.filters.title_or_note')"
                         :aria-label="t('finance.fields.search')"
                         @keyup.enter="applyFilters()"
@@ -107,6 +112,7 @@
                             :years-back="16"
                             :years-forward="1"
                             :trigger-class="filterFieldClass"
+                            container-class="grid-cols-[1.2fr_1fr_1fr]"
                         />
                     </div>
 
@@ -121,6 +127,7 @@
                             :years-back="16"
                             :years-forward="1"
                             :trigger-class="filterFieldClass"
+                            container-class="grid-cols-[1.2fr_1fr_1fr]"
                         />
                     </div>
 
@@ -356,11 +363,15 @@
                 </div>
 
                 <div
-                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px] items-center gap-3 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase"
+                    class="grid grid-cols-[minmax(0,1fr)_max-content] items-center gap-2.5 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase sm:grid-cols-[minmax(120px,1fr)_112px_92px_118px] sm:gap-3"
                 >
                     <div>{{ t('finance.fields.subject') }}</div>
-                    <div>{{ t('finance.fields.category') }}</div>
-                    <div>{{ t('finance.fields.date') }}</div>
+                    <div class="hidden sm:block">
+                        {{ t('finance.fields.category') }}
+                    </div>
+                    <div class="hidden sm:block">
+                        {{ t('finance.fields.date') }}
+                    </div>
                     <div class="text-end">
                         {{ t('finance.fields.amount') }}
                         <span dir="ltr">({{ selectedCurrencySymbol }})</span>
@@ -370,7 +381,7 @@
                 <div
                     v-for="transaction in props.transactions.costs"
                     :key="transaction.id"
-                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px] items-center gap-3 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02]"
+                    class="grid grid-cols-[minmax(0,1fr)_max-content] items-center gap-2.5 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[minmax(120px,1fr)_112px_92px_118px] sm:gap-3"
                 >
                     <div class="min-w-0">
                         <p class="truncate text-sm text-white">
@@ -388,16 +399,25 @@
                                 table="transactions"
                             />
                         </p>
+                        <CategoryChip
+                            class="mt-1 sm:hidden"
+                            :name="categoryName(transaction)"
+                            :color="categoryColor(transaction)"
+                        />
                     </div>
                     <CategoryChip
+                        class="hidden sm:inline-flex"
                         :name="categoryName(transaction)"
                         :color="categoryColor(transaction)"
                     />
-                    <span dir="ltr" class="text-xs text-[#686868] tabular-nums">
+                    <span
+                        dir="ltr"
+                        class="hidden text-xs text-[#686868] tabular-nums sm:block"
+                    >
                         {{ displayDate(transaction.occurred_at) }}
                     </span>
                     <span
-                        class="text-end text-[14.5px] text-[#947BFF] tabular-nums"
+                        class="max-w-[122px] truncate text-end text-[14.5px] text-[#947BFF] tabular-nums sm:max-w-none"
                         :class="maskClass"
                         dir="ltr"
                     >
@@ -482,11 +502,15 @@
                 </div>
 
                 <div
-                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px] items-center gap-3 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase"
+                    class="grid grid-cols-[minmax(0,1fr)_max-content] items-center gap-2.5 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase sm:grid-cols-[minmax(120px,1fr)_112px_92px_118px] sm:gap-3"
                 >
                     <div>{{ t('finance.fields.subject') }}</div>
-                    <div>{{ t('finance.fields.category') }}</div>
-                    <div>{{ t('finance.fields.date') }}</div>
+                    <div class="hidden sm:block">
+                        {{ t('finance.fields.category') }}
+                    </div>
+                    <div class="hidden sm:block">
+                        {{ t('finance.fields.date') }}
+                    </div>
                     <div class="text-end">
                         {{ t('finance.fields.amount') }}
                         <span dir="ltr">({{ selectedCurrencySymbol }})</span>
@@ -496,7 +520,7 @@
                 <div
                     v-for="transaction in props.transactions.incomes"
                     :key="transaction.id"
-                    class="grid grid-cols-[minmax(120px,1fr)_112px_92px_118px] items-center gap-3 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02]"
+                    class="grid grid-cols-[minmax(0,1fr)_max-content] items-center gap-2.5 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[minmax(120px,1fr)_112px_92px_118px] sm:gap-3"
                 >
                     <div class="min-w-0">
                         <p class="truncate text-sm text-white">
@@ -514,16 +538,25 @@
                                 table="transactions"
                             />
                         </p>
+                        <CategoryChip
+                            class="mt-1 sm:hidden"
+                            :name="categoryName(transaction)"
+                            :color="categoryColor(transaction)"
+                        />
                     </div>
                     <CategoryChip
+                        class="hidden sm:inline-flex"
                         :name="categoryName(transaction)"
                         :color="categoryColor(transaction)"
                     />
-                    <span dir="ltr" class="text-xs text-[#686868] tabular-nums">
+                    <span
+                        dir="ltr"
+                        class="hidden text-xs text-[#686868] tabular-nums sm:block"
+                    >
                         {{ displayDate(transaction.occurred_at) }}
                     </span>
                     <span
-                        class="text-end text-[14.5px] text-[#02CD86] tabular-nums"
+                        class="max-w-[122px] truncate text-end text-[14.5px] text-[#02CD86] tabular-nums sm:max-w-none"
                         :class="maskClass"
                         dir="ltr"
                     >

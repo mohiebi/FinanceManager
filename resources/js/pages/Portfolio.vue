@@ -35,16 +35,6 @@
                             >
                                 {{ t('finance.portfolio.net_worth') }}
                             </p>
-                            <!-- Built server-side from plaintext, so it has
-                                 nowhere to go while the vault is armed. -->
-                            <a
-                                v-if="!props.vaultPortfolio"
-                                :href="`/portfolio/export?currency=${selectedCurrency}`"
-                                class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-xs whitespace-nowrap text-white/70 ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:text-white"
-                            >
-                                <Download class="size-3" />
-                                {{ t('finance.portfolio.export_profit_loss') }}
-                            </a>
                             <span
                                 v-if="lastSyncedLabel"
                                 class="text-xs text-[#989898]"
@@ -150,7 +140,12 @@
                                         >+</span
                                     >
                                     <CompactMoney
-                                        :value="summary.total_pnl ?? 0"
+                                        :value="
+                                            signedFormattedAmount(
+                                                summary.total_pnl_formatted,
+                                                summary.total_pnl_is_positive,
+                                            )
+                                        "
                                         :currency="
                                             selectedCurrency as CurrencyCode
                                         "
@@ -236,7 +231,12 @@
                                         >+</span
                                     >
                                     <CompactMoney
-                                        :value="summary.total_realised_pnl ?? 0"
+                                        :value="
+                                            signedFormattedAmount(
+                                                summary.total_realised_pnl_formatted,
+                                                summary.total_realised_pnl_is_positive,
+                                            )
+                                        "
                                         :currency="
                                             selectedCurrency as CurrencyCode
                                         "
@@ -348,6 +348,8 @@
                         :series="filteredChartSeries"
                         :categories="props.chartData?.categories ?? []"
                         :calendar="displayCalendar"
+                        :value-prefix="chartValuePrefix"
+                        :value-suffix="chartValueSuffix"
                         :height="340"
                     />
 
@@ -508,11 +510,14 @@
                             class="text-sm font-normal text-[#989898]"
                             >{{ t('finance.price_unavailable') }}</span
                         >
-                        <template v-else-if="asset.pnl !== null">
+                        <template v-else-if="asset.pnl_formatted !== null">
                             <span v-if="asset.pnl_is_positive">+</span
                             >{{
                                 formatCurrencyNumber(
-                                    asset.pnl,
+                                    signedFormattedAmount(
+                                        asset.pnl_formatted,
+                                        asset.pnl_is_positive,
+                                    ),
                                     selectedCurrency as CurrencyCode,
                                 )
                             }}
@@ -520,6 +525,25 @@
                         <span v-else>—</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Built server-side from plaintext, so it has nowhere to go
+                 while the vault is armed. Keep it with the completed
+                 holdings detail rather than competing with net worth. -->
+            <div
+                v-if="assets.length > 0 && !props.vaultPortfolio"
+                class="mx-[18px] mb-[38px] flex flex-wrap items-center justify-between gap-4 rounded-[16px] bg-[#1a1a1a] px-[22px] py-[18px] ring-1 ring-white/10"
+            >
+                <p class="text-[13.5px] text-[#989898]">
+                    {{ t('finance.portfolio.export_profit_loss_hint') }}
+                </p>
+                <a
+                    :href="`/portfolio/export?currency=${selectedCurrency}`"
+                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] bg-[#252525] px-[15px] py-2 text-[13.5px] text-white ring-1 ring-white/[0.14] transition-colors hover:bg-[#2e2e2e]"
+                >
+                    <Download class="size-3.5" />
+                    {{ t('finance.portfolio.export_profit_loss') }}
+                </a>
             </div>
 
             <!-- Still decrypting: "you hold nothing" is a worse answer than a
@@ -572,6 +596,7 @@ import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
 import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
 import {
     currencySymbol,
+    currencySymbolIsPrefix,
     formatCurrencyDisplay,
     formatCurrencyNumber,
 } from '@/lib/money';
@@ -608,6 +633,16 @@ const props = defineProps<{
 const selectedCurrency = ref(props.selectedCurrency);
 const selectedCurrencySymbol = computed(() =>
     currencySymbol(selectedCurrency.value as CurrencyCode),
+);
+const chartValuePrefix = computed(() =>
+    currencySymbolIsPrefix(selectedCurrency.value as CurrencyCode)
+        ? selectedCurrencySymbol.value
+        : '',
+);
+const chartValueSuffix = computed(() =>
+    currencySymbolIsPrefix(selectedCurrency.value as CurrencyCode)
+        ? ''
+        : `\u00a0${selectedCurrencySymbol.value}`,
 );
 const { t } = useI18n();
 const page = usePage();
@@ -652,6 +687,17 @@ const { formatRelativeTime } = useRelativeTime();
 const lastSyncedLabel = computed(() =>
     formatRelativeTime(props.pricesSyncedAt),
 );
+
+function signedFormattedAmount(
+    formatted: string | null,
+    isPositive: boolean | null,
+): string {
+    if (formatted === null) {
+        return '0';
+    }
+
+    return isPositive === false ? `-${formatted}` : formatted;
+}
 
 // ── Allocation donut + value-over-time chart ─────────────────────────────
 const ranges = [

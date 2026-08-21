@@ -68,8 +68,23 @@ test('transaction rows expose edit and delete actions', () => {
 });
 
 test('amount-mask device state is scoped per user', () => {
-    assert.match(amountMask, /page\.props\.auth\.user\?\.id/);
+    assert.match(amountMask, /page\.props\?\.auth\.user\?\.id/);
     assert.match(amountMask, /STORAGE_KEY_PREFIX \+ ':'/);
+});
+
+test('amount-mask page and state initialization are safe for SSR', () => {
+    const useAmountMaskDeclaration = amountMask.indexOf(
+        'export function useAmountMask',
+    );
+    const usePageCall = amountMask.indexOf('const page = usePage()');
+
+    assert.ok(useAmountMaskDeclaration >= 0);
+    assert.ok(usePageCall > useAmountMaskDeclaration);
+    assert.match(amountMask, /typeof window === 'undefined'/);
+    assert.match(
+        amountMask,
+        /return createControls\(ref\(amountMaskDefault\(page\)\)\)/,
+    );
 });
 
 test('category filters remain in the same responsive row as search', () => {

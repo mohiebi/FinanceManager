@@ -22,16 +22,18 @@ withDefaults(
 const page = usePage();
 const { t } = useI18n();
 
-const locale = computed(() => (page.props.locale as string | undefined) ?? 'en');
+const locale = computed(
+    () => (page.props.locale as string | undefined) ?? 'en',
+);
 
 const illustration = computed(() => {
     if (locale.value === 'fa') {
-return AuthIllustrationFa;
-}
+        return AuthIllustrationFa;
+    }
 
     if (locale.value === 'de') {
-return AuthIllustrationDe;
-}
+        return AuthIllustrationDe;
+    }
 
     return AuthIllustration;
 });
@@ -39,45 +41,43 @@ return AuthIllustrationDe;
 
 <template>
     <div
-        class="auth-theme min-h-svh bg-[var(--auth-page-bg)] px-3 py-4 sm:px-4 lg:px-6 lg:py-0"
+        class="auth-theme min-h-svh bg-[var(--auth-page-bg)] px-4 py-6 sm:px-6 lg:py-8"
     >
         <Head>
             <meta head-key="robots" name="robots" content="noindex,follow" />
         </Head>
 
         <div
-            class="mx-auto flex min-h-[calc(100svh-2rem)] max-w-[1318px] items-center lg:min-h-svh"
+            class="mx-auto flex min-h-[calc(100svh-3rem)] max-w-[1100px] items-center lg:min-h-[calc(100svh-4rem)]"
         >
             <div
-                class="grid w-full gap-0 overflow-hidden rounded-[22px] bg-[#1a1a1a] ring-1 ring-white/10 lg:h-[min(894px,calc(100svh-4rem))] lg:min-h-[760px] lg:grid-cols-[minmax(0,688px)_minmax(0,1fr)]"
+                class="grid w-full gap-0 overflow-hidden rounded-2xl bg-[var(--auth-frame-bg)] ring-1 ring-white/10 lg:min-h-[640px] lg:grid-cols-2"
             >
                 <aside
-                    class="flex min-h-[20rem] flex-col bg-[#161616] p-6 text-white sm:p-8 lg:min-h-0 lg:border-r lg:border-white/10 lg:px-10 lg:py-[35px]"
+                    class="order-last flex min-h-[20rem] flex-col bg-[#161616] p-6 text-white sm:p-8 lg:order-none lg:min-h-0 lg:border-r lg:border-white/10 lg:px-10 lg:py-[35px]"
                 >
                     <p class="text-[0.95rem] font-medium text-white/90">
                         {{ t('landing.auth_panel.tagline') }}
                     </p>
 
-                    <div
-                        class="flex flex-1 items-center justify-center py-6 lg:pt-[52px]"
-                    >
+                    <div class="flex flex-1 items-center justify-center py-8">
                         <component
                             :is="illustration"
-                            class="w-full max-w-[420px] object-contain"
+                            class="w-full max-w-[300px] object-contain"
                             aria-hidden="true"
                         />
                     </div>
 
                     <div class="space-y-4 lg:max-w-none">
                         <h2
-                            class="text-[70px] leading-[1] font-[500] tracking-normal lg:whitespace-nowrap"
+                            class="text-4xl leading-[1.05] font-medium tracking-tight"
                         >
                             {{ t('landing.auth_panel.headline_1') }} <br />
                             {{ t('landing.auth_panel.headline_2') }} <br />
                             {{ t('landing.auth_panel.headline_3') }}
                         </h2>
                         <p
-                            class="text-[20px] leading-6 font-[400] text-white/82"
+                            class="text-base leading-6 font-normal text-white/80"
                         >
                             {{ t('landing.auth_panel.description') }}
                         </p>
@@ -85,7 +85,7 @@ return AuthIllustrationDe;
                 </aside>
 
                 <section
-                    class="auth-surface flex min-h-[20rem] px-5 py-6 sm:px-8 sm:py-8 lg:min-h-0 lg:rounded-none lg:px-[100px] lg:py-[35px]"
+                    class="auth-surface order-first flex min-h-[20rem] items-center px-5 py-8 sm:px-8 lg:order-none lg:min-h-0 lg:rounded-none lg:px-[60px] lg:py-[35px]"
                 >
                     <div class="mx-auto flex w-full max-w-[418px] flex-col">
                         <Link
@@ -95,19 +95,19 @@ return AuthIllustrationDe;
                             <img
                                 :src="authLogo"
                                 alt="App logo"
-                                class="h-[45px] w-auto fill-black"
+                                class="h-10 w-auto"
                             />
                             <span class="sr-only">{{ title }}</span>
                         </Link>
 
-                        <div class="flex flex-1 flex-col pt-20 sm:pt-[86px]">
+                        <div class="flex flex-col pt-10 sm:pt-12">
                             <div class="space-y-2 text-center">
                                 <h1
                                     class="leading-tight font-medium tracking-normal"
                                     :class="
                                         title === 'Check your email'
-                                            ? 'text-[30px]'
-                                            : 'text-[35px]'
+                                            ? 'text-2xl'
+                                            : 'text-[28px]'
                                     "
                                 >
                                     {{ title }}
@@ -119,7 +119,7 @@ return AuthIllustrationDe;
                                 </p>
                             </div>
 
-                            <div class="mt-[92px]">
+                            <div class="mt-10">
                                 <slot />
                             </div>
                         </div>

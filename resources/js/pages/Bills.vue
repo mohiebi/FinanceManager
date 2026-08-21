@@ -4,69 +4,97 @@
     <div
         class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-auto bg-[#111111]"
     >
-        <!-- ── Header ─────────────────────────────────────────────── -->
+        <!-- ── Summary bar — total due over the next 30 days, whether the
+             balance covers it, and the List/Calendar toggle. The mock's own
+             screen has no header of its own (the shell already owns the
+             page title). ─────────────────────────────────────────────── -->
         <section
-            class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            v-if="bills.length > 0"
+            class="mx-[18px] mt-5 flex flex-wrap items-center justify-between gap-5 rounded-[16px] bg-[#1a1a1a] px-6 py-5 ring-1 ring-white/10"
         >
-            <div
-                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-                <div>
-                    <h1
-                        class="text-2xl font-semibold tracking-tight text-white"
-                    >
-                        {{ t('finance.bills.title') }}
-                    </h1>
-                    <p class="mt-1 max-w-lg text-sm text-[#989898]">
-                        {{ t('finance.bills.description') }}
-                    </p>
-                </div>
-                <div
-                    class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end"
+            <div>
+                <p class="mb-2 text-xs text-[#989898]">
+                    {{
+                        t('finance.bills.due_soon_title', {
+                            days: dueSoonWindowDays,
+                        })
+                    }}
+                    · {{ currencyLabel(props.dueSoonSummary.currency) }}
+                </p>
+                <p class="text-[30px] leading-none font-semibold text-white">
+                    <CompactMoney
+                        v-if="dueSoonTotal !== null"
+                        :value="dueSoonTotal"
+                        :currency="
+                            props.dueSoonSummary.currency as CurrencyCode
+                        "
+                    />
+                    <span
+                        v-else
+                        aria-hidden="true"
+                        class="inline-block h-[1em] w-24 animate-pulse rounded bg-white/10 align-middle"
+                    />
+                </p>
+                <p
+                    v-if="spare !== null"
+                    class="mt-2.5 flex items-center gap-1.5 text-[12.5px]"
+                    :class="spare >= 0 ? 'text-[#02CD86]' : 'text-[#E94E50]'"
                 >
-                    <div
-                        class="flex flex-col items-start gap-0.5 rounded-2xl bg-white/5 px-4 py-2.5 ring-1 ring-white/10 sm:items-end"
-                    >
-                        <p
-                            class="text-[10px] font-medium tracking-widest text-[#6b6b6b] uppercase"
-                        >
-                            {{ t('finance.fields.total_cost') }} ·
-                            {{ t('finance.reports.this_month') }}
-                        </p>
-                        <p class="text-2xl leading-none font-bold text-white">
-                            <span v-if="monthlyTotal !== null">{{
-                                formatAmount(monthlyTotal)
-                            }}</span>
-                            <span
-                                v-else
-                                aria-hidden="true"
-                                class="inline-block h-[1em] w-24 animate-pulse rounded bg-white/10 align-middle"
-                            />
-                            <span
-                                class="ml-1 text-xs font-normal text-[#989898]"
-                                >{{
-                                    currencyLabel(
-                                        props.monthlyBillSummary.currency,
-                                    )
-                                }}</span
-                            >
-                        </p>
-                    </div>
-                    <Button
-                        class="h-11 w-max shrink-0 rounded-full bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-5 text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
-                        @click="openCreateDialog()"
-                    >
-                        <Plus class="size-4" />
-                        {{ t('finance.bills.add_bill') }}
-                    </Button>
-                </div>
+                    <CheckCircle2 v-if="spare >= 0" class="size-3.5 shrink-0" />
+                    <AlertTriangle v-else class="size-3.5 shrink-0" />
+                    <span>{{
+                        spare >= 0
+                            ? t('finance.bills.balance_covers', {
+                                  amount: formatCompactCurrencyNumber(spare),
+                              })
+                            : t('finance.bills.balance_short', {
+                                  amount: formatCompactCurrencyNumber(
+                                      Math.abs(spare),
+                                  ),
+                              })
+                    }}</span>
+                </p>
+            </div>
+
+            <div
+                role="tablist"
+                class="flex shrink-0 items-center gap-1 rounded-full bg-[#252525] p-1"
+            >
+                <button
+                    type="button"
+                    role="tab"
+                    :aria-selected="viewMode === 'list'"
+                    class="cursor-pointer rounded-full px-4 py-1.5 text-[12.5px] font-medium transition-colors"
+                    :class="
+                        viewMode === 'list'
+                            ? 'bg-[#02CD86] text-[#101010]'
+                            : 'text-[#989898] hover:text-white'
+                    "
+                    @click="viewMode = 'list'"
+                >
+                    {{ t('finance.bills.list_view') }}
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    :aria-selected="viewMode === 'calendar'"
+                    class="cursor-pointer rounded-full px-4 py-1.5 text-[12.5px] font-medium transition-colors"
+                    :class="
+                        viewMode === 'calendar'
+                            ? 'bg-[#02CD86] text-[#101010]'
+                            : 'text-[#989898] hover:text-white'
+                    "
+                    @click="viewMode = 'calendar'"
+                >
+                    {{ t('finance.bills.calendar_view') }}
+                </button>
             </div>
         </section>
 
         <!-- ── Empty state ────────────────────────────────────────── -->
         <div
             v-if="bills.length === 0"
-            class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+            class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[16px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
             <span
                 class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#24212f]"
@@ -79,251 +107,283 @@
             <p class="mt-2 max-w-sm text-center text-sm text-[#989898]">
                 {{ t('finance.bills.empty_description') }}
             </p>
+            <Button
+                class="mt-6 h-11 rounded-full bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-5 text-[#101010]"
+                @click="openCreateDialog()"
+            >
+                {{ t('finance.bills.add_bill') }}
+            </Button>
         </div>
 
-        <!-- ── Bill cards ─────────────────────────────────────────── -->
+        <!-- ── Scheduled + Telegram reminders ──────────────────────── -->
         <div
-            v-else
-            class="mx-[18px] my-[18px] grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-3"
+            v-else-if="viewMode === 'list'"
+            class="grid items-start gap-[18px] px-[18px] py-[18px] xl:grid-cols-2"
         >
-            <div
-                v-for="bill in bills"
-                :key="bill.id"
-                class="flex flex-col gap-4 overflow-hidden rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+            <section
+                class="overflow-x-auto rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
             >
-                <div class="flex items-start justify-between gap-2">
+                <div
+                    class="mb-3 flex min-w-[520px] items-center justify-between gap-3"
+                >
+                    <p class="text-[14.5px] font-medium text-white">
+                        {{ t('finance.bills.scheduled') }}
+                    </p>
+                    <button
+                        type="button"
+                        class="cursor-pointer text-[12.5px] text-[#02CD86] hover:underline"
+                        @click="openCreateDialog()"
+                    >
+                        + {{ t('finance.bills.add_bill') }}
+                    </button>
+                </div>
+
+                <div
+                    v-for="bill in bills"
+                    :key="bill.id"
+                    class="group grid min-w-[520px] grid-cols-[8px_minmax(130px,1fr)_112px_120px_124px] items-center gap-3.5 border-t border-white/[0.06] py-3.5 transition-colors hover:bg-white/[0.02]"
+                >
+                    <span
+                        class="size-2 shrink-0 rounded-full"
+                        :style="{ backgroundColor: statusDotColor(bill) }"
+                    />
                     <div class="min-w-0">
-                        <p class="truncate text-base font-semibold text-white">
-                            <!-- Passes plaintext straight through today; the same
-                                 markup handles ciphertext once a vault is armed. -->
+                        <p class="truncate text-sm text-white">
                             <Ciphered :value="bill.title" table="bills" />
                         </p>
                         <p
-                            v-if="bill.category_name"
-                            class="mt-0.5 truncate text-xs text-[#989898]"
+                            class="mt-0.5 truncate text-[11px] text-[#686868]"
+                            dir="ltr"
                         >
-                            {{ bill.category_name }}
+                            {{ cadenceLabel(bill) }}
                         </p>
                     </div>
-                    <div
-                        class="flex shrink-0 items-center gap-1.5 opacity-0 transition group-hover:opacity-100 sm:opacity-100"
-                    >
-                        <button
-                            type="button"
-                            class="rounded-md bg-white/5 px-2 py-1 text-xs text-[#6C4EE9] ring-1 ring-white/10 hover:bg-white/10"
-                            @click="void openEditDialog(bill)"
+                    <span class="text-[12.5px] text-[#989898]">
+                        {{
+                            bill.recent_paid_occurrence
+                                ? displayDate(
+                                      bill.recent_paid_occurrence.due_date,
+                                  )
+                                : bill.next_occurrence
+                                  ? displayDate(bill.next_occurrence.due_date)
+                                  : t('finance.bills.no_upcoming')
+                        }}
+                    </span>
+                    <span class="justify-self-start">
+                        <span
+                            class="rounded-full px-2.5 py-1 text-[11.5px] font-medium whitespace-nowrap"
+                            :style="{
+                                backgroundColor: `${statusDotColor(bill)}1A`,
+                                color: statusDotColor(bill),
+                            }"
                         >
-                            {{ t('common.edit') }}
-                        </button>
-                        <button
-                            type="button"
-                            class="rounded-md p-1.5 hover:bg-[#fff0f0]"
-                            @click="void requestDelete(bill)"
+                            {{ statusLabel(bill) }}
+                        </span>
+                    </span>
+                    <div class="flex items-center justify-end gap-2">
+                        <span
+                            class="text-[14.5px] text-white tabular-nums"
+                            :class="maskClass"
+                            dir="ltr"
                         >
-                            <Trash2 class="size-3.5 text-[#E94E50]" />
-                        </button>
+                            <CipheredMoney
+                                :amount="bill.amount"
+                                :display-amount="bill.display_amount"
+                                :currency="bill.currency as CurrencyCode"
+                                :display-currency="
+                                    bill.display_currency as CurrencyCode
+                                "
+                                :rates="props.rates"
+                                show-currency
+                                table="bills"
+                            />
+                        </span>
+                        <div
+                            class="flex shrink-0 items-center gap-1 opacity-100 transition md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
+                        >
+                            <button
+                                v-if="
+                                    bill.next_occurrence &&
+                                    !bill.recent_paid_occurrence
+                                "
+                                type="button"
+                                :disabled="payingId === bill.next_occurrence.id"
+                                :aria-label="t('finance.bills.mark_paid')"
+                                class="cursor-pointer rounded-md p-1 text-[#02CD86] hover:bg-[#02CD86]/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                @click="void markPaid(bill)"
+                            >
+                                <Check class="size-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                :aria-label="t('common.edit')"
+                                class="cursor-pointer rounded-md p-1 text-[#6C4EE9] hover:bg-[#6C4EE9]/10"
+                                @click="void openEditDialog(bill)"
+                            >
+                                <Pencil class="size-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                :aria-label="t('common.delete')"
+                                class="cursor-pointer rounded-md p-1 text-[#E94E50] hover:bg-[#E94E50]/10"
+                                @click="void requestDelete(bill)"
+                            >
+                                <Trash2 class="size-3.5" />
+                            </button>
+                        </div>
                     </div>
                 </div>
+            </section>
 
-                <p class="text-2xl font-bold text-white">
-                    <CipheredMoney
-                        :amount="bill.amount"
-                        :display-amount="bill.display_amount"
-                        :currency="bill.currency as CurrencyCode"
-                        :display-currency="
-                            bill.display_currency as CurrencyCode
-                        "
-                        :rates="props.rates"
-                        table="bills"
-                    />
-                    <span class="text-sm font-normal text-[#989898]">{{
-                        currencyLabel(bill.display_currency)
-                    }}</span>
+            <!-- ── Telegram reminders — real per-bill reminder status, not the
+             mock's account-wide toggle set: this app's reminders are set per
+             bill (enable + time + timezone, from the edit dialog), and there
+             is no "day before / weekly digest" preference to turn a toggle
+             into without inventing settings that don't exist. ───────────── -->
+            <section
+                class="rounded-[16px] bg-[#1a1a1a] p-[22px] ring-1 ring-white/10"
+            >
+                <p
+                    class="mb-3.5 text-[11px] font-medium tracking-[0.13em] text-[#0EA5E9] uppercase"
+                >
+                    {{ t('finance.bills.telegram_reminders_title') }}
+                </p>
+                <p class="mb-4.5 text-[13px] leading-[1.6] text-[#989898]">
+                    {{ t('finance.bills.telegram_reminders_description') }}
                 </p>
 
                 <div
-                    class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-[#989898]"
+                    v-if="remindedBills.length > 0"
+                    class="flex flex-col gap-1.5"
                 >
-                    <CalendarClock class="size-3.5 shrink-0" />
-                    <span v-if="bill.recurrence_type === 'monthly'">
-                        {{ t('finance.bills.recurrence_monthly') }} —
-                        {{
-                            t('finance.bills.due_day_label', {
-                                day: bill.due_day_of_month,
-                            })
-                        }}
-                    </span>
-                    <span v-else>{{
-                        t('finance.bills.recurrence_one_time')
-                    }}</span>
-                    <span
-                        v-if="
-                            bill.recurrence_count !== null &&
-                            bill.next_occurrence?.payment_number
-                        "
-                        class="rounded-full bg-[#6C4EE9]/15 px-2 py-0.5 font-medium text-[#a995ff] ring-1 ring-[#6C4EE9]/25"
-                    >
-                        {{
-                            t('finance.bills.payment_progress', {
-                                current: bill.next_occurrence.payment_number,
-                                total: bill.recurrence_count,
-                            })
-                        }}
-                    </span>
-                    <span
-                        v-else-if="
-                            bill.recurrence_count !== null &&
-                            bill.payments_made >= bill.recurrence_count
-                        "
-                        class="rounded-full bg-[#02CD86]/10 px-2 py-0.5 font-medium text-[#02CD86] ring-1 ring-[#02CD86]/25"
-                    >
-                        {{
-                            t('finance.bills.payments_complete', {
-                                total: bill.recurrence_count,
-                            })
-                        }}
-                    </span>
-                </div>
-
-                <div
-                    class="mt-auto flex items-center justify-between gap-3 border-t border-white/10 pt-4"
-                >
-                    <div>
-                        <p
-                            class="text-[10px] font-medium tracking-wide text-[#6b6b6b] uppercase"
-                        >
-                            {{ t('finance.bills.next_due') }}
-                        </p>
-                        <p class="mt-0.5 text-sm font-medium text-white">
-                            {{
-                                bill.next_occurrence
-                                    ? displayDate(bill.next_occurrence.due_date)
-                                    : t('finance.bills.no_upcoming')
-                            }}
-                        </p>
-                    </div>
-                    <button
-                        v-if="bill.next_occurrence"
-                        type="button"
-                        :disabled="payingId === bill.next_occurrence.id"
-                        class="shrink-0 cursor-pointer rounded-full bg-[#02CD86]/10 px-3 py-1.5 text-xs font-medium text-[#02CD86] ring-1 ring-[#02CD86]/25 transition-colors hover:bg-[#02CD86]/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        @click="void markPaid(bill)"
-                    >
-                        {{ t('finance.bills.mark_paid') }}
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ── Upcoming occurrences timeline ────────────────────── -->
-        <section
-            v-if="upcomingOccurrences.length > 0"
-            class="mx-[18px] mb-[18px] rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
-        >
-            <h2
-                class="mb-5 text-[10px] font-medium tracking-widest text-[#6b6b6b] uppercase"
-            >
-                {{ t('finance.bills.upcoming') }}
-            </h2>
-
-            <div
-                v-for="(group, gi) in groupedUpcoming"
-                :key="group.month"
-                :class="{ 'mt-6': gi > 0 }"
-            >
-                <!-- Month separator -->
-                <div class="mb-1 flex items-center gap-3">
-                    <span class="shrink-0 text-xs font-semibold text-white">
-                        {{ group.label }}
-                    </span>
-                    <div class="h-px flex-1 bg-white/[0.08]" />
-                </div>
-
-                <!-- Bill rows -->
-                <div class="divide-y divide-white/[0.05]">
                     <div
-                        v-for="occ in group.occurrences"
-                        :key="occ.occurrence_id"
-                        class="flex items-center gap-3 py-2.5 first:pt-2 last:pb-0"
+                        v-for="bill in remindedBills"
+                        :key="bill.id"
+                        class="flex items-center justify-between gap-3 rounded-xl bg-[#252525] px-[15px] py-3"
                     >
-                        <!-- Day badge — colour encodes urgency -->
-                        <div
-                            :class="[
-                                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold tabular-nums',
-                                occ.is_overdue
-                                    ? 'bg-[#2f1717] text-[#E94E50]'
-                                    : occ.is_due_today
-                                      ? 'bg-[#0d2620] text-[#02CD86]'
-                                      : 'bg-white/[0.06] text-[#6b6b6b]',
-                            ]"
-                        >
-                            {{ displayDate(occ.due_date).split('-')[2] }}
-                        </div>
-
-                        <!-- Bill title -->
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate text-sm font-medium text-white">
-                                <Ciphered :value="occ.title" table="bills" />
+                        <span class="min-w-0 truncate text-sm text-[#e5e5e5]">
+                            <Ciphered :value="bill.title" table="bills" />
+                        </span>
+                        <div class="shrink-0 text-end">
+                            <p
+                                v-if="reminderDueLabel(bill)"
+                                class="text-xs font-medium"
+                                :class="reminderDueClass(bill)"
+                            >
+                                {{ reminderDueLabel(bill) }}
                             </p>
                             <p
-                                v-if="
-                                    occ.payment_number !== null &&
-                                    occ.payment_count !== null
-                                "
-                                class="mt-0.5 text-[10px] font-medium text-[#a995ff]"
+                                class="mt-0.5 text-[11px] text-[#686868]"
+                                dir="ltr"
                             >
-                                {{
-                                    t('finance.bills.payment_progress', {
-                                        current: occ.payment_number,
-                                        total: occ.payment_count,
-                                    })
-                                }}
+                                {{ bill.reminder_time }}
                             </p>
-                        </div>
-
-                        <!-- Status chip + amount -->
-                        <div class="flex shrink-0 items-center gap-3">
-                            <span
-                                v-if="occ.is_overdue"
-                                class="rounded-md bg-[#2f1717] px-2 py-0.5 text-[10px] font-medium text-[#E94E50]"
-                                >{{ t('finance.bills.overdue') }}</span
-                            >
-                            <span
-                                v-else-if="occ.is_due_today"
-                                class="rounded-md bg-[#0d2620] px-2 py-0.5 text-[10px] font-medium text-[#02CD86]"
-                                >{{ t('finance.bills.due_today') }}</span
-                            >
-                            <span
-                                v-else
-                                class="hidden text-xs text-[#6b6b6b] tabular-nums sm:inline"
-                                >{{ displayDate(occ.due_date) }}</span
-                            >
-
-                            <span
-                                class="min-w-[110px] text-right text-sm font-bold text-white tabular-nums"
-                            >
-                                <CipheredMoney
-                                    :amount="occ.amount"
-                                    :display-amount="occ.display_amount"
-                                    :currency="occ.currency as CurrencyCode"
-                                    :display-currency="
-                                        occ.display_currency as CurrencyCode
-                                    "
-                                    :rates="props.rates"
-                                    table="bills"
-                                />
-                                <span
-                                    class="text-[10px] font-normal text-[#6b6b6b]"
-                                    >{{
-                                        currencyLabel(occ.display_currency)
-                                    }}</span
-                                >
-                            </span>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+                <p
+                    v-else
+                    class="rounded-xl bg-[#252525] px-[15px] py-3 text-[13px] text-[#686868]"
+                >
+                    {{ t('finance.bills.telegram_reminders_empty') }}
+                </p>
+            </section>
+        </div>
+
+        <!-- ── Calendar view — every occurrence due this month, paid or not,
+             placed on its day. ────────────────────────────────────────── -->
+        <div v-else class="px-[18px] py-[18px]">
+            <section
+                class="overflow-x-auto rounded-[16px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
+            >
+                <p class="mb-4 text-[14.5px] font-medium text-white">
+                    {{ calendarGrid.monthLabel }}
+                </p>
+
+                <div class="min-w-[640px]">
+                    <div class="grid grid-cols-7 gap-2">
+                        <div
+                            v-for="(label, index) in calendarGrid.weekdayLabels"
+                            :key="index"
+                            class="pb-2 text-center text-[11px] text-[#686868]"
+                        >
+                            {{ label }}
+                        </div>
+                    </div>
+
+                    <div
+                        v-for="(week, weekIndex) in calendarGrid.weeks"
+                        :key="weekIndex"
+                        class="grid grid-cols-7 gap-2"
+                    >
+                        <div
+                            v-for="(cell, cellIndex) in week"
+                            :key="cellIndex"
+                            class="min-h-[92px] rounded-xl p-2"
+                            :class="
+                                cell
+                                    ? cell.isToday
+                                        ? 'bg-[#02CD86]/10 ring-1 ring-[#02CD86]/40'
+                                        : 'bg-white/[0.02]'
+                                    : ''
+                            "
+                        >
+                            <template v-if="cell">
+                                <p
+                                    class="mb-1.5 text-[11.5px]"
+                                    :class="
+                                        cell.isToday
+                                            ? 'font-semibold text-[#02CD86]'
+                                            : 'text-[#989898]'
+                                    "
+                                >
+                                    {{ cell.day }}
+                                </p>
+                                <div class="flex flex-col gap-1">
+                                    <span
+                                        v-for="occurrence in (
+                                            occurrencesByDate.get(cell.iso) ??
+                                            []
+                                        ).slice(0, 2)"
+                                        :key="occurrence.id"
+                                        class="truncate rounded-md px-1.5 py-0.5 text-[10.5px] font-medium"
+                                        :style="{
+                                            backgroundColor: `${colorForOccurrence(occurrence)}26`,
+                                            color: colorForOccurrence(
+                                                occurrence,
+                                            ),
+                                        }"
+                                    >
+                                        <Ciphered
+                                            :value="occurrence.title"
+                                            table="bills"
+                                        />
+                                    </span>
+                                    <span
+                                        v-if="
+                                            (
+                                                occurrencesByDate.get(
+                                                    cell.iso,
+                                                ) ?? []
+                                            ).length > 2
+                                        "
+                                        class="text-[10.5px] text-[#686868]"
+                                    >
+                                        +{{
+                                            (
+                                                occurrencesByDate.get(
+                                                    cell.iso,
+                                                ) ?? []
+                                            ).length - 2
+                                        }}
+                                    </span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
 
         <!-- ── Add / Edit dialog ──────────────────────────────────── -->
         <Dialog :open="isDialogOpen" @update:open="handleDialogOpenChange">
@@ -804,12 +864,19 @@
 
 <script setup lang="ts">
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { toJalaali } from 'jalaali-js';
-import { CalendarClock, Plus, Receipt, Trash2 } from 'lucide-vue-next';
+import {
+    AlertTriangle,
+    Check,
+    CheckCircle2,
+    Pencil,
+    Receipt,
+    Trash2,
+} from 'lucide-vue-next';
 import { computed, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
+import CompactMoney from '@/components/CompactMoney.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -830,17 +897,18 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { useAmountMask } from '@/composables/useAmountMask';
+import { usePageSubtitle } from '@/composables/usePageSubtitle';
 import { useVault } from '@/composables/useVault';
 import {
     countMonthlyPaymentsThrough,
     nextMonthlyDueDate,
 } from '@/lib/bill-recurrence';
+import { buildCalendarMonth, formatAppDate } from '@/lib/date';
 import {
-    formatAppDate,
-    jalaliMonthAbbreviations,
-    monthBucketKeyFromIso,
-} from '@/lib/date';
-import { convert as convertMoney } from '@/lib/money';
+    convert as convertMoney,
+    formatCompactCurrencyNumber,
+} from '@/lib/money';
 import type { CurrencyCode, Rates } from '@/lib/money';
 import { dashboard } from '@/routes';
 import {
@@ -857,6 +925,11 @@ type BillOccurrence = {
     due_date: string;
     payment_number: number | null;
 };
+type RecentPaidOccurrence = {
+    id: number;
+    due_date: string;
+    paid_at: string;
+};
 type Bill = {
     id: number;
     title: Encrypted<string>;
@@ -866,6 +939,11 @@ type Bill = {
     display_currency: string;
     /** Occurrences falling in the current calendar month, for the header total. */
     month_occurrence_count: number;
+    /** Occurrences due within the next 30 days, for the "due soon" summary. */
+    due_soon_occurrence_count: number;
+    /** Set when this bill's latest paid occurrence landed within the last 10
+     *  days — takes priority over `next_occurrence` for the row's status. */
+    recent_paid_occurrence: RecentPaidOccurrence | null;
     recurrence_type: 'one_time' | 'monthly';
     due_day_of_month: number | null;
     due_date: string | null;
@@ -889,6 +967,18 @@ type MonthlyBillSummary = {
     count: number;
     from: string;
     to: string;
+};
+type BalanceSummary = {
+    balance: number;
+    currency: string;
+};
+type CalendarOccurrence = {
+    id: number;
+    bill_id: number;
+    due_date: string;
+    is_paid: boolean;
+    title: Encrypted<string>;
+    color: string | null;
 };
 
 type UpcomingOccurrence = {
@@ -914,13 +1004,25 @@ const props = defineProps<{
     selectedCurrency: string;
     rates: Rates | null;
     monthlyBillSummary: MonthlyBillSummary;
+    dueSoonSummary: MonthlyBillSummary;
+    balanceSummary: BalanceSummary | null;
+    calendarOccurrences: CalendarOccurrence[];
     upcomingOccurrences: UpcomingOccurrence[];
     userCalendar: string;
     today: string;
 }>();
 
+const dueSoonWindowDays = 30;
+const viewMode = ref<'list' | 'calendar'>('list');
+
 const { t } = useI18n();
 const { revealAsync, sealForSubmit, isArmed, trackKey } = useVault();
+const { masked } = useAmountMask();
+const maskClass = computed(() =>
+    masked.value
+        ? 'blur-[6px] transition-[filter] duration-150 select-none'
+        : 'transition-[filter] duration-150',
+);
 const page = usePage();
 /** The account timezone set in Settings > Preferences; new bill reminders
  *  default to it, though each bill can still override it. */
@@ -929,34 +1031,37 @@ const accountTimezone = computed(
 );
 const bills = computed(() => props.bills);
 
+const remindedBills = computed(() =>
+    props.bills.filter((bill) => bill.telegram_reminder_enabled),
+);
+
 /**
- * The month's bill total.
+ * Total due over the rolling 30-day "due soon" window.
  *
  * Comes straight off the server unless the vault is armed, in which case the
  * amounts are ciphertext and the sum has to be rebuilt here from the decrypted
- * values and each bill's occurrence count for the month.
+ * values and each bill's occurrence count within the window.
  */
-const clientMonthlyTotal = ref<number | null>(null);
+const clientDueSoonTotal = ref<number | null>(null);
 
-const monthlyTotal = computed<number | string | null>(
-    () => props.monthlyBillSummary.amount ?? clientMonthlyTotal.value,
+const dueSoonTotal = computed<number | string | null>(
+    () => props.dueSoonSummary.amount ?? clientDueSoonTotal.value,
 );
 
 watchEffect(async () => {
-    // Tracked before any await, so unlocking fills the header total in place.
     trackKey();
 
-    if (props.monthlyBillSummary.amount !== null || props.rates === null) {
-        clientMonthlyTotal.value = null;
+    if (props.dueSoonSummary.amount !== null || props.rates === null) {
+        clientDueSoonTotal.value = null;
 
         return;
     }
 
-    const target = props.monthlyBillSummary.currency as CurrencyCode;
+    const target = props.dueSoonSummary.currency as CurrencyCode;
     let total = 0;
 
     for (const bill of props.bills) {
-        if (bill.month_occurrence_count === 0) {
+        if (bill.due_soon_occurrence_count === 0) {
             continue;
         }
 
@@ -967,7 +1072,7 @@ watchEffect(async () => {
         );
 
         if (amount === undefined) {
-            clientMonthlyTotal.value = null;
+            clientDueSoonTotal.value = null;
 
             return;
         }
@@ -978,57 +1083,168 @@ watchEffect(async () => {
                 bill.currency as CurrencyCode,
                 target,
                 props.rates,
-            ) * bill.month_occurrence_count;
+            ) * bill.due_soon_occurrence_count;
     }
 
-    clientMonthlyTotal.value = Math.round(total * 100) / 100;
+    clientDueSoonTotal.value = Math.round(total * 100) / 100;
 });
 
-const groupedUpcoming = computed(() => {
-    const groups = new Map<
-        string,
-        { month: string; label: string; occurrences: UpcomingOccurrence[] }
-    >();
+/**
+ * How much of the balance is left after covering everything due soon.
+ * Null under the vault — `balanceSummary` isn't computed there, since the
+ * server cannot sum ciphertext transaction amounts.
+ */
+const spare = computed<number | null>(() => {
+    if (props.balanceSummary === null || props.dueSoonSummary.amount === null) {
+        return null;
+    }
 
-    for (const occ of props.upcomingOccurrences) {
-        const key = monthBucketKeyFromIso(occ.due_date, props.userCalendar);
+    return props.balanceSummary.balance - Number(props.dueSoonSummary.amount);
+});
 
-        if (!groups.has(key)) {
-            const [gy, gm, gd] = occ.due_date.split('-').map(Number);
-            let label: string;
+const overdueCount = computed(
+    () =>
+        props.bills.filter((bill) => {
+            const days = daysUntilDue(bill);
 
-            if (props.userCalendar === 'jalali') {
-                const j = toJalaali(gy, gm, gd);
-                label = `${jalaliMonthAbbreviations[j.jm - 1]} ${j.jy}`;
-            } else {
-                label = new Date(gy, gm - 1, 1).toLocaleString('default', {
-                    month: 'long',
-                    year: 'numeric',
-                });
-            }
+            return days !== null && days < 0;
+        }).length,
+);
 
-            groups.set(key, { month: key, label, occurrences: [] });
+usePageSubtitle(() => {
+    if (props.bills.length === 0) {
+        return null;
+    }
+
+    return overdueCount.value > 0
+        ? t('finance.bills.header_subtitle_overdue', {
+              count: props.bills.length,
+              overdue: overdueCount.value,
+          })
+        : t('finance.bills.header_subtitle_none_overdue', {
+              count: props.bills.length,
+          });
+});
+
+const calendarGrid = computed(() =>
+    buildCalendarMonth(props.today, props.userCalendar, 'en-US'),
+);
+
+const occurrencesByDate = computed(() => {
+    const map = new Map<string, CalendarOccurrence[]>();
+
+    for (const occurrence of props.calendarOccurrences) {
+        const existing = map.get(occurrence.due_date);
+
+        if (existing) {
+            existing.push(occurrence);
+        } else {
+            map.set(occurrence.due_date, [occurrence]);
         }
-
-        groups.get(key)!.occurrences.push(occ);
     }
 
-    return [...groups.values()].slice(0, 2);
+    return map;
 });
+
+/** Category colour when the bill has one, matching the chip used on
+ *  Transactions/Report — falling back to a rotation of the same chart
+ *  palette Dashboard uses, keyed by bill so a bill's pill stays the same
+ *  colour across every day it appears on. */
+const calendarPalette = [
+    '#02CD86',
+    '#6C4EE9',
+    '#F59E0B',
+    '#3B82F6',
+    '#E94E50',
+    '#52525b',
+];
+
+function colorForOccurrence(occurrence: CalendarOccurrence): string {
+    if (occurrence.color) {
+        return occurrence.color;
+    }
+
+    return calendarPalette[occurrence.bill_id % calendarPalette.length];
+}
 
 const displayDate = (value: string): string =>
     formatAppDate(value, props.userCalendar);
-const formatAmount = (value: number | string): string => {
-    const amount = Number(value);
-
-    return new Intl.NumberFormat('en-US', {
-        maximumFractionDigits: 2,
-        minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
-    }).format(amount);
-};
 const currencyLabel = (value: string): string =>
     props.currencies.find((currency) => currency.value === value)?.label ??
     t(`finance.currencies.${value}`);
+
+function cadenceLabel(bill: Bill): string {
+    return bill.recurrence_type === 'monthly'
+        ? `${t('finance.bills.recurrence_monthly')} — ${t('finance.bills.due_day_label', { day: bill.due_day_of_month })}`
+        : t('finance.bills.recurrence_one_time');
+}
+
+/** Whole days between today and the next occurrence — negative once it's
+ *  overdue. Null when there is no next occurrence to count toward. */
+function daysUntilDue(bill: Bill): number | null {
+    if (!bill.next_occurrence) {
+        return null;
+    }
+
+    const due = new Date(`${bill.next_occurrence.due_date}T00:00:00`);
+    const today = new Date(`${props.today}T00:00:00`);
+
+    return Math.round((due.getTime() - today.getTime()) / 86_400_000);
+}
+
+/** Overdue once past today's date; a literal day count once it's inside the
+ *  next week, so the row itself carries the urgency instead of a flat
+ *  "scheduled" for everything not yet due; scheduled beyond that, or with no
+ *  next occurrence at all — nothing urgent left to flag. A bill paid within
+ *  the last 10 days shows as "Paid" regardless of what its next occurrence
+ *  (already generated up to 3 months ahead) happens to be. */
+function statusLabel(bill: Bill): string {
+    if (bill.recent_paid_occurrence) {
+        return t('finance.bills.paid');
+    }
+
+    const days = daysUntilDue(bill);
+
+    if (days === null || days >= 7) {
+        return t('finance.bills.scheduled');
+    }
+
+    if (days < 0) {
+        return t('finance.bills.overdue');
+    }
+
+    if (days === 0) {
+        return t('finance.bills.due_today');
+    }
+
+    return t('finance.bills.due_in_days', { days });
+}
+
+function statusDotColor(bill: Bill): string {
+    if (bill.recent_paid_occurrence) {
+        return '#02CD86';
+    }
+
+    const days = daysUntilDue(bill);
+
+    if (days === null || days >= 3) {
+        return days !== null && days < 7 ? '#F59E0B' : '#686868';
+    }
+
+    return '#E94E50';
+}
+
+function reminderDueLabel(bill: Bill): string | null {
+    const days = daysUntilDue(bill);
+
+    return days !== null && days < 7 ? `* ${statusLabel(bill)}` : null;
+}
+
+function reminderDueClass(bill: Bill): string {
+    const days = daysUntilDue(bill);
+
+    return days !== null && days < 3 ? 'text-[#E94E50]' : 'text-[#F59E0B]';
+}
 
 const fieldClass =
     'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25';

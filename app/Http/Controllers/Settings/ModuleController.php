@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Actions\Features\UpdateUserFeature;
 use App\Enums\Feature;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Settings\DisplayUpdateRequest;
 use App\Http\Requests\Settings\ModulesUpdateRequest;
 use App\Models\User;
 use App\Support\FeatureSet;
@@ -65,6 +66,18 @@ class ModuleController extends Controller
     }
 
     /**
+     * The App tab's "Display" group — separate from update() on purpose: it is
+     * a plain account preference, not a Feature toggle, so it carries none of
+     * that method's cascade/entitlement logic.
+     */
+    public function updateDisplay(DisplayUpdateRequest $request): RedirectResponse
+    {
+        $request->user()->update($request->validated());
+
+        return back();
+    }
+
+    /**
      * @param  array<int, Feature>  $enabled
      * @param  array<int, Feature>  $disabled
      */
@@ -106,8 +119,11 @@ class ModuleController extends Controller
             'description' => $feature->description(),
             'icon' => $feature->icon(),
             'tier' => $feature->tier()->value,
-            'enabled' => $features->enabled($feature),
-            'show_promo' => $features->showsPromo($feature),
+            // Live state, not the stored preference: a module the plan does not
+            // cover reads as off here, which is both true and what keeps the
+            // "hide from menu" control available on a locked card.
+            'enabled' => $features->isLive($feature, $user->isPro()),
+            'show_promo' => $features->advertises($feature, $user->isPro()),
             // Drives whether the "hide from menu" control is offered at all: a
             // module with no sidebar entry has no menu to be hidden from.
             'in_nav' => $feature->appearsInNav(),

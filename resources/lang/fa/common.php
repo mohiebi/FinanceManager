@@ -6,6 +6,7 @@ return [
     'confirm' => 'تایید',
     'edit' => 'ویرایش',
     'delete' => 'حذف',
+    'actions' => 'عملیات',
     'select' => 'انتخاب',
     'clear' => 'پاک کردن',
     'more' => 'بیشتر',
@@ -16,4 +17,6 @@ return [
     'year' => 'سال',
     'language' => 'زبان',
     'calendar' => 'تقویم',
+    'hide_amounts' => 'پنهان',
+    'show_amounts' => 'نمایش',
 ];

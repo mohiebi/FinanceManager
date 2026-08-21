@@ -107,7 +107,7 @@ async function submit(): Promise<void> {
             class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
         >
             <div
-                class="w-full max-w-sm rounded-[22px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
+                class="w-full max-w-sm rounded-[16px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
             >
                 <p class="text-[17px] font-medium text-white">
                     {{ t('settings.security.vault.unlock_title') }}

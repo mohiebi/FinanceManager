@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\Feature;
+use App\Models\User;
 use App\Models\UserFeature;
 
 /**
@@ -73,6 +74,40 @@ final readonly class FeatureSet
     }
 
     /**
+     * Whether the module is actually live for a user with this entitlement.
+     *
+     * {@see enabled()} is the stored preference and nothing else — the toggle
+     * resolver and the promo-visibility writer both depend on it staying that
+     * way, so a free user who never touched a paid module has to keep reading as
+     * "on" there, or buying the plan would find it switched off.
+     *
+     * What a *screen* needs is both questions answered together, which is what
+     * {@see User::hasFeature()} means. Both presenters go through here rather
+     * than each remembering to `&&` the entitlement for itself.
+     */
+    public function isLive(Feature $feature, bool $isPro): bool
+    {
+        return $feature->mayUseWithPro($isPro) && $this->enabled($feature);
+    }
+
+    /**
+     * Whether a module that is not live still advertises itself in the nav.
+     *
+     * Asked of the live state rather than the stored one, so a locked module
+     * keeps the "hide from menu" control an off module has. Without it,
+     * defaulting a paid module to on would quietly take that choice away from
+     * every free user.
+     */
+    public function advertises(Feature $feature, bool $isPro): bool
+    {
+        if ($this->isLive($feature, $isPro)) {
+            return false;
+        }
+
+        return $this->state[$feature->value]['show_promo'] ?? $feature->promoByDefault();
+    }
+
+    /**
      * The shape the resolver works on.
      *
      * @return array<string, bool>
@@ -88,9 +123,11 @@ final readonly class FeatureSet
     /**
      * The shape shared with Inertia.
      *
-     * `$isPro` decides `may_use` for paid modules — a plan entitlement, not
-     * whether the user has switched the module on. Free modules and core
-     * modules are always usable regardless of it.
+     * `may_use` is the plan entitlement on its own; `enabled` is whether the
+     * module is live, which needs the entitlement *and* the switch. A client
+     * reading `enabled` alone is what decides whether a nav item is a page or a
+     * sales pitch, so it has to mean the same thing the server means by
+     * {@see User::hasFeature()}.
      *
      * @return array<string, array{enabled: bool, show_promo: bool, core: bool, tier: string, may_use: bool}>
      */
@@ -100,8 +137,8 @@ final readonly class FeatureSet
 
         foreach (Feature::cases() as $feature) {
             $features[$feature->value] = [
-                'enabled' => $this->enabled($feature),
-                'show_promo' => $this->showsPromo($feature),
+                'enabled' => $this->isLive($feature, $isPro),
+                'show_promo' => $this->advertises($feature, $isPro),
                 'core' => $feature->isCore(),
                 'tier' => $feature->tier()->value,
                 'may_use' => $feature->mayUseWithPro($isPro),

@@ -54,6 +54,15 @@ class HandleInertiaRequests extends Middleware
             'calendar' => $calendar,
             'timezone' => FrontendLocalization::normalizeTimezone($request->user()?->timezone),
             'flightTerminologyEnabled' => $request->user()?->flight_terminology_enabled ?? false,
+            // Eager, not deferred: useAmountMask.ts reads this synchronously at
+            // module load (before any component has mounted) so a fresh device
+            // starts masked or unmasked per the account's own default rather than
+            // always-unmasked for the one render before a deferred prop arrives.
+            'amountMaskDefault' => $request->user()?->amount_mask_default ?? false,
+            // Same reasoning as amountMaskDefault: CipheredMoney.vue reads this on
+            // every render, app-wide, so it has to be a normal shared prop rather
+            // than something only the Settings > App page happens to receive.
+            'compactFiguresEnabled' => $request->user()?->compact_figures_enabled ?? false,
             'translations' => FrontendLocalization::messages($locale),
             // Eager, not deferred: the nav is built from this, and deferring would
             // make menu items pop in after first paint. Costs one memoized query

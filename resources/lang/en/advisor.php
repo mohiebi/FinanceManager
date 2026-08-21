@@ -18,7 +18,27 @@ return [
     'ai_role_description' => 'The AI selects percentages from your assets, explains tradeoffs, and may propose only options strategies you can use.',
     'vault_safe' => 'Works with Private Vault',
     'vault_safe_description' => 'With Vault active, the AI receives your derived profile and selected assets, never your current holdings or portfolio value.',
+    'how_it_works' => 'How it works',
     'history' => 'Recent recommendations',
+    'home' => [
+        'subtitle' => 'Overview',
+        'in_progress' => 'Assessment in progress',
+    ],
+    'paywall' => [
+        'subtitle' => 'Pro feature',
+        'unlock' => 'Unlock Advisor with Pro',
+        'see_inside' => 'See what is inside',
+        'included' => 'Included in CashPilot Pro · no extra charge',
+        'members_only' => 'Pro members only',
+        'profile_saved' => 'Your investor profile and every answer behind it are still here. Renewing picks up exactly where you left off.',
+        // Named rather than blurred placeholders: the preview is a real plan,
+        // and a Persian or German reader should see it in their own language
+        // even through five pixels of blur.
+        'preview_equity' => 'Local equity index fund',
+        'preview_gold' => 'Gold, 18 carat',
+        'preview_global' => 'Global equity ETF',
+        'preview_currency' => 'US dollar',
+    ],
     'no_history' => 'Your validated portfolio recommendations will appear here.',
     'target_only' => 'Target design',
     'rebalance' => 'Current-to-target',
@@ -41,6 +61,8 @@ return [
         'missing_asset_name' => 'One of your assets still needs a name.',
         'missing_asset_ticker' => '{name} needs a ticker or identifier.',
         'save_failed' => 'That did not save. Please try again.',
+        'saved_short' => 'Encrypted & saved after each section',
+        'answered' => '{count} of {total} answered',
     ],
     'sections' => [
         'financial_foundation' => 'Financial foundation',
@@ -51,6 +73,16 @@ return [
         'return_expectations' => 'Return expectations',
         'portfolio_preferences' => 'Portfolio preferences',
         'options_and_hedging' => 'Options and hedging',
+    ],
+    'section_intros' => [
+        'financial_foundation' => 'These answers set what you can afford to lose before anything is designed. None of it is a judgement — it is the floor every portfolio below has to stand on.',
+        'investment_goals' => 'What the money is for, and when you need it. A horizon and a purpose narrow the shape of a portfolio more than any preference does.',
+        'risk_and_loss' => 'Answer as you would actually behave, not as you would like to. These answers set the loss ceiling every portfolio below must respect.',
+        'investment_experience' => 'What you have already held, and how well you know the mechanics. Experience widens what the AI is allowed to propose.',
+        'behavior' => 'How you have acted when a position moved sharply. Behaviour under pressure is the difference between a plan on paper and one you can hold.',
+        'return_expectations' => 'What you would call success. If that number is higher than your capacity supports, CashPilot says so rather than reaching for it.',
+        'portfolio_preferences' => 'The assets the AI may use, the markets you can reach, and the caps you want kept. Nothing outside this list can enter a plan.',
+        'options_and_hedging' => 'Whether options belong in your plan at all, and which strategies you are equipped to run. Answer no and this section costs you nothing.',
     ],
     'questions' => [
         'q1_age' => 'What is your age range?',
@@ -109,7 +141,7 @@ return [
         'new_amount' => 'New investable amount', 'recurring' => 'Recurring contribution', 'currency' => 'Primary currency', 'country' => 'Country', 'markets' => 'Markets you can access',
         'max_concentration' => 'Maximum desired allocation to one asset', 'tax_sensitive' => 'Prefer tax-sensitive rebalancing',
         'assets' => 'Assets the AI may use', 'assets_help' => 'Select CashPilot assets for tracking, or add structured custom assets. The AI cannot silently introduce anything else.',
-        'add_custom' => 'Add custom asset', 'required_asset' => 'Must be included', 'allowed_asset' => 'AI may include or exclude', 'perspective' => 'Your outlook', 'conviction' => 'Conviction', 'holding_period' => 'Holding period', 'remove' => 'Remove',
+        'add_custom' => 'Add custom asset', 'inclusion' => 'Inclusion', 'required_asset' => 'Must be included', 'allowed_asset' => 'AI may include or exclude', 'perspective' => 'Your outlook', 'conviction' => 'Conviction', 'holding_period' => 'Holding period', 'remove' => 'Remove',
         'name' => 'Asset name', 'ticker' => 'Ticker', 'identifier' => 'ISIN or identifier', 'exchange' => 'Exchange / market', 'category' => 'Category', 'risk_band' => 'Estimated risk', 'liquidity' => 'Liquidity', 'notes' => 'Private notes (not sent to AI)',
         'details' => 'Details', 'details_hint' => 'These start at sensible defaults. Change only what you already know about the asset.',
     ],
@@ -129,6 +161,20 @@ return [
         'title' => 'Your investor profile', 'risk_score' => 'Effective risk', 'risk_willingness' => 'Risk willingness', 'risk_capacity' => 'Risk capacity', 'financial_resilience' => 'Financial resilience', 'liquidity_need' => 'Liquidity need', 'investment_knowledge' => 'Investment knowledge', 'behavioral_stability' => 'Behavioral stability', 'loss_aversion' => 'Loss aversion', 'return_ambition' => 'Return ambition', 'max_drawdown' => 'Maximum tolerated drawdown', 'constraints' => 'CashPilot guardrails', 'assets' => 'Selected assets', 'options' => 'Options capability', 'generate' => 'Generate AI portfolio', 'ai_disabled' => 'AI recommendations are disabled because consent was declined.',
         'ai_scope' => 'The AI sees this profile exactly as shown, and nothing else about you. CashPilot validates its complete response before you see it.',
         'options_willingness' => 'Willingness', 'options_capability_level' => 'Capability', 'options_knowledge' => 'Knowledge', 'options_risk_budget' => 'Risk budget',
+        'subtitle' => 'Investor profile',
+        'persona' => 'Persona',
+        'sealed' => 'Sealed',
+        'scoring' => 'Scoring',
+        'assets_approved' => 'Assets approved',
+        'derived_scores' => 'Derived scores',
+        // Load-bearing: the separation between deterministic scoring and AI
+        // generation is what the Pro tier is actually selling.
+        'deterministic' => 'Deterministic · not AI',
+        'hard_caps' => 'Hard caps',
+        'allowed' => 'Allowed',
+        'category' => 'Category',
+        'risk' => 'Risk',
+        'outlook' => 'Outlook',
     ],
     'recommendation' => [
         'generating' => 'Designing your portfolio', 'primary' => 'Primary recommendation', 'safer' => 'Safer alternative', 'higher' => 'Higher-risk alternative', 'allocation' => 'Base allocation', 'overlay' => 'Options overlay', 'risks' => 'Risks', 'tradeoffs' => 'Tradeoffs', 'change' => 'What would change this plan', 'transition' => 'Current-to-target', 'increase' => 'Increase', 'reduce' => 'Reduce', 'clarification' => 'The Advisor needs a little more detail', 'submit_answers' => 'Continue recommendation', 'failed' => 'The Advisor could not finish this plan. Your answers are saved — try again.', 'ask' => 'Ask CashPilot Advisor', 'ask_placeholder' => 'Why does this allocation fit me?', 'send' => 'Send', 'consulting' => 'CashPilot Advisor is reviewing your profile…', 'model_only' => 'No live market data is used in this version.',
@@ -179,6 +225,37 @@ return [
         'next_step_retry' => 'Try generating again after reviewing the profile; CashPilot will re-run the complete validated workflow.',
         'alternative_omitted' => 'An optional alternative did not meet every CashPilot guardrail and was omitted. The primary portfolio below passed validation.',
         'higher_unavailable' => 'No meaningfully higher-risk alternative remains inside the assessed capacity and portfolio limits.',
+
+        // The segmented control that swaps the whole plan view.
+        'primary_tab' => 'Primary',
+        'safer_tab' => 'Safer',
+        'higher_tab' => 'Higher risk',
+
+        // The generating ritual.
+        'allocated' => 'Allocated',
+        'stage_done' => 'Done',
+        'stage_working' => 'Working',
+        'designing' => 'Designing',
+        'open_portfolio' => 'Open your portfolio',
+        'open_result' => 'See what the Advisor found',
+
+        // The allocation table and the stats beside the ring.
+        'role' => 'Role',
+        'total' => 'Total',
+        'liquid' => 'Liquid within a week',
+        'capital' => 'Combined capital',
+        'hash' => 'Hash',
+        'base' => 'Base',
+
+        // The consultation.
+        'consultation' => 'Consultation',
+        'back_to_plan' => 'The plan',
+        'tag_you' => 'You',
+        'tag_advisor' => 'Advisor',
+        'drawdown_cap' => 'Drawdown cap',
+
+        'clarification_eyebrow' => 'One more round',
+        'allow_diversifier' => 'Allow a missing diversifier?',
     ],
     'personas' => [
         'balanced_investor' => 'Balanced investor',
@@ -225,6 +302,9 @@ return [
     ],
     'options_experience' => [
         'none' => 'None', 'basic' => 'Basic', 'intermediate' => 'Intermediate', 'advanced' => 'Advanced',
+    ],
+    'options_willingness' => [
+        'no' => 'No', 'yes' => 'Yes', 'not_sure' => 'Not sure',
     ],
     'option_strategies' => [
         'protective_put' => 'Protective put', 'covered_call' => 'Covered call', 'collar' => 'Collar', 'uncovered' => 'Uncovered',

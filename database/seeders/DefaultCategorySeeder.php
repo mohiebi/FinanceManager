@@ -14,18 +14,23 @@ class DefaultCategorySeeder extends Seeder
      */
     public function run(): void
     {
+        // Name => hex colour, matching the v3 design's category-chip palette
+        // (a category's colour is text-on-dark, not a background fill — see
+        // CategoryChip.vue). These are the shared, unowned template rows
+        // (`user_id === null`); they aren't editable per-user, so seeding a
+        // colour here is the only place these ever get one.
         $categories = [
             TransactionType::Cost->value => [
-                'Food',
-                'Transport',
-                'Housing',
-                'Health',
-                'Shopping',
-                'Bills',
+                'Food' => '#F59E0B',
+                'Transport' => '#3B82F6',
+                'Housing' => '#6B7280',
+                'Health' => '#E94E50',
+                'Shopping' => '#947BFF',
+                'Bills' => '#F97316',
                 // Money moved into assets rather than spent. Reports can exclude
                 // this category so a large purchase does not read as overspending.
-                'Investment',
-                'Other',
+                'Investment' => '#02CD86',
+                'Other' => '#686868',
             ],
             // No "Investment" on this side, deliberately. Money coming back out of
             // an asset is either a sale — which is portfolio profit and loss, and
@@ -34,15 +39,15 @@ class DefaultCategorySeeder extends Seeder
             // actually is. Naming a category after the source rather than the kind
             // of money made it ambiguous which of the two it meant.
             TransactionType::Income->value => [
-                'Salary',
-                'Freelance',
-                'Gift',
-                'Other',
+                'Salary' => '#02CD86',
+                'Freelance' => '#947BFF',
+                'Gift' => '#F59E0B',
+                'Other' => '#686868',
             ],
         ];
 
         foreach ($categories as $type => $names) {
-            foreach ($names as $name) {
+            foreach ($names as $name => $color) {
                 Category::query()->updateOrCreate(
                     [
                         'user_id' => null,
@@ -51,6 +56,7 @@ class DefaultCategorySeeder extends Seeder
                     ],
                     [
                         'name' => $name,
+                        'color' => $color,
                         'is_default' => true,
                     ],
                 );

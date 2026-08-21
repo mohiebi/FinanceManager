@@ -151,4 +151,84 @@ $messages['constraints_labels'] = [
     'minimum_liquid_allocation' => 'حداقل نقدشوندگی', 'maximum_single_asset_allocation' => 'حداکثر در یک دارایی', 'maximum_high_risk_allocation' => 'حداکثر ریسک بالا', 'maximum_speculative_allocation' => 'حداکثر سفته‌بازانه', 'maximum_options_risk_budget' => 'حداکثر بودجهٔ اختیار معامله',
 ];
 
+/*
+ * Advisor redesign. Instrument Serif has no Persian coverage, so the editorial
+ * headings fall back to a lighter Vazirmatn — see .advisor-serif in app.css.
+ */
+$messages['how_it_works'] = 'چطور کار می‌کند';
+$messages['home'] = [
+    'subtitle' => 'نمای کلی',
+    'in_progress' => 'ارزیابی در جریان',
+];
+$messages['paywall'] = [
+    'subtitle' => 'ویژگی حرفه‌ای',
+    'unlock' => 'فعال‌سازی مشاور با نسخهٔ حرفه‌ای',
+    'see_inside' => 'ببینید چه چیزی درون آن است',
+    'included' => 'شامل نسخهٔ حرفه‌ای کش‌پایلوت · بدون هزینهٔ اضافه',
+    'members_only' => 'ویژهٔ اعضای حرفه‌ای',
+    'profile_saved' => 'پروفایل سرمایه‌گذاری شما و تک‌تک پاسخ‌های پشت آن هنوز اینجاست. با تمدید، دقیقاً از همان‌جا که رها کردید ادامه می‌دهید.',
+    'preview_equity' => 'صندوق شاخصی سهام داخلی',
+    'preview_gold' => 'طلای ۱۸ عیار',
+    'preview_global' => 'صندوق شاخصی سهام جهانی',
+    'preview_currency' => 'دلار آمریکا',
+];
+$messages['assessment'] = array_merge($messages['assessment'], [
+    'saved_short' => 'رمزگذاری و ذخیره پس از هر بخش',
+    'answered' => '{count} از {total} پاسخ داده شده',
+]);
+$messages['section_intros'] = [
+    'financial_foundation' => 'این پاسخ‌ها پیش از طراحی هر چیزی مشخص می‌کنند چه اندازه توان از دست دادن دارید. هیچ‌کدام قضاوت نیست — کفی است که هر سبدی باید روی آن بایستد.',
+    'investment_goals' => 'این پول برای چیست و کِی به آن نیاز دارید. افق و هدف، شکل سبد را بیش از هر سلیقه‌ای محدود می‌کنند.',
+    'risk_and_loss' => 'همان‌گونه پاسخ دهید که واقعاً رفتار می‌کنید، نه آن‌گونه که دوست دارید. این پاسخ‌ها سقف زیانی را تعیین می‌کنند که هر سبدی باید به آن پایبند بماند.',
+    'investment_experience' => 'چه چیزهایی را پیش‌تر نگه داشته‌اید و سازوکارشان را چقدر می‌شناسید. تجربه، دامنهٔ آنچه هوش مصنوعی مجاز به پیشنهادش است را گسترده‌تر می‌کند.',
+    'behavior' => 'وقتی یک موقعیت تند حرکت کرده، چه کرده‌اید. رفتار زیر فشار، تفاوت میان برنامه‌ای روی کاغذ و برنامه‌ای است که می‌توانید نگهش دارید.',
+    'return_expectations' => 'چه چیزی را موفقیت می‌نامید. اگر آن عدد بالاتر از ظرفیت شما باشد، کش‌پایلوت همین را می‌گوید و به دنبالش نمی‌رود.',
+    'portfolio_preferences' => 'دارایی‌هایی که هوش مصنوعی می‌تواند به کار ببرد، بازارهایی که به آن‌ها دسترسی دارید، و سقف‌هایی که می‌خواهید رعایت شود. هیچ چیزی بیرون از این فهرست وارد یک برنامه نمی‌شود.',
+    'options_and_hedging' => 'اینکه آیا اختیار معامله اصلاً جای خود را در برنامهٔ شما دارد و کدام راهبردها را می‌توانید اجرا کنید. «خیر» را انتخاب کنید و این بخش هیچ هزینه‌ای برای شما ندارد.',
+];
+$messages['portfolio'] = array_merge($messages['portfolio'], [
+    'inclusion' => 'نحوهٔ استفاده',
+]);
+$messages['profile'] = array_merge($messages['profile'], [
+    'subtitle' => 'پروفایل سرمایه‌گذار',
+    'persona' => 'شخصیت سرمایه‌گذاری',
+    'sealed' => 'مهرشده',
+    'scoring' => 'امتیازدهی',
+    'assets_approved' => 'دارایی‌های تأییدشده',
+    'derived_scores' => 'امتیازهای استخراج‌شده',
+    'deterministic' => 'قطعی · نه هوش مصنوعی',
+    'hard_caps' => 'سقف‌های قطعی',
+    'allowed' => 'مجاز',
+    'category' => 'دسته',
+    'risk' => 'ریسک',
+    'outlook' => 'چشم‌انداز',
+]);
+$messages['recommendation'] = array_merge($messages['recommendation'], [
+    'primary_tab' => 'اصلی',
+    'safer_tab' => 'محتاطانه‌تر',
+    'higher_tab' => 'پرریسک‌تر',
+    'allocated' => 'تخصیص‌یافته',
+    'stage_done' => 'انجام شد',
+    'stage_working' => 'در حال انجام',
+    'designing' => 'در حال طراحی',
+    'open_portfolio' => 'سبد خود را باز کنید',
+    'open_result' => 'ببینید مشاور به چه رسیده است',
+    'role' => 'نقش',
+    'total' => 'مجموع',
+    'liquid' => 'نقدشونده ظرف یک هفته',
+    'capital' => 'سرمایهٔ مجموع',
+    'hash' => 'هش',
+    'base' => 'پایه',
+    'consultation' => 'مشاوره',
+    'back_to_plan' => 'برنامه',
+    'tag_you' => 'شما',
+    'tag_advisor' => 'مشاور',
+    'drawdown_cap' => 'سقف افت',
+    'clarification_eyebrow' => 'یک دور دیگر',
+    'allow_diversifier' => 'یک دارایی متنوع‌ساز افزوده شود؟',
+]);
+$messages['options_willingness'] = [
+    'no' => 'خیر', 'yes' => 'بله', 'not_sure' => 'مطمئن نیستم',
+];
+
 return $messages;

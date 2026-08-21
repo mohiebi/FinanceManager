@@ -2,6 +2,8 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     Crown,
+    Eye,
+    EyeOff,
     Lock,
     Menu,
     Plus,
@@ -24,21 +26,24 @@ import {
     SheetTrigger,
 } from '@/components/ui/sheet';
 import UserMenuContent from '@/components/UserMenuContent.vue';
+import { useAmountMask } from '@/composables/useAmountMask';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useModuleNav } from '@/composables/useModuleNav';
 import type { ModuleNavItem } from '@/composables/useModuleNav';
 import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { dashboard as adminDashboard } from '@/routes/admin';
+import { update as updateLocale } from '@/routes/locale';
 import { edit as editProfile } from '@/routes/profile';
 import type { BreadcrumbItem } from '@/types';
-import logoGreen from '../../img/Logo-green.svg';
 
 const props = withDefaults(
     defineProps<{
         breadcrumbs?: BreadcrumbItem[];
+        subtitle?: string | null;
     }>(),
     {
         breadcrumbs: () => [],
+        subtitle: null,
     },
 );
 
@@ -51,15 +56,24 @@ type CurrencyPageProps = {
 const page = usePage();
 const { t } = useI18n();
 const { isCurrentUrl } = useCurrentUrl();
-const { navItems } = useModuleNav();
+const { navGroups } = useModuleNav();
 const { navigationName } = useNavigationNaming();
+const { masked, toggle: toggleMask } = useAmountMask();
 
 const isMenuOpen = ref(false);
 
 const user = computed(() => page.props.auth.user);
 
 function isActive(item: ModuleNavItem): boolean {
-    return item.state === 'enabled' && isCurrentUrl(item.href);
+    // A promo item's href is the modules page — standing on it must not light
+    // up every promo row at once. A locked item points at its own route now, so
+    // it can be the current page like any other.
+    return item.state !== 'promo' && isCurrentUrl(item.href);
+}
+
+/** Advisor keeps its gold accent here too — see AppSidebar.vue. */
+function isAdvisor(item: ModuleNavItem): boolean {
+    return item.key === 'advisor';
 }
 
 const pageTitle = computed(() => {
@@ -94,6 +108,7 @@ const pageTitle = computed(() => {
                 'navigation.budgets',
                 'navigation.budgets_subtitle',
             ),
+            Advisor: navigationName('navigation.advisor'),
             Preferences: t('settings.preferences.title'),
             Settings: navigationName(
                 'settings.title',
@@ -132,38 +147,53 @@ const selectedCurrency = computed({
 function changeCurrency(value: string) {
     selectedCurrency.value = value;
 }
+
+const locales = computed(() => page.props.locales ?? []);
+const hasLocaleSelector = computed(() => locales.value.length > 1);
+const selectedLocale = computed(() => page.props.locale);
+
+function changeLocale(value: string) {
+    if (!value || value === selectedLocale.value) {
+        return;
+    }
+
+    router.post(
+        updateLocale.url(),
+        { locale: value },
+        { preserveScroll: true },
+    );
+}
 </script>
 
 <template>
     <header
-        class="sticky top-0 z-40 flex min-h-[72px] shrink-0 items-center bg-[#454545] px-4 py-3 text-white shadow-sm transition-[width,height] ease-linear lg:static lg:min-h-[92px] lg:px-7 lg:py-6"
+        class="sticky top-0 z-40 flex min-h-[64px] shrink-0 items-center border-b border-white/7 bg-[#111111]/88 px-4 py-3 text-white backdrop-blur-md transition-[width,height] ease-linear lg:min-h-[72px] lg:px-7 lg:py-4"
     >
         <div
-            class="flex w-full flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-0"
+            class="mx-auto flex w-full max-w-[1440px] flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-4"
         >
             <div
-                class="flex w-full items-center justify-between gap-2 lg:contents"
+                class="flex w-full items-center justify-between gap-2 lg:w-auto"
             >
-                <div class="flex min-w-0 items-center gap-2.5 lg:gap-3">
-                    <img
-                        :src="logoGreen"
-                        alt=""
-                        class="h-10 w-10 shrink-0 lg:h-12 lg:w-12"
-                    />
-                    <div
-                        class="flex min-w-0 items-center gap-2 text-[15px] font-normal lg:gap-3 lg:text-xl"
+                <div class="min-w-0">
+                    <h1
+                        class="truncate text-[17px] font-semibold tracking-[-0.015em] text-white lg:text-[19px]"
                     >
-                        <span class="shrink-0 font-bold">CashPilot</span>
-                        <span class="shrink-0 text-white/55">|</span>
-                        <span class="truncate">{{ pageTitle }}</span>
-                    </div>
+                        {{ pageTitle }}
+                    </h1>
+                    <p
+                        v-if="subtitle"
+                        class="mt-0.5 truncate text-xs text-[#989898]"
+                    >
+                        {{ subtitle }}
+                    </p>
                 </div>
 
                 <div class="flex shrink-0 items-center gap-1.5 lg:hidden">
                     <NotificationBell />
                     <Link
                         :href="editProfile()"
-                        class="grid size-9 cursor-pointer place-items-center rounded-md bg-[#2d2d2d] text-white transition-colors duration-150 hover:bg-[#02cd86] hover:text-[#1a1a1a]"
+                        class="grid size-9 cursor-pointer place-items-center rounded-[9px] bg-[#1a1a1a] text-white transition-colors duration-150 hover:bg-[#252525]"
                     >
                         <User class="size-[18px]" />
                         <span class="sr-only">{{
@@ -176,7 +206,7 @@ function changeCurrency(value: string) {
                         <SheetTrigger as-child>
                             <button
                                 type="button"
-                                class="grid size-9 cursor-pointer place-items-center rounded-md bg-[#2d2d2d] text-white transition-colors duration-150 hover:bg-[#02cd86] hover:text-[#1a1a1a]"
+                                class="grid size-9 cursor-pointer place-items-center rounded-[9px] bg-[#1a1a1a] text-white transition-colors duration-150 hover:bg-[#252525]"
                                 :aria-label="t('navigation.primary')"
                             >
                                 <Menu class="size-[18px]" />
@@ -184,54 +214,48 @@ function changeCurrency(value: string) {
                         </SheetTrigger>
                         <SheetContent
                             side="right"
-                            class="w-72 border-l border-white/10 bg-[#353535] p-0 text-white"
+                            class="w-72 border-l border-white/7 bg-[#0d0d0d] p-0 text-white"
                         >
                             <SheetTitle class="sr-only">{{
                                 t('navigation.primary')
                             }}</SheetTitle>
                             <div
-                                class="flex h-full flex-col justify-between px-5 pt-6 pb-10"
+                                class="flex h-full flex-col gap-5 overflow-y-auto px-4 pt-6 pb-10"
                             >
                                 <nav
-                                    class="flex flex-col gap-3"
-                                    :aria-label="t('navigation.primary')"
+                                    v-for="group in navGroups"
+                                    :key="group.key"
+                                    class="flex flex-col gap-1"
+                                    :aria-label="group.label"
                                 >
+                                    <p
+                                        class="px-2.5 pb-1 text-[10px] font-medium tracking-[0.14em] text-[#5a5a5a] uppercase"
+                                    >
+                                        {{ group.label }}
+                                    </p>
                                     <Link
-                                        v-for="item in navItems"
+                                        v-for="item in group.items"
                                         :key="item.key"
                                         :href="item.href"
-                                        class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150"
+                                        class="flex items-center gap-2.5 rounded-[9px] px-2.5 py-2.5 text-sm transition-colors"
                                         :class="
-                                            isActive(item)
-                                                ? 'bg-[#454545] text-[#02cd86]'
-                                                : item.state !== 'enabled'
-                                                  ? 'text-white/35 hover:bg-[#454545] hover:text-white/60'
-                                                  : 'text-white/70 hover:bg-[#454545] hover:text-white'
+                                            isAdvisor(item)
+                                                ? 'border-s-2 border-s-[#d9c48f] bg-[#d9c48f]/10 font-medium text-white'
+                                                : isActive(item)
+                                                  ? 'bg-[#252525] font-medium text-white'
+                                                  : item.state !== 'enabled'
+                                                    ? 'text-[#686868] hover:bg-white/5'
+                                                    : 'text-[#989898] hover:bg-white/5 hover:text-white'
                                         "
                                         @click="isMenuOpen = false"
                                     >
-                                        <span class="relative shrink-0">
-                                            <component
-                                                :is="item.icon"
-                                                class="size-[18px] shrink-0"
-                                            />
-                                            <Plus
-                                                v-if="item.state === 'promo'"
-                                                class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#02cd86] text-[#353535] rtl:-left-1"
-                                            />
-                                            <!-- Pro, not bought yet — a lock
-                                                 rather than the free "+", so it
-                                                 doesn't promise a tap turns it on. -->
-                                            <Lock
-                                                v-else-if="
-                                                    item.state === 'locked'
-                                                "
-                                                class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#6C4EE9] p-px text-white rtl:-left-1"
-                                            />
-                                        </span>
-                                        <span class="min-w-0 truncate">
-                                            {{ item.title }}
-                                        </span>
+                                        <component
+                                            :is="item.icon"
+                                            class="size-[15px] shrink-0"
+                                        />
+                                        <span class="min-w-0 flex-1 truncate">{{
+                                            item.title
+                                        }}</span>
 
                                         <span
                                             v-if="
@@ -239,15 +263,39 @@ function changeCurrency(value: string) {
                                                 item.state !== 'enabled'
                                             "
                                             :class="[
-                                                'ml-auto inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium',
-                                                item.tier === 'pro'
-                                                    ? 'bg-[#6C4EE9]/15 text-[#a89bf3]'
-                                                    : 'bg-[#02CD86]/10 text-[#02CD86]',
+                                                'ml-auto inline-flex shrink-0 items-center gap-1',
+                                                isAdvisor(item)
+                                                    ? 'advisor-mono rounded-[4px] border border-[#d9c48f]/35 px-[5px] py-[2px] text-[8.5px] tracking-[0.12em] text-[#d9c48f] uppercase'
+                                                    : 'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                                                isAdvisor(item)
+                                                    ? ''
+                                                    : item.tier === 'pro'
+                                                      ? 'bg-[#6c4ee9]/15 text-[#a89bf3]'
+                                                      : 'bg-[#02cd86]/13 text-[#02cd86]',
                                             ]"
                                         >
                                             <Crown
-                                                v-if="item.tier === 'pro'"
-                                                class="size-3"
+                                                v-if="
+                                                    item.tier === 'pro' &&
+                                                    !isAdvisor(item)
+                                                "
+                                                class="size-2.5"
+                                                aria-hidden="true"
+                                            />
+                                            <Lock
+                                                v-else-if="
+                                                    item.state === 'locked' &&
+                                                    !isAdvisor(item)
+                                                "
+                                                class="size-2.5"
+                                                aria-hidden="true"
+                                            />
+                                            <Plus
+                                                v-else-if="
+                                                    item.state === 'promo' &&
+                                                    !isAdvisor(item)
+                                                "
+                                                class="size-2.5"
                                                 aria-hidden="true"
                                             />
                                             {{
@@ -257,7 +305,9 @@ function changeCurrency(value: string) {
                                     </Link>
                                 </nav>
 
-                                <div class="flex flex-col gap-3">
+                                <div
+                                    class="mt-auto flex flex-col gap-1 border-t border-white/7 pt-4"
+                                >
                                     <Link
                                         v-if="page.props.auth.isAdmin"
                                         data-mobile-sidebar-admin
@@ -267,16 +317,16 @@ function changeCurrency(value: string) {
                                                 ? 'page'
                                                 : undefined
                                         "
-                                        class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none"
+                                        class="flex items-center gap-2.5 rounded-[9px] px-2.5 py-2.5 text-sm font-medium transition-colors"
                                         :class="
                                             isCurrentUrl(adminDashboard())
-                                                ? 'bg-[#454545] text-[#02cd86]'
-                                                : 'text-white/70 hover:bg-[#454545] hover:text-white'
+                                                ? 'bg-[#252525] text-white'
+                                                : 'text-[#989898] hover:bg-white/5 hover:text-white'
                                         "
                                         @click="isMenuOpen = false"
                                     >
                                         <ShieldCheck
-                                            class="size-[18px] shrink-0"
+                                            class="size-[15px] shrink-0"
                                         />
                                         <span class="min-w-0 truncate">
                                             {{
@@ -292,10 +342,10 @@ function changeCurrency(value: string) {
                                         <DropdownMenuTrigger as-child>
                                             <button
                                                 type="button"
-                                                class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-white/70 transition-colors duration-150 hover:bg-[#454545] hover:text-white focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none"
+                                                class="flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2.5 text-sm font-medium text-[#989898] transition-colors hover:bg-white/5 hover:text-white"
                                             >
                                                 <Settings
-                                                    class="size-[18px] shrink-0"
+                                                    class="size-[15px] shrink-0"
                                                 />
                                                 <span class="min-w-0 truncate">
                                                     {{
@@ -323,35 +373,78 @@ function changeCurrency(value: string) {
                 </div>
             </div>
 
-            <div class="hidden shrink-0 items-center gap-2 lg:flex">
-                <NotificationBell />
-                <Link
-                    :href="editProfile()"
-                    class="grid size-9 cursor-pointer place-items-center rounded-md bg-[#2d2d2d] text-white transition-colors duration-150 hover:bg-[#02cd86] hover:text-[#1a1a1a]"
-                >
-                    <User class="size-5" />
-                    <span class="sr-only">{{ t('navigation.account') }}</span>
-                </Link>
-            </div>
-
             <div
-                v-if="hasCurrencySelector"
-                class="ml-[44px] flex items-center gap-1 lg:absolute lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
+                class="flex flex-wrap items-center gap-2 lg:flex-nowrap lg:gap-2.5"
             >
-                <button
-                    v-for="c in currencies"
-                    :key="c.value"
-                    type="button"
-                    :class="[
-                        'cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150',
-                        selectedCurrency === c.value
-                            ? 'bg-[#02CD86]/10 text-[#02CD86] ring-1 ring-[#02CD86]/30'
-                            : 'text-[#989898] ring-1 ring-white/10 hover:bg-white/10 hover:text-white',
-                    ]"
-                    @click="changeCurrency(c.value)"
+                <!-- Currency switcher -->
+                <div
+                    v-if="hasCurrencySelector"
+                    class="flex items-center gap-0.5 rounded-[9px] border border-white/8 bg-[#1a1a1a] p-[3px]"
                 >
-                    {{ c.label }}
+                    <button
+                        v-for="c in currencies"
+                        :key="c.value"
+                        type="button"
+                        class="cursor-pointer rounded-[7px] px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors"
+                        :class="
+                            selectedCurrency === c.value
+                                ? 'bg-[#02cd86] text-[#101010]'
+                                : 'text-[#989898] hover:text-white'
+                        "
+                        @click="changeCurrency(c.value)"
+                    >
+                        {{ c.label }}
+                    </button>
+                </div>
+
+                <!-- Language switcher -->
+                <div
+                    v-if="hasLocaleSelector"
+                    class="flex items-center gap-0.5 rounded-[9px] border border-white/8 bg-[#1a1a1a] p-[3px]"
+                >
+                    <button
+                        v-for="l in locales"
+                        :key="l"
+                        type="button"
+                        class="cursor-pointer rounded-[7px] px-2.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors"
+                        :class="
+                            selectedLocale === l
+                                ? 'bg-[#02cd86] text-[#101010]'
+                                : 'text-[#989898] hover:text-white'
+                        "
+                        @click="changeLocale(l)"
+                    >
+                        {{ l.toUpperCase() }}
+                    </button>
+                </div>
+
+                <!-- Amount mask -->
+                <button
+                    type="button"
+                    class="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-[9px] border border-white/8 bg-[#1a1a1a] px-3 py-[9px] text-xs font-medium text-[#989898] transition-colors hover:bg-[#252525] hover:text-white"
+                    @click="toggleMask"
+                >
+                    <EyeOff v-if="masked" class="size-[13px]" />
+                    <Eye v-else class="size-[13px]" />
+                    {{
+                        masked
+                            ? t('common.show_amounts')
+                            : t('common.hide_amounts')
+                    }}
                 </button>
+
+                <div class="hidden shrink-0 items-center gap-2 lg:flex">
+                    <NotificationBell />
+                    <Link
+                        :href="editProfile()"
+                        class="grid size-9 cursor-pointer place-items-center rounded-[9px] bg-[#1a1a1a] text-white transition-colors duration-150 hover:bg-[#252525]"
+                    >
+                        <User class="size-[17px]" />
+                        <span class="sr-only">{{
+                            t('navigation.account')
+                        }}</span>
+                    </Link>
+                </div>
             </div>
         </div>
     </header>

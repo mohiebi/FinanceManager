@@ -23,10 +23,13 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             locale: 'en' | 'fa' | 'de';
+            locales: ('en' | 'fa' | 'de')[];
             dir: 'ltr' | 'rtl';
             calendar: 'gregorian' | 'jalali';
             timezone: string;
             flightTerminologyEnabled: boolean;
+            amountMaskDefault: boolean;
+            compactFiguresEnabled: boolean;
             translations: Record<string, unknown>;
             features: FeatureMap | null;
             /** Null until a vault exists for this user; see Stage 6. */

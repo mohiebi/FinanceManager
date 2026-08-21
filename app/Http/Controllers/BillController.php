@@ -48,18 +48,36 @@ class BillController extends Controller
             ->each(fn (Bill $bill) => $syncBillOccurrence->lookahead($bill, 3, $calendar, $bill->occurrences_max_due_date));
 
         $paymentNumbers = $this->paymentNumbers($user);
+        $recentPaidCutoff = Carbon::now()->subDays(10);
+        [$dueSoonFrom, $dueSoonTo] = [Carbon::today(), Carbon::today()->addDays(30)];
 
         $bills = $user->bills()
-            ->with(['category', 'occurrences' => fn ($query) => $query->whereNull('paid_at')->orderBy('due_date')])
+            ->with([
+                'category',
+                'occurrences' => fn ($query) => $query->whereNull('paid_at')->orderBy('due_date'),
+                'latestPaidOccurrence',
+            ])
             ->withCount(['occurrences as paid_occurrence_count' => fn ($query) => $query->whereNotNull('paid_at')])
             ->withMax('occurrences', 'due_date')
             ->withCount(['occurrences as month_occurrence_count' => fn ($query) => $query
                 ->whereDate('due_date', '>=', $monthFrom->toDateString())
                 ->whereDate('due_date', '<=', $monthTo->toDateString())])
+            ->withCount(['occurrences as due_soon_occurrence_count' => fn ($query) => $query
+                ->whereNull('paid_at')
+                ->whereDate('due_date', '>=', $dueSoonFrom->toDateString())
+                ->whereDate('due_date', '<=', $dueSoonTo->toDateString())])
             ->get()
-            ->map(function (Bill $bill) use ($currencyConverter, $request, $selectedCurrency, $vaultArmed, $user, $paymentNumbers) {
+            ->map(function (Bill $bill) use ($currencyConverter, $request, $selectedCurrency, $vaultArmed, $user, $paymentNumbers, $recentPaidCutoff) {
                 $next = $bill->occurrences->first();
                 $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
+                $recentPaid = $bill->latestPaidOccurrence;
+                $recentPaidOccurrence = $recentPaid !== null && $recentPaid->paid_at !== null && $recentPaid->paid_at->greaterThanOrEqualTo($recentPaidCutoff)
+                    ? [
+                        'id' => $recentPaid->id,
+                        'due_date' => $recentPaid->due_date->toDateString(),
+                        'paid_at' => $recentPaid->paid_at->toDateString(),
+                    ]
+                    : null;
 
                 return [
                     'id' => $bill->id,
@@ -75,6 +93,8 @@ class BillController extends Controller
                     ),
                     'display_currency' => $selectedCurrency->value,
                     'month_occurrence_count' => (int) $bill->month_occurrence_count,
+                    'due_soon_occurrence_count' => (int) $bill->due_soon_occurrence_count,
+                    'recent_paid_occurrence' => $recentPaidOccurrence,
                     'recurrence_type' => $bill->recurrence_type->value,
                     'due_day_of_month' => $bill->due_day_of_month,
                     'due_date' => $bill->due_date?->toDateString(),
@@ -129,6 +149,11 @@ class BillController extends Controller
             // these are public market prices, so shipping them costs no privacy.
             'rates' => $vaultArmed ? $this->displayRates() : null,
             'monthlyBillSummary' => $this->monthlyBillSummary($user, $currencyConverter, $selectedCurrency, $vaultArmed, $monthFrom, $monthTo),
+            'dueSoonSummary' => $this->dueSoonSummary($user, $currencyConverter, $selectedCurrency, $vaultArmed, $dueSoonFrom, $dueSoonTo),
+            // Null when the vault is armed — the server cannot read transaction
+            // amounts to net a balance, and a wrong number is worse than none.
+            'balanceSummary' => $vaultArmed ? null : $this->balanceSummary($user, $currencyConverter, $selectedCurrency, $monthFrom, $monthTo),
+            'calendarOccurrences' => $this->calendarOccurrences($user, $monthFrom, $monthTo),
             'upcomingOccurrences' => $this->upcomingOccurrences($user, $currencyConverter, $selectedCurrency, $vaultArmed, $paymentNumbers),
             'userCalendar' => $calendar,
             'today' => Carbon::today()->toDateString(),
@@ -349,6 +374,127 @@ class BillController extends Controller
             'from' => $fromDate->toDateString(),
             'to' => $toDate->toDateString(),
         ];
+    }
+
+    /**
+     * Total still owed across a rolling 30-day window from today — the
+     * figure the "due soon" summary bar shows, and what the balance
+     * reassurance line is measured against. Deliberately not tied to
+     * calendar-month boundaries so a bill landing just after month-end still
+     * counts, and deliberately excludes already-paid occurrences — an early
+     * payment would otherwise double-count against the balance, which has
+     * already absorbed it on the cost side.
+     *
+     * @return array{amount: string|null, currency: string, count: int, from: string, to: string}
+     */
+    private function dueSoonSummary(
+        User $user,
+        CurrencyConverter $currencyConverter,
+        Currency $selectedCurrency,
+        bool $vaultArmed,
+        Carbon $fromDate,
+        Carbon $toDate,
+    ): array {
+        $bills = $user->bills()
+            ->with(['occurrences' => fn ($query) => $query
+                ->whereNull('paid_at')
+                ->whereDate('due_date', '>=', $fromDate->toDateString())
+                ->whereDate('due_date', '<=', $toDate->toDateString())])
+            ->get();
+
+        $total = 0.0;
+        $count = 0;
+
+        foreach ($bills as $bill) {
+            $occurrenceCount = $bill->occurrences->count();
+
+            if ($occurrenceCount === 0) {
+                continue;
+            }
+
+            $billCurrency = Currency::tryFrom((string) $bill->currency) ?? $selectedCurrency;
+            $count += $occurrenceCount;
+
+            if ($vaultArmed) {
+                continue;
+            }
+
+            $total += $currencyConverter->convert($bill->amount, $billCurrency, $selectedCurrency) * $occurrenceCount;
+        }
+
+        return [
+            // The browser totals this from the decrypted amounts and each bill's
+            // due_soon_occurrence_count when the vault is armed.
+            'amount' => $vaultArmed ? null : number_format(round($total, 2), 2, '.', ''),
+            'currency' => $selectedCurrency->value,
+            'count' => $count,
+            'from' => $fromDate->toDateString(),
+            'to' => $toDate->toDateString(),
+        ];
+    }
+
+    /**
+     * This period's income minus cost — the same "balance" figure the
+     * Dashboard's own hero card is built from — so the page can honestly say
+     * whether it covers what is coming due. Null (not computed) under the
+     * vault, since transaction amounts are ciphertext the server cannot sum.
+     *
+     * @return array{balance: float, currency: string}
+     */
+    private function balanceSummary(
+        User $user,
+        CurrencyConverter $currencyConverter,
+        Currency $selectedCurrency,
+        Carbon $fromDate,
+        Carbon $toDate,
+    ): array {
+        $transactions = $user->transactions()
+            ->whereDate('occurred_at', '>=', $fromDate->toDateString())
+            ->whereDate('occurred_at', '<=', $toDate->toDateString())
+            ->get();
+
+        $income = (float) $currencyConverter->sumFormatted(
+            $transactions->where('type', TransactionType::Income),
+            $selectedCurrency,
+        );
+        $cost = (float) $currencyConverter->sumFormatted(
+            $transactions->where('type', TransactionType::Cost),
+            $selectedCurrency,
+        );
+
+        return [
+            'balance' => round($income - $cost, 2),
+            'currency' => $selectedCurrency->value,
+        ];
+    }
+
+    /**
+     * Every occurrence — paid or not — due within the given month, for the
+     * calendar view's day cells. Titles travel in whatever shape
+     * {@see UserEncrypted} already returns them (plaintext or ciphertext),
+     * same convention as every other bill field here.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function calendarOccurrences(User $user, Carbon $monthFrom, Carbon $monthTo): array
+    {
+        return BillOccurrence::query()
+            ->whereHas('bill', fn (Builder $q) => $q->where('user_id', $user->id))
+            ->whereBetween('due_date', [$monthFrom->toDateString(), $monthTo->toDateString()])
+            ->with('bill.category')
+            ->orderBy('due_date')
+            ->get()
+            ->filter(fn (BillOccurrence $occurrence) => $occurrence->bill !== null)
+            ->map(fn (BillOccurrence $occurrence): array => [
+                'id' => $occurrence->id,
+                'bill_id' => $occurrence->bill->id,
+                'due_date' => $occurrence->due_date->toDateString(),
+                'is_paid' => $occurrence->isPaid(),
+                'title' => $occurrence->bill->title,
+                'color' => $occurrence->bill->category?->color,
+            ])
+            ->values()
+            ->all();
     }
 
     /**

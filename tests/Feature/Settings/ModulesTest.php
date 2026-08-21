@@ -57,6 +57,46 @@ test('the modules page lists every toggleable module at its default state', func
         );
 });
 
+/*
+ * Advisor defaults to on so that buying Pro is enough to use it. That must not
+ * leak into the page a free user sees: the card has to read as off, or the
+ * switch says "on" for something that cannot be opened and the "hide from menu"
+ * control — which only appears on an off card — disappears with it.
+ */
+test('a paid module reads as off for a user whose plan does not cover it', function () {
+    $this->actingAs(User::factory()->create())
+        ->get(route('modules.edit'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('modules.7.key', Feature::Advisor->value)
+            ->where('modules.7.enabled', false)
+            ->where('modules.7.may_use', false)
+            ->where('modules.7.show_promo', true));
+});
+
+test('a paid module reads as on for a subscriber who never touched the page', function () {
+    $this->actingAs(User::factory()->pro()->create())
+        ->get(route('modules.edit'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('modules.7.key', Feature::Advisor->value)
+            ->where('modules.7.enabled', true)
+            ->where('modules.7.may_use', true)
+            ->where('modules.7.show_promo', false));
+});
+
+test('a subscriber can still switch the advisor off to declutter their sidebar', function () {
+    $user = User::factory()->pro()->create();
+
+    app(UpdateUserFeature::class)($user, Feature::Advisor, false);
+
+    expect($user->fresh()->hasFeature(Feature::Advisor))->toBeFalse();
+
+    $this->actingAs($user->fresh())
+        ->get(route('modules.edit'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('modules.7.enabled', false)
+            ->where('modules.7.may_use', true));
+});
+
 test('the vault cannot be armed through the generic modules endpoint', function () {
     $user = User::factory()->create();
 
@@ -260,6 +300,69 @@ test('the upgrade dialog is written in every locale', function () {
         foreach (['title', 'body', 'note', 'unavailable', 'continue', 'later'] as $key) {
             if (! isset($modules['upgrade'][$key])) {
                 $missing[] = "{$locale}.upgrade.{$key}";
+            }
+        }
+    }
+
+    expect($missing)->toBe([]);
+});
+
+test('a user can turn compact figures on and off from settings/display', function () {
+    $user = User::factory()->create(['compact_figures_enabled' => false]);
+
+    $this->actingAs($user)
+        ->patch(route('display.update'), ['compact_figures_enabled' => true])
+        ->assertRedirect();
+
+    expect($user->refresh()->compact_figures_enabled)->toBeTrue();
+
+    $this->actingAs($user)
+        ->patch(route('display.update'), ['compact_figures_enabled' => false])
+        ->assertRedirect();
+
+    expect($user->refresh()->compact_figures_enabled)->toBeFalse();
+});
+
+test('turning on compact figures for one user never touches another', function () {
+    $user = User::factory()->create(['compact_figures_enabled' => false]);
+    $other = User::factory()->create(['compact_figures_enabled' => false]);
+
+    $this->actingAs($user)
+        ->patch(route('display.update'), ['compact_figures_enabled' => true])
+        ->assertRedirect();
+
+    expect($user->refresh()->compact_figures_enabled)->toBeTrue()
+        ->and($other->refresh()->compact_figures_enabled)->toBeFalse();
+});
+
+test('display settings reject a non-boolean value', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('display.update'), ['compact_figures_enabled' => 'sometimes'])
+        ->assertSessionHasErrors(['compact_figures_enabled']);
+});
+
+test('compact figures is shared with inertia pages', function () {
+    $user = User::factory()->create(['compact_figures_enabled' => true]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('compactFiguresEnabled', true),
+        );
+});
+
+test('the display group is written in every locale', function () {
+    $missing = [];
+
+    foreach (['en', 'fa', 'de'] as $locale) {
+        $modules = require resource_path("lang/{$locale}/modules.php");
+
+        foreach (['heading', 'compact_figures_label', 'compact_figures_description'] as $key) {
+            if (! isset($modules['display'][$key])) {
+                $missing[] = "{$locale}.display.{$key}";
             }
         }
     }

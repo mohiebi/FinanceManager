@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { ArrowRight, Globe, Plane } from 'lucide-vue-next';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { EyeOff, Globe, Palette, Plane } from 'lucide-vue-next';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import InputError from '@/components/InputError.vue';
 import SettingsRow from '@/components/settings/SettingsRow.vue';
@@ -16,6 +17,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { useAmountMask } from '@/composables/useAmountMask';
+import { useCompactFigures } from '@/composables/useCompactFigures';
+import { update as updateDisplay } from '@/routes/display';
+import { edit as editPreferences } from '@/routes/preferences';
 
 type Option = {
     label: string;
@@ -37,6 +43,8 @@ const props = defineProps<{
 
 const page = usePage();
 const { t } = useI18n();
+const { setMasked } = useAmountMask();
+const { compact: compactFigures } = useCompactFigures();
 
 const form = useForm({
     locale: (page.props.locale as string | undefined) ?? 'en',
@@ -45,29 +53,42 @@ const form = useForm({
     default_currency: props.defaultCurrency ?? null,
     flight_terminology_enabled:
         (page.props.flightTerminologyEnabled as boolean | undefined) ?? true,
+    amount_mask_default:
+        (page.props.amountMaskDefault as boolean | undefined) ?? false,
 });
-
-const terminologyMappings = [
-    'dashboard',
-    'report',
-    'investments',
-    'goals',
-    'budgets',
-    'advisor',
-    'ai',
-    'settings',
-    'admin',
-] as const;
 
 defineOptions({
     layout: {
-        breadcrumbs: [{ title: 'Preferences', href: '/settings/preferences' }],
+        breadcrumbs: [{ title: 'Preferences', href: editPreferences() }],
     },
 });
+
+const processingDisplay = ref(false);
+
+function toggleCompactFigures(value: boolean): void {
+    processingDisplay.value = true;
+
+    router.patch(
+        updateDisplay.url(),
+        { compact_figures_enabled: value },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => {
+                processingDisplay.value = false;
+            },
+        },
+    );
+}
 
 function submit(): void {
     form.patch('/settings/preferences', {
         preserveScroll: true,
+        // Reflects the new default on this device immediately, instead of
+        // waiting for a reload to pick up the fresh `amountMaskDefault` prop —
+        // matters most the first time someone turns this on and expects
+        // figures to blur right away.
+        onSuccess: () => setMasked(form.amount_mask_default),
     });
 }
 
@@ -211,6 +232,7 @@ function discard(): void {
                     :label="t('settings.preferences.terminology.field_label')"
                     :help="t('settings.preferences.terminology.checkbox_help')"
                     control-id="flight_terminology_enabled"
+                    last
                 >
                     <label
                         for="flight_terminology_enabled"
@@ -236,56 +258,46 @@ function discard(): void {
                         :message="form.errors.flight_terminology_enabled"
                     />
                 </SettingsRow>
+            </SettingsSection>
 
-                <SettingsRow last>
-                    <div
-                        class="overflow-hidden rounded-2xl bg-[#141414] ring-1 ring-white/10"
-                    >
-                        <div
-                            class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-white/10 px-4 py-3 text-[11px] font-medium tracking-[0.16em] text-[#989898] uppercase"
-                        >
-                            <span>{{
-                                t(
-                                    'settings.preferences.terminology.standard_heading',
-                                )
-                            }}</span>
-                            <span aria-hidden="true"></span>
-                            <span>{{
-                                t(
-                                    'settings.preferences.terminology.flight_heading',
-                                )
-                            }}</span>
-                        </div>
-                        <div
-                            v-for="(mapping, index) in terminologyMappings"
-                            :key="mapping"
-                            class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 py-3 text-sm"
-                            :class="
-                                index < terminologyMappings.length - 1
-                                    ? 'border-b border-white/5'
-                                    : ''
-                            "
-                        >
-                            <span class="min-w-0 text-white/75">
-                                {{
-                                    t(
-                                        `settings.preferences.terminology.mappings.${mapping}.standard`,
-                                    )
-                                }}
-                            </span>
-                            <ArrowRight
-                                class="size-4 shrink-0 text-[#6C4EE9] rtl:rotate-180"
-                                aria-hidden="true"
-                            />
-                            <span class="min-w-0 font-medium text-[#02CD86]">
-                                {{
-                                    t(
-                                        `settings.preferences.terminology.mappings.${mapping}.flight`,
-                                    )
-                                }}
-                            </span>
-                        </div>
-                    </div>
+            <SettingsSection
+                :icon="EyeOff"
+                :title="t('settings.preferences.privacy.title')"
+                :description="t('settings.preferences.privacy.description')"
+            >
+                <SettingsRow
+                    :label="t('settings.preferences.privacy.amount_mask_label')"
+                    :help="t('settings.preferences.privacy.amount_mask_help')"
+                    control-id="amount_mask_default"
+                    last
+                >
+                    <Switch
+                        id="amount_mask_default"
+                        :checked="form.amount_mask_default"
+                        @update:checked="
+                            form.amount_mask_default = $event === true
+                        "
+                    />
+                    <InputError :message="form.errors.amount_mask_default" />
+                </SettingsRow>
+            </SettingsSection>
+
+            <SettingsSection
+                :icon="Palette"
+                :title="t('modules.display.heading')"
+            >
+                <SettingsRow
+                    :label="t('modules.display.compact_figures_label')"
+                    :help="t('modules.display.compact_figures_description')"
+                    control-id="compact_figures_enabled"
+                    last
+                >
+                    <Switch
+                        id="compact_figures_enabled"
+                        :checked="compactFigures"
+                        :disabled="processingDisplay"
+                        @update:checked="toggleCompactFigures($event === true)"
+                    />
                 </SettingsRow>
             </SettingsSection>
 

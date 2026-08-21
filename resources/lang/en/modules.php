@@ -92,4 +92,10 @@ return [
         'label' => 'Telegram Bot',
         'description' => 'Use CashPilot from Telegram to add entries, review summaries, and receive reminders.',
     ],
+
+    'display' => [
+        'heading' => 'Display',
+        'compact_figures_label' => 'Compact figures',
+        'compact_figures_description' => 'Shows 988.7M instead of 988,691,514 in figures meant for a glance, not bookkeeping.',
+    ],
 ];

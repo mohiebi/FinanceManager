@@ -1,14 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import {
-    Crown,
-    Lock,
-    PanelLeftClose,
-    PanelLeftOpen,
-    Plus,
-    Settings,
-    ShieldCheck,
-} from 'lucide-vue-next';
+import { Crown, Lock, Plus, Settings, ShieldCheck } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
@@ -16,172 +8,207 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sidebar, useSidebar } from '@/components/ui/sidebar';
+import { Sidebar } from '@/components/ui/sidebar';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useModuleNav } from '@/composables/useModuleNav';
 import type { ModuleNavItem } from '@/composables/useModuleNav';
 import { useNavigationNaming } from '@/composables/useNavigationNaming';
+import { dashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
+import { edit as editProfile } from '@/routes/profile';
+import { index as transactionsIndex } from '@/routes/transactions';
 
 const { t } = useI18n();
 const page = usePage();
-const { navItems } = useModuleNav();
+const { navGroups } = useModuleNav();
 const { navigationName } = useNavigationNaming();
 const { isCurrentUrl } = useCurrentUrl();
 
-// Promo items should not appear active while they are only discovery prompts.
+// Promo/locked items are discovery prompts, not the current page — they never
+// look "active" even if their href happens to match.
 function isActive(item: ModuleNavItem): boolean {
-    return item.state === 'enabled' && isCurrentUrl(item.href);
+    // A promo item's href is the modules page — standing on it must not light
+    // up every promo row at once. A locked item points at its own route now, so
+    // it can be the current page like any other.
+    return item.state !== 'promo' && isCurrentUrl(item.href);
+}
+
+const navRowClass =
+    'flex items-center gap-2.5 rounded-[9px] px-2.5 py-2.5 text-sm transition-colors';
+
+/**
+ * The one exception in the shared chrome.
+ *
+ * Advisor carries the gold accent from every other page — it is how the Pro
+ * feature announces itself, and the only gold anywhere in the sidebar. The
+ * treatment holds in all three module states, so a locked Advisor still reads
+ * as the thing worth unlocking; the lock and plus markers below are untouched.
+ */
+function isAdvisor(item: ModuleNavItem): boolean {
+    return item.key === 'advisor';
 }
 
 const user = computed(() => page.props.auth.user);
 const isRtl = computed(() => page.props.dir === 'rtl');
-const { isMobile, state, toggleSidebar } = useSidebar();
-
-const iconBoxBase =
-    'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition-colors';
-const iconBoxDefault = `${iconBoxBase} bg-[#2d2d2d]`;
-const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
+const isPro = computed(() => page.props.subscription?.is_pro ?? false);
+const initial = computed(
+    () => user.value?.name?.trim()?.[0]?.toUpperCase() ?? '?',
+);
 </script>
 
 <template>
     <Sidebar
         :side="isRtl ? 'right' : 'left'"
-        collapsible="icon"
+        collapsible="none"
         variant="sidebar"
         class="border-0 p-0"
+        :style="{ '--sidebar-width': '15.25rem' }"
     >
         <div
             data-sidebar-shell
-            class="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#353535] px-5 pr-1 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0"
+            class="flex h-full min-h-0 w-full flex-col overflow-hidden border-white/7 bg-[#0d0d0d] px-3 ltr:border-r rtl:border-l"
         >
-            <div
-                class="flex min-h-0 w-full flex-1 flex-col gap-10 pt-6 group-data-[collapsible=icon]:items-center"
-            >
-                <!-- ── Menu toggle — full row is one button ───────── -->
-                <button
-                    type="button"
-                    class="flex w-full cursor-pointer items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none"
-                    data-sidebar="trigger"
-                    :title="
-                        state === 'collapsed'
-                            ? t('navigation.expand_sidebar')
-                            : t('navigation.collapse_sidebar')
-                    "
-                    @click="toggleSidebar"
+            <div class="flex min-h-0 w-full flex-1 flex-col gap-5 pt-[18px]">
+                <!-- ── Brand ────────────────────────────────────────── -->
+                <Link
+                    :href="dashboard()"
+                    class="flex shrink-0 items-center gap-2.5 px-2"
                 >
-                    <!-- Icon box -->
+                    <img
+                        src="/favicon.svg"
+                        alt=""
+                        class="h-8 w-[21px] shrink-0"
+                    />
                     <span
-                        :class="[
-                            iconBoxDefault,
-                            'text-white hover:bg-[#3a3a3a]',
-                        ]"
+                        class="truncate text-[16px] font-semibold tracking-[-0.01em] text-white"
                     >
-                        <PanelLeftOpen
-                            v-if="isMobile || state === 'collapsed'"
-                            class="size-[18px]"
-                        />
-                        <PanelLeftClose v-else class="size-[18px]" />
+                        CashPilot
                     </span>
-                    <!-- Text label — also triggers the toggle -->
-                    <span
-                        class="cursor-pointer truncate text-sm font-medium text-white/60 transition-colors group-data-[collapsible=icon]:sr-only hover:text-white"
-                    >
-                        {{ t('navigation.menu_toggle') }}
-                    </span>
-                </button>
+                </Link>
 
-                <!-- ── Primary navigation ──────────────────────────── -->
+                <!-- ── Primary action ───────────────────────────────── -->
+                <Link
+                    :href="transactionsIndex()"
+                    class="flex shrink-0 items-center justify-center gap-1.5 rounded-[11px] bg-[#02cd86] px-4 py-2.5 text-sm font-medium text-[#101010] transition-colors hover:bg-[#14e096]"
+                >
+                    <Plus class="size-4" />
+                    {{ t('navigation.add_transaction') }}
+                </Link>
+
+                <!-- ── Grouped navigation ───────────────────────────── -->
                 <nav
                     data-sidebar-scroll
-                    class="sidebar-nav-scroll flex min-h-0 w-full flex-1 touch-pan-y flex-col gap-3 overflow-x-hidden overflow-y-auto overscroll-contain pe-1 pb-3 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:pe-0"
+                    class="sidebar-nav-scroll flex min-h-0 flex-1 touch-pan-y flex-col gap-5 overflow-x-hidden overflow-y-auto overscroll-contain pe-1 pb-3"
                     :aria-label="t('navigation.primary')"
                 >
-                    <Link
-                        v-for="item in navItems"
-                        :key="item.key"
-                        :href="item.href"
-                        class="flex w-full items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#353535] focus-visible:outline-none"
-                        :title="item.title"
+                    <div
+                        v-for="group in navGroups"
+                        :key="group.key"
+                        class="flex flex-col gap-1"
                     >
-                        <!-- Icon box — the ONLY element with bg + shadow -->
-                        <span
+                        <p
+                            class="px-2.5 pb-1 text-[10px] font-medium tracking-[0.14em] text-[#5a5a5a] uppercase"
+                        >
+                            {{ group.label }}
+                        </p>
+
+                        <Link
+                            v-for="item in group.items"
+                            :key="item.key"
+                            :href="item.href"
                             :class="[
-                                isActive(item) ? iconBoxActive : iconBoxDefault,
-                                'hover:bg-[#3a3a3a]',
-                                isActive(item)
-                                    ? 'text-[#02cd86]'
-                                    : 'text-white',
-                                item.state !== 'enabled' ? 'opacity-40' : '',
+                                navRowClass,
+                                isAdvisor(item)
+                                    ? 'border-s-2 border-s-[#d9c48f] bg-[#d9c48f]/10 font-medium text-white hover:bg-[#d9c48f]/15'
+                                    : isActive(item)
+                                      ? 'bg-[#252525] font-medium text-white'
+                                      : item.state !== 'enabled'
+                                        ? 'text-[#686868] hover:bg-white/5 hover:text-[#989898]'
+                                        : 'font-normal text-[#989898] hover:bg-white/5 hover:text-white',
                             ]"
                         >
                             <component
                                 :is="item.icon"
-                                class="size-[18px] shrink-0"
+                                class="size-[15px] shrink-0"
                             />
-                            <Plus
-                                v-if="item.state === 'promo'"
-                                class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#02cd86] text-[#353535] rtl:-left-1"
-                            />
-                            <!-- Pro, not bought yet — a lock rather than the
-                                 free "+", so it doesn't promise a tap turns it on. -->
-                            <Lock
-                                v-else-if="item.state === 'locked'"
-                                class="rtl:-right-auto absolute -top-1 -right-1 size-3 rounded-full bg-[#6C4EE9] p-px text-white rtl:-left-1"
-                            />
-                            <Crown
-                                v-if="item.tier === 'pro'"
-                                class="absolute -right-1 -bottom-1 hidden size-3 rounded-full bg-[#6C4EE9] p-px text-white group-data-[collapsible=icon]:block"
-                                aria-hidden="true"
-                            />
-                        </span>
+                            <span class="min-w-0 flex-1 truncate">{{
+                                item.title
+                            }}</span>
 
-                        <!-- Text — one naming vocabulary at a time. -->
-                        <span
-                            class="min-w-0 truncate text-sm font-medium group-data-[collapsible=icon]:sr-only"
-                            :class="[
-                                isActive(item)
-                                    ? 'text-[#02cd86]'
-                                    : item.state !== 'enabled'
-                                      ? 'text-white/40'
-                                      : 'text-white',
-                            ]"
-                        >
-                            {{ item.title }}
-                        </span>
-
-                        <!-- Product tier persists independently of whether the
-                             module is enabled. Free modules only need a badge
-                             while they are being promoted. -->
-                        <span
-                            v-if="
-                                item.tier === 'pro' || item.state !== 'enabled'
-                            "
-                            :class="[
-                                'ml-auto inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium group-data-[collapsible=icon]:hidden',
-                                item.tier === 'pro'
-                                    ? 'bg-[#6C4EE9]/15 text-[#a89bf3]'
-                                    : 'bg-[#02CD86]/10 text-[#02CD86]',
-                            ]"
-                        >
-                            <Crown
-                                v-if="item.tier === 'pro'"
-                                class="size-3"
-                                aria-hidden="true"
-                            />
-                            {{ t(`modules.tiers.${item.tier}`) }}
-                        </span>
-                    </Link>
+                            <span
+                                v-if="
+                                    item.tier === 'pro' ||
+                                    item.state !== 'enabled'
+                                "
+                                :class="[
+                                    'ml-auto inline-flex shrink-0 items-center gap-1',
+                                    isAdvisor(item)
+                                        ? 'advisor-mono rounded-[4px] border border-[#d9c48f]/35 px-[5px] py-[2px] text-[8.5px] tracking-[0.12em] text-[#d9c48f] uppercase'
+                                        : 'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                                    isAdvisor(item)
+                                        ? ''
+                                        : item.tier === 'pro'
+                                          ? 'bg-[#6c4ee9]/15 text-[#a89bf3]'
+                                          : 'bg-[#02cd86]/13 text-[#02cd86]',
+                                ]"
+                            >
+                                <Crown
+                                    v-if="
+                                        item.tier === 'pro' && !isAdvisor(item)
+                                    "
+                                    class="size-2.5"
+                                    aria-hidden="true"
+                                />
+                                <Lock
+                                    v-else-if="
+                                        item.state === 'locked' &&
+                                        !isAdvisor(item)
+                                    "
+                                    class="size-2.5"
+                                    aria-hidden="true"
+                                />
+                                <Plus
+                                    v-else-if="
+                                        item.state === 'promo' &&
+                                        !isAdvisor(item)
+                                    "
+                                    class="size-2.5"
+                                    aria-hidden="true"
+                                />
+                                {{ t(`modules.tiers.${item.tier}`) }}
+                            </span>
+                        </Link>
+                    </div>
                 </nav>
             </div>
 
-            <!-- ── Settings / account dropdown ────────────────────── -->
+            <!-- ── Settings / Admin — pinned, never scrolls away ────── -->
             <nav
                 data-sidebar-account
-                class="mt-4 flex w-full shrink-0 flex-col gap-3 group-data-[collapsible=icon]:items-center"
+                class="mt-2 flex w-full shrink-0 flex-col gap-1 border-t border-white/7 pt-2 pb-[14px]"
                 :aria-label="t('navigation.account')"
             >
+                <Link
+                    :href="editProfile()"
+                    :class="[
+                        navRowClass,
+                        isCurrentUrl(editProfile(), undefined, true)
+                            ? 'bg-[#252525] font-medium text-white'
+                            : 'font-normal text-[#989898] hover:bg-white/5 hover:text-white',
+                    ]"
+                >
+                    <Settings class="size-[15px] shrink-0" />
+                    <span class="min-w-0 flex-1 truncate">
+                        {{
+                            navigationName(
+                                'settings.title',
+                                'navigation.settings_subtitle',
+                            )
+                        }}
+                    </span>
+                </Link>
+
                 <Link
                     v-if="page.props.auth.isAdmin"
                     data-sidebar-admin
@@ -189,80 +216,49 @@ const iconBoxActive = `${iconBoxBase} bg-[#454545]`;
                     :aria-current="
                         isCurrentUrl(adminDashboard()) ? 'page' : undefined
                     "
-                    class="flex w-full items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#353535] focus-visible:outline-none"
-                    :title="
-                        navigationName(
-                            'settings.navigation.admin',
-                            'settings.navigation.admin_subtitle',
-                        )
-                    "
+                    :class="[
+                        navRowClass,
+                        isCurrentUrl(adminDashboard())
+                            ? 'bg-[#252525] font-medium text-white'
+                            : 'font-normal text-[#989898] hover:bg-white/5 hover:text-white',
+                    ]"
                 >
-                    <span
-                        :class="[
-                            isCurrentUrl(adminDashboard())
-                                ? iconBoxActive
-                                : iconBoxDefault,
-                            'hover:bg-[#3a3a3a]',
-                            isCurrentUrl(adminDashboard())
-                                ? 'text-[#02cd86]'
-                                : 'text-white',
-                        ]"
-                    >
-                        <ShieldCheck class="size-[18px] shrink-0" />
-                    </span>
-                    <span
-                        class="flex min-w-0 flex-col items-center group-data-[collapsible=icon]:sr-only"
-                    >
-                        <span
-                            :class="[
-                                'truncate text-sm font-medium',
-                                isCurrentUrl(adminDashboard())
-                                    ? 'text-[#02cd86]'
-                                    : 'text-white',
-                            ]"
-                        >
-                            {{
-                                navigationName(
-                                    'settings.navigation.admin',
-                                    'settings.navigation.admin_subtitle',
-                                )
-                            }}
-                        </span>
+                    <ShieldCheck class="size-[15px] shrink-0" />
+                    <span class="min-w-0 flex-1 truncate">
+                        {{
+                            navigationName(
+                                'settings.navigation.admin',
+                                'settings.navigation.admin_subtitle',
+                            )
+                        }}
                     </span>
                 </Link>
 
                 <DropdownMenu>
                     <DropdownMenuTrigger as-child>
                         <button
-                            class="flex w-full cursor-pointer items-center gap-3 rounded-md py-0.5 group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#353535] focus-visible:outline-none"
-                            :title="
-                                navigationName(
-                                    'settings.title',
-                                    'navigation.settings_subtitle',
-                                )
-                            "
                             type="button"
+                            class="flex w-full cursor-pointer items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-start transition-colors hover:bg-white/5"
                             data-test="sidebar-menu-button"
                         >
                             <span
-                                :class="[
-                                    iconBoxDefault,
-                                    'text-white hover:bg-[#3a3a3a]',
-                                ]"
+                                class="grid size-[30px] shrink-0 place-items-center rounded-full bg-[#252525] text-xs font-medium text-white"
                             >
-                                <Settings class="size-[18px] shrink-0" />
+                                {{ initial }}
                             </span>
-                            <span
-                                class="flex min-w-0 flex-col items-center group-data-[collapsible=icon]:sr-only"
-                            >
+                            <span class="min-w-0 flex-1">
                                 <span
-                                    class="truncate text-sm font-medium text-white"
+                                    class="block truncate text-sm font-medium text-white"
+                                >
+                                    {{ user?.name }}
+                                </span>
+                                <span
+                                    class="block truncate text-xs text-[#686868]"
                                 >
                                     {{
-                                        navigationName(
-                                            'settings.title',
-                                            'navigation.settings_subtitle',
-                                        )
+                                        isPro
+                                            ? t('modules.tiers.pro')
+                                            : t('modules.tiers.free')
                                     }}
                                 </span>
                             </span>

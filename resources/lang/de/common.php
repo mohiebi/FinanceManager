@@ -6,6 +6,7 @@ return [
     'confirm' => 'Bestätigen',
     'edit' => 'Bearbeiten',
     'delete' => 'Löschen',
+    'actions' => 'Aktionen',
     'select' => 'Auswählen',
     'clear' => 'Leeren',
     'more' => 'Mehr',
@@ -16,4 +17,6 @@ return [
     'year' => 'Jahr',
     'language' => 'Sprache',
     'calendar' => 'Kalender',
+    'hide_amounts' => 'Ausblenden',
+    'show_amounts' => 'Anzeigen',
 ];

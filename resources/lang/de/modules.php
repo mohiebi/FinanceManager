@@ -92,4 +92,10 @@ return [
         'label' => 'Telegram-Bot',
         'description' => 'Nutze CashPilot in Telegram, um Eintraege zu erfassen, Zusammenfassungen zu pruefen und Erinnerungen zu erhalten.',
     ],
+
+    'display' => [
+        'heading' => 'Anzeige',
+        'compact_figures_label' => 'Kompakte Zahlen',
+        'compact_figures_description' => 'Zeigt 988,7 Mio. statt 988.691.514 bei Zahlen, die nur auf einen Blick zählen, nicht für die Buchhaltung.',
+    ],
 ];

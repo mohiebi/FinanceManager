@@ -1,16 +1,9 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import {
-    ArrowRight,
-    BrainCircuit,
-    Clock3,
-    LockKeyhole,
-    ShieldCheck,
-    Sparkles,
-} from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Button } from '@/components/ui/button';
+import AdvisorPillars from '@/components/advisor/AdvisorPillars.vue';
+import { usePageSubtitle } from '@/composables/usePageSubtitle';
 import { useAdvisorLabels } from '@/lib/advisor/labels';
 import {
     index as advisorIndex,
@@ -51,6 +44,8 @@ const { t } = useI18n();
 const { label } = useAdvisorLabels();
 const starting = ref(false);
 
+usePageSubtitle(() => t('advisor.home.subtitle'));
+
 /**
  * How far into the assessment a returning user actually is.
  *
@@ -62,6 +57,13 @@ const resumeSection = computed(() =>
     props.assessment?.status === 'in_progress'
         ? Math.min(8, props.assessment.last_completed_section + 1)
         : null,
+);
+
+/** `03 / 08` — the same two-digit mono form the assessment rail uses. */
+const progressCounter = computed(() =>
+    resumeSection.value === null
+        ? null
+        : `${String(resumeSection.value).padStart(2, '0')} / 08`,
 );
 
 const primaryAction = computed(() => {
@@ -82,6 +84,21 @@ const primaryAction = computed(() => {
     return null;
 });
 
+/** Sealed history reads as a status column, so each state needs its own ink. */
+function statusColor(status: string): string {
+    return (
+        {
+            ready: '#02cd86',
+            needs_clarification: '#d9c48f',
+            failed: '#e9756f',
+        }[status] ?? '#686868'
+    );
+}
+
+function formatDate(value: string | null): string {
+    return value === null ? '—' : new Date(value).toLocaleDateString();
+}
+
 function startAssessment(): void {
     starting.value = true;
     router.post(
@@ -100,195 +117,161 @@ defineOptions({
     <Head :title="t('advisor.title')" />
 
     <div
-        class="min-h-[calc(100vh-92px)] bg-[#0d0f0f] px-[18px] py-5 text-white"
+        data-app-flush-bottom
+        class="advisor-rise min-h-[calc(100svh-72px)] bg-background px-3.5 pt-3.5 pb-[120px] text-white lg:min-h-[calc(100svh-92px)] lg:px-7 lg:pt-[22px] lg:pb-[140px]"
     >
-        <section
-            class="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#171a19] px-6 py-8 shadow-[0_24px_70px_rgba(0,0,0,0.32)] md:px-10 md:py-12"
-        >
-            <div
-                class="pointer-events-none absolute -top-32 -right-24 size-80 rounded-full bg-[#02CD86]/10 blur-3xl"
-            />
-            <div class="relative max-w-3xl">
-                <div class="mb-5 flex items-center gap-3">
-                    <span
-                        class="grid size-11 place-items-center rounded-2xl bg-[#02CD86]/12 text-[#02CD86] ring-1 ring-[#02CD86]/25"
-                    >
-                        <BrainCircuit class="size-5" />
-                    </span>
-                    <div>
-                        <p
-                            class="text-[11px] font-semibold tracking-[0.28em] text-[#02CD86] uppercase"
-                        >
-                            {{ t('advisor.eyebrow') }}
-                        </p>
-                        <p class="mt-1 text-xs text-white/45">
-                            {{ t('advisor.pro_feature') }}
-                        </p>
-                    </div>
-                </div>
+        <div class="advisor-rule-hero" />
 
-                <h1
-                    class="max-w-2xl text-3xl leading-tight font-semibold tracking-[-0.03em] md:text-5xl"
+        <div
+            class="grid gap-[60px] pt-[38px] lg:grid-cols-[minmax(0,1fr)_300px]"
+        >
+            <div class="min-w-0">
+                <p
+                    class="advisor-mono text-[10px] tracking-[0.26em] text-[#d9c48f] uppercase"
+                >
+                    {{ t('advisor.eyebrow') }}
+                </p>
+                <h2
+                    class="advisor-serif mt-[22px] max-w-[20ch] text-[36px] leading-[1.05] md:text-[52px]"
                 >
                     {{ t('advisor.tagline') }}
-                </h1>
+                </h2>
                 <p
-                    class="mt-5 max-w-2xl text-sm leading-7 text-white/55 md:text-base"
+                    class="mt-[22px] max-w-[52ch] text-[15.5px] leading-[1.75] text-[#989898]"
                 >
                     {{ t('advisor.introduction') }}
                 </p>
 
-                <!-- The same eight-segment bar the assessment header uses, so
+                <!-- Eight segments, the same eight the assessment rail lists, so
                      picking up where you left off looks like the same journey. -->
-                <div
-                    v-if="resumeSection"
-                    class="mt-7 grid max-w-md grid-cols-8 gap-1.5"
-                    role="img"
-                    :aria-label="
-                        t('advisor.resume_at', {
-                            current: resumeSection,
-                            total: 8,
-                        })
-                    "
-                >
-                    <span
-                        v-for="step in 8"
-                        :key="step"
-                        class="h-1.5 rounded-full"
-                        :class="
-                            step < resumeSection ? 'bg-[#02CD86]' : 'bg-white/10'
+                <div v-if="resumeSection" class="mt-9 max-w-[420px]">
+                    <div class="mb-2.5 flex items-baseline justify-between">
+                        <span
+                            class="advisor-mono text-[10px] tracking-[0.18em] text-[#686868] uppercase"
+                            >{{ t('advisor.home.in_progress') }}</span
+                        >
+                        <span
+                            class="advisor-mono advisor-figure text-[11px] text-[#d9c48f]"
+                            >{{ progressCounter }}</span
+                        >
+                    </div>
+                    <div
+                        class="grid grid-cols-8 gap-[5px]"
+                        role="img"
+                        :aria-label="
+                            t('advisor.resume_at', {
+                                current: resumeSection,
+                                total: 8,
+                            })
                         "
-                    />
+                    >
+                        <span
+                            v-for="step in 8"
+                            :key="step"
+                            class="h-[3px] rounded-full"
+                            :class="
+                                step < resumeSection
+                                    ? 'bg-[#d9c48f]'
+                                    : step === resumeSection
+                                      ? 'bg-[#d9c48f]/42'
+                                      : 'bg-white/9'
+                            "
+                        />
+                    </div>
                 </div>
 
-                <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <Button
+                <div class="mt-[26px] flex flex-wrap items-center gap-3">
+                    <Link
                         v-if="primaryAction"
-                        as-child
-                        class="h-12 rounded-full bg-[#02CD86] px-6 font-semibold text-[#07130f] hover:bg-[#19d897]"
+                        :href="primaryAction.href"
+                        class="flex items-center gap-2.5 rounded-[10px] bg-[#02cd86] px-[26px] py-3.5 text-sm font-semibold text-[#101010] transition-colors hover:bg-[#16e19a]"
                     >
-                        <Link :href="primaryAction.href"
-                            >{{ primaryAction.label }}
-                            <ArrowRight class="size-4"
-                        /></Link>
-                    </Button>
-                    <Button
+                        {{ primaryAction.label }}
+                        <span class="advisor-mono text-[13px] rtl:rotate-180"
+                            >→</span
+                        >
+                    </Link>
+                    <button
                         v-else
-                        class="h-12 rounded-full bg-[#02CD86] px-6 font-semibold text-[#07130f] hover:bg-[#19d897]"
+                        type="button"
+                        class="flex cursor-pointer items-center gap-2.5 rounded-[10px] bg-[#02cd86] px-[26px] py-3.5 text-sm font-semibold text-[#101010] transition-colors hover:bg-[#16e19a] disabled:opacity-60"
                         :disabled="starting"
                         @click="startAssessment"
                     >
-                        {{ t('advisor.start') }} <ArrowRight class="size-4" />
-                    </Button>
-                    <Button
-                        v-if="props.profile"
-                        variant="outline"
-                        class="h-12 rounded-full border-white/12 bg-white/[0.03] px-6 text-white hover:bg-white/[0.07]"
+                        {{ t('advisor.start') }}
+                        <span class="advisor-mono text-[13px] rtl:rotate-180"
+                            >→</span
+                        >
+                    </button>
+                    <button
+                        v-if="primaryAction"
+                        type="button"
+                        class="cursor-pointer rounded-[10px] border border-white/13 px-[22px] py-[13px] text-sm text-[#989898] transition-colors hover:border-white/28 hover:text-white disabled:opacity-60"
                         :disabled="starting"
                         @click="startAssessment"
                     >
                         {{ t('advisor.reassess') }}
-                    </Button>
+                    </button>
                 </div>
 
                 <div
-                    class="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs text-white/40"
+                    class="advisor-mono mt-5 flex flex-wrap gap-x-6 gap-y-2 text-[10.5px] tracking-[0.08em] text-[#5a5a5a] uppercase"
                 >
-                    <span class="flex items-center gap-2"
-                        ><Clock3 class="size-3.5 text-[#02CD86]" />{{
-                            t('advisor.duration')
-                        }}</span
-                    >
-                    <span class="flex items-center gap-2"
-                        ><ShieldCheck class="size-3.5 text-[#02CD86]" />{{
-                            t('advisor.question_count')
-                        }}</span
-                    >
+                    <span>{{ t('advisor.duration') }}</span>
+                    <span>{{ t('advisor.question_count') }}</span>
                 </div>
+
+                <AdvisorPillars variant="columns" class="mt-[58px]" />
             </div>
-        </section>
 
-        <section class="mt-[18px] grid gap-[18px] lg:grid-cols-3">
-            <article
-                class="rounded-[22px] border border-white/10 bg-[#171a19] p-6"
-            >
-                <ShieldCheck class="size-5 text-[#02CD86]" />
-                <h2 class="mt-5 text-lg font-semibold">
-                    {{ t('advisor.cashpilot_role') }}
-                </h2>
-                <p class="mt-2 text-sm leading-6 text-white/48">
-                    {{ t('advisor.cashpilot_role_description') }}
-                </p>
-            </article>
-            <article
-                class="rounded-[22px] border border-white/10 bg-[#171a19] p-6"
-            >
-                <Sparkles class="size-5 text-[#a78bfa]" />
-                <h2 class="mt-5 text-lg font-semibold">
-                    {{ t('advisor.ai_role') }}
-                </h2>
-                <p class="mt-2 text-sm leading-6 text-white/48">
-                    {{ t('advisor.ai_role_description') }}
-                </p>
-            </article>
-            <article
-                class="rounded-[22px] border border-white/10 bg-[#171a19] p-6"
-            >
-                <LockKeyhole class="size-5 text-[#60a5fa]" />
-                <h2 class="mt-5 text-lg font-semibold">
-                    {{ t('advisor.vault_safe') }}
-                </h2>
-                <p class="mt-2 text-sm leading-6 text-white/48">
-                    {{ t('advisor.vault_safe_description') }}
-                </p>
-            </article>
-        </section>
-
-        <section
-            class="mt-[18px] rounded-[22px] border border-white/10 bg-[#171a19] p-6"
-        >
-            <h2 class="text-lg font-semibold">{{ t('advisor.history') }}</h2>
-            <p
-                v-if="props.recommendations.length === 0"
-                class="mt-4 text-sm text-white/40"
-            >
-                {{ t('advisor.no_history') }}
-            </p>
-            <div v-else class="mt-4 divide-y divide-white/8">
-                <Link
-                    v-for="item in props.recommendations"
-                    :key="item.id"
-                    :href="showRecommendation(item.id).url"
-                    class="group flex items-center justify-between gap-4 py-4 outline-none focus-visible:ring-2 focus-visible:ring-[#02CD86]"
+            <!-- The rail is a sidebar of history; below the shell breakpoint it
+                 stops being a rail, so it is dropped rather than restacked. -->
+            <aside class="hidden min-w-0 lg:block">
+                <p
+                    class="advisor-mono pb-3.5 text-[10px] tracking-[0.22em] text-[#686868] uppercase"
                 >
-                    <div>
-                        <p class="text-sm font-medium text-white">
-                            {{
+                    {{ t('advisor.history') }}
+                </p>
+                <div class="advisor-rule">
+                    <Link
+                        v-for="item in props.recommendations"
+                        :key="item.id"
+                        :href="showRecommendation(item.id).url"
+                        class="block w-full border-b border-white/7 py-[15px] text-start transition-colors hover:bg-white/[0.03] focus-visible:ring-2 focus-visible:ring-[#d9c48f] focus-visible:outline-none"
+                    >
+                        <span
+                            class="flex items-baseline justify-between gap-2.5"
+                        >
+                            <span class="text-[13.5px] text-white">{{
                                 item.mode === 'target_only'
                                     ? t('advisor.target_only')
                                     : t('advisor.rebalance')
-                            }}
-                        </p>
-                        <p class="mt-1 text-xs text-white/35">
-                            {{ label('recommendation_statuses', item.status) }} ·
-                            {{
-                                item.generated_at
-                                    ? new Date(
-                                          item.generated_at,
-                                      ).toLocaleDateString()
-                                    : '—'
-                            }}
-                        </p>
-                    </div>
-                    <ArrowRight
-                        class="size-4 text-white/30 transition group-hover:translate-x-1 group-hover:text-[#02CD86] rtl:group-hover:-translate-x-1"
-                    />
-                </Link>
-            </div>
-        </section>
+                            }}</span>
+                            <span
+                                class="advisor-mono advisor-figure text-[10.5px] text-[#5a5a5a]"
+                                >{{ formatDate(item.generated_at) }}</span
+                            >
+                        </span>
+                        <span
+                            class="advisor-mono mt-[7px] block text-[10px] tracking-[0.12em] uppercase"
+                            :style="{ color: statusColor(item.status) }"
+                            >{{
+                                label('recommendation_statuses', item.status)
+                            }}</span
+                        >
+                    </Link>
+                </div>
+                <p
+                    v-if="props.recommendations.length === 0"
+                    class="mt-[22px] text-[12.5px] leading-[1.7] text-[#5a5a5a]"
+                >
+                    {{ t('advisor.no_history') }}
+                </p>
+            </aside>
+        </div>
 
         <p
-            class="mx-auto mt-5 max-w-3xl text-center text-xs leading-5 text-white/30"
+            class="mx-auto mt-[70px] max-w-[68ch] text-center text-xs leading-[1.75] text-[#5a5a5a]"
         >
             {{ t('advisor.disclosure') }}
         </p>

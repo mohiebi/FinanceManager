@@ -29,7 +29,7 @@ const emit = defineEmits<{
                 @click.self="emit('update:open', false)"
             >
                 <div
-                    class="w-full max-w-sm rounded-[22px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
+                    class="w-full max-w-sm rounded-[16px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
                 >
                     <div class="flex flex-col items-center gap-4 text-center">
                         <div

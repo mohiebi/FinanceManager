@@ -16,7 +16,11 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import SettingsSection from '@/components/settings/SettingsSection.vue';
-import { destroy as destroyConnection, edit } from '@/routes/ai-connections';
+import {
+    destroy as destroyConnection,
+    edit,
+    revokeAll,
+} from '@/routes/ai-connections';
 
 type Connection = {
     id: string;
@@ -53,6 +57,7 @@ const { t, locale } = useI18n();
 const revokeTarget = ref<Connection | null>(null);
 const copiedKey = ref<string | null>(null);
 const expandedHistoryId = ref<string | null>(null);
+const pauseAllConfirming = ref(false);
 
 const dateFormatter = computed(
     () =>
@@ -219,6 +224,16 @@ function confirmRevoke(): void {
     });
 }
 
+/** The emergency stop: revokes every connected assistant's access at once. */
+function confirmPauseAll(): void {
+    router.delete(revokeAll.url(), {
+        preserveScroll: true,
+        onSuccess: () => {
+            pauseAllConfirming.value = false;
+        },
+    });
+}
+
 const statusClasses: Record<HistoryEntry['status'], string> = {
     pending: 'bg-[#F59E0B]/10 text-[#F59E0B]',
     confirmed: 'bg-[#02CD86]/10 text-[#02CD86]',
@@ -237,39 +252,46 @@ defineOptions({
     <Head :title="t('settings.ai.title')" />
 
     <div class="flex flex-col gap-[18px]">
+        <!-- Nothing changes without you: the emergency stop for every
+             connected assistant at once, not just one at a time. -->
+        <div
+            v-if="connections.length > 0"
+            class="flex flex-wrap items-center justify-between gap-4 rounded-[16px] bg-[#02CD86]/8 p-5 ring-1 ring-[#02CD86]/20"
+        >
+            <div class="flex items-center gap-3">
+                <span
+                    class="grid size-9 shrink-0 place-items-center rounded-xl bg-[#02CD86]/12"
+                >
+                    <ShieldCheck class="size-4 text-[#02CD86]" />
+                </span>
+                <div>
+                    <p class="text-sm font-medium text-white">
+                        {{ t('settings.ai.pause_all.title') }}
+                    </p>
+                    <p class="mt-0.5 text-xs text-[#989898]">
+                        {{ t('settings.ai.pause_all.description') }}
+                    </p>
+                </div>
+            </div>
+            <button
+                type="button"
+                class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-[#E94E50]/10 px-5 py-2.5 text-sm font-medium text-[#E94E50] transition hover:bg-[#E94E50]/20"
+                @click="pauseAllConfirming = true"
+            >
+                <Unlink class="size-4" />
+                {{ t('settings.ai.pause_all.action') }}
+            </button>
+        </div>
+
         <SettingsSection
             :icon="Sparkles"
             :title="t('settings.ai.eyebrow')"
             :description="t('settings.ai.description')"
         >
             <div class="space-y-5">
-                <section
-                    class="flex gap-3 rounded-2xl bg-[#02CD86]/8 p-4 ring-1 ring-[#02CD86]/20"
-                    aria-labelledby="ai-safety-title"
-                >
-                    <div
-                        class="grid size-9 shrink-0 place-items-center rounded-xl bg-[#02CD86]/12"
-                    >
-                        <ShieldCheck class="size-4 text-[#02CD86]" />
-                    </div>
-                    <div>
-                        <p
-                            id="ai-safety-title"
-                            class="text-sm font-medium text-white"
-                        >
-                            {{ t('settings.ai.safety.title') }}
-                        </p>
-                        <p
-                            class="mt-1 max-w-prose text-sm leading-6 text-[#989898]"
-                        >
-                            {{ t('settings.ai.safety.description') }}
-                        </p>
-                    </div>
-                </section>
-
                 <!-- Connect your assistant -->
                 <div
-                    class="rounded-[22px] bg-[#252525] p-5 ring-1 ring-white/10"
+                    class="rounded-[16px] bg-[#252525] p-5 ring-1 ring-white/10"
                 >
                     <p class="font-medium text-white">
                         {{ t('settings.ai.connect.title') }}
@@ -574,6 +596,14 @@ defineOptions({
             :description="t('settings.ai.revoke_confirm')"
             @update:open="revokeTarget = null"
             @confirm="confirmRevoke"
+        />
+
+        <ConfirmDeleteModal
+            :open="pauseAllConfirming"
+            :title="t('settings.ai.pause_all.action')"
+            :description="t('settings.ai.pause_all.confirm')"
+            @update:open="pauseAllConfirming = false"
+            @confirm="confirmPauseAll"
         />
     </div>
 </template>

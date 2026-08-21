@@ -63,25 +63,42 @@ test('long settings pages split distinct concerns into separate cards', () => {
     assert.equal(sectionCount(settingsPages.aiConnections), 3);
     assert.equal(sectionCount(settingsPages.appearance), 1);
     assert.equal(sectionCount(settingsPages.modules), 2);
+    assert.equal(sectionCount(settingsPages.preferences), 4);
 });
 
-test('the shell names the active section and owns the only h1', () => {
-    // Two pages used to hide an `sr-only` <h1> under the shell's own, so the
-    // word "Settings" was announced twice and the section name never.
-    assert.match(shell, /activeItem\?\.title/);
+test('the shell owns the only h1, now a static "Settings" rather than the page name', () => {
+    // v3 dropped the per-page header entirely — page identity now comes from
+    // the active tab card and pill, and from each page's own SettingsSection
+    // card titles. Two pages used to also hide an `sr-only` <h1>, so the word
+    // "Settings" was announced twice and the section name never; that rule
+    // (one h1, and it lives in the shell) still holds.
     assert.match(shell, /<h1/);
+    assert.match(shell, /settingsLabel/);
 
     for (const [name, page] of Object.entries(settingsPages)) {
         assert.doesNotMatch(page, /<h1/, `${name} should not add a second h1`);
     }
 });
 
-test('the shell offers a scrollable rail below lg instead of a ten-link stack', () => {
-    assert.match(shell, /lg:hidden/);
+test('the shell is a v3 tab-card grid, not a sidebar', () => {
+    // Four cards (Account/Money/Connections/App), one row count and one
+    // summary line each, the active one tinted — replaces the old sidebar and
+    // mobile pill rail with a single structure that works at every width.
+    assert.match(shell, /grid gap-3 sm:grid-cols-2 lg:grid-cols-4/);
+    assert.match(shell, /group\.items\.length/);
+    assert.match(shell, /group\.summary/);
+    assert.match(shell, /activeGroup\?\.id === group\.id/);
+    // No sidebar left to compete with for space below lg.
+    assert.doesNotMatch(shell, /<aside/);
+});
+
+test('the shell searches the page index and offers a scrollable pill row for the active tab', () => {
+    assert.match(shell, /type="search"/);
+    assert.match(shell, /searchResults/);
+    assert.match(shell, /settings\.search\.empty_title/);
+    // The pill row (which page inside the active tab) still needs to survive
+    // a narrow viewport without pushing the page itself sideways.
     assert.match(shell, /overflow-x-auto/);
-    // The sidebar is the desktop half of the same pair, so it has to be hidden
-    // below lg or both render at once.
-    assert.match(shell, /<aside\s+class="hidden/);
 });
 
 test('settings navigation clears the 44px touch target', () => {
@@ -89,7 +106,7 @@ test('settings navigation clears the 44px touch target', () => {
 
     assert.ok(
         navTargets.length >= 2,
-        'both the rail and the sidebar links need a 44px floor',
+        'both the tab cards and the pill row need a 44px floor',
     );
 });
 

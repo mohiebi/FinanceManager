@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['user_id', 'type', 'name', 'slug', 'is_default'])]
+#[Fillable(['user_id', 'type', 'name', 'slug', 'color', 'sort_order', 'is_default'])]
 class Category extends Model
 {
     /** @use HasFactory<CategoryFactory> */
@@ -76,6 +76,7 @@ class Category extends Model
         return [
             'type' => TransactionType::class,
             'is_default' => 'boolean',
+            'sort_order' => 'integer',
         ];
     }
 }

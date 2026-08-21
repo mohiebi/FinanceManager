@@ -30,7 +30,7 @@ withDefaults(
 
 <template>
     <section
-        class="rounded-[22px] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 sm:p-6"
+        class="rounded-[16px] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 sm:p-6"
         :class="
             danger
                 ? 'bg-[#1a1414] ring-[#E94E50]/25'

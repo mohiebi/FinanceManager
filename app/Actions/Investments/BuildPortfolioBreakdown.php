@@ -294,8 +294,12 @@ class BuildPortfolioBreakdown
      * @param  Collection<int, Investment>  $entries
      * @return array{categories: list<string>, series: list<array<string, mixed>>}
      */
-    public function history(Collection $entries, string $range, AssetPriceService $priceService): array
-    {
+    public function history(
+        Collection $entries,
+        string $range,
+        AssetPriceService $priceService,
+        Currency $selectedCurrency = Currency::Toman,
+    ): array {
         $entries = $entries->filter(fn (Investment $entry): bool => $entry->asset !== null);
 
         if ($entries->isEmpty()) {
@@ -372,9 +376,9 @@ class BuildPortfolioBreakdown
                 $cumulativeQuantity = $typeEntries
                     ->filter(fn ($entry) => $entry->occurred_at->lte($dateParsed))
                     ->sum('quantity');
-                $value = round((float) $cumulativeQuantity * $price);
-                $seriesData[] = $value;
-                $totalByDate[$date] += $value;
+                $valueInToman = round((float) $cumulativeQuantity * $price);
+                $seriesData[] = $this->convertFromToman($valueInToman, $selectedCurrency);
+                $totalByDate[$date] += $valueInToman;
             }
 
             $seriesList[] = [
@@ -389,13 +393,29 @@ class BuildPortfolioBreakdown
             'name' => __('finance.assets.total'),
             'key' => 'total',
             'color' => '#02CD86',
-            'data' => array_values($totalByDate),
+            'data' => array_map(
+                fn (float $value): float => $this->convertFromToman($value, $selectedCurrency),
+                array_values($totalByDate),
+            ),
         ]);
 
         return [
             'categories' => $dates,
             'series' => $seriesList,
         ];
+    }
+
+    private function convertFromToman(float $amount, Currency $selectedCurrency): float
+    {
+        if ($selectedCurrency === Currency::Toman) {
+            return round($amount);
+        }
+
+        return $this->currencyConverter->convert(
+            $amount,
+            Currency::Toman,
+            $selectedCurrency,
+        );
     }
 
     /**

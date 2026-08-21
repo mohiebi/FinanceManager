@@ -537,7 +537,7 @@ function shortHash(value: string | null): string {
 
         <!-- The queue that matters: everything automatic verification refused to
              guess at, where money probably arrived. -->
-        <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
+        <section class="rounded-[16px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
             <h2 class="mb-4 flex items-center gap-2 text-[17px] text-white">
                 <AlertTriangle class="size-4 text-[#E0B341]" />
                 {{ t('billing.admin.needs_attention') }}
@@ -689,7 +689,7 @@ function shortHash(value: string | null): string {
             </ul>
         </section>
 
-        <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
+        <section class="rounded-[16px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
             <h2 class="mb-4 text-[17px] text-white">
                 {{ t('billing.admin.pro_users') }}
             </h2>
@@ -769,7 +769,7 @@ function shortHash(value: string | null): string {
         </section>
 
         <!-- Coupons -->
-        <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
+        <section class="rounded-[16px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
             <h2 class="mb-4 flex items-center gap-2 text-[17px] text-white">
                 <Ticket class="size-4 text-[#02CD86]" />
                 {{ t('billing.admin.coupons.heading') }}
@@ -1021,7 +1021,7 @@ function shortHash(value: string | null): string {
             </ul>
         </section>
 
-        <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
+        <section class="rounded-[16px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
             <h2 class="mb-4 text-[17px] text-white">
                 {{ t('billing.admin.recent') }}
             </h2>

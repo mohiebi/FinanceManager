@@ -41,6 +41,9 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
         ->middleware('throttle:6,1')
         ->name('security.confirm-password');
 
+    Route::delete('settings/security/sessions/{session}', [SecurityController::class, 'destroySession'])
+        ->name('security.sessions.destroy');
+
     Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
 
     Route::get('settings/preferences', [PreferencesController::class, 'edit'])->name('preferences.edit');
@@ -48,6 +51,7 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
 
     Route::get('settings/modules', [ModuleController::class, 'edit'])->name('modules.edit');
     Route::patch('settings/modules', [ModuleController::class, 'update'])->name('modules.update');
+    Route::patch('settings/display', [ModuleController::class, 'updateDisplay'])->name('display.update');
 
     // Billing is not a Feature module, so it carries no EnsureFeatureEnabled —
     // and no RejectWhenVaultArmed either: these rows are plaintext by design,
@@ -93,6 +97,7 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
         ->name('vault.disable');
 
     Route::get('settings/categories', [CategoryController::class, 'edit'])->name('categories.edit');
+    Route::patch('categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
     Route::patch('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
@@ -104,6 +109,7 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
 
     Route::middleware(EnsureFeatureEnabled::class.':ai_assistant')->group(function () {
         Route::get('settings/ai-connections', [AiConnectionsController::class, 'edit'])->name('ai-connections.edit');
+        Route::delete('settings/ai-connections', [AiConnectionsController::class, 'revokeAll'])->name('ai-connections.revoke-all');
         Route::delete('settings/ai-connections/{token}', [AiConnectionsController::class, 'destroy'])->name('ai-connections.destroy');
     });
 

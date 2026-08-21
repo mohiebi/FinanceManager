@@ -113,6 +113,32 @@ test('the value-over-time chart prices past dates from snapshots and today from 
                     }),
                 ),
             );
+
+        $this->actingAs($user)
+            ->get(route('portfolio', [
+                'range' => '1w',
+                'currency' => Currency::Usd->value,
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Portfolio')
+                ->where('selectedCurrency', Currency::Usd->value)
+                ->loadDeferredProps('default', fn (Assert $page) => $page
+                    ->where('chartData', function (mixed $chartData): bool {
+                        $data = collect($chartData);
+                        $dates = collect($data->get('categories'));
+                        $total = collect($data->get('series'))->firstWhere('key', 'total');
+                        $values = collect($total['data']);
+
+                        $valueOn = fn (string $date) => (float) $values->get($dates->search($date));
+
+                        expect($valueOn('2026-07-03'))->toBe(80.0)
+                            ->and($valueOn('2026-07-06'))->toBe(100.0);
+
+                        return true;
+                    }),
+                ),
+            );
     } finally {
         Carbon::setTestNow();
     }

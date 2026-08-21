@@ -8,66 +8,10 @@
     <div
         class="flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-auto bg-[#111111]"
     >
-        <!-- ── Header ─────────────────────────────────────────────── -->
-        <section
-            class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
-        >
-            <div
-                class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
-            >
-                <div class="min-w-0">
-                    <p
-                        class="text-xs font-semibold tracking-[0.35em] text-[#6C4EE9] uppercase"
-                    >
-                        {{ t('budgets.period') }}
-                    </p>
-                    <h1
-                        class="mt-1 text-2xl font-semibold tracking-tight text-white"
-                    >
-                        {{
-                            navigationName(
-                                'navigation.budgets',
-                                'navigation.budgets_subtitle',
-                            )
-                        }}
-                    </h1>
-                    <p class="mt-1 max-w-lg text-sm text-[#989898]">
-                        {{ t('budgets.description') }}
-                    </p>
-                </div>
-
-                <div class="flex shrink-0 items-center gap-2">
-                    <span
-                        v-if="plan !== null"
-                        class="rounded-full bg-white/5 px-3 py-1.5 text-xs text-[#989898] ring-1 ring-white/10"
-                    >
-                        {{ plan.period.label }} ·
-                        {{
-                            t('budgets.days_remaining', {
-                                count: plan.period.days_remaining,
-                            })
-                        }}
-                    </span>
-                    <Button
-                        class="h-11 w-max shrink-0 rounded-full bg-[linear-gradient(90deg,#02CD86_0%,#00a36e_100%)] px-5 text-[#101010] shadow-[0_10px_20px_rgba(2,205,134,0.22)] hover:brightness-105"
-                        @click="openDialog()"
-                    >
-                        <Plus v-if="props.budget === null" class="size-4" />
-                        <Pencil v-else class="size-4" />
-                        {{
-                            props.budget === null
-                                ? t('budgets.create')
-                                : t('budgets.edit')
-                        }}
-                    </Button>
-                </div>
-            </div>
-        </section>
-
         <!-- ── Empty state ────────────────────────────────────────── -->
         <div
             v-if="props.budget === null"
-            class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+            class="mx-[18px] my-[18px] flex flex-col items-center justify-center rounded-[16px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
             <Target class="size-10 text-[#6C4EE9]" />
             <h2 class="mt-4 text-lg font-semibold text-white">
@@ -87,7 +31,7 @@
         <!-- ── Skeleton while the browser opens the amounts ────────── -->
         <div
             v-else-if="plan === null"
-            class="mx-[18px] my-[18px] flex items-center justify-center gap-2 rounded-[22px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
+            class="mx-[18px] my-[18px] flex items-center justify-center gap-2 rounded-[16px] bg-[#1a1a1a] px-8 py-20 ring-1 ring-white/10"
         >
             <Spinner class="size-5 text-[#989898]" />
             <span class="text-sm text-[#989898]">{{
@@ -96,76 +40,88 @@
         </div>
 
         <template v-else>
-            <!-- ── Summary tiles ──────────────────────────────────── -->
-            <section class="mx-[18px] mt-[18px] grid gap-3 sm:grid-cols-4">
+            <!-- ── Hero: safe to spend + line-over/period ──────────── -->
+            <div class="grid gap-[18px] px-[18px] pt-5 lg:grid-cols-2">
                 <div
-                    class="rounded-[14px] border border-white/10 bg-[#252525] p-4"
-                    style="border-top: 2.5px solid #02cd86"
+                    class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 >
                     <p
-                        class="text-xs font-medium tracking-[0.2em] text-[#02CD86] uppercase"
+                        class="text-xs font-semibold tracking-[0.2em] text-[#02CD86] uppercase"
                     >
-                        {{ t('budgets.income') }}
+                        {{ t('finance.dashboard.safe_to_spend') }}
                     </p>
-                    <p class="mt-2 text-base font-bold text-white">
-                        {{ formatAmount(plan.income) }}
-                        <span class="text-xs font-normal text-[#989898]">{{
-                            currencyLabel
-                        }}</span>
+                    <p class="mt-3 flex flex-wrap items-baseline gap-2">
+                        <CompactMoney
+                            :value="safeToSpendPerDay"
+                            :currency="budgetCurrency"
+                            class="text-[36px] leading-none font-bold text-white sm:text-[44px]"
+                        />
+                        <span class="text-sm font-medium text-[#989898]">
+                            {{ t('finance.dashboard.per_day') }}
+                        </span>
+                    </p>
+                    <p class="mt-3 max-w-md text-sm leading-6 text-[#989898]">
+                        {{ safeToSpendExplanation }}
                     </p>
                 </div>
 
+                <!-- One or more lines already over their own limit; the
+                     period's own progress otherwise — never an empty slot. -->
                 <div
-                    class="rounded-[14px] border border-white/10 bg-[#252525] p-4"
-                    style="border-top: 2.5px solid #6c4ee9"
+                    v-if="overspentLines.length > 0"
+                    class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-[#E94E50]/28"
                 >
-                    <p
-                        class="text-xs font-medium tracking-[0.2em] text-[#6C4EE9] uppercase"
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="size-1.5 shrink-0 rounded-full bg-[#E94E50]"
+                        />
+                        <p
+                            class="text-xs font-semibold tracking-[0.2em] text-[#E94E50] uppercase"
+                        >
+                            {{ overspentLinesTitle }}
+                        </p>
+                    </div>
+                    <p class="mt-4 text-sm leading-6 text-[#989898]">
+                        {{ overspentLinesBody }}
+                    </p>
+                    <Button
+                        class="mt-5 rounded-full bg-[#E94E50] px-5 text-white hover:brightness-110"
+                        @click="openDialog()"
                     >
-                        {{ t('budgets.allocated') }}
-                    </p>
-                    <p class="mt-2 text-base font-bold text-white">
-                        {{ formatAmount(plan.allocated) }}
-                        <span class="text-xs font-normal text-[#989898]">{{
-                            currencyLabel
-                        }}</span>
-                    </p>
+                        {{ t('budgets.edit_limits') }}
+                    </Button>
                 </div>
-
                 <div
-                    class="rounded-[14px] border border-white/10 bg-[#252525] p-4"
-                    style="border-top: 2.5px solid #989898"
+                    v-else
+                    class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
                 >
                     <p
                         class="text-xs font-medium tracking-[0.2em] text-[#989898] uppercase"
                     >
-                        {{ t('budgets.unallocated') }}
+                        {{ t('budgets.period') }}
                     </p>
-                    <p class="mt-2 text-base font-bold text-white">
-                        {{ formatAmount(plan.unallocated) }}
-                        <span class="text-xs font-normal text-[#989898]">{{
-                            currencyLabel
-                        }}</span>
-                    </p>
-                </div>
-
-                <div
-                    class="rounded-[14px] border border-white/10 bg-[#252525] p-4"
-                    style="border-top: 2.5px solid #e94e50"
-                >
                     <p
-                        class="text-xs font-medium tracking-[0.2em] text-[#E94E50] uppercase"
+                        class="mt-2 text-[28px] leading-none font-bold text-white"
                     >
-                        {{ t('budgets.spent') }}
+                        {{ plan.period.label }}
                     </p>
-                    <p class="mt-2 text-base font-bold text-white">
-                        {{ formatAmount(plan.actual) }}
-                        <span class="text-xs font-normal text-[#989898]">{{
-                            currencyLabel
-                        }}</span>
+                    <p class="mt-1 text-xs text-[#989898]">
+                        {{
+                            t('budgets.days_remaining', {
+                                count: plan.period.days_remaining,
+                            })
+                        }}
                     </p>
+                    <div
+                        class="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/10"
+                    >
+                        <div
+                            class="h-full rounded-full bg-[#6C4EE9] transition-all duration-700"
+                            :style="{ width: periodProgress + '%' }"
+                        />
+                    </div>
                 </div>
-            </section>
+            </div>
 
             <!-- ── Over-allocation warning ────────────────────────── -->
             <p
@@ -174,7 +130,7 @@
             >
                 {{
                     t('budgets.over_allocated', {
-                        amount: `${formatAmount(plan.over_allocated)} ${currencyLabel}`,
+                        amount: overAllocatedDisplay,
                     })
                 }}
                 <span class="text-[#E94E50]/70">{{
@@ -184,45 +140,65 @@
 
             <!-- ── Lines ──────────────────────────────────────────── -->
             <section
-                class="mx-[18px] my-[18px] rounded-[22px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
+                class="mx-[18px] my-[18px] rounded-[16px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
             >
-                <h2 class="text-sm font-semibold text-white">
-                    {{ t('budgets.lines') }}
-                </h2>
-
-                <ul class="mt-4 divide-y divide-white/5">
-                    <li
-                        v-for="line in plan.lines"
-                        :key="line.id"
-                        class="py-4 first:pt-0 last:pb-0"
-                    >
-                        <div
-                            class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"
+                <div
+                    class="mb-5 flex flex-wrap items-baseline justify-between gap-3.5"
+                >
+                    <div>
+                        <p class="text-[14.5px] font-medium text-white">
+                            {{ t('budgets.lines') }}
+                        </p>
+                        <p class="mt-0.5 text-xs text-[#989898]">
+                            {{ t('budgets.lines_hint') }}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-[11.5px] text-[#686868]">{{
+                            currencyLabel
+                        }}</span>
+                        <button
+                            type="button"
+                            class="cursor-pointer text-xs text-[#02CD86] hover:underline"
+                            @click="openDialog()"
                         >
-                            <div class="flex min-w-0 items-center gap-2">
-                                <span
-                                    class="truncate text-sm font-medium text-white"
-                                >
-                                    {{ lineLabel(line) }}
-                                </span>
-                                <span
-                                    class="shrink-0 rounded-full px-2 py-0.5 text-[10px] whitespace-nowrap"
-                                    :class="ruleBadgeClass(line.rule_type)"
-                                >
-                                    {{ ruleLabel(line) }}
-                                </span>
-                            </div>
+                            {{ t('budgets.edit') }}
+                        </button>
+                    </div>
+                </div>
 
-                            <p class="text-sm font-semibold text-white">
+                <div class="flex flex-col gap-5">
+                    <div v-for="line in plan.lines" :key="line.id">
+                        <div class="mb-2 flex flex-wrap items-baseline gap-3">
+                            <span
+                                class="size-1.5 shrink-0 rounded-full"
+                                :class="
+                                    line.over ? 'bg-[#E94E50]' : 'bg-[#02CD86]'
+                                "
+                            />
+                            <span
+                                class="min-w-0 flex-1 truncate text-[14.5px] font-medium text-white"
+                            >
+                                {{ lineLabel(line) }}
+                            </span>
+                            <span
+                                v-if="line.rollover_enabled"
+                                class="shrink-0 rounded-full bg-white/8 px-2 py-0.5 text-[10px] whitespace-nowrap text-[#989898]"
+                            >
+                                {{ t('budgets.rollover_badge') }}
+                            </span>
+                            <span
+                                class="shrink-0 text-[13px] text-[#989898] tabular-nums"
+                                :class="maskClass"
+                                dir="ltr"
+                            >
+                                {{ formatAmount(line.actual) }} /
                                 {{ formatAmount(line.allocated) }}
-                                <span class="text-xs font-normal text-[#989898]"
-                                    >{{ currencyLabel }}
-                                </span>
-                            </p>
+                            </span>
                         </div>
 
                         <div
-                            class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/8"
+                            class="mb-2 h-2 overflow-hidden rounded-full bg-[#252525]"
                         >
                             <div
                                 class="h-full rounded-full transition-[width]"
@@ -233,28 +209,16 @@
                             />
                         </div>
 
-                        <div
-                            class="mt-1.5 flex flex-wrap justify-between gap-x-4 text-xs"
+                        <p
+                            class="text-xs"
+                            :class="
+                                line.over ? 'text-[#E94E50]' : 'text-[#02CD86]'
+                            "
                         >
-                            <span class="text-[#989898]">
-                                {{
-                                    t('budgets.spent_inline', {
-                                        amount: formatAmount(line.actual),
-                                    })
-                                }}
-                            </span>
-                            <span
-                                :class="
-                                    line.over
-                                        ? 'text-[#E94E50]'
-                                        : 'text-[#02CD86]'
-                                "
-                            >
-                                {{ remainingLabel(line) }}
-                            </span>
-                        </div>
-                    </li>
-                </ul>
+                            {{ remainingLabel(line) }}
+                        </p>
+                    </div>
+                </div>
             </section>
         </template>
 
@@ -502,9 +466,10 @@
 
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { Pencil, Plus, Target, Trash2 } from 'lucide-vue-next';
+import { Plus, Target, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import CompactMoney from '@/components/CompactMoney.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -518,11 +483,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useAmountMask } from '@/composables/useAmountMask';
 import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { useVault } from '@/composables/useVault';
 import { useVaultBudget } from '@/composables/useVaultBudget';
 import type { VaultBudgetPayload } from '@/composables/useVaultBudget';
 import type { BudgetRule } from '@/lib/budget';
+import { formatCurrencyDisplay, formatCurrencyNumber } from '@/lib/money';
+import type { CurrencyCode } from '@/lib/money';
 import { dashboard } from '@/routes';
 import {
     destroy as destroyBudget,
@@ -552,6 +520,12 @@ const props = defineProps<{
 const { t } = useI18n();
 const { navigationName } = useNavigationNaming();
 const { revealAsync, sealForSubmit } = useVault();
+const { masked } = useAmountMask();
+const maskClass = computed(() =>
+    masked.value
+        ? 'blur-[6px] transition-[filter] duration-150 select-none'
+        : 'transition-[filter] duration-150',
+);
 
 const { progress: vaultProgress } = useVaultBudget(() => props.vaultBudget);
 
@@ -570,6 +544,27 @@ const plan = computed<BudgetProgress | null>(
 const incomeBases: BudgetIncomeBasis[] = ['actual', 'expected'];
 const ruleOptions: BudgetRule[] = ['percent', 'fixed', 'remainder'];
 
+/** Lines that have actually spent past their own limit — distinct from the
+ *  plan-wide over-allocation warning below, which is about the lines' limits
+ *  summing past income rather than any one of them being overspent. */
+const overspentLines = computed(
+    () => plan.value?.lines.filter((line) => line.over) ?? [],
+);
+
+const overspentLinesTitle = computed(() =>
+    overspentLines.value.length === 1
+        ? t('budgets.line_over_title_one')
+        : t('budgets.line_over_title_many', {
+              count: overspentLines.value.length,
+          }),
+);
+
+const overspentLinesBody = computed(() =>
+    t('budgets.line_over_body', {
+        names: overspentLines.value.map((line) => lineLabel(line)).join(', '),
+    }),
+);
+
 const currencyLabel = computed(() => {
     const value = plan.value?.currency ?? props.budget?.currency ?? 'toman';
 
@@ -579,33 +574,82 @@ const currencyLabel = computed(() => {
     );
 });
 
-const formatAmount = (value: number | string): string => {
-    const amount = Number(value);
+const budgetCurrency = computed(
+    () =>
+        (plan.value?.currency ??
+            props.budget?.currency ??
+            'toman') as CurrencyCode,
+);
 
-    return new Intl.NumberFormat('en-US', {
-        maximumFractionDigits: 2,
-        minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
-    }).format(amount);
+const overAllocatedDisplay = computed(() =>
+    formatCurrencyDisplay(
+        formatAmount(plan.value?.over_allocated ?? 0),
+        budgetCurrency.value,
+    ),
+);
+
+const formatAmount = (value: number | string): string => {
+    return formatCurrencyNumber(value, budgetCurrency.value);
 };
+
+/** Whole days left in the period, today included — never less than 1, so
+ *  dividing by it on the last day of the month still means something. */
+const daysRemaining = computed(() =>
+    Math.max(1, plan.value?.period.days_remaining ?? 1),
+);
+
+/** The plan's own income basis minus what it has actually spent, spread over
+ *  the days left — the same idea as Dashboard's figure, but relative to the
+ *  plan rather than the raw transaction totals. Negative balances read as
+ *  zero rather than a negative daily figure. */
+const safeToSpendPerDay = computed(() => {
+    if (plan.value === null) {
+        return 0;
+    }
+
+    return (
+        Math.max(0, plan.value.income - plan.value.actual) / daysRemaining.value
+    );
+});
+
+const safeToSpendExplanation = computed(() => {
+    if (plan.value === null) {
+        return '';
+    }
+
+    return t('budgets.safe_to_spend_explanation', {
+        actual: formatCurrencyDisplay(
+            formatAmount(plan.value.actual),
+            budgetCurrency.value,
+        ),
+        income: formatCurrencyDisplay(
+            formatAmount(plan.value.income),
+            budgetCurrency.value,
+        ),
+        days: daysRemaining.value,
+        amount: formatCurrencyDisplay(
+            formatAmount(safeToSpendPerDay.value),
+            budgetCurrency.value,
+        ),
+    });
+});
+
+const periodProgress = computed(() => {
+    if (plan.value === null) {
+        return 0;
+    }
+
+    return Math.min(
+        100,
+        Math.round(
+            (plan.value.period.day_of_month / plan.value.period.days_in_month) *
+                100,
+        ),
+    );
+});
 
 function lineLabel(line: BudgetLineProgress): string {
     return line.category?.name ?? t('budgets.rules.remainder');
-}
-
-function ruleLabel(line: BudgetLineProgress): string {
-    return line.rule_type === 'percent' && line.percent !== null
-        ? `${line.percent}%`
-        : t(`budgets.rules.${line.rule_type}`);
-}
-
-function ruleBadgeClass(rule: BudgetRule): string {
-    if (rule === 'percent') {
-        return 'bg-[#6C4EE9]/15 text-[#a89bf3]';
-    }
-
-    return rule === 'fixed'
-        ? 'bg-white/8 text-[#989898]'
-        : 'bg-[#02CD86]/15 text-[#02CD86]';
 }
 
 /** Clamped at 100 so an overspent line fills the bar rather than overflowing it. */
@@ -620,13 +664,21 @@ function remainingLabel(line: BudgetLineProgress): string {
 
     if (line.remaining < 0) {
         return t('budgets.overspent', {
-            amount: formatAmount(Math.abs(line.remaining)),
+            amount: formatCurrencyDisplay(
+                Math.abs(line.remaining),
+                budgetCurrency.value,
+            ),
         });
     }
 
     return line.remaining === 0
         ? t('budgets.on_target')
-        : t('budgets.remaining', { amount: formatAmount(line.remaining) });
+        : t('budgets.remaining', {
+              amount: formatCurrencyDisplay(
+                  line.remaining,
+                  budgetCurrency.value,
+              ),
+          });
 }
 
 type FormLine = {

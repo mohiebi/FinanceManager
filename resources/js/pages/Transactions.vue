@@ -4,573 +4,431 @@
     <div
         class="finance-dense flex min-h-[calc(100vh-92px)] shrink-0 flex-col overflow-x-hidden bg-[#111111]"
     >
-        <section
-            class="mx-[18px] mt-5 rounded-[22px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+        <!-- ── Filter bar: one dense row of pills, matching the mock exactly
+             — no field labels, no explicit Apply button. ─────────────────── -->
+        <div
+            class="mx-[18px] mt-5 flex flex-col items-stretch gap-2.5 rounded-[16px] bg-[#1a1a1a] p-3.5 ring-1 ring-white/10 sm:flex-row sm:flex-wrap sm:items-center"
         >
-            <div
-                class="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between"
-            >
-                <div class="flex flex-wrap items-end gap-3">
-                    <div
-                        class="grid min-w-[160px] flex-1 gap-1.5 sm:max-w-[220px]"
-                    >
-                        <Label for="transaction_search" class="text-xs">{{
-                            t('finance.fields.search')
-                        }}</Label>
-                        <Input
-                            id="transaction_search"
-                            v-model="filterSearch"
-                            :class="filterFieldClass"
-                            :placeholder="t('finance.filters.title_or_note')"
-                            @keyup.enter="applyFilters()"
-                        />
-                    </div>
+            <Input
+                id="transaction_search"
+                v-model="filterSearch"
+                :class="[
+                    filterFieldClass,
+                    'w-full min-w-0 sm:min-w-[220px] sm:flex-1',
+                ]"
+                :placeholder="t('finance.filters.title_or_note')"
+                :aria-label="t('finance.fields.search')"
+                @keyup.enter="applyFilters()"
+            />
 
-                    <div
-                        class="grid min-w-[130px] flex-1 gap-1.5 sm:max-w-[170px]"
-                    >
-                        <Label for="transaction_category" class="text-xs">{{
-                            t('finance.fields.category')
-                        }}</Label>
-                        <Select v-model="filterCategory">
-                            <SelectTrigger
-                                id="transaction_category"
-                                :class="filterFieldClass"
-                            >
-                                <SelectValue
-                                    :placeholder="
-                                        t('finance.filters.all_categories')
-                                    "
-                                />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">{{
-                                    t('finance.filters.all_categories')
-                                }}</SelectItem>
-                                <!-- Where the logbook's uncategorised count links
-                                     to; without the option the filter would be
-                                     active but invisible in the control. -->
-                                <SelectItem value="none">{{
-                                    t('finance.filters.uncategorised')
-                                }}</SelectItem>
-                                <SelectItem
-                                    v-for="category in filterCategories"
-                                    :key="category.id"
-                                    :value="category.id.toString()"
-                                >
-                                    {{ category.name }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+            <BirthdatePicker
+                v-model="filterFrom"
+                name="transaction_from"
+                :required="false"
+                :years-back="16"
+                :years-forward="1"
+                :trigger-class="filterFieldClass"
+                container-class="w-full grid-cols-[1.2fr_1fr_1fr] sm:w-auto"
+            />
+            <BirthdatePicker
+                v-model="filterTo"
+                name="transaction_to"
+                :required="false"
+                :years-back="16"
+                :years-forward="1"
+                :trigger-class="filterFieldClass"
+                container-class="w-full grid-cols-[1.2fr_1fr_1fr] sm:w-auto"
+            />
 
-                    <div
-                        class="grid min-w-[210px] flex-1 gap-1.5 sm:max-w-[260px]"
+            <Select v-model="filterCategory">
+                <SelectTrigger
+                    id="transaction_category"
+                    :class="[
+                        filterFieldClass,
+                        '!w-full shrink-0 sm:!w-[220px]',
+                    ]"
+                    :aria-label="t('finance.fields.category')"
+                >
+                    <SelectValue
+                        :placeholder="t('finance.filters.all_categories')"
+                    />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">{{
+                        t('finance.filters.all_categories')
+                    }}</SelectItem>
+                    <!-- Where the logbook's uncategorised count links to;
+                         without the option the filter would be active but
+                         invisible in the control. -->
+                    <SelectItem value="none">{{
+                        t('finance.filters.uncategorised')
+                    }}</SelectItem>
+                    <SelectItem
+                        v-for="category in filterCategories"
+                        :key="category.id"
+                        :value="category.id.toString()"
                     >
-                        <Label for="transaction_from" class="text-xs">{{
-                            t('finance.fields.from')
-                        }}</Label>
-                        <BirthdatePicker
-                            v-model="filterFrom"
-                            name="transaction_from"
-                            :required="false"
-                            :years-back="16"
-                            :years-forward="1"
-                            :trigger-class="filterFieldClass"
-                        />
-                    </div>
-
-                    <div
-                        class="grid min-w-[210px] flex-1 gap-1.5 sm:max-w-[260px]"
-                    >
-                        <Label for="transaction_to" class="text-xs">{{
-                            t('finance.fields.to')
-                        }}</Label>
-                        <BirthdatePicker
-                            v-model="filterTo"
-                            name="transaction_to"
-                            :required="false"
-                            :years-back="16"
-                            :years-forward="1"
-                            :trigger-class="filterFieldClass"
-                        />
-                    </div>
-
-                    <div class="flex shrink-0 items-end gap-2">
-                        <Button
-                            class="h-9 shrink-0 rounded-full bg-[#02CD86] px-4 text-xs font-semibold text-[#071812] shadow-[0_10px_24px_rgba(2,205,134,0.22)] hover:bg-[#00b978] sm:text-sm"
-                            @click="applyFilters()"
-                        >
-                            <Search class="size-4" />
-                            {{ t('finance.actions.filter') }}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            class="size-9 shrink-0 rounded-full border-white/10 bg-[#252525] p-0 text-[#989898] shadow-none hover:bg-white/10 hover:text-white"
-                            @click="clearFilters"
-                        >
-                            <RotateCcw class="size-4" />
-                            <span class="sr-only">{{
-                                t('finance.actions.reset_filters')
-                            }}</span>
-                        </Button>
-                    </div>
-                </div>
-
-                <div class="flex shrink-0 flex-wrap gap-2">
-                    <Button
-                        class="h-9 shrink-0 rounded-full bg-white/5 px-4 text-xs text-white shadow-none ring-1 ring-white/15 hover:bg-white/10 sm:text-sm"
-                        @click="openImportDialog"
-                    >
-                        <Upload class="size-4" />
-                        {{ t('finance.actions.import_transactions') }}
-                    </Button>
-                    <a
-                        :href="`/transactions/export?currency=${selectedCurrency}`"
-                        class="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-white/5 px-4 text-xs whitespace-nowrap text-white ring-1 ring-white/15 transition-colors hover:bg-white/10 sm:text-sm"
-                    >
-                        <Download class="size-4" />
-                        {{ t('finance.actions.export_transactions') }}
-                    </a>
-                </div>
-            </div>
-        </section>
+                        {{ category.name }}
+                    </SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
 
         <div
-            class="grid items-start gap-[18px] px-[18px] py-6 sm:py-[38px] xl:grid-cols-2"
+            class="grid items-start gap-[18px] px-[18px] py-[18px] xl:grid-cols-2"
         >
+            <!-- ── Money going out ──────────────────────────────────────── -->
             <section
-                class="kpi-card-cost overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
             >
                 <div
-                    class="flex flex-wrap items-center justify-between gap-3 px-5 py-5"
+                    class="mb-4 flex flex-wrap items-start justify-between gap-3.5"
                 >
-                    <div>
-                        <h2
-                            class="text-lg leading-none font-normal text-white sm:text-xl"
-                        >
-                            {{ t('finance.tables.money_going_out') }}
-                        </h2>
-                    </div>
-                    <div class="flex flex-wrap items-center justify-end gap-2">
-                        <Button
-                            class="h-10 w-max justify-between rounded-md bg-[linear-gradient(90deg,#947BFF_0%,#6C4EE9_100%)] px-3.5 text-sm leading-none font-bold text-white shadow-[0_10px_20px_rgba(108,78,233,0.22)] transition hover:brightness-105 sm:h-11 sm:text-base"
-                            @click="openCreateForm('cost')"
-                        >
-                            <span class="grid text-left">
-                                <span class="col-start-1 row-start-1">
-                                    {{ t('finance.actions.add_cost') }}
-                                </span>
-                                <span
-                                    class="invisible col-start-1 row-start-1"
-                                    aria-hidden="true"
-                                >
-                                    {{ t('finance.actions.add_income') }}
-                                </span>
-                            </span>
+                    <div class="min-w-0">
+                        <div class="mb-2 flex items-center gap-2">
                             <span
-                                class="grid h-[1.65em] w-[1.65em] min-w-[1.65em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_42%,rgba(45,45,45,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
+                                class="size-[7px] shrink-0 rounded-[2px] bg-[#6C4EE9]"
+                            />
+                            <p
+                                class="text-[11px] font-medium tracking-[0.13em] text-[#947BFF] uppercase"
                             >
-                                <Plus class="size-5" />
-                            </span>
-                        </Button>
+                                {{ t('finance.tables.money_going_out') }}
+                            </p>
+                        </div>
+                        <p
+                            class="text-[25px] leading-none font-semibold text-white"
+                        >
+                            <CompactMoney
+                                v-if="summaryCost !== null"
+                                :value="summaryCost"
+                                :currency="selectedCurrency"
+                            />
+                            <span v-else class="text-base text-[#686868]"
+                                >—</span
+                            >
+                        </p>
+                        <p class="mt-1.5 text-[11.5px] text-[#686868]">
+                            {{ costTotal }}
+                            {{ t('finance.reports.transactions') }} ·
+                            {{ selectedCurrencyLabel }}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="shrink-0 cursor-pointer rounded-[10px] bg-[#6C4EE9] px-3.5 py-2 text-[13px] font-medium text-white transition hover:brightness-110"
+                        @click="openCreateForm('cost')"
+                    >
+                        + {{ t('finance.form.add_cost') }}
+                    </button>
+                </div>
+
+                <div
+                    class="grid grid-cols-[minmax(0,1fr)_max-content_68px] items-center gap-2.5 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase sm:grid-cols-[minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
+                >
+                    <div>{{ t('finance.fields.subject') }}</div>
+                    <div class="hidden sm:block">
+                        {{ t('finance.fields.category') }}
+                    </div>
+                    <div class="hidden sm:block">
+                        {{ t('finance.fields.date') }}
+                    </div>
+                    <div class="text-end">
+                        {{ t('finance.fields.amount') }}
+                        <span dir="ltr">({{ selectedCurrencySymbol }})</span>
+                    </div>
+                    <div class="w-[68px]">
+                        <span class="sr-only">{{ t('common.actions') }}</span>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto px-3 pb-5">
-                    <table
-                        class="w-full border-separate border-spacing-y-0 text-sm"
+                <div
+                    v-for="transaction in props.transactions.costs"
+                    :key="transaction.id"
+                    class="group grid grid-cols-[minmax(0,1fr)_max-content_68px] items-center gap-2.5 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
+                >
+                    <div class="min-w-0">
+                        <p class="truncate text-sm text-white">
+                            <Ciphered
+                                :value="transaction.title"
+                                table="transactions"
+                            />
+                        </p>
+                        <p
+                            v-if="transaction.description"
+                            class="mt-0.5 truncate text-[11px] text-[#686868]"
+                        >
+                            <Ciphered
+                                :value="transaction.description"
+                                table="transactions"
+                            />
+                        </p>
+                        <CategoryChip
+                            class="mt-1 sm:hidden"
+                            :name="categoryName(transaction)"
+                            :color="categoryColor(transaction)"
+                        />
+                    </div>
+                    <CategoryChip
+                        class="hidden sm:inline-flex"
+                        :name="categoryName(transaction)"
+                        :color="categoryColor(transaction)"
+                    />
+                    <span
+                        dir="ltr"
+                        class="hidden text-xs text-[#686868] tabular-nums sm:block"
                     >
-                        <thead>
-                            <tr class="text-left">
-                                <th
-                                    class="finance-cell-tight rounded-l-2xl bg-[#24212f] px-2 py-3 text-center"
-                                >
-                                    <Checkbox
-                                        :checked="costsSelectionState"
-                                        @update:checked="toggleAllCosts"
-                                    />
-                                </th>
-                                <th
-                                    class="bg-[#24212f] px-3 py-3 text-center font-normal text-[#c4b2ff] sm:px-5"
-                                >
-                                    {{ t('finance.fields.subject') }}
-                                </th>
-                                <th
-                                    class="bg-[#24212f] px-3 py-3 text-center font-normal text-[#c4b2ff] sm:px-5"
-                                >
-                                    {{ t('finance.fields.category') }}
-                                </th>
-                                <th
-                                    class="bg-[#24212f] px-3 py-3 text-center font-normal text-[#c4b2ff] sm:px-5"
-                                >
-                                    {{ t('finance.fields.amount') }}
-                                </th>
-                                <th
-                                    class="hidden bg-[#24212f] px-3 py-3 text-center font-normal whitespace-nowrap text-[#c4b2ff] sm:table-cell sm:px-5"
-                                >
-                                    {{ t('finance.fields.date') }}
-                                </th>
-                                <th
-                                    class="rounded-r-2xl bg-[#24212f] px-3 py-3 sm:px-5"
-                                ></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="transaction in props.transactions.costs"
-                                :key="transaction.id"
-                                class="group"
-                            >
-                                <td
-                                    class="finance-cell-tight px-2 py-3 text-center"
-                                >
-                                    <Checkbox
-                                        :checked="
-                                            selectedCostIds.has(transaction.id)
-                                        "
-                                        @update:checked="
-                                            (v: boolean | 'indeterminate') =>
-                                                toggleCost(
-                                                    transaction.id,
-                                                    v === true,
-                                                )
-                                        "
-                                    />
-                                </td>
-                                <td
-                                    class="px-3 py-3 text-center leading-tight font-normal text-white sm:px-5"
-                                >
-                                    <button
-                                        class="cursor-pointer text-white hover:text-[#947BFF]"
-                                        type="button"
-                                        @click="openEditForm(transaction)"
-                                    >
-                                        <Ciphered
-                                            :value="transaction.title"
-                                            table="transactions"
-                                        />
-                                    </button>
-                                    <div
-                                        v-if="transaction.description"
-                                        class="mt-1 line-clamp-1 text-xs text-[#989898]"
-                                    >
-                                        <Ciphered
-                                            :value="transaction.description"
-                                            table="transactions"
-                                        />
-                                    </div>
-                                </td>
-                                <td class="px-3 py-3 text-center sm:px-5">
-                                    <span
-                                        class="inline-flex min-w-[88px] justify-center rounded-md bg-white/10 px-3 py-1.5 leading-tight font-normal text-white"
-                                    >
-                                        {{ categoryName(transaction) }}
-                                    </span>
-                                </td>
-                                <td
-                                    class="px-3 py-3 text-center leading-tight font-normal whitespace-nowrap text-white sm:px-5"
-                                >
-                                    <CipheredMoney
-                                        :amount="transaction.amount"
-                                        :display-amount="
-                                            transaction.display_amount
-                                        "
-                                        :currency="transaction.currency"
-                                        :display-currency="
-                                            transaction.display_currency
-                                        "
-                                        :rates="props.rates"
-                                    />
-                                </td>
-                                <td
-                                    class="hidden px-3 py-3 text-center leading-tight font-normal whitespace-nowrap text-white sm:table-cell sm:px-5"
-                                >
-                                    {{ displayDate(transaction.occurred_at) }}
-                                </td>
-                                <td class="px-3 py-3 text-center sm:px-5">
-                                    <div
-                                        class="flex items-center justify-center gap-1"
-                                    >
-                                        <button
-                                            type="button"
-                                            class="rounded-md p-1.5 hover:bg-white/10"
-                                            @click="openEditForm(transaction)"
-                                        >
-                                            <Pencil
-                                                class="size-3.5 text-[#6C4EE9]"
-                                            />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="rounded-md p-1.5 hover:bg-[#fff0f0]"
-                                            @click="requestDelete(transaction)"
-                                        >
-                                            <Trash2
-                                                class="size-3.5 text-[#E94E50]"
-                                            />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-if="props.transactions.costs.length === 0">
-                                <td
-                                    colspan="6"
-                                    class="px-5 py-12 text-center text-[#989898]"
-                                >
-                                    {{ t('finance.dashboard.no_costs') }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                        {{ displayDate(transaction.occurred_at) }}
+                    </span>
+                    <span
+                        class="max-w-[122px] truncate text-end text-[14.5px] text-[#947BFF] tabular-nums sm:max-w-none"
+                        :class="maskClass"
+                        dir="ltr"
+                    >
+                        <CipheredMoney
+                            :amount="transaction.amount"
+                            :display-amount="transaction.display_amount"
+                            :currency="transaction.currency"
+                            :display-currency="transaction.display_currency"
+                            :rates="props.rates"
+                        />
+                    </span>
+                    <div
+                        class="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
+                    >
+                        <button
+                            type="button"
+                            :aria-label="t('common.edit')"
+                            :title="t('common.edit')"
+                            class="grid size-8 cursor-pointer place-items-center rounded-md text-[#947BFF] transition-colors hover:bg-[#947BFF]/10 focus-visible:ring-2 focus-visible:ring-[#947BFF] focus-visible:outline-none"
+                            @click="openEditForm(transaction)"
+                        >
+                            <Pencil class="size-3.5" aria-hidden="true" />
+                        </button>
+                        <button
+                            type="button"
+                            :aria-label="t('common.delete')"
+                            :title="t('common.delete')"
+                            class="grid size-8 cursor-pointer place-items-center rounded-md text-[#E94E50] transition-colors hover:bg-[#E94E50]/10 focus-visible:ring-2 focus-visible:ring-[#E94E50] focus-visible:outline-none"
+                            @click="void requestDelete(transaction)"
+                        >
+                            <Trash2 class="size-3.5" aria-hidden="true" />
+                        </button>
+                    </div>
                 </div>
+
+                <p
+                    v-if="props.transactions.costs.length === 0"
+                    class="py-10 text-center text-sm text-[#989898]"
+                >
+                    {{ t('finance.dashboard.no_costs') }}
+                </p>
+
                 <!-- Cost table pagination -->
                 <div
                     v-if="
                         props.transactions.meta?.costs &&
                         props.transactions.meta.costs.last_page > 1
                     "
-                    class="flex items-center justify-center gap-3 border-t border-white/[0.07] px-5 py-3 text-xs"
+                    class="flex items-center justify-center gap-3 py-4 text-xs text-[#686868]"
                 >
                     <button
+                        type="button"
                         :disabled="
                             props.transactions.meta.costs.current_page <= 1
                         "
-                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        class="cursor-pointer rounded-[7px] bg-[#252525] px-[11px] py-[5px] text-white transition-colors hover:bg-[#2e2e2e] disabled:cursor-not-allowed disabled:opacity-40"
                         @click="
                             changeCostPage(
                                 props.transactions.meta.costs.current_page - 1,
                             )
                         "
                     >
-                        ←
+                        ‹
                     </button>
-                    <span class="text-[#989898]">
-                        {{ props.transactions.meta.costs.current_page }}
-                        /
-                        {{ props.transactions.meta.costs.last_page }}
-                        <span class="ml-1 text-[#6b6b6b]"
-                            >({{ props.transactions.meta.costs.total }})</span
-                        >
+                    <span>
+                        {{ props.transactions.meta.costs.current_page }} /
+                        {{ props.transactions.meta.costs.last_page }} ·
+                        {{ props.transactions.meta.costs.total }}
+                        {{ t('finance.reports.transactions') }}
                     </span>
                     <button
+                        type="button"
                         :disabled="
                             props.transactions.meta.costs.current_page >=
                             props.transactions.meta.costs.last_page
                         "
-                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        class="cursor-pointer rounded-[7px] bg-[#252525] px-[11px] py-[5px] text-white transition-colors hover:bg-[#2e2e2e] disabled:cursor-not-allowed disabled:opacity-40"
                         @click="
                             changeCostPage(
                                 props.transactions.meta.costs.current_page + 1,
                             )
                         "
                     >
-                        →
+                        ›
                     </button>
                 </div>
             </section>
 
+            <!-- ── Money coming in ──────────────────────────────────────── -->
             <section
-                class="kpi-card-income overflow-hidden rounded-[22px] bg-[#1a1a1a] shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
+                class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
             >
                 <div
-                    class="flex flex-wrap items-center justify-between gap-3 px-5 py-5"
+                    class="mb-4 flex flex-wrap items-start justify-between gap-3.5"
                 >
-                    <div>
-                        <h2
-                            class="text-lg leading-none font-normal text-white sm:text-xl"
-                        >
-                            {{ t('finance.tables.money_coming_in') }}
-                        </h2>
-                    </div>
-                    <div class="flex flex-wrap items-center justify-end gap-2">
-                        <Button
-                            class="h-10 w-max justify-between rounded-md bg-[linear-gradient(90deg,#02CD86_0%,#00A96F_100%)] px-3.5 text-sm leading-none font-bold text-white shadow-[0_10px_20px_rgba(2,205,134,0.22)] transition hover:brightness-105 sm:h-11 sm:text-base"
-                            @click="openCreateForm('income')"
-                        >
-                            <span class="grid text-left">
-                                <span class="col-start-1 row-start-1">
-                                    {{ t('finance.actions.add_income') }}
-                                </span>
-                                <span
-                                    class="invisible col-start-1 row-start-1"
-                                    aria-hidden="true"
-                                >
-                                    {{ t('finance.actions.add_income') }}
-                                </span>
-                            </span>
+                    <div class="min-w-0">
+                        <div class="mb-2 flex items-center gap-2">
                             <span
-                                class="grid h-[1.65em] w-[1.65em] min-w-[1.65em] shrink-0 place-items-center rounded-md border border-white/25 bg-[linear-gradient(135deg,rgba(255,255,255,0.24)_0%,rgba(45,45,45,0.72)_42%,rgba(45,45,45,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
+                                class="size-[7px] shrink-0 rounded-[2px] bg-[#02CD86]"
+                            />
+                            <p
+                                class="text-[11px] font-medium tracking-[0.13em] text-[#02CD86] uppercase"
                             >
-                                <Plus class="size-5" />
-                            </span>
-                        </Button>
+                                {{ t('finance.tables.money_coming_in') }}
+                            </p>
+                        </div>
+                        <p
+                            class="text-[25px] leading-none font-semibold text-white"
+                        >
+                            <CompactMoney
+                                v-if="summaryIncome !== null"
+                                :value="summaryIncome"
+                                :currency="selectedCurrency"
+                            />
+                            <span v-else class="text-base text-[#686868]"
+                                >—</span
+                            >
+                        </p>
+                        <p class="mt-1.5 text-[11.5px] text-[#686868]">
+                            {{ incomeTotal }}
+                            {{ t('finance.reports.transactions') }} ·
+                            {{ selectedCurrencyLabel }}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="shrink-0 cursor-pointer rounded-[10px] bg-[#02CD86] px-3.5 py-2 text-[13px] font-medium text-[#101010] transition hover:brightness-110"
+                        @click="openCreateForm('income')"
+                    >
+                        + {{ t('finance.form.add_income') }}
+                    </button>
+                </div>
+
+                <div
+                    class="grid grid-cols-[minmax(0,1fr)_max-content_68px] items-center gap-2.5 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase sm:grid-cols-[minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
+                >
+                    <div>{{ t('finance.fields.subject') }}</div>
+                    <div class="hidden sm:block">
+                        {{ t('finance.fields.category') }}
+                    </div>
+                    <div class="hidden sm:block">
+                        {{ t('finance.fields.date') }}
+                    </div>
+                    <div class="text-end">
+                        {{ t('finance.fields.amount') }}
+                        <span dir="ltr">({{ selectedCurrencySymbol }})</span>
+                    </div>
+                    <div class="w-[68px]">
+                        <span class="sr-only">{{ t('common.actions') }}</span>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto px-3 pb-5">
-                    <table
-                        class="w-full border-separate border-spacing-y-0 text-sm"
+                <div
+                    v-for="transaction in props.transactions.incomes"
+                    :key="transaction.id"
+                    class="group grid grid-cols-[minmax(0,1fr)_max-content_68px] items-center gap-2.5 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
+                >
+                    <div class="min-w-0">
+                        <p class="truncate text-sm text-white">
+                            <Ciphered
+                                :value="transaction.title"
+                                table="transactions"
+                            />
+                        </p>
+                        <p
+                            v-if="transaction.description"
+                            class="mt-0.5 truncate text-[11px] text-[#686868]"
+                        >
+                            <Ciphered
+                                :value="transaction.description"
+                                table="transactions"
+                            />
+                        </p>
+                        <CategoryChip
+                            class="mt-1 sm:hidden"
+                            :name="categoryName(transaction)"
+                            :color="categoryColor(transaction)"
+                        />
+                    </div>
+                    <CategoryChip
+                        class="hidden sm:inline-flex"
+                        :name="categoryName(transaction)"
+                        :color="categoryColor(transaction)"
+                    />
+                    <span
+                        dir="ltr"
+                        class="hidden text-xs text-[#686868] tabular-nums sm:block"
                     >
-                        <thead>
-                            <tr class="text-left">
-                                <th
-                                    class="finance-cell-tight rounded-l-2xl bg-[#0d2620] px-2 py-3 text-center"
-                                >
-                                    <Checkbox
-                                        :checked="incomesSelectionState"
-                                        @update:checked="toggleAllIncomes"
-                                    />
-                                </th>
-                                <th
-                                    class="bg-[#0d2620] px-3 py-3 text-center font-normal text-[#7ee8c4] sm:px-5"
-                                >
-                                    {{ t('finance.fields.subject') }}
-                                </th>
-                                <th
-                                    class="bg-[#0d2620] px-3 py-3 text-center font-normal text-[#7ee8c4] sm:px-5"
-                                >
-                                    {{ t('finance.fields.category') }}
-                                </th>
-                                <th
-                                    class="bg-[#0d2620] px-3 py-3 text-center font-normal text-[#7ee8c4] sm:px-5"
-                                >
-                                    {{ t('finance.fields.amount') }}
-                                </th>
-                                <th
-                                    class="hidden bg-[#0d2620] px-3 py-3 text-center font-normal whitespace-nowrap text-[#7ee8c4] sm:table-cell sm:px-5"
-                                >
-                                    {{ t('finance.fields.date') }}
-                                </th>
-                                <th
-                                    class="rounded-r-2xl bg-[#0d2620] px-3 py-3 sm:px-5"
-                                ></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="transaction in props.transactions
-                                    .incomes"
-                                :key="transaction.id"
-                                class="group"
-                            >
-                                <td
-                                    class="finance-cell-tight px-2 py-3 text-center"
-                                >
-                                    <Checkbox
-                                        :checked="
-                                            selectedIncomeIds.has(
-                                                transaction.id,
-                                            )
-                                        "
-                                        @update:checked="
-                                            (v: boolean | 'indeterminate') =>
-                                                toggleIncome(
-                                                    transaction.id,
-                                                    v === true,
-                                                )
-                                        "
-                                    />
-                                </td>
-                                <td
-                                    class="px-3 py-3 text-center leading-tight font-normal text-white sm:px-5"
-                                >
-                                    <button
-                                        class="cursor-pointer text-white hover:text-[#02CD86]"
-                                        type="button"
-                                        @click="openEditForm(transaction)"
-                                    >
-                                        <Ciphered
-                                            :value="transaction.title"
-                                            table="transactions"
-                                        />
-                                    </button>
-                                    <div
-                                        v-if="transaction.description"
-                                        class="mt-1 line-clamp-1 text-xs text-[#989898]"
-                                    >
-                                        <Ciphered
-                                            :value="transaction.description"
-                                            table="transactions"
-                                        />
-                                    </div>
-                                </td>
-                                <td class="px-3 py-3 text-center sm:px-5">
-                                    <span
-                                        class="inline-flex min-w-[88px] justify-center rounded-md bg-white/10 px-3 py-1.5 leading-tight font-normal text-white"
-                                    >
-                                        {{ categoryName(transaction) }}
-                                    </span>
-                                </td>
-                                <td
-                                    class="px-3 py-3 text-center leading-tight font-normal whitespace-nowrap text-white sm:px-5"
-                                >
-                                    <CipheredMoney
-                                        :amount="transaction.amount"
-                                        :display-amount="
-                                            transaction.display_amount
-                                        "
-                                        :currency="transaction.currency"
-                                        :display-currency="
-                                            transaction.display_currency
-                                        "
-                                        :rates="props.rates"
-                                    />
-                                </td>
-                                <td
-                                    class="hidden px-3 py-3 text-center leading-tight font-normal whitespace-nowrap text-white sm:table-cell sm:px-5"
-                                >
-                                    {{ displayDate(transaction.occurred_at) }}
-                                </td>
-                                <td class="px-3 py-3 text-center sm:px-5">
-                                    <div
-                                        class="flex items-center justify-center gap-1"
-                                    >
-                                        <button
-                                            type="button"
-                                            class="rounded-md p-1.5 hover:bg-white/10"
-                                            @click="openEditForm(transaction)"
-                                        >
-                                            <Pencil
-                                                class="size-3.5 text-[#6C4EE9]"
-                                            />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="rounded-md p-1.5 hover:bg-[#fff0f0]"
-                                            @click="requestDelete(transaction)"
-                                        >
-                                            <Trash2
-                                                class="size-3.5 text-[#E94E50]"
-                                            />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-if="props.transactions.incomes.length === 0">
-                                <td
-                                    colspan="6"
-                                    class="px-5 py-12 text-center text-[#989898]"
-                                >
-                                    {{ t('finance.dashboard.no_incomes') }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                        {{ displayDate(transaction.occurred_at) }}
+                    </span>
+                    <span
+                        class="max-w-[122px] truncate text-end text-[14.5px] text-[#02CD86] tabular-nums sm:max-w-none"
+                        :class="maskClass"
+                        dir="ltr"
+                    >
+                        <CipheredMoney
+                            :amount="transaction.amount"
+                            :display-amount="transaction.display_amount"
+                            :currency="transaction.currency"
+                            :display-currency="transaction.display_currency"
+                            :rates="props.rates"
+                        />
+                    </span>
+                    <div
+                        class="flex items-center justify-end gap-1 opacity-100 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
+                    >
+                        <button
+                            type="button"
+                            :aria-label="t('common.edit')"
+                            :title="t('common.edit')"
+                            class="grid size-8 cursor-pointer place-items-center rounded-md text-[#02CD86] transition-colors hover:bg-[#02CD86]/10 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:outline-none"
+                            @click="openEditForm(transaction)"
+                        >
+                            <Pencil class="size-3.5" aria-hidden="true" />
+                        </button>
+                        <button
+                            type="button"
+                            :aria-label="t('common.delete')"
+                            :title="t('common.delete')"
+                            class="grid size-8 cursor-pointer place-items-center rounded-md text-[#E94E50] transition-colors hover:bg-[#E94E50]/10 focus-visible:ring-2 focus-visible:ring-[#E94E50] focus-visible:outline-none"
+                            @click="void requestDelete(transaction)"
+                        >
+                            <Trash2 class="size-3.5" aria-hidden="true" />
+                        </button>
+                    </div>
                 </div>
+
+                <p
+                    v-if="props.transactions.incomes.length === 0"
+                    class="py-10 text-center text-sm text-[#989898]"
+                >
+                    {{ t('finance.dashboard.no_incomes') }}
+                </p>
+
                 <!-- Income table pagination -->
                 <div
                     v-if="
                         props.transactions.meta?.incomes &&
                         props.transactions.meta.incomes.last_page > 1
                     "
-                    class="flex items-center justify-center gap-3 border-t border-white/[0.07] px-5 py-3 text-xs"
+                    class="flex items-center justify-center gap-3 py-4 text-xs text-[#686868]"
                 >
                     <button
+                        type="button"
                         :disabled="
                             props.transactions.meta.incomes.current_page <= 1
                         "
-                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        class="cursor-pointer rounded-[7px] bg-[#252525] px-[11px] py-[5px] text-white transition-colors hover:bg-[#2e2e2e] disabled:cursor-not-allowed disabled:opacity-40"
                         @click="
                             changeIncomePage(
                                 props.transactions.meta.incomes.current_page -
@@ -578,22 +436,21 @@
                             )
                         "
                     >
-                        ←
+                        ‹
                     </button>
-                    <span class="text-[#989898]">
-                        {{ props.transactions.meta.incomes.current_page }}
-                        /
-                        {{ props.transactions.meta.incomes.last_page }}
-                        <span class="ml-1 text-[#6b6b6b]"
-                            >({{ props.transactions.meta.incomes.total }})</span
-                        >
+                    <span>
+                        {{ props.transactions.meta.incomes.current_page }} /
+                        {{ props.transactions.meta.incomes.last_page }} ·
+                        {{ props.transactions.meta.incomes.total }}
+                        {{ t('finance.reports.transactions') }}
                     </span>
                     <button
+                        type="button"
                         :disabled="
                             props.transactions.meta.incomes.current_page >=
                             props.transactions.meta.incomes.last_page
                         "
-                        class="rounded-full bg-white/10 px-3 py-1.5 text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                        class="cursor-pointer rounded-[7px] bg-[#252525] px-[11px] py-[5px] text-white transition-colors hover:bg-[#2e2e2e] disabled:cursor-not-allowed disabled:opacity-40"
                         @click="
                             changeIncomePage(
                                 props.transactions.meta.incomes.current_page +
@@ -601,77 +458,30 @@
                             )
                         "
                     >
-                        →
+                        ›
                     </button>
                 </div>
             </section>
         </div>
 
-        <!-- ── Bulk action toolbar ─────────────────────────────────── -->
-        <Transition
-            enter-active-class="transition-all duration-200 ease-out"
-            enter-from-class="opacity-0 translate-y-4"
-            enter-to-class="opacity-100 translate-y-0"
-            leave-active-class="transition-all duration-150 ease-in"
-            leave-from-class="opacity-100 translate-y-0"
-            leave-to-class="opacity-0 translate-y-4"
+        <!-- ── Import / export — a new bar below the tables, matching the
+             mock's Report-screen footer treatment. ────────────────────── -->
+        <div
+            class="mx-[18px] mb-[38px] flex flex-wrap items-center justify-between gap-4 rounded-[16px] bg-[#1a1a1a] px-[22px] py-[18px] ring-1 ring-white/10"
         >
-            <div
-                v-if="totalSelected > 0"
-                class="fixed inset-x-0 bottom-6 z-50 flex justify-center"
-            >
-                <div
-                    class="flex flex-wrap items-center gap-3 rounded-2xl bg-[#1a1a1a] px-5 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.5)] ring-1 ring-white/15"
+            <p class="text-[13.5px] text-[#989898]">
+                {{ t('finance.import.footer_hint') }}
+            </p>
+            <div class="flex shrink-0 gap-2">
+                <button
+                    type="button"
+                    class="cursor-pointer rounded-[10px] bg-[#252525] px-[15px] py-2 text-[13.5px] text-white ring-1 ring-white/[0.14] transition-colors hover:bg-[#2e2e2e]"
+                    @click="openImportDialog()"
                 >
-                    <span class="text-sm font-medium text-[#989898]">
-                        {{ totalSelected }}
-                        {{ totalSelected === 1 ? 'item' : 'items' }} selected
-                    </span>
-
-                    <div
-                        v-if="selectionType !== null"
-                        class="flex items-center gap-2"
-                    >
-                        <select
-                            v-model="bulkCategoryId"
-                            class="h-8 rounded-lg border border-white/10 bg-[#252525] px-2 text-xs text-white [color-scheme:dark] focus:outline-none"
-                        >
-                            <option value="">
-                                {{ t('finance.actions.bulk_assign') }}…
-                            </option>
-                            <option
-                                v-for="cat in bulkCategories"
-                                :key="cat.id"
-                                :value="String(cat.id)"
-                            >
-                                {{ cat.name }}
-                            </option>
-                        </select>
-                        <button
-                            :disabled="!bulkCategoryId"
-                            class="h-8 rounded-lg bg-[#947BFF]/20 px-3 text-xs font-medium text-[#947BFF] ring-1 ring-[#947BFF]/30 transition hover:bg-[#947BFF]/30 disabled:cursor-not-allowed disabled:opacity-40"
-                            @click="bulkAssignCategory"
-                        >
-                            Apply
-                        </button>
-                    </div>
-
-                    <button
-                        v-if="hasGroupSelection"
-                        class="h-8 rounded-lg bg-[#E94E50]/15 px-3 text-xs font-medium text-[#E94E50] ring-1 ring-[#E94E50]/25 transition hover:bg-[#E94E50]/25"
-                        @click="requestBulkDelete"
-                    >
-                        {{ t('finance.actions.bulk_delete') }}
-                    </button>
-                    <button
-                        class="h-8 rounded-lg bg-white/5 px-3 text-xs font-medium text-[#6b6b6b] ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white"
-                        @click="clearSelection"
-                    >
-                        {{ t('common.clear') }}
-                    </button>
-                </div>
+                    {{ t('finance.import.action') }}
+                </button>
             </div>
-        </Transition>
+        </div>
 
         <TransactionDialog
             v-model:open="isDialogOpen"
@@ -681,12 +491,26 @@
             :currencies="props.currencies"
         />
 
+        <ConfirmDeleteModal
+            :open="deleteTarget !== null"
+            :title="
+                t('finance.delete.transaction_title', {
+                    title: deleteTargetTitle,
+                })
+            "
+            :description="t('finance.delete.transaction_description')"
+            :processing="deleteForm.processing"
+            @update:open="(open) => !open && (deleteTarget = null)"
+            @confirm="confirmDelete"
+        />
+
+        <!-- ── Import ─────────────────────────────────────────────── -->
         <Dialog
             :open="isImportDialogOpen"
             @update:open="handleImportDialogOpenChange"
         >
             <DialogContent
-                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[25px] border-0 bg-[#1a1a1a] p-0 text-white shadow-2xl ring-1 ring-white/10 sm:max-w-[980px]"
+                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[16px] border-0 bg-[#1a1a1a] p-0 text-white shadow-2xl ring-1 ring-white/10 sm:max-w-[980px]"
             >
                 <div class="space-y-6 px-6 py-8">
                     <DialogHeader class="space-y-2 text-start">
@@ -913,7 +737,10 @@
                                     <td class="px-3 py-3">
                                         {{
                                             row.data
-                                                ? formatAmount(row.data.amount)
+                                                ? formatCurrencyDisplay(
+                                                      row.data.amount,
+                                                      row.data.currency,
+                                                  )
                                                 : (row.original.amount ?? '-')
                                         }}
                                     </td>
@@ -982,30 +809,6 @@
                 </div>
             </DialogContent>
         </Dialog>
-
-        <ConfirmDeleteModal
-            :open="deleteTarget !== null"
-            :title="
-                t('finance.delete.transaction_title', {
-                    title: deleteTargetLabel,
-                })
-            "
-            :description="t('finance.delete.transaction_description')"
-            @update:open="clearDeleteTarget"
-            @confirm="confirmDelete"
-        />
-
-        <ConfirmDeleteModal
-            :open="isBulkDeleteDialogOpen"
-            :title="
-                t('finance.delete.bulk_transactions_title', {
-                    count: totalSelected,
-                })
-            "
-            :description="t('finance.delete.bulk_transactions_description')"
-            @update:open="isBulkDeleteDialogOpen = false"
-            @confirm="confirmBulkDelete"
-        />
     </div>
 </template>
 
@@ -1017,10 +820,6 @@ import {
     ClipboardCheck,
     FileDown,
     Pencil,
-    Plus,
-    Download,
-    RotateCcw,
-    Search,
     Trash2,
     Upload,
 } from 'lucide-vue-next';
@@ -1029,11 +828,12 @@ import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
+import CompactMoney from '@/components/CompactMoney.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
+import CategoryChip from '@/components/transactions/CategoryChip.vue';
 import TransactionDialog from '@/components/transactions/TransactionDialog.vue';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -1051,11 +851,22 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { useAmountMask } from '@/composables/useAmountMask';
+import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
+import { usePageSubtitle } from '@/composables/usePageSubtitle';
 import { useVault } from '@/composables/useVault';
 import { formatAppDate } from '@/lib/date';
+import {
+    currencySymbol,
+    formatCurrencyDisplay,
+    formatCurrencyNumber,
+} from '@/lib/money';
 import type { Rates } from '@/lib/money';
 import { dashboard } from '@/routes';
-import { index as transactionsIndex } from '@/routes/transactions';
+import {
+    destroy as destroyTransaction,
+    index as transactionsIndex,
+} from '@/routes/transactions';
 import type { Encrypted } from '@/types/vault';
 
 type TransactionType = 'cost' | 'income';
@@ -1067,6 +878,7 @@ type Category = {
     name: string;
     slug: string;
     type: TransactionType;
+    color: string | null;
     is_default: boolean;
 };
 
@@ -1179,235 +991,138 @@ defineOptions({
 });
 
 const isDialogOpen = ref(false);
-const isImportDialogOpen = ref(false);
-const isBulkDeleteDialogOpen = ref(false);
 const dialogTransactionType = ref<TransactionType>('cost');
 const editingTransaction = ref<Transaction | null>(null);
-const deleteTarget = ref<Transaction | null>(null);
-const deleteTargetLabel = ref('');
 const page = usePage();
 const { t } = useI18n();
 const { revealAsync } = useVault();
+const { masked } = useAmountMask();
+const maskClass = computed(() =>
+    masked.value
+        ? 'blur-[6px] transition-[filter] duration-150 select-none'
+        : 'transition-[filter] duration-150',
+);
 const displayCalendar = computed(
     () => (page.props.calendar as string | undefined) ?? 'gregorian',
 );
 
-const requestDelete = async (transaction: Transaction) => {
-    deleteTarget.value = transaction;
-    deleteTargetLabel.value =
-        (await revealAsync<string>(
-            transaction.title,
-            'transactions',
-            'string',
-        )) ?? `#${transaction.id}`;
-};
-
-const confirmDelete = () => {
-    if (!deleteTarget.value) {
-        return;
-    }
-
-    router.delete(`/transactions/${deleteTarget.value.id}`, {
-        preserveScroll: true,
-    });
-    clearDeleteTarget();
-};
-
-function clearDeleteTarget(): void {
-    deleteTarget.value = null;
-    deleteTargetLabel.value = '';
-}
 const selectedCurrency = ref<Currency>(props.selectedCurrency);
-const importFileInput = ref<HTMLInputElement | null>(null);
-const importPreview = ref<ImportPreview | null>(null);
-const importResult = ref<ImportResult | null>(null);
-const importProcessing = ref(false);
-const promptCopied = ref(false);
+const selectedCurrencyLabel = computed(
+    () =>
+        props.currencies.find(
+            (currency) => currency.value === selectedCurrency.value,
+        )?.label ?? t(`finance.currencies.${selectedCurrency.value}`),
+);
+const selectedCurrencySymbol = computed(() =>
+    currencySymbol(selectedCurrency.value),
+);
 const filterSearch = ref(props.filters.search);
 const filterCategory = ref(props.filters.category?.toString() ?? 'all');
 const filterFrom = ref(props.filters.from);
 const filterTo = ref(props.filters.to);
 const filterFieldClass =
-    'h-9 w-full rounded-md !border-white/10 !bg-[#252525] px-3 text-sm font-normal !text-white shadow-none [color-scheme:dark] placeholder:!text-[#686868] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 [&_svg]:!text-[#989898]';
+    'h-9 w-full rounded-[10px] !border-white/[0.08] !bg-[#252525] px-3 text-[13px] font-normal !text-[#e5e5e5] shadow-none [color-scheme:dark] placeholder:!text-[#686868] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 [&_svg]:!text-[#989898]';
 
-// ── Bulk selection ────────────────────────────────────────────
-const selectedCostIds = ref<Set<number>>(new Set());
-const selectedIncomeIds = ref<Set<number>>(new Set());
-const bulkCategoryId = ref<string>('');
-
-const totalSelected = computed(
-    () => selectedCostIds.value.size + selectedIncomeIds.value.size,
-);
-const hasGroupSelection = computed(() => totalSelected.value > 1);
-const selectionType = computed<TransactionType | null>(() => {
-    if (selectedCostIds.value.size > 0 && selectedIncomeIds.value.size === 0) {
-        return 'cost';
-    }
-
-    if (selectedIncomeIds.value.size > 0 && selectedCostIds.value.size === 0) {
-        return 'income';
-    }
-
-    return null;
-});
-const bulkCategories = computed(() => {
-    if (selectionType.value === 'cost') {
-        return props.categories.cost ?? [];
-    }
-
-    if (selectionType.value === 'income') {
-        return props.categories.income ?? [];
-    }
-
-    return [];
-});
-const costsSelectionState = computed(() =>
-    selectionState(props.transactions.costs, selectedCostIds.value),
-);
-const incomesSelectionState = computed(() =>
-    selectionState(props.transactions.incomes, selectedIncomeIds.value),
-);
-
-function toggleCost(id: number, selected: boolean): void {
-    const next = new Set(selectedCostIds.value);
-
-    if (selected) {
-        next.add(id);
-    } else {
-        next.delete(id);
-    }
-
-    selectedCostIds.value = next;
-}
-function toggleIncome(id: number, selected: boolean): void {
-    const next = new Set(selectedIncomeIds.value);
-
-    if (selected) {
-        next.add(id);
-    } else {
-        next.delete(id);
-    }
-
-    selectedIncomeIds.value = next;
-}
-function toggleAllCosts(checked: boolean | 'indeterminate'): void {
-    selectedCostIds.value =
-        checked !== false
-            ? new Set(props.transactions.costs.map((t) => t.id))
-            : new Set();
-}
-function toggleAllIncomes(checked: boolean | 'indeterminate'): void {
-    selectedIncomeIds.value =
-        checked !== false
-            ? new Set(props.transactions.incomes.map((t) => t.id))
-            : new Set();
-}
-
-function selectionState(
-    transactions: Transaction[],
-    selectedIds: Set<number>,
-): boolean | 'indeterminate' {
-    if (transactions.length === 0) {
-        return false;
-    }
-
-    const selectedVisibleCount = transactions.filter((transaction) =>
-        selectedIds.has(transaction.id),
-    ).length;
-
-    if (selectedVisibleCount === 0) {
-        return false;
-    }
-
-    return selectedVisibleCount === transactions.length
-        ? true
-        : 'indeterminate';
-}
-function clearSelection(): void {
-    selectedCostIds.value = new Set();
-    selectedIncomeIds.value = new Set();
-    bulkCategoryId.value = '';
-}
-
-function requestBulkDelete(): void {
-    if (!hasGroupSelection.value) {
-        return;
-    }
-
-    isBulkDeleteDialogOpen.value = true;
-}
-
-function confirmBulkDelete(): void {
-    const ids = [...selectedCostIds.value, ...selectedIncomeIds.value];
-    router.delete('/transactions/bulk', {
-        data: { ids },
-        preserveScroll: true,
-        onSuccess: () => {
-            clearSelection();
-            isBulkDeleteDialogOpen.value = false;
-        },
-    });
-}
-function bulkAssignCategory(): void {
-    const type = selectionType.value;
-
-    if (!type || !bulkCategoryId.value) {
-        return;
-    }
-
-    const ids =
-        type === 'cost'
-            ? [...selectedCostIds.value]
-            : [...selectedIncomeIds.value];
-    router.patch(
-        '/transactions/bulk/category',
-        { ids, type, category_id: Number(bulkCategoryId.value) },
-        { preserveScroll: true, onSuccess: () => clearSelection() },
-    );
-}
-
-const importForm = useForm<{
-    file: File | null;
-}>({
-    file: null,
-});
-
-const importPrompt = `Convert the attached bank statement/report into a CSV for my finance app.
-
-The bank report may be Persian or English. Analyze Persian descriptions, Persian dates, Persian digits, deposits, withdrawals, and Rial/Toman amounts correctly.
-
-Create a downloadable CSV file named transactions.csv as the final result. Do not return explanations, markdown, code fences, totals, or extra columns. The file content must be raw CSV only.
-
-Required English header:
-occurred_at,type,category,amount,currency,title,description
-
-Rules:
-- occurred_at may be converted to Gregorian YYYY-MM-DD if possible. If the report uses Jalali dates, convert them to Gregorian.
-- type must be cost for money leaving the account and income for money entering the account.
-- category must be one of: Food, Transport, Housing, Health, Shopping, Bills, Other, Salary, Freelance, Gift, Investment.
-- amount must be positive, with no thousands separators.
-- If the report amount is in Rial, convert it to Toman by dividing by 10 and set currency to toman.
-- currency must be one of: toman, usd, eur.
-- title can be Persian or English, but keep it short and human-readable.
-- description can include the original bank description.
-- Ignore balance-only rows, headers, footers, failed transactions, and duplicate summary lines.`;
-
-const previewRows = computed(() => importPreview.value?.rows ?? []);
 const filterCategories = computed(() => [
     ...props.categories.cost,
     ...props.categories.income,
 ]);
-function categoryName(transaction: Transaction): string {
-    if (transaction.category?.name) {
-        return transaction.category.name;
+
+// The mock's per-row category tag colours text on a fixed dark chip using
+// each category's own colour — never a generic badge. Falls back to the
+// prop lookup for rows whose relation wasn't eager-loaded.
+function findCategory(transaction: Transaction): Category | null {
+    if (transaction.category) {
+        return transaction.category;
     }
 
     return (
         (props.categories[transaction.type] ?? []).find(
             (category) => category.id === transaction.category_id,
-        )?.name ?? t('finance.categories.uncategorized')
+        ) ?? null
     );
 }
+
+function categoryName(transaction: Transaction): string {
+    return (
+        findCategory(transaction)?.name ?? t('finance.categories.uncategorized')
+    );
+}
+
+function categoryColor(transaction: Transaction): string | null {
+    return findCategory(transaction)?.color ?? null;
+}
+
+const costTotal = computed(
+    () =>
+        props.transactions.meta?.costs?.total ??
+        props.transactions.costs.length,
+);
+const incomeTotal = computed(
+    () =>
+        props.transactions.meta?.incomes?.total ??
+        props.transactions.incomes.length,
+);
+
+// The server's `summary` is the true filtered total (every page, not just the
+// one shown) and is used whenever it could read the amounts. Under the vault
+// it can't, so `summary` arrives null — this page's own rows are decrypted
+// here instead, but only stand in for the true total when there is exactly
+// one page, since a page total presented as the grand total would be wrong
+// the moment there is a second page.
+const { totalOf } = useDisplayAmounts(
+    () => [...props.transactions.costs, ...props.transactions.incomes],
+    () => selectedCurrency.value,
+    () => props.rates,
+);
+
+const costIsSinglePage = computed(
+    () => (props.transactions.meta?.costs?.last_page ?? 1) <= 1,
+);
+const incomeIsSinglePage = computed(
+    () => (props.transactions.meta?.incomes?.last_page ?? 1) <= 1,
+);
+
+const summaryCost = computed<string | null>(() => {
+    if (props.summary) {
+        return props.summary.cost;
+    }
+
+    if (!costIsSinglePage.value) {
+        return null;
+    }
+
+    const total = totalOf(props.transactions.costs);
+
+    return total === null ? null : formatAmount(total);
+});
+
+const summaryIncome = computed<string | null>(() => {
+    if (props.summary) {
+        return props.summary.income;
+    }
+
+    if (!incomeIsSinglePage.value) {
+        return null;
+    }
+
+    const total = totalOf(props.transactions.incomes);
+
+    return total === null ? null : formatAmount(total);
+});
+
+function formatAmount(amount: string | number): string {
+    return formatCurrencyNumber(amount, selectedCurrency.value);
+}
+
+usePageSubtitle(() =>
+    t('finance.transactions.subtitle', {
+        count: props.transactions.meta
+            ? (props.transactions.meta.costs?.total ?? 0) +
+              (props.transactions.meta.incomes?.total ?? 0)
+            : (props.summary?.count ?? 0),
+    }),
+);
 
 const openCreateForm = (type: TransactionType) => {
     dialogTransactionType.value = type;
@@ -1415,101 +1130,38 @@ const openCreateForm = (type: TransactionType) => {
     isDialogOpen.value = true;
 };
 
-const openEditForm = (transaction: Transaction) => {
+function openEditForm(transaction: Transaction): void {
     dialogTransactionType.value = transaction.type;
     editingTransaction.value = transaction;
     isDialogOpen.value = true;
-};
+}
 
-const resetImportDialog = () => {
-    importForm.clearErrors();
-    importForm.reset();
-    importPreview.value = null;
-    importResult.value = null;
-    promptCopied.value = false;
+const deleteTarget = ref<Transaction | null>(null);
+const deleteTargetTitle = ref('');
+const deleteForm = useForm({});
 
-    if (importFileInput.value) {
-        importFileInput.value.value = '';
-    }
-};
+async function requestDelete(transaction: Transaction): Promise<void> {
+    deleteTarget.value = transaction;
+    deleteTargetTitle.value =
+        (await revealAsync<string>(
+            transaction.title,
+            'transactions',
+            'string',
+        )) ?? '';
+}
 
-const openImportDialog = () => {
-    resetImportDialog();
-    isImportDialogOpen.value = true;
-};
-
-const closeImportDialog = () => {
-    isImportDialogOpen.value = false;
-    resetImportDialog();
-};
-
-const handleImportDialogOpenChange = (open: boolean) => {
-    if (open) {
-        isImportDialogOpen.value = true;
-
+function confirmDelete(): void {
+    if (!deleteTarget.value) {
         return;
     }
 
-    closeImportDialog();
-};
-
-const selectImportFile = (event: Event) => {
-    const input = event.target as HTMLInputElement;
-    importForm.file = input.files?.[0] ?? null;
-};
-
-const submitImportPreview = () => {
-    importForm.post('/transactions/imports/preview', {
-        forceFormData: true,
+    deleteForm.delete(destroyTransaction.url(deleteTarget.value.id), {
         preserveScroll: true,
         onSuccess: () => {
-            importForm.reset('file');
-
-            if (importFileInput.value) {
-                importFileInput.value.value = '';
-            }
+            deleteTarget.value = null;
+            deleteTargetTitle.value = '';
         },
     });
-};
-
-const confirmImport = () => {
-    importProcessing.value = true;
-
-    router.post(
-        '/transactions/imports',
-        {},
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                importProcessing.value = false;
-            },
-        },
-    );
-};
-
-const copyImportPrompt = async () => {
-    if (!navigator.clipboard) {
-        return;
-    }
-
-    await navigator.clipboard.writeText(importPrompt);
-    promptCopied.value = true;
-
-    window.setTimeout(() => {
-        promptCopied.value = false;
-    }, 1800);
-};
-
-function importStatusClass(status: ImportStatus): string {
-    if (status === 'valid') {
-        return 'bg-[#0d2620] text-[#7ee8c4]';
-    }
-
-    if (status === 'duplicate') {
-        return 'bg-[#2f2815] text-[#ffd58a]';
-    }
-
-    return 'bg-[#2f1717] text-[#ffb4b4]';
 }
 
 watch(
@@ -1517,30 +1169,6 @@ watch(
     (value) => {
         selectedCurrency.value = value;
     },
-);
-
-watch(
-    () => page.props.transactionImportPreview,
-    (value) => {
-        if (value) {
-            importPreview.value = value as ImportPreview;
-            importResult.value = null;
-            isImportDialogOpen.value = true;
-        }
-    },
-    { immediate: true },
-);
-
-watch(
-    () => page.props.transactionImportResult,
-    (value) => {
-        if (value) {
-            importResult.value = value as ImportResult;
-            importPreview.value = null;
-            isImportDialogOpen.value = true;
-        }
-    },
-    { immediate: true },
 );
 
 watch(selectedCurrency, (value) => {
@@ -1562,12 +1190,15 @@ watch(
     { deep: true },
 );
 
+// No explicit "Filter" button in the design — category and date changes
+// apply immediately; the search field applies on Enter.
+watch([filterCategory, filterFrom, filterTo], () => applyFilters());
+
 function applyFilters(
     currency: Currency = selectedCurrency.value,
     costPage: number | null = null,
     incomePage: number | null = null,
 ): void {
-    clearSelection();
     router.get(
         transactionsIndex.url(),
         {
@@ -1598,24 +1229,158 @@ function changeIncomePage(page: number): void {
     applyFilters(selectedCurrency.value, cp && cp > 1 ? cp : null, page);
 }
 
-function clearFilters(): void {
-    filterSearch.value = '';
-    filterCategory.value = 'all';
-    filterFrom.value = '';
-    filterTo.value = '';
-    applyFilters();
-}
-
-function formatAmount(amount: string | number): string {
-    const number = Number(amount);
-
-    return new Intl.NumberFormat('en-US', {
-        maximumFractionDigits: 2,
-        minimumFractionDigits: number % 1 === 0 ? 0 : 2,
-    }).format(number);
-}
-
 function displayDate(value: string): string {
     return formatAppDate(value, displayCalendar.value);
 }
+
+// ── Import ─────────────────────────────────────────────────────────────
+const isImportDialogOpen = ref(false);
+const importFileInput = ref<HTMLInputElement | null>(null);
+const importPreview = ref<ImportPreview | null>(null);
+const importResult = ref<ImportResult | null>(null);
+const importProcessing = ref(false);
+const promptCopied = ref(false);
+
+const importForm = useForm<{
+    file: File | null;
+}>({
+    file: null,
+});
+
+const importPrompt = `Convert the attached bank statement/report into a CSV for my finance app.
+
+The bank report may be Persian or English. Analyze Persian descriptions, Persian dates, Persian digits, deposits, withdrawals, and Rial/Toman amounts correctly.
+
+Create a downloadable CSV file named transactions.csv as the final result. Do not return explanations, markdown, code fences, totals, or extra columns. The file content must be raw CSV only.
+
+Required English header:
+occurred_at,type,category,amount,currency,title,description
+
+Rules:
+- occurred_at may be converted to Gregorian YYYY-MM-DD if possible. If the report uses Jalali dates, convert them to Gregorian.
+- type must be cost for money leaving the account and income for money entering the account.
+- category must be one of: Food, Transport, Housing, Health, Shopping, Bills, Other, Salary, Freelance, Gift, Investment.
+- amount must be positive, with no thousands separators.
+- If the report amount is in Rial, convert it to Toman by dividing by 10 and set currency to toman.
+- currency must be one of: toman, usd, eur.
+- title can be Persian or English, but keep it short and human-readable.
+- description can include the original bank description.
+- Ignore balance-only rows, headers, footers, failed transactions, and duplicate summary lines.`;
+
+const previewRows = computed(() => importPreview.value?.rows ?? []);
+
+function resetImportDialog(): void {
+    importForm.clearErrors();
+    importForm.reset();
+    importPreview.value = null;
+    importResult.value = null;
+    promptCopied.value = false;
+
+    if (importFileInput.value) {
+        importFileInput.value.value = '';
+    }
+}
+
+function openImportDialog(): void {
+    resetImportDialog();
+    isImportDialogOpen.value = true;
+}
+
+function closeImportDialog(): void {
+    isImportDialogOpen.value = false;
+    resetImportDialog();
+}
+
+function handleImportDialogOpenChange(open: boolean): void {
+    if (open) {
+        isImportDialogOpen.value = true;
+
+        return;
+    }
+
+    closeImportDialog();
+}
+
+function selectImportFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    importForm.file = input.files?.[0] ?? null;
+}
+
+function submitImportPreview(): void {
+    importForm.post('/transactions/imports/preview', {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => {
+            importForm.reset('file');
+
+            if (importFileInput.value) {
+                importFileInput.value.value = '';
+            }
+        },
+    });
+}
+
+function confirmImport(): void {
+    importProcessing.value = true;
+
+    router.post(
+        '/transactions/imports',
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                importProcessing.value = false;
+            },
+        },
+    );
+}
+
+async function copyImportPrompt(): Promise<void> {
+    if (!navigator.clipboard) {
+        return;
+    }
+
+    await navigator.clipboard.writeText(importPrompt);
+    promptCopied.value = true;
+
+    window.setTimeout(() => {
+        promptCopied.value = false;
+    }, 1800);
+}
+
+function importStatusClass(status: ImportStatus): string {
+    if (status === 'valid') {
+        return 'bg-[#0d2620] text-[#7ee8c4]';
+    }
+
+    if (status === 'duplicate') {
+        return 'bg-[#2f2815] text-[#ffd58a]';
+    }
+
+    return 'bg-[#2f1717] text-[#ffb4b4]';
+}
+
+watch(
+    () => page.props.transactionImportPreview,
+    (value) => {
+        if (value) {
+            importPreview.value = value as ImportPreview;
+            importResult.value = null;
+            isImportDialogOpen.value = true;
+        }
+    },
+    { immediate: true },
+);
+
+watch(
+    () => page.props.transactionImportResult,
+    (value) => {
+        if (value) {
+            importResult.value = value as ImportResult;
+            importPreview.value = null;
+            isImportDialogOpen.value = true;
+        }
+    },
+    { immediate: true },
+);
 </script>

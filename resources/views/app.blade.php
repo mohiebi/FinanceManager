@@ -46,7 +46,10 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
         <link href="https://fonts.bunny.net/css?family=poppins:200,300,400,500,600" rel="stylesheet" />
-        <link href="https://fonts.bunny.net/css?family=vazirmatn:400,500,600,700" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=vazirmatn:300,400,500,600,700" rel="stylesheet" />
+        {{-- Advisor only: an editorial serif for headlines and a monospace for every figure. --}}
+        <link href="https://fonts.bunny.net/css?family=instrument-serif:400,400i" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,500" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
         <x-inertia::head>

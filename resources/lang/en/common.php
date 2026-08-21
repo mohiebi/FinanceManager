@@ -6,6 +6,7 @@ return [
     'confirm' => 'Confirm',
     'edit' => 'Edit',
     'delete' => 'Delete',
+    'actions' => 'Actions',
     'select' => 'Select',
     'clear' => 'Clear',
     'more' => 'More',
@@ -16,4 +17,6 @@ return [
     'year' => 'Year',
     'language' => 'Language',
     'calendar' => 'Calendar',
+    'hide_amounts' => 'Hide',
+    'show_amounts' => 'Show',
 ];

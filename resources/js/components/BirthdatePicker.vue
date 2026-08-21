@@ -22,6 +22,7 @@ const props = withDefaults(
         name?: string;
         defaultValue?: string | null;
         triggerClass?: string;
+        containerClass?: string;
         required?: boolean;
         yearsBack?: number;
         yearsForward?: number;
@@ -33,6 +34,7 @@ const props = withDefaults(
         name: 'birthdate',
         defaultValue: null,
         triggerClass: '',
+        containerClass: '',
         required: true,
         yearsBack: 120,
         yearsForward: 0,
@@ -214,7 +216,14 @@ function syncDate(value: string): void {
 <template>
     <input type="hidden" :name="name" :value="birthdate" />
 
-    <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1.2fr_1fr_1fr]">
+    <div
+        :class="
+            cn(
+                'grid grid-cols-1 gap-2 sm:grid-cols-[1.2fr_1fr_1fr]',
+                containerClass,
+            )
+        "
+    >
         <Select v-model="selectedMonth">
             <SelectTrigger
                 :aria-required="required ? 'true' : undefined"

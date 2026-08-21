@@ -196,10 +196,16 @@ enum Feature: string
      * optional module: it has no page of its own to discover, so shipping it off
      * would mean nobody ever sees it. It stays switched off-able for the people
      * who find streaks patronising in a finance tool.
+     *
+     * The Advisor is on by default for the opposite reason: it is the one thing
+     * a Pro plan buys, and paying for it only to be sent to a settings page to
+     * find a switch is not a purchase working. This says nothing about
+     * entitlement — {@see mayUseWithPro()} still gates it, so a free user has it
+     * "on" and unusable, which is exactly the locked state the nav renders.
      */
     public function enabledByDefault(): bool
     {
-        return $this->isCore() || $this === self::Gamification;
+        return $this->isCore() || in_array($this, [self::Gamification, self::Advisor], true);
     }
 
     /**

@@ -151,4 +151,81 @@ $messages['constraints_labels'] = [
     'minimum_liquid_allocation' => 'Mindestens liquide', 'maximum_single_asset_allocation' => 'Höchstens in einem Wert', 'maximum_high_risk_allocation' => 'Höchstens hohes Risiko', 'maximum_speculative_allocation' => 'Höchstens spekulativ', 'maximum_options_risk_budget' => 'Höchstes Optionsbudget',
 ];
 
+/* Advisor redesign. */
+$messages['how_it_works'] = 'So funktioniert es';
+$messages['home'] = [
+    'subtitle' => 'Überblick',
+    'in_progress' => 'Analyse läuft',
+];
+$messages['paywall'] = [
+    'subtitle' => 'Pro-Funktion',
+    'unlock' => 'Advisor mit Pro freischalten',
+    'see_inside' => 'Sieh, was drinsteckt',
+    'included' => 'In CashPilot Pro enthalten · ohne Aufpreis',
+    'members_only' => 'Nur für Pro-Mitglieder',
+    'profile_saved' => 'Dein Anlegerprofil und jede Antwort dahinter sind noch da. Mit einer Verlängerung machst du genau dort weiter, wo du aufgehört hast.',
+    'preview_equity' => 'Heimischer Aktienindexfonds',
+    'preview_gold' => 'Gold, 18 Karat',
+    'preview_global' => 'Globaler Aktien-ETF',
+    'preview_currency' => 'US-Dollar',
+];
+$messages['assessment'] = array_merge($messages['assessment'], [
+    'saved_short' => 'Nach jedem Abschnitt verschlüsselt gespeichert',
+    'answered' => '{count} von {total} beantwortet',
+]);
+$messages['section_intros'] = [
+    'financial_foundation' => 'Diese Antworten legen fest, wie viel du verlieren kannst, bevor irgendetwas entworfen wird. Nichts davon ist ein Urteil — es ist der Boden, auf dem jedes Portfolio darunter stehen muss.',
+    'investment_goals' => 'Wofür das Geld da ist und wann du es brauchst. Horizont und Zweck grenzen die Form eines Portfolios stärker ein als jede Vorliebe.',
+    'risk_and_loss' => 'Antworte so, wie du dich tatsächlich verhalten würdest, nicht so, wie du es gern hättest. Diese Antworten setzen die Verlustgrenze, die jedes Portfolio darunter einhalten muss.',
+    'investment_experience' => 'Was du bereits gehalten hast und wie gut du die Mechanik kennst. Erfahrung erweitert das, was die KI vorschlagen darf.',
+    'behavior' => 'Wie du gehandelt hast, wenn eine Position stark ausgeschlagen ist. Verhalten unter Druck ist der Unterschied zwischen einem Plan auf Papier und einem, den du durchhältst.',
+    'return_expectations' => 'Was du Erfolg nennen würdest. Liegt diese Zahl höher, als deine Tragfähigkeit hergibt, sagt CashPilot das — statt danach zu greifen.',
+    'portfolio_preferences' => 'Die Werte, die die KI verwenden darf, die Märkte, die du erreichst, und die Obergrenzen, die gelten sollen. Nichts außerhalb dieser Liste kommt in einen Plan.',
+    'options_and_hedging' => 'Ob Optionen überhaupt in deinen Plan gehören und welche Strategien du fahren kannst. Antworte mit Nein, und dieser Abschnitt kostet dich nichts.',
+];
+$messages['portfolio'] = array_merge($messages['portfolio'], [
+    'inclusion' => 'Verwendung',
+]);
+$messages['profile'] = array_merge($messages['profile'], [
+    'subtitle' => 'Anlegerprofil',
+    'persona' => 'Anlegertyp',
+    'sealed' => 'Versiegelt',
+    'scoring' => 'Bewertung',
+    'assets_approved' => 'Freigegebene Werte',
+    'derived_scores' => 'Abgeleitete Werte',
+    'deterministic' => 'Deterministisch · keine KI',
+    'hard_caps' => 'Harte Grenzen',
+    'allowed' => 'Erlaubt',
+    'category' => 'Kategorie',
+    'risk' => 'Risiko',
+    'outlook' => 'Einschätzung',
+]);
+$messages['recommendation'] = array_merge($messages['recommendation'], [
+    'primary_tab' => 'Primär',
+    'safer_tab' => 'Sicherer',
+    'higher_tab' => 'Mehr Risiko',
+    'allocated' => 'Zugeteilt',
+    'stage_done' => 'Fertig',
+    'stage_working' => 'Läuft',
+    'designing' => 'Wird entworfen',
+    'open_portfolio' => 'Portfolio öffnen',
+    'open_result' => 'Sieh, was der Advisor gefunden hat',
+    'role' => 'Rolle',
+    'total' => 'Gesamt',
+    'liquid' => 'Binnen einer Woche liquide',
+    'capital' => 'Gesamtkapital',
+    'hash' => 'Hash',
+    'base' => 'Basis',
+    'consultation' => 'Beratung',
+    'back_to_plan' => 'Der Plan',
+    'tag_you' => 'Du',
+    'tag_advisor' => 'Advisor',
+    'drawdown_cap' => 'Verlustgrenze',
+    'clarification_eyebrow' => 'Noch eine Runde',
+    'allow_diversifier' => 'Einen fehlenden Diversifizierer zulassen?',
+]);
+$messages['options_willingness'] = [
+    'no' => 'Nein', 'yes' => 'Ja', 'not_sure' => 'Nicht sicher',
+];
+
 return $messages;

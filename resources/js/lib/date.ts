@@ -1,4 +1,9 @@
-import { jalaaliMonthLength, toGregorian, toJalaali } from 'jalaali-js';
+import jalaali from 'jalaali-js';
+
+// jalaali-js ships CommonJS, so named imports resolve only through a
+// bundler. Destructuring the default export works in both, which keeps
+// this module importable by the plain node test runner.
+const { jalaaliMonthLength, toGregorian, toJalaali } = jalaali;
 
 function pad(value: number): string {
     return String(value).padStart(2, '0');

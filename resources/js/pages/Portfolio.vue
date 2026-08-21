@@ -49,7 +49,14 @@
 
                         <p class="mt-3 flex items-baseline gap-2">
                             <template v-if="props.pricesAvailable">
+                                <span
+                                    v-if="masked"
+                                    aria-label="Amount hidden"
+                                    class="text-[40px] leading-none font-bold tracking-tight text-white tabular-nums sm:text-[52px]"
+                                    >••••••</span
+                                >
                                 <CompactMoney
+                                    v-else
                                     :value="
                                         summary.total_current_value_formatted
                                     "
@@ -94,7 +101,13 @@
                             </p>
                             <p class="mt-1.5 text-xl font-semibold text-white">
                                 <template v-if="summary.has_cost_basis_data">
+                                    <span
+                                        v-if="masked"
+                                        aria-label="Amount hidden"
+                                        >••••••</span
+                                    >
                                     <CompactMoney
+                                        v-else
                                         :value="
                                             summary.total_cost_basis_formatted
                                         "
@@ -139,7 +152,13 @@
                                     <span v-if="summary.total_pnl_is_positive"
                                         >+</span
                                     >
+                                    <span
+                                        v-if="masked"
+                                        aria-label="Amount hidden"
+                                        >••••••</span
+                                    >
                                     <CompactMoney
+                                        v-else
                                         :value="
                                             signedFormattedAmount(
                                                 summary.total_pnl_formatted,
@@ -230,7 +249,13 @@
                                         "
                                         >+</span
                                     >
+                                    <span
+                                        v-if="masked"
+                                        aria-label="Amount hidden"
+                                        >••••••</span
+                                    >
                                     <CompactMoney
+                                        v-else
                                         :value="
                                             signedFormattedAmount(
                                                 summary.total_realised_pnl_formatted,

@@ -271,14 +271,7 @@
                             :labels="donutLabels"
                             :colors="donutColors"
                             :center-label="t('finance.portfolio.current_value')"
-                            :center-value="
-                                props.pricesAvailable
-                                    ? formatCurrencyDisplay(
-                                          summary.total_current_value_formatted,
-                                          selectedCurrency as CurrencyCode,
-                                      )
-                                    : t('finance.price_unavailable')
-                            "
+                            :center-value="allocationCenterValue"
                             :tooltip-formatter="formatAllocationPercentage"
                             hide-legend
                             @slice-click="onSliceClick"
@@ -600,6 +593,7 @@ import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
 import {
     currencySymbol,
     currencySymbolIsPrefix,
+    formatCompactCurrencyDisplay,
     formatCurrencyDisplay,
     formatCurrencyNumber,
 } from '@/lib/money';
@@ -825,6 +819,21 @@ watch(
         );
     },
 );
+
+const allocationCenterValue = computed(() => {
+    if (!props.pricesAvailable) {
+        return t('finance.price_unavailable');
+    }
+
+    const formatValue = compactFigures.value
+        ? formatCompactCurrencyDisplay
+        : formatCurrencyDisplay;
+
+    return formatValue(
+        summary.value.total_current_value_formatted,
+        selectedCurrency.value as CurrencyCode,
+    );
+});
 
 watch(
     () => props.selectedRange,

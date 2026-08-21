@@ -81,6 +81,8 @@ test('portfolio summary totals use selected-currency values', () => {
     assert.match(portfolio, /:tooltip-formatter="formatAllocationPercentage"/);
     assert.match(portfolio, /:value="asset\.current_value_formatted"/);
     assert.match(portfolio, /function formatAllocationPercentage/);
+    assert.match(portfolio, /:center-value="allocationCenterValue"/);
+    assert.match(portfolio, /formatCompactCurrencyDisplay/);
     assert.match(donutChart, /props\.tooltipFormatter/);
 });
 

@@ -150,7 +150,12 @@
                                         >+</span
                                     >
                                     <CompactMoney
-                                        :value="summary.total_pnl ?? 0"
+                                        :value="
+                                            signedFormattedAmount(
+                                                summary.total_pnl_formatted,
+                                                summary.total_pnl_is_positive,
+                                            )
+                                        "
                                         :currency="
                                             selectedCurrency as CurrencyCode
                                         "
@@ -236,7 +241,12 @@
                                         >+</span
                                     >
                                     <CompactMoney
-                                        :value="summary.total_realised_pnl ?? 0"
+                                        :value="
+                                            signedFormattedAmount(
+                                                summary.total_realised_pnl_formatted,
+                                                summary.total_realised_pnl_is_positive,
+                                            )
+                                        "
                                         :currency="
                                             selectedCurrency as CurrencyCode
                                         "
@@ -348,6 +358,8 @@
                         :series="filteredChartSeries"
                         :categories="props.chartData?.categories ?? []"
                         :calendar="displayCalendar"
+                        :value-prefix="chartValuePrefix"
+                        :value-suffix="chartValueSuffix"
                         :height="340"
                     />
 
@@ -508,11 +520,14 @@
                             class="text-sm font-normal text-[#989898]"
                             >{{ t('finance.price_unavailable') }}</span
                         >
-                        <template v-else-if="asset.pnl !== null">
+                        <template v-else-if="asset.pnl_formatted !== null">
                             <span v-if="asset.pnl_is_positive">+</span
                             >{{
                                 formatCurrencyNumber(
-                                    asset.pnl,
+                                    signedFormattedAmount(
+                                        asset.pnl_formatted,
+                                        asset.pnl_is_positive,
+                                    ),
                                     selectedCurrency as CurrencyCode,
                                 )
                             }}
@@ -572,6 +587,7 @@ import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
 import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
 import {
     currencySymbol,
+    currencySymbolIsPrefix,
     formatCurrencyDisplay,
     formatCurrencyNumber,
 } from '@/lib/money';
@@ -608,6 +624,16 @@ const props = defineProps<{
 const selectedCurrency = ref(props.selectedCurrency);
 const selectedCurrencySymbol = computed(() =>
     currencySymbol(selectedCurrency.value as CurrencyCode),
+);
+const chartValuePrefix = computed(() =>
+    currencySymbolIsPrefix(selectedCurrency.value as CurrencyCode)
+        ? selectedCurrencySymbol.value
+        : '',
+);
+const chartValueSuffix = computed(() =>
+    currencySymbolIsPrefix(selectedCurrency.value as CurrencyCode)
+        ? ''
+        : `\u00a0${selectedCurrencySymbol.value}`,
 );
 const { t } = useI18n();
 const page = usePage();
@@ -652,6 +678,17 @@ const { formatRelativeTime } = useRelativeTime();
 const lastSyncedLabel = computed(() =>
     formatRelativeTime(props.pricesSyncedAt),
 );
+
+function signedFormattedAmount(
+    formatted: string | null,
+    isPositive: boolean | null,
+): string {
+    if (formatted === null) {
+        return '0';
+    }
+
+    return isPositive === false ? `-${formatted}` : formatted;
+}
 
 // ── Allocation donut + value-over-time chart ─────────────────────────────
 const ranges = [

@@ -22,6 +22,7 @@ const props = defineProps<{
     // When the categories are already display-ready (e.g. month names),
     // skip the ISO-date reformatting of the x-axis labels.
     rawLabels?: boolean;
+    valuePrefix?: string;
     valueSuffix?: string;
     noDataText?: string;
     // Plot the second series on an opposite y-axis so series with very
@@ -47,6 +48,14 @@ const abbreviate = (amount: number): string => {
 
     return amount.toFixed(0);
 };
+
+const formatAxisValue = (amount: number): string =>
+    (props.valuePrefix ?? '') + abbreviate(amount) + (props.valueSuffix ?? '');
+
+const formatTooltipValue = (amount: number): string =>
+    (props.valuePrefix ?? '') +
+    abbreviate(amount) +
+    (props.valueSuffix ?? ' T');
 
 const hasMixedTypes = () => props.series.some((s) => s.type === 'column');
 
@@ -95,7 +104,7 @@ const buildOptions = () => ({
                   opposite: index === 1,
                   labels: {
                       style: { colors: s.color, fontSize: '11px' },
-                      formatter: abbreviate,
+                      formatter: formatAxisValue,
                   },
                   axisBorder: { show: false },
                   axisTicks: { show: false },
@@ -103,7 +112,7 @@ const buildOptions = () => ({
             : {
                   labels: {
                       style: { colors: '#686868', fontSize: '11px' },
-                      formatter: abbreviate,
+                      formatter: formatAxisValue,
                   },
                   axisBorder: { show: false },
                   axisTicks: { show: false },
@@ -142,8 +151,7 @@ const buildOptions = () => ({
         shared: true,
         intersect: false,
         y: {
-            formatter: (amount: number) =>
-                abbreviate(amount) + (props.valueSuffix ?? ' T'),
+            formatter: formatTooltipValue,
         },
         style: { fontSize: '12px' },
     },
@@ -185,7 +193,13 @@ onMounted(async () => {
 });
 
 watch(
-    () => [props.series, props.categories, props.calendar],
+    () => [
+        props.series,
+        props.categories,
+        props.calendar,
+        props.valuePrefix,
+        props.valueSuffix,
+    ],
     () => chart?.updateOptions(buildOptions(), false, true),
     { deep: true },
 );

@@ -9,6 +9,7 @@ function source(path: string): string {
 const bills = source('../../resources/js/pages/Bills.vue');
 const cipheredMoney = source('../../resources/js/components/CipheredMoney.vue');
 const compactMoney = source('../../resources/js/components/CompactMoney.vue');
+const lineChart = source('../../resources/js/components/charts/LineChart.vue');
 const modules = source('../../resources/js/pages/settings/Modules.vue');
 const amountMask = source('../../resources/js/composables/useAmountMask.ts');
 const portfolio = source('../../resources/js/pages/Portfolio.vue');
@@ -50,8 +51,18 @@ test('compact figures lives under Money preferences, not App modules', () => {
 test('portfolio summary totals use selected-currency values', () => {
     assert.match(portfolio, /summary\.total_current_value_formatted/);
     assert.match(portfolio, /summary\.total_cost_basis_formatted/);
-    assert.match(portfolio, /:value="summary\.total_pnl \?\? 0"/);
-    assert.match(portfolio, /:value="\s*summary\.total_realised_pnl \?\? 0/);
+    assert.match(portfolio, /summary\.total_pnl_formatted/);
+    assert.match(portfolio, /summary\.total_realised_pnl_formatted/);
+    assert.match(portfolio, /asset\.pnl_formatted/);
+    assert.doesNotMatch(portfolio, /:value="summary\.total_pnl \?\? 0"/);
+    assert.doesNotMatch(
+        portfolio,
+        /:value="\s*summary\.total_realised_pnl \?\? 0/,
+    );
+    assert.match(portfolio, /:value-prefix="chartValuePrefix"/);
+    assert.match(portfolio, /:value-suffix="chartValueSuffix"/);
+    assert.match(lineChart, /formatter: formatAxisValue/);
+    assert.match(lineChart, /formatter: formatTooltipValue/);
 });
 
 test('compact money exposes exact tooltips and colours accounting losses red', () => {

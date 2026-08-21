@@ -26,13 +26,13 @@ const abbreviated = computed(() => formatCompactNumber(props.value));
 const hasAbbreviation = computed(
     () => compact.value && abbreviated.value !== full.value,
 );
-const valueClass = computed(() => 'transition-[filter] duration-150');
-const displayedValue = computed(() =>
+const valueClass = computed(() =>
     masked.value
-        ? '••••••'
-        : hasAbbreviation.value
-          ? abbreviated.value
-          : full.value,
+        ? 'blur-[6px] transition-[filter] duration-150 select-none'
+        : 'transition-[filter] duration-150',
+);
+const displayedValue = computed(() =>
+    hasAbbreviation.value ? abbreviated.value : full.value,
 );
 </script>
 

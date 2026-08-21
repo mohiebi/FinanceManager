@@ -49,19 +49,13 @@
 
                         <p class="mt-3 flex items-baseline gap-2">
                             <template v-if="props.pricesAvailable">
-                                <span
-                                    v-if="masked"
-                                    aria-label="Amount hidden"
-                                    class="text-[40px] leading-none font-bold tracking-tight text-white tabular-nums sm:text-[52px]"
-                                    >••••••</span
-                                >
                                 <CompactMoney
-                                    v-else
                                     :value="
                                         summary.total_current_value_formatted
                                     "
                                     :currency="selectedCurrency as CurrencyCode"
                                     class="text-[40px] leading-none font-bold tracking-tight text-white tabular-nums sm:text-[52px]"
+                                    mask-variant="placeholder"
                                 />
                             </template>
                             <span
@@ -101,19 +95,14 @@
                             </p>
                             <p class="mt-1.5 text-xl font-semibold text-white">
                                 <template v-if="summary.has_cost_basis_data">
-                                    <span
-                                        v-if="masked"
-                                        aria-label="Amount hidden"
-                                        >••••••</span
-                                    >
                                     <CompactMoney
-                                        v-else
                                         :value="
                                             summary.total_cost_basis_formatted
                                         "
                                         :currency="
                                             selectedCurrency as CurrencyCode
                                         "
+                                        mask-variant="placeholder"
                                     />
                                 </template>
                                 <span
@@ -152,13 +141,7 @@
                                     <span v-if="summary.total_pnl_is_positive"
                                         >+</span
                                     >
-                                    <span
-                                        v-if="masked"
-                                        aria-label="Amount hidden"
-                                        >••••••</span
-                                    >
                                     <CompactMoney
-                                        v-else
                                         :value="
                                             signedFormattedAmount(
                                                 summary.total_pnl_formatted,
@@ -168,6 +151,7 @@
                                         :currency="
                                             selectedCurrency as CurrencyCode
                                         "
+                                        mask-variant="placeholder"
                                     />
                                 </template>
                                 <span
@@ -249,13 +233,7 @@
                                         "
                                         >+</span
                                     >
-                                    <span
-                                        v-if="masked"
-                                        aria-label="Amount hidden"
-                                        >••••••</span
-                                    >
                                     <CompactMoney
-                                        v-else
                                         :value="
                                             signedFormattedAmount(
                                                 summary.total_realised_pnl_formatted,
@@ -265,6 +243,7 @@
                                         :currency="
                                             selectedCurrency as CurrencyCode
                                         "
+                                        mask-variant="placeholder"
                                     />
                                 </p>
                             </div>
@@ -680,7 +659,7 @@ const page = usePage();
 const { masked } = useAmountMask();
 const maskClass = computed(() =>
     masked.value
-        ? "relative text-transparent transition-colors duration-150 select-none before:absolute before:inset-x-0 before:top-1/2 before:h-[0.75em] before:-translate-y-1/2 before:rounded-sm before:bg-white/30 before:content-['']"
+        ? 'blur-[6px] transition-[filter] duration-150 select-none'
         : 'transition-[filter] duration-150',
 );
 const displayCalendar = computed(

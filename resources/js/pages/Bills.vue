@@ -28,6 +28,7 @@
                         :currency="
                             props.dueSoonSummary.currency as CurrencyCode
                         "
+                        mask-variant="placeholder"
                     />
                     <span
                         v-else

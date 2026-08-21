@@ -55,6 +55,7 @@
                             :value="safeToSpendPerDay"
                             :currency="budgetCurrency"
                             class="text-[36px] leading-none font-bold text-white sm:text-[44px]"
+                            mask-variant="placeholder"
                         />
                         <span class="text-sm font-medium text-[#989898]">
                             {{ t('finance.dashboard.per_day') }}

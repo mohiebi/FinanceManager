@@ -74,8 +74,10 @@ test('portfolio summary totals use selected-currency values', () => {
         portfolio,
         /:value-fraction-digits="chartValueFractionDigits"/,
     );
+    assert.match(portfolio, /:masked="masked"/);
     assert.match(lineChart, /formatter: formatAxisValue/);
     assert.match(lineChart, /formatter: formatTooltipValue/);
+    assert.match(lineChart, /props\.masked\s*\?\s*'••••••'/);
     assert.match(lineChart, /props\.compactValues === false/);
     assert.match(lineChart, /formatCompactCurrencyNumber/);
     assert.match(portfolio, /:tooltip-formatter="formatAllocationPercentage"/);
@@ -84,7 +86,9 @@ test('portfolio summary totals use selected-currency values', () => {
     assert.match(portfolio, /:center-value="allocationCenterValue"/);
     assert.match(portfolio, /formatCompactCurrencyDisplay/);
     assert.match(portfolio, /shouldCompactChartValues\.value/);
+    assert.match(portfolio, /v-if="masked"[\s\S]*?••••••/);
     assert.match(donutChart, /props\.tooltipFormatter/);
+    assert.match(donutChart, /props\.masked \? '••••••'/);
 });
 
 test('compact money exposes exact tooltips and colours accounting losses red', () => {
@@ -92,6 +96,8 @@ test('compact money exposes exact tooltips and colours accounting losses red', (
     assert.match(compactMoney, /<TooltipContent/);
     assert.match(compactMoney, /!text-\[#E94E50\]/);
     assert.match(cipheredMoney, /!text-\[#E94E50\]/);
+    assert.match(compactMoney, /masked\.value\s*\?\s*'••••••'/);
+    assert.match(cipheredMoney, /masked \? '••••••'/);
 });
 
 test('transaction rows expose edit and delete actions', () => {

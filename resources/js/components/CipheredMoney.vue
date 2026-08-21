@@ -83,12 +83,11 @@ const isNegative = computed(() => formatted.value?.startsWith('(') ?? false);
     <span
         v-if="formatted !== undefined"
         :class="[
-            masked
-                ? 'blur-[6px] transition-[filter] duration-150 select-none'
-                : 'transition-[filter] duration-150',
+            'transition-[filter] duration-150',
             isNegative ? '!text-[#E94E50]' : '',
         ]"
-        >{{ formatted }}</span
+        :aria-label="masked ? 'Amount hidden' : undefined"
+        >{{ masked ? '••••••' : formatted }}</span
     >
     <span
         v-else

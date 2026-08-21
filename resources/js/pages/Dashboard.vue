@@ -600,7 +600,7 @@ const { t } = useI18n();
 const { masked } = useAmountMask();
 const maskClass = computed(() =>
     masked.value
-        ? 'blur-[6px] transition-[filter] duration-150 select-none'
+        ? "relative text-transparent transition-colors duration-150 select-none before:absolute before:inset-x-0 before:top-1/2 before:h-[0.75em] before:-translate-y-1/2 before:rounded-sm before:bg-white/30 before:content-['']"
         : 'transition-[filter] duration-150',
 );
 
@@ -725,20 +725,26 @@ const safeToSpendPerDay = computed(() => {
 
 const safeToSpendExplanation = computed(() =>
     t('finance.dashboard.safe_to_spend_explanation', {
-        cost: formatCurrencyDisplay(
-            formatAmount(costNum.value),
-            props.selectedCurrency,
-        ),
-        income: formatCurrencyDisplay(
-            formatAmount(incomeNum.value),
-            props.selectedCurrency,
-        ),
+        cost: masked.value
+            ? '••••••'
+            : formatCurrencyDisplay(
+                  formatAmount(costNum.value),
+                  props.selectedCurrency,
+              ),
+        income: masked.value
+            ? '••••••'
+            : formatCurrencyDisplay(
+                  formatAmount(incomeNum.value),
+                  props.selectedCurrency,
+              ),
         month: props.period.month,
         days: daysRemaining.value,
-        amount: formatCurrencyDisplay(
-            formatAmount(safeToSpendPerDay.value ?? 0),
-            props.selectedCurrency,
-        ),
+        amount: masked.value
+            ? '••••••'
+            : formatCurrencyDisplay(
+                  formatAmount(safeToSpendPerDay.value ?? 0),
+                  props.selectedCurrency,
+              ),
     }),
 );
 

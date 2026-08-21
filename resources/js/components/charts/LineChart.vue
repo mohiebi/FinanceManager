@@ -31,6 +31,8 @@ const props = defineProps<{
     /** Exact values retain the selected currency's precision when compact
      * figures are disabled. */
     valueFractionDigits?: number;
+    /** Conceal monetary axis and tooltip values when balance hiding is on. */
+    masked?: boolean;
     noDataText?: string;
     // Plot the second series on an opposite y-axis so series with very
     // different magnitudes (e.g. new vs cumulative customers) stay readable.
@@ -58,14 +60,18 @@ const formatChartValue = (amount: number): string =>
         : formatCompactCurrencyNumber(amount);
 
 const formatAxisValue = (amount: number): string =>
-    (props.valuePrefix ?? '') +
-    formatChartValue(amount) +
-    (props.valueSuffix ?? '');
+    props.masked
+        ? '••••••'
+        : (props.valuePrefix ?? '') +
+          formatChartValue(amount) +
+          (props.valueSuffix ?? '');
 
 const formatTooltipValue = (amount: number): string =>
-    (props.valuePrefix ?? '') +
-    formatChartValue(amount) +
-    (props.valueSuffix ?? ' T');
+    props.masked
+        ? '••••••'
+        : (props.valuePrefix ?? '') +
+          formatChartValue(amount) +
+          (props.valueSuffix ?? ' T');
 
 const hasMixedTypes = () => props.series.some((s) => s.type === 'column');
 
@@ -211,6 +217,7 @@ watch(
         props.valueSuffix,
         props.compactValues,
         props.valueFractionDigits,
+        props.masked,
     ],
     () => chart?.updateOptions(buildOptions(), false, true),
     { deep: true },

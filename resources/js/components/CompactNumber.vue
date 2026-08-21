@@ -26,10 +26,13 @@ const abbreviated = computed(() => formatCompactNumber(props.value));
 const hasAbbreviation = computed(
     () => compact.value && abbreviated.value !== full.value,
 );
-const valueClass = computed(() =>
+const valueClass = computed(() => 'transition-[filter] duration-150');
+const displayedValue = computed(() =>
     masked.value
-        ? 'blur-[6px] transition-[filter] duration-150 select-none'
-        : 'transition-[filter] duration-150',
+        ? '••••••'
+        : hasAbbreviation.value
+          ? abbreviated.value
+          : full.value,
 );
 </script>
 
@@ -40,10 +43,10 @@ const valueClass = computed(() =>
                 <span
                     v-bind="attrs"
                     tabindex="0"
-                    :aria-label="full"
+                    :aria-label="masked ? 'Amount hidden' : full"
                     :class="valueClass"
                 >
-                    {{ abbreviated }}
+                    {{ displayedValue }}
                 </span>
             </TooltipTrigger>
             <TooltipContent
@@ -55,7 +58,12 @@ const valueClass = computed(() =>
         </Tooltip>
     </TooltipProvider>
 
-    <span v-else v-bind="attrs" :class="valueClass">
-        {{ hasAbbreviation ? abbreviated : full }}
+    <span
+        v-else
+        v-bind="attrs"
+        :aria-label="masked ? 'Amount hidden' : undefined"
+        :class="valueClass"
+    >
+        {{ displayedValue }}
     </span>
 </template>

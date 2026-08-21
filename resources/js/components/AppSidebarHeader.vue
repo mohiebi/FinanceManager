@@ -65,7 +65,15 @@ const isMenuOpen = ref(false);
 const user = computed(() => page.props.auth.user);
 
 function isActive(item: ModuleNavItem): boolean {
-    return item.state === 'enabled' && isCurrentUrl(item.href);
+    // A promo item's href is the modules page — standing on it must not light
+    // up every promo row at once. A locked item points at its own route now, so
+    // it can be the current page like any other.
+    return item.state !== 'promo' && isCurrentUrl(item.href);
+}
+
+/** Advisor keeps its gold accent here too — see AppSidebar.vue. */
+function isAdvisor(item: ModuleNavItem): boolean {
+    return item.key === 'advisor';
 }
 
 const pageTitle = computed(() => {
@@ -100,6 +108,7 @@ const pageTitle = computed(() => {
                 'navigation.budgets',
                 'navigation.budgets_subtitle',
             ),
+            Advisor: navigationName('navigation.advisor'),
             Preferences: t('settings.preferences.title'),
             Settings: navigationName(
                 'settings.title',
@@ -230,11 +239,13 @@ function changeLocale(value: string) {
                                         :href="item.href"
                                         class="flex items-center gap-2.5 rounded-[9px] px-2.5 py-2.5 text-sm transition-colors"
                                         :class="
-                                            isActive(item)
-                                                ? 'bg-[#252525] font-medium text-white'
-                                                : item.state !== 'enabled'
-                                                  ? 'text-[#686868] hover:bg-white/5'
-                                                  : 'text-[#989898] hover:bg-white/5 hover:text-white'
+                                            isAdvisor(item)
+                                                ? 'border-s-2 border-s-[#d9c48f] bg-[#d9c48f]/10 font-medium text-white'
+                                                : isActive(item)
+                                                  ? 'bg-[#252525] font-medium text-white'
+                                                  : item.state !== 'enabled'
+                                                    ? 'text-[#686868] hover:bg-white/5'
+                                                    : 'text-[#989898] hover:bg-white/5 hover:text-white'
                                         "
                                         @click="isMenuOpen = false"
                                     >
@@ -252,27 +263,37 @@ function changeLocale(value: string) {
                                                 item.state !== 'enabled'
                                             "
                                             :class="[
-                                                'ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium',
-                                                item.tier === 'pro'
-                                                    ? 'bg-[#6c4ee9]/15 text-[#a89bf3]'
-                                                    : 'bg-[#02cd86]/13 text-[#02cd86]',
+                                                'ml-auto inline-flex shrink-0 items-center gap-1',
+                                                isAdvisor(item)
+                                                    ? 'advisor-mono rounded-[4px] border border-[#d9c48f]/35 px-[5px] py-[2px] text-[8.5px] tracking-[0.12em] text-[#d9c48f] uppercase'
+                                                    : 'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                                                isAdvisor(item)
+                                                    ? ''
+                                                    : item.tier === 'pro'
+                                                      ? 'bg-[#6c4ee9]/15 text-[#a89bf3]'
+                                                      : 'bg-[#02cd86]/13 text-[#02cd86]',
                                             ]"
                                         >
                                             <Crown
-                                                v-if="item.tier === 'pro'"
+                                                v-if="
+                                                    item.tier === 'pro' &&
+                                                    !isAdvisor(item)
+                                                "
                                                 class="size-2.5"
                                                 aria-hidden="true"
                                             />
                                             <Lock
                                                 v-else-if="
-                                                    item.state === 'locked'
+                                                    item.state === 'locked' &&
+                                                    !isAdvisor(item)
                                                 "
                                                 class="size-2.5"
                                                 aria-hidden="true"
                                             />
                                             <Plus
                                                 v-else-if="
-                                                    item.state === 'promo'
+                                                    item.state === 'promo' &&
+                                                    !isAdvisor(item)
                                                 "
                                                 class="size-2.5"
                                                 aria-hidden="true"

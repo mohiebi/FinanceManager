@@ -35,3 +35,26 @@ test('module badges use the product tier instead of entitlement state', () => {
     assert.match(modulesPage, /modules\.tiers\.pro/);
     assert.match(modulesPage, /<Crown/);
 });
+
+test('a locked module links to its own paywall, not to the modules page', () => {
+    // Sending someone who wanted to buy the feature to a settings page put a
+    // locked row and a switch that refuses to move in front of them. The
+    // feature's own route is where its paywall lives.
+    assert.match(moduleNavigation, /const locked = !state\.may_use;/);
+    assert.match(
+        moduleNavigation,
+        /href: locked \? entry\.href : editModules\(\)/,
+    );
+    assert.match(moduleNavigation, /state: locked \? 'locked' : 'promo'/);
+});
+
+test('a promo module still points at the switch it needs', () => {
+    // It is owned and merely switched off, so the modules page is the right
+    // destination — and standing on that page must not light up every promo row.
+    for (const shell of [sidebar, mobileSidebar]) {
+        assert.match(
+            shell,
+            /item\.state !== 'promo' && isCurrentUrl\(item\.href\)/,
+        );
+    }
+});

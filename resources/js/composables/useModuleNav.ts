@@ -212,14 +212,26 @@ export function useModuleNav(): UseModuleNavReturn {
                 return [];
             }
 
-            // Same "off, but still worth advertising" spot in the nav either
-            // way — only the badge (and what it's inviting the user toward)
-            // differs between a free toggle and a Pro purchase.
+            /*
+             * Same "off, but still worth advertising" spot in the nav either
+             * way — what differs is where the user can act on it.
+             *
+             * A module the plan does not cover sends them to the feature's own
+             * route, because that is where its paywall lives and the paywall is
+             * the sales page. Pointing at the modules settings page instead put
+             * a locked row and a switch that refuses to move in front of
+             * somebody who wanted to buy the thing.
+             *
+             * A module they own but switched off still points at the modules
+             * page, because that is genuinely where the switch is.
+             */
+            const locked = !state.may_use;
+
             return [
                 {
                     ...entry,
-                    href: editModules(),
-                    state: state.may_use ? 'promo' : 'locked',
+                    href: locked ? entry.href : editModules(),
+                    state: locked ? 'locked' : 'promo',
                     tier: state.tier,
                 },
             ];

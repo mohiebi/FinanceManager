@@ -727,3 +727,169 @@ html[dir='rtl'] body {
         cursor: not-allowed !important;
     }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Advisor — the "private bank" register.
+
+   Three signals separate this Pro feature from every other page: an editorial
+   serif for headlines, a monospace for every figure, and a champagne gold
+   reserved for ceremony. The action green still means action and nothing else.
+
+   The faces are declared as custom properties rather than @theme tokens on
+   purpose: @theme inline bakes stacks as literal values into the generated
+   utilities, so an RTL override would have no effect. Instrument Serif has no
+   Persian coverage, so RTL falls back to a lighter, larger Vazirmatn — which
+   reads as the same editorial voice without shipping Latin serif against
+   Persian text.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+    --advisor-gold: #d9c48f;
+    --advisor-gold-ink: #a08f68;
+    --advisor-gold-copy: #cfc4a6;
+    --advisor-font-serif: 'Instrument Serif', Georgia, serif;
+    --advisor-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --advisor-serif-weight: 400;
+    --advisor-serif-tracking: -0.01em;
+}
+
+html[lang='fa'],
+html[dir='rtl'] {
+    --advisor-font-serif:
+        'Vazirmatn', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --advisor-serif-weight: 300;
+    --advisor-serif-tracking: 0;
+}
+
+/* Unlayered, like the RTL body rule above, so it beats the baked-in
+   `font-family` of any Tailwind font utility that lands on the same element. */
+.advisor-serif {
+    font-family: var(--advisor-font-serif);
+    font-weight: var(--advisor-serif-weight);
+    letter-spacing: var(--advisor-serif-tracking);
+    text-wrap: pretty;
+}
+
+.advisor-serif-italic {
+    font-family: var(--advisor-font-serif);
+    font-weight: var(--advisor-serif-weight);
+    font-style: italic;
+}
+
+/* Every numeral, micro-label and uppercase eyebrow. Tabular by default — a
+   column of figures that shifts as it updates is unreadable, and there is no
+   figure on these screens that wants proportional digits. */
+.advisor-mono {
+    font-family: var(--advisor-font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Figures stay left-to-right even in an RTL page, as everywhere else in the
+   app. `isolate` keeps a trailing unit or sign from being reordered into the
+   surrounding Persian run. */
+.advisor-figure {
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+
+@layer components {
+    /* The gold hairline that opens most Advisor sections. */
+    .advisor-rule {
+        border-top: 1px solid rgb(217 196 143 / 28%);
+    }
+
+    /* The hero variant fades out rather than running the full width. */
+    .advisor-rule-hero {
+        height: 1px;
+        background: linear-gradient(
+            90deg,
+            rgb(217 196 143 / 55%),
+            rgb(217 196 143 / 4%)
+        );
+    }
+
+    /* The allocation ring: a conic gradient masked to an annulus. The gradient
+       itself is set inline because it is data — one stop per holding. */
+    .advisor-ring {
+        border-radius: 50%;
+        -webkit-mask: radial-gradient(circle, transparent 70%, #000 70.5%);
+        mask: radial-gradient(circle, transparent 70%, #000 70.5%);
+        transition: background 0.45s ease;
+    }
+
+    /* Generating fills a slightly thinner ring, and linearly, so the sweep
+       tracks the job rather than easing away from it. */
+    .advisor-ring-filling {
+        -webkit-mask: radial-gradient(circle, transparent 71%, #000 71.5%);
+        mask: radial-gradient(circle, transparent 71%, #000 71.5%);
+        transition: background 0.5s linear;
+    }
+}
+
+@keyframes advisor-rise-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes advisor-seal-in {
+    from {
+        opacity: 0;
+        transform: scale(0.82) rotate(-8deg);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes advisor-blink {
+    50% {
+        opacity: 0.15;
+    }
+}
+
+@keyframes advisor-drift {
+    from {
+        opacity: 0.5;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.advisor-rise {
+    animation: advisor-rise-in 0.45s ease both;
+}
+
+.advisor-seal {
+    animation: advisor-seal-in 0.6s 0.2s ease both;
+}
+
+.advisor-blink {
+    animation: advisor-blink 1.1s steps(1) infinite;
+}
+
+.advisor-drift {
+    animation: advisor-drift 0.3s ease both;
+}
+
+/* Hold the ring at its final state and drop the entry animations. */
+@media (prefers-reduced-motion: reduce) {
+    .advisor-rise,
+    .advisor-seal,
+    .advisor-blink,
+    .advisor-drift {
+        animation: none;
+    }
+
+    .advisor-ring,
+    .advisor-ring-filling {
+        transition: none;
+    }
+}

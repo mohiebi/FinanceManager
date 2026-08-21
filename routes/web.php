@@ -135,8 +135,15 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
 
     Route::get('dashboard', [TransactionController::class, 'dashboard'])->name('dashboard');
 
+    /*
+     * Deliberately outside the feature gate below: a user without the Pro
+     * entitlement has nothing to switch on, so bouncing them to the modules
+     * page shows them a locked row and no way forward. The controller answers
+     * for itself and renders the paywall instead.
+     */
+    Route::get('advisor', [AdvisorController::class, 'index'])->name('advisor.index');
+
     Route::middleware(EnsureFeatureEnabled::class.':advisor')->prefix('advisor')->name('advisor.')->group(function () {
-        Route::get('/', [AdvisorController::class, 'index'])->name('index');
         Route::post('assessments', [AdvisorController::class, 'store'])->name('assessments.store');
         Route::get('assessment/{assessment}', [AdvisorAssessmentController::class, 'show'])->name('assessments.show');
         Route::patch('assessment/{assessment}/sections/{section}', [AdvisorAssessmentController::class, 'updateSection'])->whereNumber('section')->name('assessments.sections.update');

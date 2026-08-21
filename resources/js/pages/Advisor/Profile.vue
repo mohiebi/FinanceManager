@@ -1,18 +1,10 @@
 <script setup lang="ts">
-import { Head, router, useHttp } from '@inertiajs/vue3';
-import {
-    AlertTriangle,
-    ArrowRight,
-    BrainCircuit,
-    CheckCircle2,
-    LoaderCircle,
-    LockKeyhole,
-    ShieldCheck,
-    Sparkles,
-} from 'lucide-vue-next';
+import { Head, router, useHttp, usePage } from '@inertiajs/vue3';
+import { LoaderCircle, TriangleAlert } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Button } from '@/components/ui/button';
+import { usePageSubtitle } from '@/composables/usePageSubtitle';
+import { documentNumber, sealDate } from '@/lib/advisor/format';
 import { advisorGenerationErrorKey } from '@/lib/advisor/http-errors';
 import { useAdvisorLabels } from '@/lib/advisor/labels';
 import { profile as advisorProfile } from '@/routes/advisor';
@@ -50,6 +42,7 @@ const props = defineProps<{
     profile: {
         id: number;
         profile_version: number;
+        scoring_version: number;
         payload: ProfilePayload;
         ai_enabled: boolean;
         completed_at: string | null;
@@ -58,23 +51,70 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const { label } = useAdvisorLabels();
+const page = usePage();
 const generationError = ref('');
 const generator = useHttp<Record<string, never>, RecommendationAccepted>({});
+
+usePageSubtitle(() => t('advisor.profile.subtitle'));
+
+const calendar = computed(
+    () => (page.props.calendar as string | undefined) ?? 'gregorian',
+);
 const riskScore = computed(
     () => props.profile.payload.scores.effective_risk ?? 0,
 );
-const scoreRows = computed(
-    () =>
+
+/**
+ * The eight deterministic dimensions, in the order the dossier prints them.
+ *
+ * The order is load-bearing: willingness and capacity sit together at the top
+ * because the notice below the grid is usually about the gap between them.
+ */
+const scoreRows = computed(() =>
+    (
         [
-            ['risk_willingness', 'risk_willingness'],
-            ['risk_capacity', 'risk_capacity'],
-            ['financial_resilience', 'financial_resilience'],
-            ['liquidity_need', 'liquidity_need'],
-            ['investment_knowledge', 'investment_knowledge'],
-            ['behavioral_stability', 'behavioral_stability'],
-            ['loss_aversion', 'loss_aversion'],
-            ['return_ambition', 'return_ambition'],
-        ] as const,
+            'risk_willingness',
+            'risk_capacity',
+            'financial_resilience',
+            'liquidity_need',
+            'investment_knowledge',
+            'behavioral_stability',
+            'loss_aversion',
+            'return_ambition',
+        ] as const
+    ).map((key) => {
+        const value = props.profile.payload.scores[key] ?? 0;
+
+        return {
+            key,
+            label: t(`advisor.profile.${key}`),
+            value,
+            // Gold marks a score at or above 70 — high enough that it is the
+            // number shaping the plan rather than one of eight inputs.
+            color: value >= 70 ? '#d9c48f' : '#02cd86',
+        };
+    }),
+);
+
+/** Hard caps only; `hard_caps` is a nested bag, not a row. */
+const guardrails = computed(() =>
+    Object.entries(props.profile.payload.constraints)
+        .filter(([key]) => key !== 'hard_caps')
+        .map(([key, value]) => ({
+            key,
+            label: label('constraints_labels', key),
+            value: `${value}%`,
+        })),
+);
+
+const optionsCapability = computed(
+    () => props.profile.payload.options_capability,
+);
+
+const allowedStrategies = computed(() =>
+    optionsCapability.value.allowed_strategy_families
+        .map((strategy) => label('option_strategies', strategy))
+        .join(' · '),
 );
 
 /**
@@ -100,7 +140,7 @@ defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Advisor', href: '/advisor' },
-            { title: 'Profile', href: advisorProfile().url },
+            { title: 'Advisor', href: advisorProfile().url },
         ],
     },
 });
@@ -111,34 +151,54 @@ defineOptions({
 
     <div
         data-app-flush-bottom
-        class="min-h-[calc(100svh-72px)] bg-background px-[18px] py-5 text-white lg:min-h-[calc(100svh-92px)]"
+        class="advisor-rise min-h-[calc(100svh-72px)] bg-background px-3.5 pt-3.5 pb-[120px] text-white lg:min-h-[calc(100svh-92px)] lg:px-7 lg:pt-[22px] lg:pb-[140px]"
     >
+        <!-- The dossier. One bordered document rather than a page of cards:
+             the point of this screen is that it reads as something issued. -->
         <section
-            class="mx-auto max-w-6xl overflow-hidden rounded-[16px] border border-white/10 bg-[#171a19] shadow-[0_24px_70px_rgba(0,0,0,0.3)]"
+            class="overflow-hidden rounded-[16px] border border-[#d9c48f]/22 bg-[linear-gradient(180deg,rgba(217,196,143,0.05),#1a1a1a_46%)]"
         >
-            <div class="grid lg:grid-cols-[0.8fr_1.2fr]">
+            <div
+                class="advisor-mono flex flex-wrap items-center justify-between gap-[18px] border-b border-[#d9c48f]/18 px-[26px] py-[15px] text-[10px] tracking-[0.16em] text-[#a08f68] uppercase"
+            >
+                <span class="advisor-figure"
+                    >{{ t('advisor.profile.title') }} · No.
+                    {{ documentNumber(props.profile.id) }} · v{{
+                        props.profile.profile_version
+                    }}</span
+                >
+                <span class="advisor-figure"
+                    >{{ t('advisor.profile.sealed') }}
+                    {{ sealDate(props.profile.completed_at, calendar) }} ·
+                    {{ t('advisor.profile.scoring') }}
+                    v{{ props.profile.scoring_version }}</span
+                >
+            </div>
+
+            <div class="grid lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
                 <div
-                    class="relative border-b border-white/8 p-7 lg:border-e lg:border-b-0 lg:p-10"
+                    class="relative border-b border-white/7 px-6 py-9 lg:border-e lg:border-b-0 lg:px-10 lg:pt-[42px] lg:pb-11"
                 >
                     <div
-                        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(2,205,134,0.11),transparent_42%)]"
+                        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(217,196,143,0.1),transparent_55%)]"
+                        aria-hidden="true"
                     />
                     <div class="relative">
-                        <div
-                            class="flex items-center gap-2 text-xs font-semibold tracking-[0.25em] text-[#02CD86] uppercase"
+                        <p
+                            class="advisor-mono text-[10px] tracking-[0.22em] text-[#686868] uppercase"
                         >
-                            <BrainCircuit class="size-4" />{{
-                                t('advisor.profile.title')
-                            }}
-                        </div>
+                            {{ t('advisor.profile.persona') }}
+                        </p>
                         <h1
-                            class="mt-5 text-3xl font-semibold tracking-[-0.03em] md:text-4xl"
+                            class="advisor-serif mt-3.5 text-[32px] leading-[1.08] md:text-[40px]"
                         >
                             {{
                                 label('personas', props.profile.payload.persona)
                             }}
                         </h1>
-                        <p class="mt-2 text-sm text-white/40">
+                        <p
+                            class="advisor-mono mt-3 text-[11px] tracking-[0.12em] text-[#d9c48f] uppercase"
+                        >
                             {{
                                 label(
                                     'risk_bands',
@@ -147,64 +207,109 @@ defineOptions({
                             }}
                         </p>
 
-                        <div class="mt-8 flex items-end gap-3">
+                        <div class="mt-11 flex items-end gap-3">
                             <span
-                                class="text-6xl font-semibold tracking-[-0.06em] text-[#02CD86]"
+                                class="advisor-mono advisor-figure text-[78px] leading-[0.84] font-medium tracking-[-0.05em] text-white"
                                 >{{ riskScore }}</span
                             >
-                            <span class="mb-2 text-sm text-white/35"
-                                >/ 100<br />{{
+                            <span
+                                class="advisor-mono pb-1 text-[11px] leading-[1.6] text-[#686868] uppercase"
+                                ><span class="advisor-figure">/ 100</span
+                                ><br />{{
                                     t('advisor.profile.risk_score')
                                 }}</span
                             >
                         </div>
+                        <!-- Green at the low end, gold at the high: the bar is
+                             the one place the two accents meet, because the
+                             score is exactly where capacity turns into ceremony. -->
                         <div
-                            class="mt-4 h-2 overflow-hidden rounded-full bg-white/8"
+                            class="mt-5 h-[3px] overflow-hidden rounded-full bg-white/8"
                         >
                             <div
-                                class="h-full rounded-full bg-[linear-gradient(90deg,#02CD86,#eab308,#f97316)]"
+                                class="h-full rounded-full bg-[linear-gradient(90deg,#02cd86,#d9c48f)]"
                                 :style="{ width: `${riskScore}%` }"
                             />
                         </div>
 
                         <div
-                            class="mt-8 rounded-2xl border border-white/8 bg-black/15 p-4"
+                            class="mt-9 grid grid-cols-2 border-t border-white/8"
                         >
-                            <p class="text-xs text-white/35">
-                                {{ t('advisor.profile.max_drawdown') }}
-                            </p>
-                            <p class="mt-1 text-xl font-semibold">
-                                {{
-                                    props.profile.payload
-                                        .maximum_tolerated_drawdown
-                                }}%
-                            </p>
+                            <div
+                                class="border-e border-white/8 py-[18px] pe-[18px]"
+                            >
+                                <p
+                                    class="advisor-mono text-[9.5px] tracking-[0.16em] text-[#686868] uppercase"
+                                >
+                                    {{ t('advisor.profile.max_drawdown') }}
+                                </p>
+                                <p
+                                    class="advisor-mono advisor-figure mt-2 text-[26px] font-medium"
+                                >
+                                    {{
+                                        props.profile.payload
+                                            .maximum_tolerated_drawdown
+                                    }}%
+                                </p>
+                            </div>
+                            <div class="py-[18px] ps-[18px]">
+                                <p
+                                    class="advisor-mono text-[9.5px] tracking-[0.16em] text-[#686868] uppercase"
+                                >
+                                    {{ t('advisor.profile.assets_approved') }}
+                                </p>
+                                <p
+                                    class="advisor-mono advisor-figure mt-2 text-[26px] font-medium"
+                                >
+                                    {{
+                                        props.profile.payload.selected_assets
+                                            .length
+                                    }}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="p-6 md:p-8">
-                    <div class="grid gap-3 sm:grid-cols-2">
+                <div class="px-6 py-8 lg:px-[34px] lg:pt-[34px] lg:pb-9">
+                    <div
+                        class="flex flex-wrap items-baseline justify-between gap-3 pb-3"
+                    >
+                        <span
+                            class="advisor-mono text-[10px] tracking-[0.2em] text-[#686868] uppercase"
+                            >{{ t('advisor.profile.derived_scores') }}</span
+                        >
+                        <!-- Load-bearing. The separation between deterministic
+                             scoring and AI generation is what is being paid for,
+                             so it is stated on the document itself. -->
+                        <span
+                            class="advisor-mono text-[9.5px] tracking-[0.1em] text-[#5a5a5a] uppercase"
+                            >{{ t('advisor.profile.deterministic') }}</span
+                        >
+                    </div>
+                    <div class="advisor-rule grid gap-x-[34px] sm:grid-cols-2">
                         <div
-                            v-for="[key, label] in scoreRows"
-                            :key="key"
-                            class="rounded-2xl border border-white/8 bg-white/[0.025] p-4"
+                            v-for="row in scoreRows"
+                            :key="row.key"
+                            class="border-b border-white/7 pt-[13px] pb-3"
                         >
                             <div
-                                class="flex items-center justify-between gap-3"
+                                class="flex items-baseline justify-between gap-2.5"
                             >
-                                <span class="text-xs text-white/42">{{
-                                    t(`advisor.profile.${label}`)
-                                }}</span
-                                ><strong class="text-sm">{{
-                                    props.profile.payload.scores[key]
-                                }}</strong>
+                                <span class="text-[12.5px] text-[#989898]">{{
+                                    row.label
+                                }}</span>
+                                <span
+                                    class="advisor-mono advisor-figure text-[12.5px]"
+                                    >{{ row.value }}</span
+                                >
                             </div>
-                            <div class="mt-3 h-1 rounded-full bg-white/8">
+                            <div class="mt-[9px] h-[2px] bg-white/7">
                                 <div
-                                    class="h-full rounded-full bg-[#02CD86]/75"
+                                    class="h-full"
                                     :style="{
-                                        width: `${props.profile.payload.scores[key]}%`,
+                                        width: `${row.value}%`,
+                                        backgroundColor: row.color,
                                     }"
                                 />
                             </div>
@@ -212,38 +317,201 @@ defineOptions({
                     </div>
 
                     <div
-                        v-if="props.profile.payload.warnings.length"
-                        class="mt-5 space-y-2"
+                        v-for="warning in props.profile.payload.warnings"
+                        :key="warning"
+                        class="mt-[22px] flex gap-3 rounded-[12px] border border-[#d9c48f]/24 bg-[#d9c48f]/5 px-4 py-3.5"
                     >
-                        <div
-                            v-for="warning in props.profile.payload.warnings"
-                            :key="warning"
-                            class="flex gap-3 rounded-xl border border-amber-400/15 bg-amber-400/7 p-3 text-sm text-amber-100/80"
-                        >
-                            <AlertTriangle class="mt-0.5 size-4 shrink-0" />{{
-                                label('profile_warnings', warning)
-                            }}
-                        </div>
+                        <TriangleAlert
+                            class="mt-0.5 size-[15px] shrink-0 text-[#d9c48f]"
+                            :stroke-width="1.6"
+                            aria-hidden="true"
+                        />
+                        <p class="text-[13px] leading-[1.65] text-[#cfc4a6]">
+                            {{ label('profile_warnings', warning) }}
+                        </p>
                     </div>
                 </div>
             </div>
         </section>
 
+        <div class="mt-[18px] grid gap-[18px] lg:grid-cols-2">
+            <section
+                class="rounded-[16px] border border-white/7 bg-[#1a1a1a] px-[26px] pt-6 pb-2.5"
+            >
+                <div
+                    class="flex flex-wrap items-baseline justify-between gap-3 pb-3.5"
+                >
+                    <span
+                        class="advisor-mono text-[10px] tracking-[0.2em] text-[#686868] uppercase"
+                        >{{ t('advisor.profile.constraints') }}</span
+                    >
+                    <span
+                        class="advisor-mono text-[9.5px] text-[#5a5a5a] uppercase"
+                        >{{ t('advisor.profile.hard_caps') }}</span
+                    >
+                </div>
+                <div class="advisor-rule">
+                    <div
+                        v-for="guardrail in guardrails"
+                        :key="guardrail.key"
+                        class="flex items-baseline justify-between gap-3 border-b border-white/7 py-[13px]"
+                    >
+                        <span class="text-[13px] text-[#989898]">{{
+                            guardrail.label
+                        }}</span>
+                        <span
+                            class="advisor-mono advisor-figure text-[13px] text-white"
+                            >{{ guardrail.value }}</span
+                        >
+                    </div>
+                </div>
+            </section>
+
+            <section
+                class="rounded-[16px] border border-white/7 bg-[#1a1a1a] px-[26px] py-6"
+            >
+                <p
+                    class="advisor-mono pb-3.5 text-[10px] tracking-[0.2em] text-[#686868] uppercase"
+                >
+                    {{ t('advisor.profile.options') }}
+                </p>
+                <div class="advisor-rule grid grid-cols-2">
+                    <div class="border-e border-b border-white/7 py-4 pe-4">
+                        <p
+                            class="advisor-mono text-[9.5px] tracking-[0.16em] text-[#686868] uppercase"
+                        >
+                            {{ t('advisor.profile.options_willingness') }}
+                        </p>
+                        <p class="mt-[7px] text-[15px]">
+                            {{
+                                label(
+                                    'options_willingness',
+                                    optionsCapability.willingness,
+                                )
+                            }}
+                        </p>
+                    </div>
+                    <div class="border-b border-white/7 py-4 ps-4">
+                        <p
+                            class="advisor-mono text-[9.5px] tracking-[0.16em] text-[#686868] uppercase"
+                        >
+                            {{ t('advisor.profile.options_capability_level') }}
+                        </p>
+                        <p class="mt-[7px] text-[15px]">
+                            {{
+                                label(
+                                    'options_experience',
+                                    optionsCapability.experience_level,
+                                )
+                            }}
+                        </p>
+                    </div>
+                    <div class="border-e border-white/7 pe-4 pt-4">
+                        <p
+                            class="advisor-mono text-[9.5px] tracking-[0.16em] text-[#686868] uppercase"
+                        >
+                            {{ t('advisor.profile.options_knowledge') }}
+                        </p>
+                        <p
+                            class="advisor-mono advisor-figure mt-[7px] text-[15px]"
+                        >
+                            {{ optionsCapability.knowledge_score }} / 100
+                        </p>
+                    </div>
+                    <div class="ps-4 pt-4">
+                        <p
+                            class="advisor-mono text-[9.5px] tracking-[0.16em] text-[#686868] uppercase"
+                        >
+                            {{ t('advisor.profile.options_risk_budget') }}
+                        </p>
+                        <p
+                            class="advisor-mono advisor-figure mt-[7px] text-[15px]"
+                        >
+                            {{ optionsCapability.maximum_risk_budget_percent }}%
+                        </p>
+                    </div>
+                </div>
+                <p
+                    v-if="allowedStrategies"
+                    class="advisor-mono mt-5 text-[9.5px] tracking-[0.1em] text-[#5a5a5a] uppercase"
+                >
+                    {{ t('advisor.profile.allowed') }}: {{ allowedStrategies }}
+                </p>
+            </section>
+        </div>
+
         <section
-            class="mx-auto mt-[18px] max-w-6xl rounded-[16px] border border-[#02CD86]/20 bg-[linear-gradient(135deg,rgba(2,205,134,0.09),rgba(23,26,25,1)_50%)] p-6 md:flex md:items-center md:justify-between md:gap-8"
+            class="mt-[18px] rounded-[16px] border border-white/7 bg-[#1a1a1a] px-[26px] pt-6 pb-1.5"
         >
-            <div>
-                <h2 class="flex items-center gap-2 text-lg font-semibold">
-                    <Sparkles class="size-5 text-[#a78bfa]" />{{
-                        t('advisor.ai_role')
-                    }}
+            <div
+                class="flex flex-wrap items-baseline justify-between gap-3 pb-3.5"
+            >
+                <span
+                    class="advisor-mono text-[10px] tracking-[0.2em] text-[#686868] uppercase"
+                    >{{ t('advisor.profile.assets') }}</span
+                >
+                <span class="advisor-mono text-[9.5px] text-[#5a5a5a] uppercase"
+                    >◆ {{ t('advisor.portfolio.required_asset') }}</span
+                >
+            </div>
+            <div class="advisor-rule overflow-x-auto">
+                <div class="min-w-[560px]">
+                    <div
+                        class="advisor-mono grid grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_30px] gap-4 border-b border-white/7 py-[11px] text-[9.5px] tracking-[0.14em] text-[#5a5a5a] uppercase"
+                    >
+                        <span>{{ t('advisor.recommendation.asset') }}</span>
+                        <span>{{ t('advisor.profile.category') }}</span>
+                        <span>{{ t('advisor.profile.risk') }}</span>
+                        <span>{{ t('advisor.profile.outlook') }}</span>
+                        <span />
+                    </div>
+                    <div
+                        v-for="asset in props.profile.payload.selected_assets"
+                        :key="asset.asset_key"
+                        class="grid grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_30px] items-center gap-4 border-b border-white/7 py-3.5"
+                    >
+                        <span class="truncate text-[13.5px] text-white">{{
+                            asset.name
+                        }}</span>
+                        <span class="truncate text-[12.5px] text-[#989898]">{{
+                            label('categories', asset.category)
+                        }}</span>
+                        <span class="truncate text-[12.5px] text-[#989898]">{{
+                            label('risk_bands', asset.risk_band)
+                        }}</span>
+                        <span class="truncate text-[12.5px] text-[#989898]">{{
+                            label('perspectives', asset.perspective)
+                        }}</span>
+                        <span class="text-end text-xs text-[#d9c48f]">
+                            <template v-if="asset.inclusion === 'required'"
+                                >◆</template
+                            >
+                            <span class="sr-only">{{
+                                label('inclusions', asset.inclusion)
+                            }}</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- The hand-off. Green, because this is the one action on the page. -->
+        <section
+            class="mt-[18px] flex flex-wrap items-center justify-between gap-[26px] rounded-[16px] border border-[#02cd86]/22 bg-[linear-gradient(120deg,rgba(2,205,134,0.07),#1a1a1a_52%)] px-7 py-[26px]"
+        >
+            <div class="max-w-[60ch] min-w-0">
+                <h2
+                    class="advisor-serif text-[22px] leading-[1.2] md:text-[24px]"
+                >
+                    {{ t('advisor.ai_role') }}
                 </h2>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-white/45">
+                <p class="mt-2.5 text-[13.5px] leading-[1.7] text-[#989898]">
                     {{ t('advisor.profile.ai_scope') }}
                 </p>
             </div>
-            <Button
-                class="mt-5 h-12 shrink-0 rounded-full bg-[#02CD86] px-6 font-semibold text-[#07130f] hover:bg-[#19d897] md:mt-0"
+            <button
+                type="button"
+                class="flex shrink-0 cursor-pointer items-center gap-2.5 rounded-[10px] bg-[#02cd86] px-[26px] py-3.5 text-sm font-semibold text-[#101010] transition-colors hover:bg-[#16e19a] disabled:cursor-not-allowed disabled:opacity-45"
                 :disabled="!props.profile.ai_enabled || generator.processing"
                 @click="generateRecommendation"
             >
@@ -255,141 +523,30 @@ defineOptions({
                 <LoaderCircle
                     v-if="generator.processing"
                     class="size-4 animate-spin motion-reduce:animate-none"
+                    aria-hidden="true"
                 />
-                <ArrowRight v-else class="size-4" />
-            </Button>
+                <span v-else class="advisor-mono text-[13px] rtl:rotate-180"
+                    >→</span
+                >
+            </button>
         </section>
+
         <p
             v-if="!props.profile.ai_enabled"
-            class="mx-auto mt-4 max-w-6xl text-sm text-amber-200/70"
+            class="mt-4 text-[13px] leading-[1.65] text-[#cfc4a6]"
         >
             {{ t('advisor.profile.ai_disabled') }}
         </p>
         <p
             v-if="generationError"
-            class="mx-auto mt-4 max-w-6xl rounded-xl bg-red-400/10 px-4 py-3 text-sm text-red-200"
+            class="mt-4 rounded-[12px] border border-[#e9756f]/25 bg-[#e9756f]/8 px-4 py-3 text-sm text-[#f2b2ae]"
             role="alert"
         >
             {{ generationError }}
         </p>
 
-        <div class="mx-auto mt-[18px] grid max-w-6xl gap-[18px] lg:grid-cols-2">
-            <section
-                class="rounded-[16px] border border-white/10 bg-[#171a19] p-6"
-            >
-                <h2 class="flex items-center gap-2 font-semibold">
-                    <ShieldCheck class="size-4 text-[#02CD86]" />{{
-                        t('advisor.profile.constraints')
-                    }}
-                </h2>
-                <div class="mt-4 divide-y divide-white/8 text-sm">
-                    <div
-                        v-for="(value, key) in props.profile.payload
-                            .constraints"
-                        v-show="key !== 'hard_caps'"
-                        :key="key"
-                        class="flex items-center justify-between gap-4 py-3"
-                    >
-                        <span class="text-white/45">{{
-                            label('constraints_labels', String(key))
-                        }}</span
-                        ><strong>{{ value }}%</strong>
-                    </div>
-                </div>
-            </section>
-            <section
-                class="rounded-[16px] border border-white/10 bg-[#171a19] p-6"
-            >
-                <h2 class="flex items-center gap-2 font-semibold">
-                    <LockKeyhole class="size-4 text-[#60a5fa]" />{{
-                        t('advisor.profile.options')
-                    }}
-                </h2>
-                <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
-                    <div class="rounded-xl bg-white/[0.025] p-3">
-                        <span class="block text-xs text-white/35">{{
-                            t('advisor.profile.options_willingness')
-                        }}</span
-                        ><strong class="mt-1 block">{{
-                            label(
-                                'options_willingness',
-                                props.profile.payload.options_capability
-                                    .willingness,
-                            )
-                        }}</strong>
-                    </div>
-                    <div class="rounded-xl bg-white/[0.025] p-3">
-                        <span class="block text-xs text-white/35">{{
-                            t('advisor.profile.options_capability_level')
-                        }}</span
-                        ><strong class="mt-1 block">{{
-                            label(
-                                'options_experience',
-                                props.profile.payload.options_capability
-                                    .experience_level,
-                            )
-                        }}</strong>
-                    </div>
-                    <div class="rounded-xl bg-white/[0.025] p-3">
-                        <span class="block text-xs text-white/35">{{
-                            t('advisor.profile.options_knowledge')
-                        }}</span
-                        ><strong class="mt-1 block"
-                            >{{
-                                props.profile.payload.options_capability
-                                    .knowledge_score
-                            }}
-                            / 100</strong
-                        >
-                    </div>
-                    <div class="rounded-xl bg-white/[0.025] p-3">
-                        <span class="block text-xs text-white/35">{{
-                            t('advisor.profile.options_risk_budget')
-                        }}</span
-                        ><strong class="mt-1 block"
-                            >{{
-                                props.profile.payload.options_capability
-                                    .maximum_risk_budget_percent
-                            }}%</strong
-                        >
-                    </div>
-                </div>
-            </section>
-        </div>
-
-        <section
-            class="mx-auto mt-[18px] max-w-6xl rounded-[16px] border border-white/10 bg-[#171a19] p-6"
-        >
-            <h2 class="font-semibold">{{ t('advisor.profile.assets') }}</h2>
-            <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <article
-                    v-for="asset in props.profile.payload.selected_assets"
-                    :key="asset.asset_key"
-                    class="rounded-2xl border border-white/8 bg-white/[0.025] p-4"
-                >
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <h3 class="font-medium">{{ asset.name }}</h3>
-                            <p class="mt-1 text-xs text-white/30">
-                                {{ label('categories', asset.category) }} ·
-                                {{ label('risk_bands', asset.risk_band) }}
-                            </p>
-                        </div>
-                        <CheckCircle2
-                            v-if="asset.inclusion === 'required'"
-                            class="size-4 text-[#02CD86]"
-                        />
-                    </div>
-                    <p class="mt-4 text-xs text-white/45">
-                        {{ label('perspectives', asset.perspective) }} ·
-                        {{ label('inclusions', asset.inclusion) }}
-                    </p>
-                </article>
-            </div>
-        </section>
-
         <p
-            class="mx-auto mt-5 max-w-3xl text-center text-xs leading-5 text-white/28"
+            class="mx-auto mt-11 max-w-[68ch] text-center text-xs leading-[1.75] text-[#5a5a5a]"
         >
             {{ t('advisor.disclosure') }}
         </p>

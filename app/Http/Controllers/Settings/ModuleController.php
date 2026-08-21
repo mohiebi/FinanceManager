@@ -119,8 +119,11 @@ class ModuleController extends Controller
             'description' => $feature->description(),
             'icon' => $feature->icon(),
             'tier' => $feature->tier()->value,
-            'enabled' => $features->enabled($feature),
-            'show_promo' => $features->showsPromo($feature),
+            // Live state, not the stored preference: a module the plan does not
+            // cover reads as off here, which is both true and what keeps the
+            // "hide from menu" control available on a locked card.
+            'enabled' => $features->isLive($feature, $user->isPro()),
+            'show_promo' => $features->advertises($feature, $user->isPro()),
             // Drives whether the "hide from menu" control is offered at all: a
             // module with no sidebar entry has no menu to be hidden from.
             'in_nav' => $feature->appearsInNav(),

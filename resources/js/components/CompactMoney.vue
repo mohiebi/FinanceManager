@@ -37,11 +37,16 @@ const hasAbbreviation = computed(
 const isNegative = computed(() => isNegativeCurrencyValue(props.value));
 const valueClass = computed(() =>
     [
-        masked.value
-            ? 'blur-[6px] transition-[filter] duration-150 select-none'
-            : 'transition-[filter] duration-150',
+        'transition-[filter] duration-150',
         isNegative.value ? '!text-[#E94E50]' : '',
     ].join(' '),
+);
+const displayedValue = computed(() =>
+    masked.value
+        ? '••••••'
+        : hasAbbreviation.value
+          ? abbreviated.value
+          : full.value,
 );
 </script>
 
@@ -52,11 +57,11 @@ const valueClass = computed(() =>
                 <span
                     v-bind="attrs"
                     tabindex="0"
-                    :aria-label="full"
+                    :aria-label="masked ? 'Amount hidden' : full"
                     :class="valueClass"
                     dir="ltr"
                 >
-                    {{ abbreviated }}
+                    {{ displayedValue }}
                 </span>
             </TooltipTrigger>
             <TooltipContent
@@ -73,7 +78,13 @@ const valueClass = computed(() =>
         </Tooltip>
     </TooltipProvider>
 
-    <span v-else v-bind="attrs" :class="valueClass" dir="ltr">
-        {{ hasAbbreviation ? abbreviated : full }}
+    <span
+        v-else
+        v-bind="attrs"
+        :aria-label="masked ? 'Amount hidden' : undefined"
+        :class="valueClass"
+        dir="ltr"
+    >
+        {{ displayedValue }}
     </span>
 </template>

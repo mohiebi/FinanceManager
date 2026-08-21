@@ -273,6 +273,7 @@
                             :center-label="t('finance.portfolio.current_value')"
                             :center-value="allocationCenterValue"
                             :tooltip-formatter="formatAllocationPercentage"
+                            :masked="masked"
                             hide-legend
                             @slice-click="onSliceClick"
                         />
@@ -345,6 +346,7 @@
                         :value-suffix="chartValueSuffix"
                         :compact-values="shouldCompactChartValues"
                         :value-fraction-digits="chartValueFractionDigits"
+                        :masked="masked"
                         :height="340"
                     />
 
@@ -653,7 +655,7 @@ const page = usePage();
 const { masked } = useAmountMask();
 const maskClass = computed(() =>
     masked.value
-        ? 'blur-[6px] transition-[filter] duration-150 select-none'
+        ? "relative text-transparent transition-colors duration-150 select-none before:absolute before:inset-x-0 before:top-1/2 before:h-[0.75em] before:-translate-y-1/2 before:rounded-sm before:bg-white/30 before:content-['']"
         : 'transition-[filter] duration-150',
 );
 const displayCalendar = computed(

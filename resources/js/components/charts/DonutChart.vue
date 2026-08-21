@@ -9,6 +9,8 @@ const props = defineProps<{
     centerLabel?: string;
     centerValue?: string;
     tooltipFormatter?: (v: number) => string;
+    /** Conceal the monetary centre total without hiding allocation percentages. */
+    masked?: boolean;
     /** Off by default so nothing already relying on the built-in legend
      *  changes; a caller building its own legend list (matching the mock's
      *  dot + name + value + percent rows, which this chart's own legend
@@ -124,7 +126,8 @@ const buildOptions = () => ({
                         fontSize: '13px',
                         fontFamily: 'inherit',
                         color: '#989898',
-                        formatter: () => props.centerValue ?? '',
+                        formatter: () =>
+                            props.masked ? '••••••' : (props.centerValue ?? ''),
                     },
                 },
             },
@@ -170,6 +173,7 @@ watch(
         props.centerValue,
         props.tooltipFormatter,
         props.hideLegend,
+        props.masked,
     ],
     () => chart?.updateOptions(buildOptions(), false, true),
     { deep: true },

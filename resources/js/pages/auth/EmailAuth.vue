@@ -221,6 +221,7 @@ const linkClass =
         <Form
             v-else-if="step === 'password'"
             v-bind="WebEmailAuthController.login.form()"
+            :options="{ preserveState: false }"
             v-slot="{ errors, processing }"
             :class="formClass"
         >
@@ -325,6 +326,7 @@ const linkClass =
         <Form
             v-else-if="step === 'complete_signup'"
             v-bind="WebEmailAuthController.completeSignup.form()"
+            :options="{ preserveState: false }"
             :reset-on-success="['password', 'password_confirmation']"
             v-slot="{ errors, processing }"
             :class="profileFormClass"
@@ -403,6 +405,7 @@ const linkClass =
         <Form
             v-else-if="step === 'recovery_code'"
             v-bind="WebEmailAuthController.verifyRecovery.form()"
+            :options="{ preserveState: false }"
             v-slot="{ errors, processing }"
             :class="formClass"
             @error="recoveryCode = ''"

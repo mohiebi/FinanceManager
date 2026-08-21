@@ -264,6 +264,8 @@ test('the bills page ships ciphertext and rates instead of a total it cannot com
             ->where('bills.0.display_amount', null)
             ->where('bills.0.month_occurrence_count', 1)
             ->where('monthlyBillSummary.amount', null)
+            ->where('dueSoonSummary.amount', null)
+            ->where('balanceSummary', null)
             ->has('rates')
             ->etc());
 });

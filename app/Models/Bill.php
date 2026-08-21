@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'user_id',
@@ -56,6 +57,20 @@ class Bill extends Model implements HasEncryptionOwner
     public function occurrences(): HasMany
     {
         return $this->hasMany(BillOccurrence::class);
+    }
+
+    /**
+     * The single most recently paid occurrence, if any — used to show a
+     * bill as "Paid" for a short window after it lands, instead of jumping
+     * straight to whatever its next scheduled occurrence happens to be.
+     *
+     * @return HasOne<BillOccurrence, Bill>
+     */
+    public function latestPaidOccurrence(): HasOne
+    {
+        return $this->hasOne(BillOccurrence::class)
+            ->whereNotNull('paid_at')
+            ->latestOfMany('paid_at');
     }
 
     public function isRecurring(): bool

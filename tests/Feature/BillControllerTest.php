@@ -672,3 +672,170 @@ test('the upcoming horizon does not jump a whole month on the 31st', function ()
         ->and($horizonFor('2026-08-31'))->toContain('2026-09-15')
         ->and($horizonFor('2026-08-31'))->not->toContain('2026-10-15');
 });
+
+test('a bill paid within the last 10 days is exposed as recently paid, and one paid earlier is not', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-20 09:00:00'));
+
+    try {
+        $user = User::factory()->withModules()->create();
+
+        $recentlyPaidBill = $user->bills()->create([
+            'title' => 'Recently paid',
+            'amount' => 100,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 15,
+        ]);
+        $recentlyPaidBill->occurrences()->create([
+            'due_date' => '2026-07-15',
+            'paid_at' => Carbon::now()->subDays(3),
+        ]);
+
+        $stalePaidBill = $user->bills()->create([
+            'title' => 'Paid a while ago',
+            'amount' => 200,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 10,
+        ]);
+        $stalePaidBill->occurrences()->create([
+            'due_date' => '2026-07-10',
+            'paid_at' => Carbon::now()->subDays(15),
+        ]);
+
+        $bills = collect();
+
+        $this->actingAs($user)
+            ->get(route('bills.index'))
+            ->assertOk()
+            ->assertInertia(function (Assert $page) use (&$bills): void {
+                $bills = collect($page->toArray()['props']['bills'])->keyBy('title');
+            });
+
+        expect($bills['Recently paid']['recent_paid_occurrence']['due_date'])->toBe('2026-07-15')
+            ->and($bills['Paid a while ago']['recent_paid_occurrence'])->toBeNull();
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('the due soon summary totals occurrences within the next 30 days, independent of calendar month boundaries', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-06 09:00:00'));
+
+    try {
+        $user = User::factory()->withModules()->create();
+
+        $insideWindow = $user->bills()->create([
+            'title' => 'Inside window',
+            'amount' => 100,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 1,
+        ]);
+        // 26 days out — inside the 30-day window.
+        $insideWindow->occurrences()->create(['due_date' => '2026-08-01']);
+
+        $outsideWindow = $user->bills()->create([
+            'title' => 'Outside window',
+            'amount' => 300,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 20,
+        ]);
+        // 45 days out — outside the window, even though it's next calendar month too.
+        $outsideWindow->occurrences()->create(['due_date' => '2026-08-20']);
+
+        $this->actingAs($user)
+            ->get(route('bills.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Bills')
+                ->where('dueSoonSummary.amount', '100.00')
+                ->where('dueSoonSummary.count', 1)
+            );
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('calendarOccurrences lists every occurrence due this month, paid or not', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-15 09:00:00'));
+
+    try {
+        $user = User::factory()->withModules()->create();
+        $category = Category::factory()->cost()->create(['color' => '#02CD86']);
+
+        $bill = $user->bills()->create([
+            'title' => 'Rent',
+            'amount' => 100,
+            'currency' => 'toman',
+            'category_id' => $category->id,
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 5,
+        ]);
+        $paid = $bill->occurrences()->create(['due_date' => '2026-07-05', 'paid_at' => now()]);
+
+        $outOfMonthBill = $user->bills()->create([
+            'title' => 'Next month only',
+            'amount' => 50,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 5,
+        ]);
+        $outOfMonthBill->occurrences()->create(['due_date' => '2026-08-05']);
+
+        $this->actingAs($user)
+            ->get(route('bills.index'))
+            ->assertOk()
+            ->assertInertia(function (Assert $page) use ($paid): void {
+                $occurrences = collect($page->toArray()['props']['calendarOccurrences']);
+
+                expect($occurrences->pluck('due_date')->all())->toContain('2026-07-05')
+                    ->and($occurrences->pluck('due_date')->all())->not->toContain('2026-08-05');
+
+                $paidRow = $occurrences->firstWhere('id', $paid->id);
+                expect($paidRow['is_paid'])->toBeTrue()
+                    ->and($paidRow['color'])->toBe('#02CD86');
+            });
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('balanceSummary nets this period income minus cost', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-15 09:00:00'));
+
+    try {
+        $user = User::factory()->withModules()->create();
+        $costCategory = Category::factory()->cost()->create();
+        $incomeCategory = Category::factory()->income()->create();
+
+        $user->transactions()->create([
+            'category_id' => $incomeCategory->id,
+            'type' => 'income',
+            'amount' => 1000,
+            'currency' => Currency::Toman->value,
+            'title' => 'Salary',
+            'occurred_at' => '2026-07-01',
+        ]);
+        $user->transactions()->create([
+            'category_id' => $costCategory->id,
+            'type' => 'cost',
+            'amount' => 400,
+            'currency' => Currency::Toman->value,
+            'title' => 'Groceries',
+            'occurred_at' => '2026-07-10',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('bills.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Bills')
+                ->where('balanceSummary.balance', 600)
+                ->where('balanceSummary.currency', Currency::Toman->value)
+            );
+    } finally {
+        Carbon::setTestNow();
+    }
+});

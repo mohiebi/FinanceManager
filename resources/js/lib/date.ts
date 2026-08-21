@@ -1,4 +1,4 @@
-import { toJalaali } from 'jalaali-js';
+import { jalaaliMonthLength, toGregorian, toJalaali } from 'jalaali-js';
 
 function pad(value: number): string {
     return String(value).padStart(2, '0');
@@ -234,4 +234,128 @@ export function recentMonthBuckets(
             }),
         };
     });
+}
+
+/** Saturday-first weekday abbreviations, matching how the Jalali calendar is
+ *  conventionally laid out (ش ی د س چ پ ج = Sat..Fri). */
+const jalaliWeekdayLabels = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+
+export type CalendarDayCell = {
+    /** The underlying Gregorian ISO date — how due dates are matched against it. */
+    iso: string;
+    /** Day-of-month number to display, in the active calendar. */
+    day: number;
+    isToday: boolean;
+};
+
+export type CalendarMonthGrid = {
+    monthLabel: string;
+    weekdayLabels: string[];
+    /** Always a multiple of 7 cells per row; `null` pads the leading/trailing days. */
+    weeks: (CalendarDayCell | null)[][];
+};
+
+function chunkIntoWeeks(
+    cells: (CalendarDayCell | null)[],
+): (CalendarDayCell | null)[][] {
+    const weeks: (CalendarDayCell | null)[][] = [];
+
+    for (let i = 0; i < cells.length; i += 7) {
+        weeks.push(cells.slice(i, i + 7));
+    }
+
+    return weeks;
+}
+
+/**
+ * Builds the current month's day grid for the Bills calendar view, in
+ * whichever calendar system the user has chosen. Cells always carry the
+ * Gregorian ISO date underneath, since that's how due dates are stored and
+ * sent from the server — only the displayed day number and month label
+ * differ by calendar.
+ */
+export function buildCalendarMonth(
+    todayIso: string,
+    calendar: string | undefined,
+    monthLabelLocale: string,
+): CalendarMonthGrid {
+    const [ty, tm, td] = todayIso.split('-').map(Number);
+
+    if (!ty || !tm || !td) {
+        return { monthLabel: '', weekdayLabels: [], weeks: [] };
+    }
+
+    if (calendar === 'jalali') {
+        const today = toJalaali(ty, tm, td);
+        const daysInMonth = jalaaliMonthLength(today.jy, today.jm);
+        const firstGregorian = toGregorian(today.jy, today.jm, 1);
+        const firstWeekday = new Date(
+            firstGregorian.gy,
+            firstGregorian.gm - 1,
+            firstGregorian.gd,
+        ).getDay();
+        // JS getDay() is Sunday-first (0-6); shift so Saturday lands in column 0.
+        const firstColumn = (firstWeekday + 1) % 7;
+
+        const cells: (CalendarDayCell | null)[] = Array.from(
+            { length: firstColumn },
+            () => null,
+        );
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const gregorian = toGregorian(today.jy, today.jm, day);
+            cells.push({
+                iso: `${gregorian.gy}-${pad(gregorian.gm)}-${pad(gregorian.gd)}`,
+                day,
+                isToday: day === today.jd,
+            });
+        }
+
+        while (cells.length % 7 !== 0) {
+            cells.push(null);
+        }
+
+        return {
+            monthLabel: `${jalaliMonthAbbreviations[today.jm - 1]} ${today.jy}`,
+            weekdayLabels: jalaliWeekdayLabels,
+            weeks: chunkIntoWeeks(cells),
+        };
+    }
+
+    const daysInMonth = new Date(ty, tm, 0).getDate();
+    const firstColumn = new Date(ty, tm - 1, 1).getDay();
+
+    const cells: (CalendarDayCell | null)[] = Array.from(
+        { length: firstColumn },
+        () => null,
+    );
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        cells.push({
+            iso: `${ty}-${pad(tm)}-${pad(day)}`,
+            day,
+            isToday: day === td,
+        });
+    }
+
+    while (cells.length % 7 !== 0) {
+        cells.push(null);
+    }
+
+    // January 1, 2023 was a Sunday, so offsetting from it gives Sun..Sat
+    // labels in the viewer's own locale.
+    const weekdayLabels = Array.from({ length: 7 }, (_, i) =>
+        new Date(2023, 0, 1 + i).toLocaleDateString(monthLabelLocale, {
+            weekday: 'narrow',
+        }),
+    );
+
+    return {
+        monthLabel: new Date(ty, tm - 1, 1).toLocaleDateString(
+            monthLabelLocale,
+            { month: 'long', year: 'numeric' },
+        ),
+        weekdayLabels,
+        weeks: chunkIntoWeeks(cells),
+    };
 }

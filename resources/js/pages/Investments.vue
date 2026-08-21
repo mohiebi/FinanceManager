@@ -151,10 +151,10 @@
         <!-- ── Entries, grouped by asset ──────────────────────────── -->
         <div
             v-if="props.entries.length > 0"
-            class="mx-[18px] mt-[18px] mb-[38px] overflow-x-auto rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10"
+            class="mx-[18px] mt-[18px] mb-[38px] overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 pt-5 pb-2.5 ring-1 ring-white/10 sm:overflow-x-auto"
         >
             <div
-                class="mb-3 flex min-w-[640px] flex-wrap items-center justify-between gap-4"
+                class="mb-3 flex flex-wrap items-center justify-between gap-4 sm:min-w-[640px]"
             >
                 <div>
                     <p class="text-[14.5px] font-medium text-white">
@@ -201,7 +201,7 @@
                  with an empty total that fills in a beat later. -->
             <div
                 v-if="props.assets === undefined"
-                class="flex min-w-[640px] items-center justify-center gap-2 py-10"
+                class="flex items-center justify-center gap-2 py-10 sm:min-w-[640px]"
             >
                 <Spinner class="size-4 text-[#989898]" />
                 <span class="text-sm text-[#989898]">{{
@@ -213,11 +213,11 @@
                 v-for="group in entryGroups"
                 v-else
                 :key="group.key"
-                class="min-w-[640px] border-t border-white/[0.06]"
+                class="border-t border-white/[0.06] sm:min-w-[640px]"
             >
                 <button
                     type="button"
-                    class="grid w-full cursor-pointer grid-cols-[20px_minmax(140px,1fr)_100px_130px_150px] items-center gap-3.5 py-3.5 text-start"
+                    class="grid w-full cursor-pointer grid-cols-[20px_minmax(0,1fr)_max-content] items-center gap-2.5 py-3.5 text-start sm:grid-cols-[20px_minmax(140px,1fr)_100px_130px_150px] sm:gap-3.5"
                     @click="toggleGroup(group.key)"
                 >
                     <span class="text-[11px] text-[#686868]">{{
@@ -232,11 +232,14 @@
                             group.label
                         }}</span>
                     </span>
-                    <span class="text-xs text-[#686868]" dir="ltr">
+                    <span
+                        class="hidden text-xs text-[#686868] sm:block"
+                        dir="ltr"
+                    >
                         {{ group.entries.length }}
                     </span>
                     <span
-                        class="text-end text-[13px] text-[#989898] tabular-nums"
+                        class="hidden text-end text-[13px] text-[#989898] tabular-nums sm:block"
                         dir="ltr"
                     >
                         {{ group.qtyDisplay }}
@@ -254,21 +257,35 @@
                     <div
                         v-for="entry in group.entries"
                         :key="entry.id"
-                        class="group grid grid-cols-[20px_minmax(140px,1fr)_100px_130px_150px] items-center gap-3.5 border-t border-white/[0.04] py-2.5 transition-colors hover:bg-white/[0.02]"
+                        class="group grid grid-cols-[minmax(0,1fr)_max-content] items-center gap-2.5 border-t border-white/[0.04] py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[20px_minmax(140px,1fr)_100px_130px_150px] sm:gap-3.5"
                     >
-                        <span></span>
-                        <span class="text-[12.5px] text-[#686868]">
+                        <span class="hidden sm:block"></span>
+                        <span class="min-w-0 text-[12.5px] text-[#686868]">
                             {{
                                 entry.kind === 'sell'
                                     ? t('finance.investments.kind_sell')
                                     : t('finance.investments.kind_buy')
                             }}
+                            <span
+                                class="mt-0.5 block truncate text-[11px] text-[#686868] sm:hidden"
+                            >
+                                {{ displayDate(entry.occurred_at) }} ·
+                                <Ciphered
+                                    :value="entry.quantity"
+                                    table="investments"
+                                    type="decimal"
+                                />
+                                {{ entry.asset_unit }}
+                            </span>
                         </span>
-                        <span class="text-xs text-[#686868]" dir="ltr">
+                        <span
+                            class="hidden text-xs text-[#686868] sm:block"
+                            dir="ltr"
+                        >
                             {{ displayDate(entry.occurred_at) }}
                         </span>
                         <span
-                            class="text-end text-[12.5px] text-[#989898] tabular-nums"
+                            class="hidden text-end text-[12.5px] text-[#989898] tabular-nums sm:block"
                             dir="ltr"
                         >
                             <Ciphered
@@ -309,7 +326,7 @@
                             <!-- Always visible: hover-only actions are invisible
                                  on touch, and undiscoverable everywhere else. -->
                             <div
-                                class="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100"
+                                class="flex shrink-0 items-center gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100"
                             >
                                 <!-- Purchases only. This dialog speaks cost, not
                                      proceeds, so it cannot express a sale — which

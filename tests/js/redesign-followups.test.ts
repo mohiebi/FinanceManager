@@ -13,6 +13,7 @@ const lineChart = source('../../resources/js/components/charts/LineChart.vue');
 const modules = source('../../resources/js/pages/settings/Modules.vue');
 const amountMask = source('../../resources/js/composables/useAmountMask.ts');
 const portfolio = source('../../resources/js/pages/Portfolio.vue');
+const investments = source('../../resources/js/pages/Investments.vue');
 const preferences = source('../../resources/js/pages/settings/Preferences.vue');
 const report = source('../../resources/js/pages/Report.vue');
 const transactions = source('../../resources/js/pages/Transactions.vue');
@@ -101,4 +102,39 @@ test('amount-mask page and state initialization are safe for SSR', () => {
 test('category filters remain in the same responsive row as search', () => {
     assert.match(transactions, /sm:!w-\[220px\]/);
     assert.match(report, /sm:!w-\[240px\]/);
+});
+
+test('transaction filters and rows fit compact screens without hiding amounts', () => {
+    assert.match(transactions, /flex-col items-stretch[\s\S]*sm:flex-row/);
+    assert.match(
+        transactions,
+        /container-class="w-full grid-cols-\[1\.2fr_1fr_1fr\] sm:w-auto"/,
+    );
+    assert.match(
+        transactions,
+        /grid-cols-\[minmax\(0,1fr\)_max-content_68px\]/,
+    );
+    assert.match(
+        transactions,
+        /hidden text-xs text-\[#686868\][\s\S]*sm:block/,
+    );
+    assert.match(transactions, /class="mt-1 sm:hidden"/);
+});
+
+test('report filters and rows prioritise amounts on compact screens', () => {
+    assert.match(report, /flex-col items-stretch[\s\S]*sm:flex-row/);
+    assert.match(report, /container-class="grid-cols-\[1\.2fr_1fr_1fr\]"/);
+    assert.match(
+        report,
+        /grid-cols-\[minmax\(0,1fr\)_max-content\][\s\S]*sm:grid-cols-\[minmax\(120px,1fr\)_112px_92px_118px\]/,
+    );
+    assert.match(report, /class="mt-1 sm:hidden"/);
+});
+
+test('portfolio export sits with the completed detail and investment entries fit compact screens', () => {
+    assert.match(portfolio, /finance\.portfolio\.export_profit_loss_hint/);
+    assert.match(portfolio, /assets\.length > 0 && !props\.vaultPortfolio/);
+    assert.match(investments, /grid-cols-\[20px_minmax\(0,1fr\)_max-content\]/);
+    assert.match(investments, /grid-cols-\[minmax\(0,1fr\)_max-content\]/);
+    assert.match(investments, /opacity-100 transition sm:opacity-0/);
 });

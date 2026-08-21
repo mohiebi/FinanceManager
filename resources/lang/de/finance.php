@@ -288,6 +288,7 @@ return [
         'hero_title' => 'Deine Bestände, Kostenbasis und G/V auf einen Blick.',
         'hero_description' => 'Füge beim Erfassen von Investitionseinträgen eine Kostenbasis hinzu, um hier die Gewinn-/Verlustverfolgung freizuschalten.',
         'export_profit_loss' => 'G/V exportieren',
+        'export_profit_loss_hint' => 'Lade deinen Portfolio-Gewinn-und-Verlustbericht als Tabelle herunter.',
         'current_value' => 'Aktueller Wert',
         'cost_basis' => 'Kostenbasis',
         'total_cost_basis' => 'Gesamte Kostenbasis',

@@ -295,6 +295,7 @@ return [
         'hero_title' => 'Your holdings, cost basis & P/L at a glance.',
         'hero_description' => 'Add a cost basis when logging investment entries to unlock profit/loss tracking here.',
         'export_profit_loss' => 'Export P&L',
+        'export_profit_loss_hint' => 'Download your portfolio profit and loss report as a spreadsheet.',
         'current_value' => 'Current value',
         'cost_basis' => 'Cost basis',
         'total_cost_basis' => 'Total cost basis',

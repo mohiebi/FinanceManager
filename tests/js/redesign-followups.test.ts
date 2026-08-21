@@ -83,6 +83,7 @@ test('portfolio summary totals use selected-currency values', () => {
     assert.match(portfolio, /function formatAllocationPercentage/);
     assert.match(portfolio, /:center-value="allocationCenterValue"/);
     assert.match(portfolio, /formatCompactCurrencyDisplay/);
+    assert.match(portfolio, /shouldCompactChartValues\.value/);
     assert.match(donutChart, /props\.tooltipFormatter/);
 });
 

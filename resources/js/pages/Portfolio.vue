@@ -825,7 +825,7 @@ const allocationCenterValue = computed(() => {
         return t('finance.price_unavailable');
     }
 
-    const formatValue = compactFigures.value
+    const formatValue = shouldCompactChartValues.value
         ? formatCompactCurrencyDisplay
         : formatCurrencyDisplay;
 

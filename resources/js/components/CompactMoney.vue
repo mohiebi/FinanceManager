@@ -21,6 +21,8 @@ defineOptions({ inheritAttrs: false });
 const props = defineProps<{
     value: DisplayNumber;
     currency: CurrencyCode;
+    /** Use the solid placeholder only for prominent summary figures. */
+    maskVariant?: 'blur' | 'placeholder';
 }>();
 
 const attrs = useAttrs();
@@ -37,16 +39,19 @@ const hasAbbreviation = computed(
 const isNegative = computed(() => isNegativeCurrencyValue(props.value));
 const valueClass = computed(() =>
     [
-        'transition-[filter] duration-150',
-        isNegative.value ? '!text-[#E94E50]' : '',
+        masked.value && props.maskVariant === 'placeholder'
+            ? "relative inline-block !text-transparent transition-colors duration-150 select-none before:absolute before:inset-x-0 before:top-1/2 before:h-[0.7em] before:-translate-y-1/2 before:rounded-sm before:bg-white/30 before:content-['']"
+            : masked.value
+              ? 'blur-[6px] transition-[filter] duration-150 select-none'
+              : 'transition-[filter] duration-150',
+        isNegative.value &&
+        !(masked.value && props.maskVariant === 'placeholder')
+            ? '!text-[#E94E50]'
+            : '',
     ].join(' '),
 );
 const displayedValue = computed(() =>
-    masked.value
-        ? '••••••'
-        : hasAbbreviation.value
-          ? abbreviated.value
-          : full.value,
+    hasAbbreviation.value ? abbreviated.value : full.value,
 );
 </script>
 

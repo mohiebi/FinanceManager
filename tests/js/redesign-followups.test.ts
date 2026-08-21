@@ -7,6 +7,7 @@ function source(path: string): string {
 }
 
 const bills = source('../../resources/js/pages/Bills.vue');
+const dashboard = source('../../resources/js/pages/Dashboard.vue');
 const cipheredMoney = source('../../resources/js/components/CipheredMoney.vue');
 const compactMoney = source('../../resources/js/components/CompactMoney.vue');
 const donutChart = source(
@@ -86,7 +87,7 @@ test('portfolio summary totals use selected-currency values', () => {
     assert.match(portfolio, /:center-value="allocationCenterValue"/);
     assert.match(portfolio, /formatCompactCurrencyDisplay/);
     assert.match(portfolio, /shouldCompactChartValues\.value/);
-    assert.match(portfolio, /v-if="masked"[\s\S]*?••••••/);
+    assert.match(portfolio, /mask-variant="placeholder"/);
     assert.match(donutChart, /props\.tooltipFormatter/);
     assert.match(donutChart, /props\.masked \? '••••••'/);
 });
@@ -96,8 +97,14 @@ test('compact money exposes exact tooltips and colours accounting losses red', (
     assert.match(compactMoney, /<TooltipContent/);
     assert.match(compactMoney, /!text-\[#E94E50\]/);
     assert.match(cipheredMoney, /!text-\[#E94E50\]/);
-    assert.match(compactMoney, /masked\.value\s*\?\s*'••••••'/);
-    assert.match(cipheredMoney, /masked \? '••••••'/);
+    assert.match(compactMoney, /maskVariant\?: 'blur' \| 'placeholder'/);
+    assert.match(compactMoney, /blur-\[6px\]/);
+    assert.match(compactMoney, /before:bg-white\/30/);
+    assert.match(cipheredMoney, /blur-\[6px\]/);
+    assert.doesNotMatch(cipheredMoney, /masked \? '••••••'/);
+    assert.match(dashboard, /mask-variant="placeholder"/);
+    assert.match(dashboard, /const maskClass[\s\S]*?blur-\[6px\]/);
+    assert.doesNotMatch(dashboard, /const maskClass[\s\S]*?text-transparent/);
 });
 
 test('transaction rows expose edit and delete actions', () => {

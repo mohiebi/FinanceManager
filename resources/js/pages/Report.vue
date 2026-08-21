@@ -166,6 +166,7 @@
                         <CompactMoney
                             :value="incomeTotal"
                             :currency="props.selectedCurrency"
+                            mask-variant="placeholder"
                         />
                     </template>
                     <span
@@ -195,6 +196,7 @@
                         <CompactMoney
                             :value="costTotal"
                             :currency="props.selectedCurrency"
+                            mask-variant="placeholder"
                         />
                     </template>
                     <span
@@ -217,6 +219,7 @@
                         <CompactMoney
                             :value="balanceTotal"
                             :currency="props.selectedCurrency"
+                            mask-variant="placeholder"
                         />
                     </template>
                     <span

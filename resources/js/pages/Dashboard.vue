@@ -20,6 +20,7 @@
                             class="text-[36px] leading-none font-bold text-white sm:text-[44px]"
                             :value="safeToSpendPerDay"
                             :currency="props.selectedCurrency"
+                            mask-variant="placeholder"
                         />
                         <span class="text-sm font-medium text-[#989898]">
                             {{ t('finance.dashboard.per_day') }}
@@ -125,6 +126,7 @@
                         v-if="summaryIncome !== null"
                         :value="summaryIncome"
                         :currency="props.selectedCurrency"
+                        mask-variant="placeholder"
                     />
                     <span
                         v-else
@@ -152,6 +154,7 @@
                         v-if="summaryCost !== null"
                         :value="summaryCost"
                         :currency="props.selectedCurrency"
+                        mask-variant="placeholder"
                     />
                     <span
                         v-else
@@ -186,6 +189,7 @@
                         ><CompactMoney
                             :value="balance"
                             :currency="props.selectedCurrency"
+                            mask-variant="placeholder"
                         />
                     </span>
                     <span
@@ -229,6 +233,7 @@
                             <CompactMoney
                                 :value="portfolioSnapshot.net_worth_formatted"
                                 :currency="props.selectedCurrency"
+                                mask-variant="placeholder"
                             />
                         </template>
                         <span
@@ -600,7 +605,7 @@ const { t } = useI18n();
 const { masked } = useAmountMask();
 const maskClass = computed(() =>
     masked.value
-        ? "relative text-transparent transition-colors duration-150 select-none before:absolute before:inset-x-0 before:top-1/2 before:h-[0.75em] before:-translate-y-1/2 before:rounded-sm before:bg-white/30 before:content-['']"
+        ? 'blur-[6px] transition-[filter] duration-150 select-none'
         : 'transition-[filter] duration-150',
 );
 

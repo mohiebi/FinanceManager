@@ -9,6 +9,9 @@ function source(path: string): string {
 const bills = source('../../resources/js/pages/Bills.vue');
 const cipheredMoney = source('../../resources/js/components/CipheredMoney.vue');
 const compactMoney = source('../../resources/js/components/CompactMoney.vue');
+const donutChart = source(
+    '../../resources/js/components/charts/DonutChart.vue',
+);
 const lineChart = source('../../resources/js/components/charts/LineChart.vue');
 const modules = source('../../resources/js/pages/settings/Modules.vue');
 const amountMask = source('../../resources/js/composables/useAmountMask.ts');
@@ -62,8 +65,23 @@ test('portfolio summary totals use selected-currency values', () => {
     );
     assert.match(portfolio, /:value-prefix="chartValuePrefix"/);
     assert.match(portfolio, /:value-suffix="chartValueSuffix"/);
+    assert.match(portfolio, /:compact-values="shouldCompactChartValues"/);
+    assert.match(
+        portfolio,
+        /compactFigures\.value \|\| selectedCurrency\.value === 'toman'/,
+    );
+    assert.match(
+        portfolio,
+        /:value-fraction-digits="chartValueFractionDigits"/,
+    );
     assert.match(lineChart, /formatter: formatAxisValue/);
     assert.match(lineChart, /formatter: formatTooltipValue/);
+    assert.match(lineChart, /props\.compactValues === false/);
+    assert.match(lineChart, /formatCompactCurrencyNumber/);
+    assert.match(portfolio, /:tooltip-formatter="formatAllocationPercentage"/);
+    assert.match(portfolio, /:value="asset\.current_value_formatted"/);
+    assert.match(portfolio, /function formatAllocationPercentage/);
+    assert.match(donutChart, /props\.tooltipFormatter/);
 });
 
 test('compact money exposes exact tooltips and colours accounting losses red', () => {

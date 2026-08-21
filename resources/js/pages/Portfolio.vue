@@ -279,6 +279,7 @@
                                       )
                                     : t('finance.price_unavailable')
                             "
+                            :tooltip-formatter="formatAllocationPercentage"
                             hide-legend
                             @slice-click="onSliceClick"
                         />
@@ -297,12 +298,11 @@
                                 class="min-w-0 flex-1 truncate text-[13px] text-[#e5e5e5]"
                                 >{{ asset.label }}</span
                             >
-                            <span
+                            <CompactMoney
+                                :value="asset.current_value_formatted"
+                                :currency="selectedCurrency as CurrencyCode"
                                 class="text-[12.5px] text-[#989898] tabular-nums"
-                                :class="maskClass"
-                                dir="ltr"
-                                >{{ asset.value_formatted }}</span
-                            >
+                            />
                             <span
                                 class="w-10 shrink-0 text-end text-xs text-[#686868]"
                                 dir="ltr"
@@ -350,6 +350,8 @@
                         :calendar="displayCalendar"
                         :value-prefix="chartValuePrefix"
                         :value-suffix="chartValueSuffix"
+                        :compact-values="shouldCompactChartValues"
+                        :value-fraction-digits="chartValueFractionDigits"
                         :height="340"
                     />
 
@@ -591,6 +593,7 @@ import type { ChartSeries } from '@/components/charts/LineChart.vue';
 import CompactMoney from '@/components/CompactMoney.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { useAmountMask } from '@/composables/useAmountMask';
+import { useCompactFigures } from '@/composables/useCompactFigures';
 import { useRelativeTime } from '@/composables/useRelativeTime';
 import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
 import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
@@ -633,6 +636,13 @@ const props = defineProps<{
 const selectedCurrency = ref(props.selectedCurrency);
 const selectedCurrencySymbol = computed(() =>
     currencySymbol(selectedCurrency.value as CurrencyCode),
+);
+const { compact: compactFigures } = useCompactFigures();
+const shouldCompactChartValues = computed(
+    () => compactFigures.value || selectedCurrency.value === 'toman',
+);
+const chartValueFractionDigits = computed(() =>
+    selectedCurrency.value === 'toman' ? 0 : 2,
 );
 const chartValuePrefix = computed(() =>
     currencySymbolIsPrefix(selectedCurrency.value as CurrencyCode)
@@ -715,21 +725,29 @@ const donutSeries = computed(() =>
 );
 const donutLabels = computed(() => assets.value.map((asset) => asset.label));
 const donutColors = computed(() => assets.value.map((asset) => asset.color));
+const allocationTotal = computed(() =>
+    donutSeries.value.reduce((total, value) => total + value, 0),
+);
+
+function formatAllocationPercentage(value: number): string {
+    if (allocationTotal.value <= 0) {
+        return '0%';
+    }
+
+    return `${((value / allocationTotal.value) * 100).toFixed(1)}%`;
+}
 
 /** The mock's own dot + name + value + percent legend rows — DonutChart's
  *  built-in legend can't express this exact shape, so it stays off and this
  *  drives the list beneath the chart instead. */
 const allocationLegend = computed(() => {
-    const total = summary.value.total_current_value;
+    const total = allocationTotal.value;
 
     return assets.value.map((asset) => ({
         key: asset.key,
         label: asset.label,
         color: asset.color,
-        value_formatted: formatCurrencyDisplay(
-            asset.current_value_formatted,
-            selectedCurrency.value as CurrencyCode,
-        ),
+        current_value_formatted: asset.current_value_formatted,
         pct:
             total > 0
                 ? Math.round((asset.current_value / total) * 1000) / 10

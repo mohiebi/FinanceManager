@@ -55,6 +55,31 @@ test('dashboard shows separated cost and income transactions', function () {
     }
 });
 
+test('legacy copies of default categories resolve their palette color', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()
+        ->cost()
+        ->forUser($user)
+        ->create([
+            'name' => 'Food',
+            'slug' => 'food',
+            'color' => null,
+        ]);
+
+    Transaction::factory()
+        ->cost()
+        ->for($user)
+        ->for($category)
+        ->create(['occurred_at' => now()]);
+
+    $this->actingAs($user)
+        ->get(route('transactions.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('transactions.costs.0.category.color', '#F59E0B'),
+        );
+});
+
 test('transactions page filters by type category date and search', function () {
     $user = User::factory()->create();
     $costCategory = Category::factory()->cost()->forUser($user)->create(['name' => 'Rent']);

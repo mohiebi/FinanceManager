@@ -22,9 +22,14 @@ const page = usePage();
  * The same kill switch the modules page reads. With billing off there is
  * nothing to sell and `billing.edit` 404s, so the CTA must not promise a plans
  * page that is not there.
+ *
+ * Fails open, unlike the modules page: this screen's entire job is to sell the
+ * feature, so only an explicit `false` may remove its one purchase path. A
+ * prop that is merely missing — a partial reload, a shape that changes — must
+ * not quietly turn the paywall into a dead end.
  */
 const billingEnabled = computed(
-    () => page.props.subscription?.billing_enabled === true,
+    () => page.props.subscription?.billing_enabled !== false,
 );
 
 usePageSubtitle(() => t('advisor.paywall.subtitle'));

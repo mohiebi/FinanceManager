@@ -13,6 +13,9 @@ const styles = source('../../resources/css/app.css');
 const preferences = source('../../resources/js/pages/settings/Preferences.vue');
 const appHeader = source('../../resources/js/components/AppSidebarHeader.vue');
 const emailAuth = source('../../resources/js/pages/auth/EmailAuth.vue');
+const twoFactor = source(
+    '../../resources/js/pages/auth/TwoFactorChallenge.vue',
+);
 
 test('advisor assessment owns its bottom spacing and uses the shell background', () => {
     assert.match(appLayout, /app-page-scroll/);
@@ -46,7 +49,14 @@ test('the app content is an Inertia-managed scroll region', () => {
 });
 
 test('successful auth transitions do not preserve the auth page instance', () => {
-    for (const action of ['login', 'completeSignup', 'verifyRecovery']) {
+    // verifySignup joined the list because it is the last step of a signup
+    // and ends logged in, exactly like the three already covered.
+    for (const action of [
+        'login',
+        'completeSignup',
+        'verifyRecovery',
+        'verifySignup',
+    ]) {
         assert.match(
             emailAuth,
             new RegExp(
@@ -54,4 +64,15 @@ test('successful auth transitions do not preserve the auth page instance', () =>
             ),
         );
     }
+});
+
+test('the two-factor challenge is an auth transition too', () => {
+    // For an account with 2FA this form — not the password step — is the request
+    // that ends logged in, so it needs the same treatment. Both branches submit
+    // it: the authenticator code and the recovery code.
+    const forms = twoFactor.match(
+        /v-bind="store\.form\(\)"\s*\n\s*:options="\{ preserveState: false \}"/g,
+    );
+
+    assert.equal(forms?.length, 2);
 });

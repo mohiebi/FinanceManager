@@ -1,5 +1,5 @@
 import { usePage } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import type { Ref } from 'vue';
 
 /**
@@ -77,6 +77,24 @@ export function useAmountMask(): UseAmountMaskReturn {
         return createControls(ref(amountMaskDefault(page)));
     }
 
+    /*
+     * The first client render has to paint what the server painted.
+     *
+     * The server only knows the account default — it cannot read this device's
+     * localStorage — so a client that consults storage during setup disagrees
+     * with the server whenever the two differ, and disagrees on the class and
+     * the text of every amount on the page. On the dashboard that is most of
+     * the page, and a mismatch that large is how hydration ends up adopting a
+     * tree Vue then cannot patch cleanly.
+     *
+     * So the first paint uses the account default, matching the server, and the
+     * stored per-device choice is adopted on mount — by which point hydration
+     * is done and switching it is an ordinary reactive update.
+     */
+    if (activeBrowserStorageKey === null) {
+        browserMasked.value = amountMaskDefault(page);
+    }
+
     function syncBrowserUser(): void {
         const key = storageKey(page);
 
@@ -88,7 +106,7 @@ export function useAmountMask(): UseAmountMaskReturn {
         browserMasked.value = readBrowserInitial(page, key);
     }
 
-    syncBrowserUser();
+    onMounted(syncBrowserUser);
 
     watch(
         () => page.props?.auth.user?.id,

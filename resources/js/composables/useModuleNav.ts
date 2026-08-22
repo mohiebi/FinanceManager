@@ -139,14 +139,6 @@ export function useModuleNav(): UseModuleNavReturn {
                 group: 'plan',
             },
             {
-                key: 'portfolio',
-                feature: 'portfolio',
-                title: navigationName('navigation.portfolio'),
-                href: portfolio(),
-                icon: Wallet,
-                group: 'grow',
-            },
-            {
                 key: 'investments',
                 feature: 'investments',
                 title: navigationName(
@@ -155,6 +147,14 @@ export function useModuleNav(): UseModuleNavReturn {
                 ),
                 href: investmentsIndex(),
                 icon: TrendingUp,
+                group: 'grow',
+            },
+            {
+                key: 'portfolio',
+                feature: 'portfolio',
+                title: navigationName('navigation.portfolio'),
+                href: portfolio(),
+                icon: Wallet,
                 group: 'grow',
             },
             {

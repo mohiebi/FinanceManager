@@ -281,6 +281,7 @@ const linkClass =
         <Form
             v-else-if="step === 'signup_code'"
             v-bind="WebEmailAuthController.verifySignup.form()"
+            :options="{ preserveState: false }"
             v-slot="{ errors, processing }"
             :class="formClass"
             @error="signupCode = ''"

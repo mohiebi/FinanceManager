@@ -50,6 +50,27 @@ createInertiaApp({
         const fallbackLocale = pageProps.fallbackLocale ?? 'en';
         const vueApp = createSSRApp({ render: () => h(App, props) });
 
+        /*
+         * One bad render must not take the worker down with it.
+         *
+         * Inertia wraps the render call itself, so a component that throws
+         * during setup is caught and returned as a failed render. An effect
+         * scheduled by that same component is not: a watcher or computed that
+         * throws after the render call has unwound escapes into Node and kills
+         * the process, and supervisord then respawns it — once per request,
+         * which is how a single unlucky page took SSR down for every user.
+         *
+         * Vue routes scheduler errors through here, so catching them turns
+         * "the worker dies" back into "this one page falls back to client
+         * rendering", which is what the fallback exists for.
+         */
+        vueApp.config.errorHandler = (error, _instance, info): void => {
+            console.error(
+                `[ssr] ${props.initialPage.component} failed during ${info}:`,
+                error instanceof Error ? error.stack : error,
+            );
+        };
+
         vueApp.use(plugin);
         vueApp.use(
             createI18n({

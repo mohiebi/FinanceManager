@@ -19,6 +19,28 @@ class Category extends Model
     /** @use HasFactory<CategoryFactory> */
     use HasFactory;
 
+    /**
+     * @var array<string, array<string, string>>
+     */
+    public const DEFAULT_COLORS = [
+        TransactionType::Cost->value => [
+            'food' => '#F59E0B',
+            'transport' => '#3B82F6',
+            'housing' => '#6B7280',
+            'health' => '#E94E50',
+            'shopping' => '#947BFF',
+            'bills' => '#F97316',
+            'investment' => '#02CD86',
+            'other' => '#686868',
+        ],
+        TransactionType::Income->value => [
+            'salary' => '#02CD86',
+            'freelance' => '#947BFF',
+            'gift' => '#F59E0B',
+            'other' => '#686868',
+        ],
+    ];
+
     protected static function booted(): void
     {
         static::saving(function (Category $category): void {
@@ -39,6 +61,15 @@ class Category extends Model
         }
 
         return 'category-'.substr(sha1(mb_strtolower(trim($name))), 0, 16);
+    }
+
+    public function resolvedColor(): ?string
+    {
+        if ($this->color !== null) {
+            return $this->color;
+        }
+
+        return self::DEFAULT_COLORS[$this->type->value][$this->slug] ?? null;
     }
 
     /**

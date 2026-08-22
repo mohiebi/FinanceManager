@@ -89,3 +89,40 @@ test('the amount mask keeps its SSR state request-local', () => {
     // A module-level ref would carry one user's choice into the next request.
     assert.match(body, /Keep SSR state request-local/);
 });
+
+/**
+ * jalaali-js ships CommonJS.
+ *
+ * A named import from it resolves through a bundler but not through Node's ESM
+ * loader, so it only breaks in a built SSR bundle — which means it only breaks
+ * in production. Worse, it fails at *module instantiation*, before any
+ * component renders, so Vue's errorHandler cannot contain it and the whole
+ * page falls back to client rendering.
+ *
+ * BirthdatePicker had one, which took SSR down for every page that reaches it —
+ * including the login screen, the first page anyone loads. Destructuring the
+ * default export works under both loaders.
+ */
+test('CommonJS packages are imported by default, never by name', () => {
+    const offenders: string[] = [];
+
+    for (const extension of ['.ts', '.vue']) {
+        for (const path of walk(root, extension)) {
+            const source = readFileSync(path, 'utf8');
+
+            if (!source.includes('jalaali-js')) {
+                continue;
+            }
+
+            if (/import\s*\{[^}]*\}\s*from\s*['"]jalaali-js['"]/.test(source)) {
+                offenders.push(path.slice(root.length + 1));
+            }
+        }
+    }
+
+    assert.deepEqual(
+        offenders,
+        [],
+        `import jalaali from 'jalaali-js' and destructure instead:\n${offenders.join('\n')}`,
+    );
+});

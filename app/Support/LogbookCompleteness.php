@@ -124,6 +124,41 @@ class LogbookCompleteness
     }
 
     /**
+     * How far the previous calendar month fell short of complete.
+     *
+     * Null when it was complete, or when there is nothing recorded in it at
+     * all — "missed by 31 days" is not a near miss, it is a month the user was
+     * not using the app. Shares daysCovered() with the check above, so the two
+     * can never disagree about what counts as covered.
+     *
+     * @return array{month: string, days: int}|null
+     */
+    public function previousMonthShortfall(User $user, ?CarbonImmutable $today = null): ?array
+    {
+        $today = $today ?? $user->localToday();
+        $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
+
+        $end = CalendarDates::monthStart($today, $calendar)->subDay();
+        $start = CalendarDates::monthStart($end, $calendar);
+        $days = (int) $start->diffInDays($end) + 1;
+
+        if ($days <= 0) {
+            return null;
+        }
+
+        $covered = $this->daysCovered($user, $start, $end);
+
+        if ($covered === 0 || $covered >= $days) {
+            return null;
+        }
+
+        return [
+            'month' => CalendarDates::monthDescriptor($end, $calendar)['label'],
+            'days' => $days - $covered,
+        ];
+    }
+
+    /**
      * Distinct days with either a transaction or an explicit no-spend marker.
      */
     private function daysCovered(User $user, CarbonImmutable $from, CarbonImmutable $to): int

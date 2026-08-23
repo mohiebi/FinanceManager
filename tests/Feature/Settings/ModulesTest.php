@@ -34,12 +34,13 @@ test('the modules page lists every toggleable module at its default state', func
             ->where('modules.4.key', Feature::Goals->value)
             ->where('modules.4.enabled', false)
             ->where('modules.4.requires', ['Investments'])
-            // The one optional module that ships on: it has no page of its own,
-            // so shipping it off would mean nobody ever finds it. It also has no
-            // sidebar entry, so the hide-from-menu control must not be offered.
+            // The one optional module that ships on, so nobody has to go looking
+            // for it. It has a page of its own again — it rendered on the
+            // dashboard until that was rebuilt to the v3 mock — so it carries a
+            // sidebar entry and the hide-from-menu control that goes with one.
             ->where('modules.5.key', Feature::Gamification->value)
             ->where('modules.5.enabled', true)
-            ->where('modules.5.in_nav', false)
+            ->where('modules.5.in_nav', true)
             ->where('modules.5.requires', [])
             ->where('modules.6.key', Feature::AiAssistant->value)
             ->where('modules.6.enabled', false)

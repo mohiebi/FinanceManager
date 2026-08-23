@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Enums\AssetClass;
 use App\Exceptions\FeatureDisabledException;
 use App\Mcp\Support\FinanceMutationApplier;
 use App\Models\User;
@@ -129,6 +130,9 @@ class ApplyFinanceChangesTool extends Tool
                     'price_source_type' => $schema->string()->enum(['manual', 'formula'])->description('Custom asset price source.'),
                     'price' => $schema->number()->description('Manual custom-asset price per unit in toman.'),
                     'formula' => $schema->string()->description('Custom-asset formula over existing asset slugs.'),
+                    'asset_class' => $schema->string()->enum(AssetClass::values())->description('Custom asset family, e.g. metal for a gold coin or a silver bar.'),
+                    'tracks_asset_slug' => $schema->string()->description('Slug of the asset whose market a custom asset really follows, e.g. "gold" for a half gold coin. Set it whenever the new asset is a form of an existing one, so the portfolio counts them as one exposure.'),
+                    'units_of_tracked_asset_each' => $schema->number()->description('Optional. Units of the tracked asset per unit of the custom asset, e.g. 4.6 grams of gold per half coin.'),
                 ])->withoutAdditionalProperties())
                 ->description('Every change the user approved. Send the complete batch in one tool call.')
                 ->required(),

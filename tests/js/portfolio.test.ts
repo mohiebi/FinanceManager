@@ -4,8 +4,11 @@ import { test } from 'node:test';
 
 import {
     buildBreakdown,
+    buildExposureBreakdown,
     buildSnapshot,
+    formatToman,
     type PortfolioAsset,
+    type PortfolioExposure,
     signedQuantityFor,
 } from '../../resources/js/lib/portfolio.ts';
 
@@ -284,4 +287,103 @@ test('a sale signed the browser way nets the same holding as the server way', ()
     ) as PortfolioAsset;
 
     assert.equal(gold.quantity, 3);
+});
+
+/**
+ * Two holdings that are one bet.
+ *
+ * Half coins track parity gold, so the pair has to roll up into a single gold
+ * exposure — with the vault armed this is the only side that can work that out.
+ * The same fixture is asserted by BuildPortfolioBreakdownTest.php.
+ */
+test('the exposure roll-up matches the server', () => {
+    const fixture = vectors.exposure;
+    const { assets } = buildBreakdown(
+        fixture.entries,
+        fixture.assets,
+        fixture.target,
+        vectors.rates,
+    );
+
+    const result = buildExposureBreakdown(assets, (amount) =>
+        formatToman(amount, fixture.target, vectors.rates),
+    );
+
+    // Order is part of the contract — largest exposure first.
+    assert.deepEqual(
+        result.exposures.map((group) => group.label),
+        fixture.exposures.map((group: { label: string }) => group.label),
+        'exposure order',
+    );
+    assert.deepEqual(
+        result.classes.map((group) => group.key),
+        fixture.classes.map((group: { key: string }) => group.key),
+        'class order',
+    );
+    assert.equal(result.has_unpriced_assets, fixture.has_unpriced_assets);
+
+    for (const [index, expected] of fixture.exposures.entries()) {
+        const group = result.exposures[index]!;
+
+        assert.deepEqual(
+            group.members.map((member) => member.slug),
+            expected.member_slugs,
+            `exposure ${expected.label}: members`,
+        );
+
+        for (const [field, value] of Object.entries(expected)) {
+            if (field === 'member_slugs') {
+                continue;
+            }
+
+            assert.deepEqual(
+                group[field as keyof PortfolioExposure],
+                value,
+                `exposure ${expected.label}.${field}`,
+            );
+        }
+    }
+
+    for (const [index, expected] of fixture.classes.entries()) {
+        for (const [field, value] of Object.entries(expected)) {
+            assert.deepEqual(
+                result.classes[index]![
+                    field as keyof (typeof result.classes)[number]
+                ],
+                value,
+                `class ${expected.key}.${field}`,
+            );
+        }
+    }
+});
+
+/**
+ * A group whose members cannot all be converted reports no total at all.
+ *
+ * Returning a partial sum would look complete and be wrong — the one number a
+ * metals holder would act on directly.
+ */
+test('an exposure with an unstated conversion reports no equivalent quantity', () => {
+    const fixture = vectors.exposure;
+    const assetsWithoutRatio = fixture.assets.map(
+        (asset: { underlying_ratio: number | null }) => ({
+            ...asset,
+            underlying_ratio: null,
+        }),
+    );
+
+    const { assets } = buildBreakdown(
+        fixture.entries,
+        assetsWithoutRatio,
+        fixture.target,
+        vectors.rates,
+    );
+
+    const { exposures } = buildExposureBreakdown(assets, (amount) =>
+        formatToman(amount, fixture.target, vectors.rates),
+    );
+
+    assert.equal(exposures[0]!.equivalent_quantity, null);
+    // The value roll-up is unaffected: it never needed the conversion.
+    assert.equal(exposures[0]!.value, 34_400_000);
 });

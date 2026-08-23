@@ -63,6 +63,7 @@ class ListInvestmentsTool extends Tool
 
         $assets = InvestmentAsset::query()
             ->availableFor($user)
+            ->with('underlying')
             ->orderByDesc('is_default')
             ->orderBy('name')
             ->get()
@@ -71,6 +72,8 @@ class ListInvestmentsTool extends Tool
                 'slug' => $asset->slug,
                 'label' => $asset->label(),
                 'unit' => $asset->unit,
+                'asset_class' => $asset->asset_class?->value,
+                'tracks' => $asset->underlying?->slug,
                 'is_default' => $asset->is_default,
             ]);
 

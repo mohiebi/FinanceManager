@@ -6,6 +6,7 @@ use App\Actions\Bills\MarkBillOccurrencePaid;
 use App\Actions\Bills\SaveBill;
 use App\Actions\Investments\SaveInvestment;
 use App\Actions\Transactions\SaveTransaction;
+use App\Enums\AssetClass;
 use App\Enums\Feature;
 use App\Enums\InvestmentAssetPriceSource;
 use App\Enums\TransactionType;
@@ -262,6 +263,9 @@ class FinanceMutationApplier
             ])],
             'price' => ['required_if:price_source_type,manual', 'nullable', 'numeric', 'min:0'],
             'formula' => ['required_if:price_source_type,formula', 'nullable', 'string', 'max:500'],
+            'asset_class' => ['nullable', Rule::enum(AssetClass::class)],
+            'tracks_asset_slug' => ['nullable', 'string', 'max:100'],
+            'units_of_tracked_asset_each' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
         ]);
 
         $name = trim($validated['name']);
@@ -271,12 +275,18 @@ class FinanceMutationApplier
             throw new InvalidArgumentException('An asset with this name already exists.');
         }
 
+        $underlying = $this->resolveUnderlyingAsset($user, $validated['tracks_asset_slug'] ?? null);
         $sourceType = $validated['price_source_type'];
         $asset = InvestmentAsset::query()->create([
             'user_id' => $user->id,
             'name' => $name,
             'slug' => $slug,
             'unit' => trim($validated['unit']),
+            'asset_class' => $validated['asset_class'] ?? null,
+            'underlying_asset_id' => $underlying?->id,
+            'underlying_ratio' => $underlying === null
+                ? null
+                : ($validated['units_of_tracked_asset_each'] ?? null),
             'color' => '#02CD86',
             'price_source_type' => $sourceType,
             'price_source_config' => $sourceType === InvestmentAssetPriceSource::Manual->value
@@ -285,6 +295,35 @@ class FinanceMutationApplier
         ]);
 
         return ['investment_asset_id' => $asset->id];
+    }
+
+    /**
+     * The asset a new one says it tracks.
+     *
+     * Unlike the propose tool, a bad slug is an error rather than a silent null:
+     * a batch is applied without a human reading each operation back, so a
+     * mistyped link has to stop rather than quietly produce an unlinked asset.
+     */
+    private function resolveUnderlyingAsset(User $user, ?string $slug): ?InvestmentAsset
+    {
+        $slug = trim((string) $slug);
+
+        if ($slug === '') {
+            return null;
+        }
+
+        $underlying = InvestmentAsset::query()
+            ->availableFor($user)
+            ->where('slug', $slug)
+            ->first();
+
+        if ($underlying === null || ! $underlying->canBeUnderlying()) {
+            throw new InvalidArgumentException(
+                'tracks_asset_slug must name an existing asset that does not itself track another asset.',
+            );
+        }
+
+        return $underlying;
     }
 
     private function assertFeatureEnabled(User $user, string $resource): void

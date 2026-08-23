@@ -3,6 +3,7 @@
 namespace App\Support\Billing;
 
 use App\Enums\BillingPlan;
+use App\Enums\DepositAddressStatus;
 use App\Enums\PaymentNetwork;
 use App\Enums\SettlementAsset;
 use App\Models\CouponRedemption;
@@ -60,8 +61,14 @@ final readonly class BillingCatalog
         return array_map(function (PaymentNetwork $network): array {
             $availableAddresses = DepositAddress::query()
                 ->available()
-                ->where('network', $network->value)
-                ->count();
+                ->where(fn ($query) => $query
+                    ->whereNull('network')
+                    ->orWhere('network', $network->value))
+                ->whereNotIn('address', DepositAddress::query()
+                    ->where('status', '!=', DepositAddressStatus::Available->value)
+                    ->select('address'))
+                ->distinct()
+                ->count('address');
 
             return [
                 'key' => $network->value,
@@ -159,6 +166,8 @@ final readonly class BillingCatalog
      */
     public function presentPayment(SubscriptionPayment $payment): array
     {
+        $riskCase = $payment->relationLoaded('riskCase') ? $payment->riskCase : null;
+
         return [
             'id' => $payment->id,
             'status' => $payment->status->value,
@@ -193,6 +202,8 @@ final readonly class BillingCatalog
             'failure_reason' => $payment->failure_reason?->value,
             'failure_message' => $payment->failure_reason?->label(),
             'screening_risk' => $payment->screening_risk?->value,
+            'review_deadline' => $riskCase?->review_expires_at?->toIso8601String(),
+            'review_status' => $riskCase?->status->value,
             'payment_uri' => $this->paymentUri($payment),
             'created_at' => $payment->created_at->toIso8601String(),
             'expires_at' => $payment->expires_at->toIso8601String(),

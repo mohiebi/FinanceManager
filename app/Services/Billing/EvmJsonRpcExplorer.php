@@ -286,9 +286,9 @@ final readonly class EvmJsonRpcExplorer implements ChainExplorer
      */
     private function callRpc(array $calls): array
     {
-        $url = $this->network->rpcUrl();
+        $urls = $this->network->rpcUrls();
 
-        if ($url === null) {
+        if ($urls === []) {
             throw new ExplorerUnavailable("No RPC endpoint configured for {$this->network->value}.");
         }
 
@@ -303,23 +303,28 @@ final readonly class EvmJsonRpcExplorer implements ChainExplorer
             ];
         }
 
-        try {
-            $response = Http::timeout((int) config("billing.networks.{$this->network->value}.timeout", 8))
-                ->connectTimeout((int) config("billing.networks.{$this->network->value}.connect_timeout", 4))
-                ->withOptions(['allow_redirects' => false])
-                ->asJson()
-                ->post($url, $payload);
-        } catch (Throwable $exception) {
-            throw new ExplorerUnavailable(
-                "Could not reach the {$this->network->value} endpoint.",
-                previous: $exception,
-            );
+        $response = null;
+        $lastException = null;
+
+        foreach ($urls as $url) {
+            try {
+                $candidate = Http::timeout((int) config("billing.networks.{$this->network->value}.timeout", 8))
+                    ->connectTimeout((int) config("billing.networks.{$this->network->value}.connect_timeout", 4))
+                    ->withOptions(['allow_redirects' => false])
+                    ->asJson()
+                    ->post($url, $payload);
+
+                if ($candidate->successful()) {
+                    $response = $candidate;
+                    break;
+                }
+            } catch (Throwable $exception) {
+                $lastException = $exception;
+            }
         }
 
-        if (! $response->successful()) {
-            throw new ExplorerUnavailable(
-                "The {$this->network->value} endpoint answered {$response->status()}."
-            );
+        if ($response === null) {
+            throw new ExplorerUnavailable("Could not reach a healthy {$this->network->value} endpoint.", previous: $lastException);
         }
 
         $body = $response->json();

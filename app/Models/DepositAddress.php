@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['network', 'derivation_index', 'address', 'status'])]
+#[Fillable(['key_version', 'network', 'derivation_index', 'address', 'status'])]
 class DepositAddress extends Model
 {
     /** @use HasFactory<DepositAddressFactory> */

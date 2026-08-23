@@ -6,11 +6,16 @@ use App\Enums\DepositAddressStatus;
 use App\Enums\GrantReason;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentStatus;
+use App\Enums\RiskCaseStatus;
 use App\Enums\ScreeningRisk;
 use App\Enums\ScreeningStage;
+use App\Models\PaymentRiskCase;
 use App\Models\PaymentScreening;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
+use App\Notifications\FlaggedAddressDeniedNotification;
+use App\Notifications\FlaggedAddressLimitNotification;
+use App\Notifications\FlaggedPaymentReviewNotification;
 use App\Notifications\PaymentQuarantinedNotification;
 use App\Notifications\SubscriptionActivatedNotification;
 use App\Notifications\SubscriptionPaymentQuarantinedNotification;
@@ -22,6 +27,7 @@ final readonly class FinalizeScreenedPayment
     public function __construct(
         private GrantProAccess $grantProAccess,
         private SettleCouponRedemption $settleCouponRedemption,
+        private QueuePaymentSettlement $queuePaymentSettlement,
     ) {}
 
     public function __invoke(
@@ -77,6 +83,12 @@ final readonly class FinalizeScreenedPayment
                 return;
             }
 
+            if ($result->risk === ScreeningRisk::Flagged) {
+                $this->openFlaggedCase($locked);
+
+                return;
+            }
+
             if ($result->risk->quarantinesFunds()) {
                 $this->quarantine($locked, $result);
 
@@ -101,7 +113,52 @@ final readonly class FinalizeScreenedPayment
             DB::afterCommit(fn () => $locked->user->notify(
                 new SubscriptionActivatedNotification($locked, $grant->pro_until_after)
             ));
+
+            ($this->queuePaymentSettlement)($locked);
         });
+    }
+
+    private function openFlaggedCase(SubscriptionPayment $payment): void
+    {
+        $sourceAddress = $payment->network->normalizeAddress((string) $payment->from_address);
+        $wasAlreadyUsed = PaymentRiskCase::query()
+            ->where('source_address', $sourceAddress)
+            ->exists();
+        $caseCount = PaymentRiskCase::query()->where('user_id', $payment->user_id)->count();
+
+        if ($wasAlreadyUsed || $caseCount >= (int) config('billing.risk.max_flagged_addresses_per_user', 3)) {
+            $reason = $wasAlreadyUsed
+                ? PaymentFailureReason::ReusedFlaggedAddress
+                : PaymentFailureReason::FlaggedAddressLimit;
+
+            $payment->forceFill(['status' => PaymentStatus::Failed, 'failure_reason' => $reason])->save();
+            $payment->depositAddress?->forceFill(['status' => DepositAddressStatus::Retired])->save();
+            $this->settleCouponRedemption->release($payment);
+            DB::afterCommit(function () use ($payment, $reason): void {
+                $payment->user->notify(new FlaggedAddressDeniedNotification($payment, $reason->value));
+
+                if ($reason === PaymentFailureReason::FlaggedAddressLimit) {
+                    $adminEmail = trim((string) config('app.admin_email'));
+                    User::query()->where('email', $adminEmail)->first()?->notify(new FlaggedAddressLimitNotification($payment));
+                }
+            });
+
+            return;
+        }
+
+        $case = PaymentRiskCase::query()->create([
+            'subscription_payment_id' => $payment->getKey(),
+            'user_id' => $payment->user_id,
+            'network' => $payment->network,
+            'source_address' => $sourceAddress,
+            'user_case_number' => $caseCount + 1,
+            'status' => RiskCaseStatus::Pending,
+            'review_expires_at' => now()->addHours((int) config('billing.risk.review_hours', 48)),
+        ]);
+
+        $payment->forceFill(['status' => PaymentStatus::RiskReview, 'failure_reason' => PaymentFailureReason::FlaggedSender])->save();
+        $payment->depositAddress?->forceFill(['status' => DepositAddressStatus::RiskReview])->save();
+        DB::afterCommit(fn () => $payment->user->notify(new FlaggedPaymentReviewNotification($case)));
     }
 
     private function quarantine(SubscriptionPayment $payment, ScreeningResult $result): void

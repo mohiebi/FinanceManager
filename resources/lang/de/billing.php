@@ -99,6 +99,7 @@ return [
     'statuses' => [
         'pending' => 'Zahlung ausstehend',
         'submitted' => 'Wird geprüft',
+        'risk_review' => 'Manuelle Prüfung',
         'confirmed' => 'Bezahlt',
         'failed' => 'Fehlgeschlagen',
         'quarantined' => 'Quarantänisiert',
@@ -122,9 +123,18 @@ return [
         'admin_rejected' => 'Diese Zahlung wurde nach Prüfung abgelehnt.',
         'sanctioned_sender' => 'Die Absenderadresse stimmte mit einer Sanktionsliste überein.',
         'flagged_sender' => 'Die Zahlungsquelle wurde als risikoreich eingestuft.',
+        'reused_flagged_address' => 'Diese markierte Adresse hat ihre einmalige Ausnahme bereits verwendet.',
+        'flagged_address_limit' => 'Dieses Konto hat das Limit von drei markierten Adressen erreicht.',
         'screening_unavailable' => 'Die Zahlungsquelle wird noch geprüft.',
         'expired' => 'Dieses Zahlungsfenster schloss, bevor bezahlt wurde.',
     ],
+
+    'precheck' => ['results' => [
+        'no_match' => 'Kein exakter Sanktions- oder lokaler Risikotreffer. Dies ist nur ein Hinweis; der tatsächliche Absender wird nach der Zahlung erneut geprüft.',
+        'unknown' => 'Die Prüfung ist vorübergehend nicht verfügbar. Noch nicht von dieser Wallet senden.',
+        'flagged' => 'Diese Wallet steht auf der lokalen Risikoliste. Bitte eine andere saubere Wallet verwenden.',
+        'sanctioned' => 'Diese Wallet stimmt mit der Sanktionsliste überein und kann nicht akzeptiert werden.',
+    ]],
 
     'checkout' => [
         'heading' => 'Prüfen und bezahlen',
@@ -188,6 +198,11 @@ return [
     ],
 
     'admin' => [
+        'risk_settlement_authorized' => 'Die festgelegte automatische Abwicklung wurde autorisiert.',
+        'risk_payment_granted' => 'Die abgewickelte Risikozahlung wurde einmalig freigeschaltet. Diese Adresse wird nicht erneut akzeptiert.',
+        'settlement_requeued' => 'Abwicklung erneut eingereiht.',
+        'risk_address_saved' => 'Risiko-Adresse gespeichert.',
+        'risk_address_deactivated' => 'Risiko-Adresse deaktiviert.',
         'title' => 'Abonnements',
         'description' => 'Zahlungen, die eine Entscheidung brauchen, und alle mit aktivem Pro.',
         'needs_attention' => 'Entscheidung nötig',

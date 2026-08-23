@@ -68,6 +68,10 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
         ->middleware('throttle:20,1')
         ->name('billing.coupon.preview');
 
+    Route::post('settings/billing/wallet-precheck', [BillingController::class, 'precheckWallet'])
+        ->middleware('throttle:10,1')
+        ->name('billing.wallet-precheck');
+
     Route::post('settings/billing/payments', [BillingController::class, 'store'])
         ->middleware('throttle:10,1')
         ->name('billing.payments.store');

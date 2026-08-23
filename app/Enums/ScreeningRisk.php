@@ -17,8 +17,8 @@ enum ScreeningRisk: string
     public function quarantinesFunds(): bool
     {
         return match ($this) {
-            self::Flagged, self::Sanctioned => true,
-            self::NoMatch, self::Unknown => false,
+            self::Sanctioned => true,
+            self::NoMatch, self::Unknown, self::Flagged => false,
         };
     }
 }

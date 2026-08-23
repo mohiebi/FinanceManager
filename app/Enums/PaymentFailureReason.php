@@ -61,6 +61,12 @@ enum PaymentFailureReason: string
     /** A future risk provider classified the transaction as unsafe. */
     case FlaggedSender = 'flagged_sender';
 
+    /** A locally flagged address already consumed its single global exception. */
+    case ReusedFlaggedAddress = 'reused_flagged_address';
+
+    /** This user already opened cases for three different locally flagged addresses. */
+    case FlaggedAddressLimit = 'flagged_address_limit';
+
     /** Screening could not produce a trustworthy result yet. */
     case ScreeningUnavailable = 'screening_unavailable';
 
@@ -91,6 +97,8 @@ enum PaymentFailureReason: string
             self::AdminRejected => 'This payment was rejected after review.',
             self::SanctionedSender => 'The sending address matched a sanctions list.',
             self::FlaggedSender => 'The payment source was classified as high risk.',
+            self::ReusedFlaggedAddress => 'This flagged address has already used its one-time exception.',
+            self::FlaggedAddressLimit => 'This account has reached the three-address exception limit.',
             self::ScreeningUnavailable => 'We are still checking the payment source.',
             self::Expired => 'This payment window closed before it was paid.',
         };

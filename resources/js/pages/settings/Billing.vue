@@ -37,6 +37,7 @@ import type {
     CouponPreviewResponse,
     HistoryEntry,
     NetworkOption,
+    PaymentNetworkKey,
     PaymentRecord,
     PlanCard,
     PreferredRail,
@@ -88,6 +89,41 @@ const asset = ref<SettlementAssetKey | undefined>(
 const selectedAsset = computed<AssetOption | undefined>(() =>
     network.value?.assets.find((option) => option.key === asset.value),
 );
+
+type WalletPrecheckResponse = {
+    risk: 'no_match' | 'unknown' | 'flagged' | 'sanctioned';
+    advisory: true;
+    message: string;
+};
+const walletCheckAddress = ref('');
+const walletCheckNetwork = ref<PaymentNetworkKey | undefined>(
+    initialNetwork?.key,
+);
+const walletCheckResult = ref<WalletPrecheckResponse | null>(null);
+const walletCheckError = ref<string | null>(null);
+const walletCheck = useHttp<
+    { network: string; address: string },
+    WalletPrecheckResponse
+>({ network: '', address: '' });
+
+async function precheckWallet(): Promise<void> {
+    if (!walletCheckNetwork.value || walletCheckAddress.value.trim() === '') {
+        return;
+    }
+
+    walletCheck.network = walletCheckNetwork.value;
+    walletCheck.address = walletCheckAddress.value.trim();
+    walletCheckResult.value = null;
+    walletCheckError.value = null;
+
+    try {
+        walletCheckResult.value = await walletCheck.post(
+            '/settings/billing/wallet-precheck',
+        );
+    } catch {
+        walletCheckError.value = t('billing.errors.generic');
+    }
+}
 
 /**
  * Switching chain re-picks the asset, because the same symbol is a different
@@ -310,7 +346,7 @@ watch(
     (status) => {
         clearInterval(poll);
 
-        if (status === 'submitted') {
+        if (status === 'submitted' || status === 'risk_review') {
             poll = setInterval(
                 () =>
                     router.reload({
@@ -518,6 +554,50 @@ onKeyStroke('Escape', () => {
                  expecting card-like renewal simply loses access. -->
             <p class="mt-4 max-w-[68ch] text-sm text-[#989898]">
                 {{ t('billing.state.no_auto_renew') }}
+            </p>
+        </SettingsSection>
+
+        <SettingsSection
+            :icon="Wallet"
+            title="Check a sending wallet"
+            description="Advisory only: the address that actually sends the transaction is screened again after payment."
+        >
+            <form
+                class="grid gap-3 md:grid-cols-[180px_1fr_auto]"
+                @submit.prevent="precheckWallet"
+            >
+                <select
+                    v-model="walletCheckNetwork"
+                    class="min-h-11 rounded-md border border-white/10 bg-black/30 px-3 text-sm text-white"
+                >
+                    <option
+                        v-for="option in networks"
+                        :key="option.key"
+                        :value="option.key"
+                    >
+                        {{ option.label }}
+                    </option>
+                </select>
+                <Input
+                    v-model="walletCheckAddress"
+                    dir="ltr"
+                    placeholder="0x…"
+                    aria-label="Wallet address"
+                />
+                <Button
+                    type="submit"
+                    :disabled="walletCheck.processing || !walletCheckAddress"
+                    >Check wallet</Button
+                >
+            </form>
+            <p
+                v-if="walletCheckResult"
+                class="mt-3 rounded-xl bg-black/30 px-4 py-3 text-sm text-[#d7d7d7] ring-1 ring-white/10"
+            >
+                {{ walletCheckResult.message }}
+            </p>
+            <p v-if="walletCheckError" class="mt-3 text-sm text-[#E94E50]">
+                {{ walletCheckError }}
             </p>
         </SettingsSection>
 
@@ -1048,6 +1128,29 @@ onKeyStroke('Escape', () => {
                             })
                         }}
                     </template>
+                </div>
+
+                <div
+                    v-else-if="pending.status === 'risk_review'"
+                    class="rounded-xl bg-[#2c1b1b] px-4 py-3 text-sm text-[#f3a6a7] ring-1 ring-[#E94E50]/25"
+                >
+                    <p class="font-medium">
+                        This sending wallet was flagged. Do not use it again.
+                    </p>
+                    <p class="mt-1 text-xs text-[#d7d7d7]">
+                        An administrator may authorize the fixed settlement
+                        during the 48-hour review. Pro access is granted only
+                        after the funds reach the Safe Vault and the
+                        administrator approves it.
+                    </p>
+                    <p
+                        v-if="pending.review_deadline"
+                        class="mt-2 text-xs text-[#989898]"
+                    >
+                        Review deadline:
+                        {{ shortDate(pending.review_deadline) }} · Status:
+                        {{ pending.review_status }}
+                    </p>
                 </div>
 
                 <form v-else class="space-y-2" @submit.prevent="submitHash">

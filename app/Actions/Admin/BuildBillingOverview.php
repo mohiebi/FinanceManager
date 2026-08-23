@@ -10,8 +10,12 @@ use App\Enums\ScreeningRisk;
 use App\Enums\ScreeningStage;
 use App\Enums\SettlementAsset;
 use App\Models\DepositAddress;
+use App\Models\PaymentRiskCase;
+use App\Models\PaymentSettlement;
+use App\Models\RiskAddress;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
+use App\Services\Billing\WalletSignerClient;
 use App\Support\Billing\BillingCatalog;
 use Illuminate\Support\Collection;
 
@@ -29,7 +33,7 @@ final readonly class BuildBillingOverview
      */
     private const STALLED_AFTER_MINUTES = 60;
 
-    public function __construct(private BillingCatalog $catalog) {}
+    public function __construct(private BillingCatalog $catalog, private WalletSignerClient $signer) {}
 
     /**
      * @return array<string, mixed>
@@ -39,6 +43,10 @@ final readonly class BuildBillingOverview
         return [
             'counts' => $this->counts(),
             'poolHealth' => $this->poolHealth(),
+            'signerHealth' => $this->signerHealth(),
+            'riskCases' => $this->riskCases(),
+            'settlements' => $this->settlements(),
+            'riskEntries' => $this->riskEntries(),
             'needsAttention' => $this->present($this->needsAttention()),
             'delayedScreening' => $this->present($this->delayedScreening()),
             'quarantined' => $this->presentDeposits($this->deposits(DepositAddressStatus::Quarantined)),
@@ -54,6 +62,70 @@ final readonly class BuildBillingOverview
             ),
             'proUsers' => $this->proUsers(),
         ];
+    }
+
+    /** @return array<string, mixed> */
+    private function signerHealth(): array
+    {
+        try {
+            return $this->signer->health();
+        } catch (\Throwable $exception) {
+            return ['ok' => false, 'locked' => true, 'error' => $exception->getMessage()];
+        }
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function riskCases(): array
+    {
+        return PaymentRiskCase::query()->with(['payment.user', 'payment.settlement'])
+            ->latest()->limit(50)->get()->map(fn (PaymentRiskCase $case): array => [
+                'id' => $case->getKey(),
+                'payment_id' => $case->subscription_payment_id,
+                'user_email' => $case->payment->user->email,
+                'source_address' => $case->source_address,
+                'network' => $case->network->value,
+                'status' => $case->status->value,
+                'review_expires_at' => $case->review_expires_at->toIso8601String(),
+                'settlement_status' => $case->payment->settlement?->status->value,
+                'authorization_note' => $case->authorization_note,
+            ])->all();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function settlements(): array
+    {
+        return PaymentSettlement::query()->with('payment.user')->latest()->limit(50)->get()
+            ->map(fn (PaymentSettlement $settlement): array => [
+                'id' => $settlement->getKey(),
+                'operation_id' => $settlement->operation_id,
+                'payment_id' => $settlement->subscription_payment_id,
+                'user_email' => $settlement->payment->user->email,
+                'network' => $settlement->payment->network->value,
+                'asset' => $settlement->payment->asset->value,
+                'status' => $settlement->status->value,
+                'transaction_hashes' => $settlement->transaction_hashes ?? [],
+                'remaining_token_balance' => $settlement->remaining_token_balance,
+                'remaining_eth_wei' => $settlement->remaining_eth_wei,
+                'failure_code' => $settlement->failure_code,
+                'failure_message' => $settlement->failure_message,
+                'updated_at' => $settlement->updated_at->toIso8601String(),
+            ])->all();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function riskEntries(): array
+    {
+        return RiskAddress::query()->with('createdByAdmin:id,email')->latest()->limit(100)->get()
+            ->map(fn (RiskAddress $entry): array => [
+                'id' => $entry->getKey(),
+                'network' => $entry->network->value,
+                'address' => $entry->address,
+                'source' => $entry->source,
+                'reason' => $entry->reason,
+                'active' => $entry->active,
+                'admin_email' => $entry->createdByAdmin->email,
+                'created_at' => $entry->created_at->toIso8601String(),
+            ])->all();
     }
 
     /**
@@ -131,7 +203,7 @@ final readonly class BuildBillingOverview
 
         return collect(PaymentNetwork::cases())->map(function (PaymentNetwork $network) use ($warningAt): array {
             $counts = DepositAddress::query()
-                ->where('network', $network->value)
+                ->where(fn ($query) => $query->whereNull('network')->orWhere('network', $network->value))
                 ->selectRaw('status, count(*) as total')
                 ->groupBy('status')
                 ->pluck('total', 'status');

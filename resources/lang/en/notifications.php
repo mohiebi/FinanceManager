@@ -111,6 +111,32 @@ return [
         'flagged_explanation' => 'The payment source was flagged by our transaction-risk screening.',
     ],
 
+    'flagged_payment_review' => [
+        'title' => 'Your payment needs a manual review',
+        'body_generic' => 'Your payment source was flagged. Do not use that sending wallet again.',
+        'email_body' => 'The sending wallet :address was flagged. Do not use it again. An administrator may try the fixed settlement within 48 hours, until :deadline. Pro access is granted only if settlement succeeds and the administrator approves it.',
+    ],
+    'flagged_address_denied' => [
+        'title' => 'This payment cannot receive access',
+        'body_generic' => 'The flagged-wallet exception is not available for this payment.',
+        'email_body' => 'This payment cannot receive Pro access because the flagged-wallet exception is no longer available (:reason). Use a different clean wallet and check it before paying.',
+    ],
+    'flagged_payment_granted' => [
+        'title' => 'Your one-time payment exception was approved',
+        'body_generic' => 'Pro access was granted after manual review. Do not reuse the sending wallet.',
+        'email_body' => 'Settlement succeeded and Pro access was granted this time. The sending wallet :address will never be accepted again. Use a different clean wallet for every future payment.',
+    ],
+    'flagged_address_limit_admin' => [
+        'title' => 'A user reached the flagged-wallet limit',
+        'body_generic' => ':email submitted a fourth distinct flagged wallet. Access is denied even if funds can be settled.',
+        'email_body' => ':email submitted a fourth distinct flagged wallet. The payment is denied and cannot enter the exception workflow, even if funds can be settled.',
+    ],
+    'settlement_needs_attention' => [
+        'title' => 'An automated settlement needs attention',
+        'body_generic' => 'Settlement operation :operation stopped at :reason.',
+        'email_body' => 'Settlement operation :operation stopped at :reason. Clean Pro access remains active; review and retry the settlement from the billing console.',
+    ],
+
     'subscription_activated' => [
         'title' => 'Pro is active',
         'body_generic' => 'Your :plan plan runs until :date.',

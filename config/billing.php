@@ -55,6 +55,7 @@ return [
             // Use a keyed provider in production — public endpoints rate-limit
             // hard enough that the verification job spends its retries on 429s.
             'rpc_url' => env('BILLING_ETHEREUM_RPC_URL'),
+            'rpc_urls' => array_values(array_filter(array_map('trim', explode(',', (string) env('BILLING_ETHEREUM_RPC_URLS', env('BILLING_ETHEREUM_RPC_URL', '')))))),
 
             // ~12s per block, so this is roughly two and a half minutes.
             'confirmations' => env('BILLING_ETHEREUM_CONFIRMATIONS', 12),
@@ -96,6 +97,7 @@ return [
             'enabled' => env('BILLING_ARBITRUM_ENABLED', false),
             'chain_id' => 42161,
             'rpc_url' => env('BILLING_ARBITRUM_RPC_URL', 'https://arb1.arbitrum.io/rpc'),
+            'rpc_urls' => array_values(array_filter(array_map('trim', explode(',', (string) env('BILLING_ARBITRUM_RPC_URLS', env('BILLING_ARBITRUM_RPC_URL', 'https://arb1.arbitrum.io/rpc')))))),
 
             /*
             | Blocks arrive roughly four times a second and are sequenced rather
@@ -168,6 +170,7 @@ return [
     | Addresses are never returned to the pool after being shown to a buyer.
     */
     'deposit_pool' => [
+        'target' => env('BILLING_DEPOSIT_POOL_TARGET', 100),
         'low_address_warning' => env('BILLING_DEPOSIT_POOL_LOW_WARNING', 25),
         'max_assignments_per_user_per_day' => env('BILLING_DEPOSIT_POOL_USER_DAILY_LIMIT', 10),
     ],
@@ -194,14 +197,29 @@ return [
         ],
     ],
 
-    'sweep' => [
-        'cooling_hours' => env('BILLING_SWEEP_COOLING_HOURS', 72),
-        'authorization_minutes' => env('BILLING_SWEEP_AUTHORIZATION_MINUTES', 30),
-        'max_remaining_native_wei' => env('BILLING_SWEEP_MAX_REMAINING_NATIVE_WEI', '10000000000000'),
-        'treasury' => [
-            'ethereum' => env('BILLING_ETHEREUM_TREASURY_ADDRESS'),
-            'arbitrum' => env('BILLING_ARBITRUM_TREASURY_ADDRESS'),
+    'signer' => [
+        'url' => env('BILLING_SIGNER_URL', 'http://wallet-signer:8080'),
+        'secret_file' => env('BILLING_SIGNER_SECRET_FILE', '/run/secrets/wallet_signer_hmac'),
+        'key_version' => env('BILLING_SIGNER_KEY_VERSION', 'v1'),
+        'timeout' => env('BILLING_SIGNER_TIMEOUT', 30),
+        'connect_timeout' => env('BILLING_SIGNER_CONNECT_TIMEOUT', 3),
+    ],
+
+    'settlement' => [
+        'vaults' => [
+            'ethereum' => env('BILLING_ETHEREUM_SAFE_VAULT_ADDRESS'),
+            'arbitrum' => env('BILLING_ARBITRUM_SAFE_VAULT_ADDRESS'),
         ],
+        'gas_buffer_percent' => env('BILLING_GAS_BUFFER_PERCENT', 25),
+        'max_slippage_bps' => env('BILLING_MAX_SLIPPAGE_BPS', 100),
+        'max_price_deviation_bps' => env('BILLING_MAX_PRICE_DEVIATION_BPS', 200),
+        'quote_lifetime_seconds' => env('BILLING_QUOTE_LIFETIME_SECONDS', 60),
+        'max_remaining_native_wei' => env('BILLING_MAX_REMAINING_NATIVE_WEI', '10000000000000'),
+    ],
+
+    'risk' => [
+        'review_hours' => env('BILLING_FLAGGED_REVIEW_HOURS', 48),
+        'max_flagged_addresses_per_user' => env('BILLING_MAX_FLAGGED_ADDRESSES_PER_USER', 3),
     ],
 
     /*

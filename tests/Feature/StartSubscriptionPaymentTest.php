@@ -36,7 +36,7 @@ test('an intent snapshots every term the buyer was shown', function () {
         ->and($payment->expires_at->isFuture())->toBeTrue();
 });
 
-test('a stablecoin is priced at the plan price plus a nonce, and needs no rate lookup', function () {
+test('a stablecoin uses the exact quoted price and needs no rate lookup', function () {
     Http::fake();
     $user = User::factory()->create();
 
@@ -44,31 +44,24 @@ test('a stablecoin is priced at the plan price plus a nonce, and needs no rate l
         $user, BillingPlan::Monthly, PaymentNetwork::Ethereum, SettlementAsset::Usdt
     );
 
-    // $5.00 plus somewhere between 0.000001 and 0.009999 of nonce.
-    expect((float) $payment->expected_amount)->toBeGreaterThan(5.0)
-        ->and((float) $payment->expected_amount)->toBeLessThan(5.01);
-
-    // The dollars-and-cents part is untouched: the nonce only ever occupies
-    // digits the price left empty.
-    expect(mb_substr(TokenAmount::fromDecimal($payment->expected_amount, 6), 0, 3))->toBe('500');
+    expect($payment->expected_amount)->toBe('5.00')
+        ->and(TokenAmount::fromDecimal($payment->expected_amount, 6))->toBe('5000000');
 
     Http::assertNothingSent();
 });
 
-test('no two open intents on the same rail ever expect the same amount', function () {
-    $amounts = collect(range(1, 25))->map(function (): string {
+test('open intents use distinct addresses even when their exact amount is the same', function () {
+    $payments = collect(range(1, 25))->map(function () {
         return app(StartSubscriptionPayment::class)(
             User::factory()->create(),
             BillingPlan::Monthly,
             PaymentNetwork::Ethereum,
             SettlementAsset::Usdt,
-        )->expected_amount;
+        );
     });
 
-    // This is the whole anti-squatting property: a transfer can satisfy exactly
-    // one intent, so watching the address and claiming a stranger's transaction
-    // cannot pass the amount check.
-    expect($amounts->unique()->count())->toBe(25);
+    expect($payments->pluck('pay_to_address')->unique()->count())->toBe(25)
+        ->and($payments->pluck('expected_amount')->unique()->values()->all())->toBe(['5.00']);
 });
 
 test('a volatile asset is priced from a live rate and locked to a short window', function () {
@@ -82,9 +75,7 @@ test('a volatile asset is priced from a live rate and locked to a short window',
     expect($payment->quote_rate)->toBe('2000.00000000')
         ->and($payment->asset_decimals)->toBe(18)
         ->and($payment->token_contract)->toBeNull()
-        // $5 at $2000/ETH is 0.0025, plus a nonce far below the eighth decimal.
-        ->and((float) $payment->expected_amount)->toBeGreaterThan(0.0025)
-        ->and((float) $payment->expected_amount)->toBeLessThan(0.0026)
+        ->and($payment->expected_amount)->toBe('0.00250000')
         // A volatile quote is honoured for far less time than the intent lives,
         // because we carry the price risk for its whole duration.
         ->and($payment->quote_expires_at->lessThan($payment->expires_at))->toBeTrue();
@@ -186,7 +177,10 @@ test('the action refuses rails the config does not offer', function () {
 });
 
 test('a network with no endpoint is not offered and shared address config is irrelevant', function () {
-    enableBilling(['billing.networks.ethereum.rpc_url' => null]);
+    enableBilling([
+        'billing.networks.ethereum.rpc_url' => null,
+        'billing.networks.ethereum.rpc_urls' => [],
+    ]);
     expect(PaymentNetwork::available())->toBe([]);
 
     enableBilling();

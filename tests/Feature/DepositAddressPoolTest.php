@@ -120,7 +120,7 @@ test('daily allocation limit counts only new addresses', function () {
 });
 
 test('an empty pool fails closed and disables that network in the catalog', function () {
-    DepositAddress::query()->where('network', PaymentNetwork::Ethereum->value)->delete();
+    DepositAddress::query()->delete();
 
     expect(fn () => app(StartSubscriptionPayment::class)(
         User::factory()->create(),

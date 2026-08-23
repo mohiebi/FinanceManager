@@ -13,6 +13,7 @@ use App\Exceptions\CouponUnavailable;
 use App\Exceptions\DepositAddressLimitExceeded;
 use App\Exceptions\DepositAddressUnavailable;
 use App\Exceptions\QuoteUnavailable;
+use App\Jobs\RefillDepositAddressPoolJob;
 use App\Models\Coupon;
 use App\Models\CouponRedemption;
 use App\Models\DepositAddress;
@@ -21,7 +22,6 @@ use App\Models\User;
 use App\Notifications\DepositPoolLowNotification;
 use App\Services\Billing\AssetQuoteService;
 use App\Support\Billing\CouponDiscount;
-use App\Support\Billing\TokenAmount;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -30,27 +30,11 @@ use RuntimeException;
  * Opens a payment intent: fixes the terms, and tells the buyer exactly what to
  * send where.
  *
- * The amount it produces is deliberately unique among every intent currently
- * open on the same chain and asset. That is what stops one buyer's payment from
- * ever satisfying another buyer's intent — the defence against somebody
- * watching the receiving address and claiming a stranger's transaction as their
- * own.
+ * Every intent receives a globally single-use HD-derived address. The address,
+ * rather than a low-order amount nonce, is the anti-squatting boundary.
  */
 final readonly class StartSubscriptionPayment
 {
-    /**
-     * How many distinct amounts the nonce can produce for one price.
-     */
-    private const NONCE_MAX = 9999;
-
-    /**
-     * Attempts to find an amount no other open intent is already expecting.
-     *
-     * Only exhausted if thousands of intents are open for one plan at one price
-     * at one moment, which is a nice problem and still not a silent one.
-     */
-    private const NONCE_ATTEMPTS = 50;
-
     public function __construct(
         private AssetQuoteService $quotes,
         private ResolveCoupon $resolveCoupon,
@@ -142,7 +126,12 @@ final readonly class StartSubscriptionPayment
 
             $depositAddress = DepositAddress::query()
                 ->available()
-                ->where('network', $network->value)
+                ->where(fn ($query) => $query
+                    ->whereNull('network')
+                    ->orWhere('network', $network->value))
+                ->whereNotIn('address', DepositAddress::query()
+                    ->where('status', '!=', DepositAddressStatus::Available->value)
+                    ->select('address'))
                 ->orderBy('derivation_index')
                 ->lockForUpdate()
                 ->first();
@@ -168,14 +157,18 @@ final readonly class StartSubscriptionPayment
 
             $depositAddress->forceFill([
                 'status' => DepositAddressStatus::Assigned,
+                'network' => $network,
                 'assigned_payment_id' => $payment->getKey(),
                 'assigned_at' => now(),
             ])->save();
 
             $remainingAddresses = DepositAddress::query()
                 ->available()
-                ->where('network', $network->value)
-                ->count();
+                ->whereNotIn('address', DepositAddress::query()
+                    ->where('status', '!=', DepositAddressStatus::Available->value)
+                    ->select('address'))
+                ->distinct()
+                ->count('address');
 
             $this->schedulePoolWarning($network, $remainingAddresses);
 
@@ -202,6 +195,12 @@ final readonly class StartSubscriptionPayment
         }
 
         DB::afterCommit(function () use ($network, $remainingAddresses): void {
+            try {
+                RefillDepositAddressPoolJob::dispatch();
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+
             $cacheKey = "billing.deposit-pool-low.{$network->value}";
 
             if (! Cache::add($cacheKey, true, now()->addHours(12))) {
@@ -253,7 +252,7 @@ final readonly class StartSubscriptionPayment
             'pay_to_address' => $payToAddress,
             'quote_rate' => $usdRate,
             'quote_expires_at' => now()->addMinutes($asset->quoteLockMinutes()),
-            'expected_amount' => $this->distinctAmount($network, $asset, $quantized, $decimals),
+            'expected_amount' => $quantized,
             'expires_at' => now()->addHours((int) config('billing.payment_window_hours', 24)),
         ]);
     }
@@ -294,11 +293,6 @@ final readonly class StartSubscriptionPayment
             throw new RuntimeException("{$asset->symbol()} cannot be paid on {$network->label()}.");
         }
 
-        if ($asset->decimalsOn($network) < $asset->noncePrecision()) {
-            throw new RuntimeException(
-                "{$asset->symbol()} on {$network->label()} has too few decimals to carry a payment nonce."
-            );
-        }
     }
 
     private function openIntentFor(
@@ -324,47 +318,5 @@ final readonly class StartSubscriptionPayment
             ->where('quote_expires_at', '>', now())
             ->latest('created_at')
             ->first();
-    }
-
-    /**
-     * Add a nonce to the quoted price that no other open intent is using.
-     *
-     * The nonce occupies decimal places strictly below the quoted precision, so
-     * it changes the amount by a fraction of a cent while making it unique. The
-     * match at verification is then exact — no tolerance band, because a band
-     * wide enough to be useful would be wide enough to span a neighbouring
-     * intent's amount and undo the whole point of the nonce.
-     */
-    private function distinctAmount(
-        PaymentNetwork $network,
-        SettlementAsset $asset,
-        string $quantized,
-        int $decimals,
-    ): string {
-        $base = TokenAmount::fromDecimal($quantized, $decimals);
-
-        // Trailing zeros that lift the nonce out of the asset's own precision
-        // and into the digits the quoted price left empty.
-        $scale = str_repeat('0', $decimals - $asset->noncePrecision());
-
-        $taken = SubscriptionPayment::query()
-            ->whereIn('status', [PaymentStatus::Pending->value, PaymentStatus::Submitted->value])
-            ->where('network', $network->value)
-            ->where('asset', $asset->value)
-            ->pluck('expected_amount')
-            ->map(fn (string $amount): string => TokenAmount::fromDecimal($amount, $decimals))
-            ->all();
-
-        for ($attempt = 0; $attempt < self::NONCE_ATTEMPTS; $attempt++) {
-            $candidate = TokenAmount::add($base, random_int(1, self::NONCE_MAX).$scale);
-
-            if (! in_array($candidate, $taken, true)) {
-                return TokenAmount::toDecimal($candidate, $decimals);
-            }
-        }
-
-        throw new RuntimeException(
-            "Could not find a free payment amount for {$asset->symbol()} on {$network->label()}."
-        );
     }
 }

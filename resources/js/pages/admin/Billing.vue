@@ -2,7 +2,6 @@
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import {
     AlertTriangle,
-    CheckCircle2,
     Clock3,
     ExternalLink,
     ShieldAlert,
@@ -80,9 +79,62 @@ type DepositRow = {
     swept_at: string | null;
 };
 
+type SignerHealth = {
+    ok: boolean;
+    locked: boolean;
+    keyVersion?: string;
+    error?: string;
+    gasWallet?: {
+        address: string;
+        balanceWei: string;
+        spentHourlyWei: string;
+        spentDailyWei: string;
+    } | null;
+};
+type RiskCase = {
+    id: string;
+    payment_id: string;
+    user_email: string;
+    source_address: string;
+    network: string;
+    status: string;
+    review_expires_at: string;
+    settlement_status: string | null;
+    authorization_note: string | null;
+};
+type SettlementRow = {
+    id: string;
+    operation_id: string;
+    payment_id: string;
+    user_email: string;
+    network: string;
+    asset: string;
+    status: string;
+    transaction_hashes: Record<string, string>;
+    remaining_token_balance: string | null;
+    remaining_eth_wei: string | null;
+    failure_code: string | null;
+    failure_message: string | null;
+    updated_at: string;
+};
+type RiskEntry = {
+    id: number;
+    network: string;
+    address: string;
+    source: string;
+    reason: string;
+    active: boolean;
+    admin_email: string;
+    created_at: string;
+};
+
 defineProps<{
     counts: Record<string, number>;
     poolHealth: PoolHealth[];
+    signerHealth: SignerHealth;
+    riskCases: RiskCase[];
+    settlements: SettlementRow[];
+    riskEntries: RiskEntry[];
     needsAttention: AdminPayment[];
     delayedScreening: AdminPayment[];
     quarantined: DepositRow[];
@@ -171,12 +223,6 @@ const noteFor = ref<Record<string, string>>({});
 const grantMonths = ref<Record<number, number>>({});
 const grantNote = ref<Record<number, string>>({});
 const busy = ref<string | null>(null);
-const sweepFor = ref<
-    Record<
-        string,
-        { conversion_tx_hash: string; sweep_tx_hash: string; note: string }
-    >
->({});
 
 function act(
     url: string,
@@ -193,24 +239,18 @@ function act(
     });
 }
 
-function sweepFields(id: string): {
-    conversion_tx_hash: string;
-    sweep_tx_hash: string;
-    note: string;
-} {
-    return (sweepFor.value[id] ??= {
-        conversion_tx_hash: '',
-        sweep_tx_hash: '',
-        note: '',
-    });
-}
+const riskEntryForm = useForm({
+    network: 'arbitrum',
+    address: '',
+    source: '',
+    reason: '',
+});
 
-function authorizationIsLive(row: DepositRow): boolean {
-    return (
-        row.status === 'sweep_authorized' &&
-        row.authorization_expires_at !== null &&
-        new Date(row.authorization_expires_at).getTime() > Date.now()
-    );
+function saveRiskEntry(): void {
+    riskEntryForm.post('/admin/billing/risk-addresses', {
+        preserveScroll: true,
+        onSuccess: () => riskEntryForm.reset('address', 'source', 'reason'),
+    });
 }
 
 const toneClasses: Record<PaymentTone, string> = {
@@ -413,124 +453,231 @@ function shortHash(value: string | null): string {
         </section>
 
         <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
-            <h2 class="mb-4 flex items-center gap-2 text-[17px] text-white">
-                <Clock3 class="size-4 text-[#989898]" />
-                {{ t('billing.admin.cooling') }}
-            </h2>
-            <p v-if="cooling.length === 0" class="text-sm text-[#989898]">
-                {{ t('billing.admin.none') }}
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-[17px] text-white">Automated signer</h2>
+                    <p class="mt-1 text-sm text-[#989898]">
+                        Fixed settlement operations only; no raw signing API.
+                    </p>
+                </div>
+                <span
+                    class="rounded-full px-3 py-1 text-xs ring-1"
+                    :class="
+                        signerHealth.ok && !signerHealth.locked
+                            ? 'bg-[#1f2e22] text-[#7BD88F] ring-[#7BD88F]/20'
+                            : 'bg-[#2c1b1b] text-[#E94E50] ring-[#E94E50]/20'
+                    "
+                >
+                    {{
+                        signerHealth.ok
+                            ? signerHealth.locked
+                                ? 'Locked'
+                                : 'Unlocked'
+                            : 'Unavailable'
+                    }}
+                </span>
+            </div>
+            <p v-if="signerHealth.error" class="mt-3 text-xs text-[#E94E50]">
+                {{ signerHealth.error }}
             </p>
-            <ul v-else class="divide-y divide-white/5">
-                <li v-for="row in cooling" :key="row.id" class="py-3">
-                    <p class="text-sm text-white">
-                        {{ row.network_label }} · {{ row.amount }}
-                        {{ row.asset_symbol }}
-                    </p>
-                    <p
-                        class="mt-1 font-mono text-xs break-all text-[#6f6f6f]"
-                        dir="ltr"
-                    >
-                        {{ row.address }}
-                    </p>
-                </li>
-            </ul>
+            <div
+                v-if="signerHealth.gasWallet"
+                class="mt-4 grid gap-2 text-xs text-[#989898] sm:grid-cols-3"
+            >
+                <p class="font-mono break-all" dir="ltr">
+                    {{ signerHealth.gasWallet.address }}
+                </p>
+                <p>Balance: {{ signerHealth.gasWallet.balanceWei }} wei</p>
+                <p>
+                    Spent 1h / 24h:
+                    {{ signerHealth.gasWallet.spentHourlyWei }} /
+                    {{ signerHealth.gasWallet.spentDailyWei }} wei
+                </p>
+            </div>
         </section>
 
         <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
-            <h2 class="mb-4 flex items-center gap-2 text-[17px] text-white">
-                <WalletCards class="size-4 text-[#02CD86]" />
-                {{ t('billing.admin.ready_to_sweep') }}
-            </h2>
-            <p v-if="readyToSweep.length === 0" class="text-sm text-[#989898]">
+            <h2 class="mb-4 text-[17px] text-white">48-hour flagged cases</h2>
+            <p v-if="riskCases.length === 0" class="text-sm text-[#989898]">
                 {{ t('billing.admin.none') }}
             </p>
-            <ul v-else class="space-y-4">
+            <ul v-else class="space-y-3">
                 <li
-                    v-for="row in readyToSweep"
-                    :key="row.id"
+                    v-for="riskCase in riskCases"
+                    :key="riskCase.id"
                     class="rounded-2xl bg-black/30 p-4 ring-1 ring-white/5"
                 >
-                    <p class="text-sm text-white">
-                        {{ row.network_label }} · {{ row.amount }}
-                        {{ row.asset_symbol }}
-                    </p>
-                    <p
-                        class="mt-1 font-mono text-xs break-all text-[#989898]"
-                        dir="ltr"
-                    >
-                        {{ row.address }}
-                    </p>
-
-                    <div v-if="!authorizationIsLive(row)" class="mt-3">
-                        <Button
-                            size="sm"
-                            :disabled="busy === row.id"
-                            @click="
-                                act(
-                                    `/admin/billing/deposits/${row.id}/authorize-sweep`,
-                                    row.id,
-                                    {},
-                                )
-                            "
-                        >
-                            {{ t('billing.admin.authorize_sweep') }}
-                        </Button>
+                    <div class="flex flex-wrap justify-between gap-3">
+                        <div>
+                            <p class="text-sm text-white">
+                                {{ riskCase.user_email }} ·
+                                {{ riskCase.network }} · {{ riskCase.status }}
+                            </p>
+                            <p
+                                class="mt-1 font-mono text-xs break-all text-[#989898]"
+                                dir="ltr"
+                            >
+                                {{ riskCase.source_address }}
+                            </p>
+                            <p class="mt-1 text-xs text-[#6f6f6f]">
+                                Deadline:
+                                {{
+                                    new Date(
+                                        riskCase.review_expires_at,
+                                    ).toLocaleString()
+                                }}
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <Button
+                                v-if="riskCase.status === 'pending'"
+                                size="sm"
+                                :disabled="
+                                    busy === riskCase.id ||
+                                    !noteFor[riskCase.id]
+                                "
+                                @click="
+                                    act(
+                                        `/admin/billing/risk-cases/${riskCase.id}/authorize`,
+                                        riskCase.id,
+                                        { note: noteFor[riskCase.id] ?? '' },
+                                    )
+                                "
+                                >Authorize settlement</Button
+                            >
+                            <Button
+                                v-if="riskCase.status === 'settled'"
+                                size="sm"
+                                :disabled="
+                                    busy === riskCase.id ||
+                                    !noteFor[riskCase.id]
+                                "
+                                @click="
+                                    act(
+                                        `/admin/billing/risk-cases/${riskCase.id}/grant`,
+                                        riskCase.id,
+                                        { note: noteFor[riskCase.id] ?? '' },
+                                    )
+                                "
+                                >Grant Pro</Button
+                            >
+                        </div>
                     </div>
-
-                    <div v-else class="mt-3 grid gap-2 md:grid-cols-3">
-                        <Input
-                            v-if="row.requires_conversion"
-                            v-model="sweepFields(row.id).conversion_tx_hash"
-                            dir="ltr"
-                            :placeholder="t('billing.admin.conversion_hash')"
-                        />
-                        <Input
-                            v-model="sweepFields(row.id).sweep_tx_hash"
-                            dir="ltr"
-                            :placeholder="t('billing.admin.sweep_hash')"
-                        />
-                        <Input
-                            v-model="sweepFields(row.id).note"
-                            :placeholder="t('billing.admin.note_placeholder')"
-                        />
-                        <Button
-                            size="sm"
-                            :disabled="busy === row.id"
-                            @click="
-                                act(
-                                    `/admin/billing/deposits/${row.id}/record-sweep`,
-                                    row.id,
-                                    sweepFields(row.id),
-                                )
-                            "
-                        >
-                            {{ t('billing.admin.record_sweep') }}
-                        </Button>
-                    </div>
+                    <Input
+                        v-if="
+                            riskCase.status === 'pending' ||
+                            riskCase.status === 'settled'
+                        "
+                        v-model="noteFor[riskCase.id]"
+                        class="mt-3"
+                        placeholder="Required audit note"
+                    />
                 </li>
             </ul>
         </section>
 
         <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
-            <h2 class="mb-4 flex items-center gap-2 text-[17px] text-white">
-                <CheckCircle2 class="size-4 text-[#7BD88F]" />
-                {{ t('billing.admin.completed_sweeps') }}
-            </h2>
-            <p
-                v-if="completedSweeps.length === 0"
-                class="text-sm text-[#989898]"
-            >
+            <h2 class="mb-4 text-[17px] text-white">Automatic settlements</h2>
+            <p v-if="settlements.length === 0" class="text-sm text-[#989898]">
                 {{ t('billing.admin.none') }}
             </p>
             <ul v-else class="divide-y divide-white/5">
-                <li v-for="row in completedSweeps" :key="row.id" class="py-3">
-                    <p class="text-sm text-white">
-                        {{ row.network_label }} · {{ row.amount }}
-                        {{ row.asset_symbol }}
-                    </p>
-                    <p class="mt-1 font-mono text-xs text-[#6f6f6f]" dir="ltr">
-                        {{ shortHash(row.sweep_tx_hash) }}
-                    </p>
+                <li
+                    v-for="settlement in settlements"
+                    :key="settlement.id"
+                    class="flex flex-wrap items-center justify-between gap-3 py-3"
+                >
+                    <div>
+                        <p class="text-sm text-white">
+                            {{ settlement.user_email }} ·
+                            {{ settlement.network }} ·
+                            {{ settlement.asset.toUpperCase() }} ·
+                            {{ settlement.status }}
+                        </p>
+                        <p
+                            v-if="settlement.failure_code"
+                            class="mt-1 text-xs text-[#E94E50]"
+                        >
+                            {{ settlement.failure_code }}:
+                            {{ settlement.failure_message }}
+                        </p>
+                        <p class="mt-1 text-xs text-[#6f6f6f]">
+                            Token left:
+                            {{ settlement.remaining_token_balance ?? '—' }} ·
+                            ETH wei left:
+                            {{ settlement.remaining_eth_wei ?? '—' }}
+                        </p>
+                    </div>
+                    <Button
+                        v-if="settlement.status === 'retryable_failure'"
+                        size="sm"
+                        variant="ghost"
+                        @click="
+                            act(
+                                `/admin/billing/settlements/${settlement.id}/retry`,
+                                settlement.id,
+                                {},
+                            )
+                        "
+                        >Retry</Button
+                    >
+                </li>
+            </ul>
+        </section>
+
+        <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
+            <h2 class="mb-4 text-[17px] text-white">Admin risk list</h2>
+            <form
+                class="grid gap-3 md:grid-cols-4"
+                @submit.prevent="saveRiskEntry"
+            >
+                <select
+                    v-model="riskEntryForm.network"
+                    class="min-h-11 rounded-md border border-white/10 bg-black/30 px-3 text-sm text-white"
+                >
+                    <option value="ethereum">Ethereum</option>
+                    <option value="arbitrum">Arbitrum</option>
+                </select>
+                <Input
+                    v-model="riskEntryForm.address"
+                    dir="ltr"
+                    placeholder="0x address"
+                />
+                <Input v-model="riskEntryForm.source" placeholder="Source" />
+                <Input v-model="riskEntryForm.reason" placeholder="Reason" />
+                <Button type="submit" :disabled="riskEntryForm.processing"
+                    >Save active entry</Button
+                >
+            </form>
+            <ul class="mt-4 divide-y divide-white/5">
+                <li
+                    v-for="entry in riskEntries"
+                    :key="entry.id"
+                    class="flex flex-wrap items-center justify-between gap-3 py-3"
+                >
+                    <div>
+                        <p class="font-mono text-xs text-white" dir="ltr">
+                            {{ entry.address }}
+                        </p>
+                        <p class="mt-1 text-xs text-[#989898]">
+                            {{ entry.network }} · {{ entry.source }} ·
+                            {{ entry.reason }}
+                        </p>
+                    </div>
+                    <Button
+                        v-if="entry.active"
+                        size="sm"
+                        variant="ghost"
+                        @click="
+                            act(
+                                `/admin/billing/risk-addresses/${entry.id}/deactivate`,
+                                `risk-${entry.id}`,
+                                {},
+                            )
+                        "
+                        >Deactivate</Button
+                    >
+                    <span v-else class="text-xs text-[#6f6f6f]">Inactive</span>
                 </li>
             </ul>
         </section>

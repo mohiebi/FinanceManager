@@ -15,6 +15,35 @@ services:
       - storage-data:/var/www/html/storage/app
       - storage-logs:/var/www/html/storage/logs
       - passport-keys:/var/www/html/storage/passport
+    secrets:
+      - wallet_signer_hmac
+    networks:
+      - portfolio-net
+
+  wallet-signer:
+    image: ghcr.io/mohiebi/financemanager-wallet-signer:latest
+    container_name: cashpilot-wallet-signer
+    restart: unless-stopped
+    env_file: .env.signer
+    read_only: true
+    user: "10001:10001"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    ulimits:
+      core: 0
+    stop_grace_period: 30s
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m,uid=10001,gid=10001
+    volumes:
+      - signer-keystore:/data
+      - signer-operations:/operations
+    secrets:
+      - wallet_signer_hmac
+    expose:
+      - "8080"
     networks:
       - portfolio-net
 
@@ -22,6 +51,12 @@ volumes:
   storage-data:
   storage-logs:
   passport-keys:
+  signer-keystore:
+  signer-operations:
+
+secrets:
+  wallet_signer_hmac:
+    file: ./secrets/wallet_signer_hmac
 
 networks:
   portfolio-net:

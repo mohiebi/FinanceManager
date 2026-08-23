@@ -68,9 +68,28 @@ enum PaymentNetwork: string
 
     public function rpcUrl(): ?string
     {
+        return $this->rpcUrls()[0] ?? null;
+    }
+
+    /** @return array<int, string> */
+    public function rpcUrls(): array
+    {
+        $configured = config("billing.networks.{$this->value}.rpc_urls", []);
+
+        if (is_array($configured)) {
+            $urls = array_values(array_filter(array_map(
+                static fn (mixed $url): string => trim((string) $url),
+                $configured,
+            )));
+
+            if ($urls !== []) {
+                return $urls;
+            }
+        }
+
         $url = config("billing.networks.{$this->value}.rpc_url");
 
-        return is_string($url) && $url !== '' ? $url : null;
+        return is_string($url) && $url !== '' ? [$url] : [];
     }
 
     public function confirmationsRequired(): int

@@ -18,6 +18,9 @@ enum PaymentStatus: string
     /** A transaction hash has been claimed and is being checked against the chain. */
     case Submitted = 'submitted';
 
+    /** A locally flagged sender is inside the one-time 48-hour review window. */
+    case RiskReview = 'risk_review';
+
     /** Settled, and the months have been granted. */
     case Confirmed = 'confirmed';
 
@@ -55,6 +58,7 @@ enum PaymentStatus: string
         return match ($this) {
             self::Pending => 'Awaiting payment',
             self::Submitted => 'Checking',
+            self::RiskReview => 'Under manual review',
             self::Confirmed => 'Paid',
             self::Failed => 'Failed',
             self::Quarantined => 'Quarantined',
@@ -68,7 +72,7 @@ enum PaymentStatus: string
     public function isTerminal(): bool
     {
         return match ($this) {
-            self::Pending, self::Submitted => false,
+            self::Pending, self::Submitted, self::RiskReview => false,
             default => true,
         };
     }
@@ -81,7 +85,7 @@ enum PaymentStatus: string
     /** Whether the buyer's page should keep polling for a change. */
     public function isSettling(): bool
     {
-        return $this === self::Submitted;
+        return in_array($this, [self::Submitted, self::RiskReview], true);
     }
 
     /** Badge tone on both the buyer's history and the admin queue. */
@@ -89,7 +93,7 @@ enum PaymentStatus: string
     {
         return match ($this) {
             self::Confirmed => 'positive',
-            self::Pending, self::Submitted => 'pending',
+            self::Pending, self::Submitted, self::RiskReview => 'pending',
             self::Failed, self::Quarantined => 'negative',
             self::Expired, self::Cancelled, self::Refunded => 'neutral',
         };

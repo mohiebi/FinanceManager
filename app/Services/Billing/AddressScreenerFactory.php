@@ -12,13 +12,15 @@ final readonly class AddressScreenerFactory
             return new NullAddressScreener;
         }
 
-        $oracle = new OnChainSanctionsOracleScreener;
-        $http = new ChainalysisSanctionsScreener;
-
-        return match ((string) config('billing.screening.driver', 'oracle')) {
-            'chainalysis' => new FallbackAddressScreener([$http, $oracle]),
-            'oracle' => new FallbackAddressScreener([$oracle, $http]),
+        $sanctions = match ((string) config('billing.screening.driver', 'oracle')) {
+            'chainalysis' => new FallbackAddressScreener([new ChainalysisSanctionsScreener, new OnChainSanctionsOracleScreener]),
+            'oracle' => new OnChainSanctionsOracleScreener,
             default => new NullAddressScreener,
         };
+
+        return new CompositeAddressScreener([
+            new SenderAndDepositSanctionsScreener($sanctions),
+            new AdminRiskListScreener,
+        ]);
     }
 }

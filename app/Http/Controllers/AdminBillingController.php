@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Actions\Admin\BuildBillingOverview;
 use App\Actions\Admin\BuildCouponOverview;
 use App\Actions\Billing\AuthorizeDepositSweep;
+use App\Actions\Billing\AuthorizeRiskSettlement;
 use App\Actions\Billing\GrantProAccess;
+use App\Actions\Billing\GrantRiskPayment;
 use App\Actions\Billing\RecordDepositSweep;
 use App\Actions\Billing\RevokeProAccess;
 use App\Actions\Billing\SettleCouponRedemption;
@@ -15,9 +17,13 @@ use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentStatus;
 use App\Exceptions\SweepAuthorizationDenied;
 use App\Exceptions\SweepRecordRejected;
+use App\Jobs\ProcessPaymentSettlementJob;
 use App\Jobs\ScreenSubscriptionPaymentJob;
 use App\Jobs\VerifySubscriptionPaymentJob;
 use App\Models\DepositAddress;
+use App\Models\PaymentRiskCase;
+use App\Models\PaymentSettlement;
+use App\Models\RiskAddress;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -170,6 +176,62 @@ class AdminBillingController extends Controller
         }
 
         return back()->with('status', __('billing.admin.sweep_recorded'));
+    }
+
+    public function authorizeRiskCase(Request $request, PaymentRiskCase $riskCase, AuthorizeRiskSettlement $authorize): RedirectResponse
+    {
+        $authorize($riskCase, $request->user(), $this->requireNote($request));
+
+        return back()->with('status', __('billing.admin.risk_settlement_authorized'));
+    }
+
+    public function grantRiskCase(Request $request, PaymentRiskCase $riskCase, GrantRiskPayment $grant): RedirectResponse
+    {
+        $grant($riskCase, $request->user(), $this->requireNote($request));
+
+        return back()->with('status', __('billing.admin.risk_payment_granted'));
+    }
+
+    public function retrySettlement(PaymentSettlement $settlement): RedirectResponse
+    {
+        ProcessPaymentSettlementJob::dispatch($settlement->getKey());
+
+        return back()->with('status', __('billing.admin.settlement_requeued'));
+    }
+
+    public function storeRiskAddress(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'network' => ['required', 'in:ethereum,arbitrum'],
+            'address' => ['required', 'regex:/^0x[0-9a-fA-F]{40}$/'],
+            'source' => ['required', 'string', 'max:120'],
+            'reason' => ['required', 'string', 'min:3', 'max:2000'],
+        ]);
+
+        RiskAddress::query()->updateOrCreate(
+            ['network' => $validated['network'], 'address' => mb_strtolower($validated['address'])],
+            [
+                'source' => $validated['source'],
+                'reason' => $validated['reason'],
+                'active' => true,
+                'created_by_admin_id' => $request->user()->getKey(),
+                'deactivated_at' => null,
+                'deactivated_by_admin_id' => null,
+            ],
+        );
+
+        return back()->with('status', __('billing.admin.risk_address_saved'));
+    }
+
+    public function deactivateRiskAddress(Request $request, RiskAddress $riskAddress): RedirectResponse
+    {
+        $riskAddress->forceFill([
+            'active' => false,
+            'deactivated_at' => now(),
+            'deactivated_by_admin_id' => $request->user()->getKey(),
+        ])->save();
+
+        return back()->with('status', __('billing.admin.risk_address_deactivated'));
     }
 
     public function grant(Request $request, User $user): RedirectResponse

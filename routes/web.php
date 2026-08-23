@@ -122,8 +122,11 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
             Route::post('admin/billing/payments/{payment}/approve', [AdminBillingController::class, 'approve'])->name('admin.billing.approve');
             Route::post('admin/billing/payments/{payment}/reject', [AdminBillingController::class, 'reject'])->name('admin.billing.reject');
             Route::post('admin/billing/payments/{payment}/recheck', [AdminBillingController::class, 'recheck'])->name('admin.billing.recheck');
-            Route::post('admin/billing/deposits/{depositAddress}/authorize-sweep', [AdminBillingController::class, 'authorizeSweep'])->name('admin.billing.sweeps.authorize');
-            Route::post('admin/billing/deposits/{depositAddress}/record-sweep', [AdminBillingController::class, 'recordSweep'])->name('admin.billing.sweeps.record');
+            Route::post('admin/billing/risk-cases/{riskCase}/authorize', [AdminBillingController::class, 'authorizeRiskCase'])->name('admin.billing.risk-cases.authorize');
+            Route::post('admin/billing/risk-cases/{riskCase}/grant', [AdminBillingController::class, 'grantRiskCase'])->name('admin.billing.risk-cases.grant');
+            Route::post('admin/billing/settlements/{settlement}/retry', [AdminBillingController::class, 'retrySettlement'])->name('admin.billing.settlements.retry');
+            Route::post('admin/billing/risk-addresses', [AdminBillingController::class, 'storeRiskAddress'])->name('admin.billing.risk-addresses.store');
+            Route::post('admin/billing/risk-addresses/{riskAddress}/deactivate', [AdminBillingController::class, 'deactivateRiskAddress'])->name('admin.billing.risk-addresses.deactivate');
             Route::post('admin/billing/users/{user}/grant', [AdminBillingController::class, 'grant'])->name('admin.billing.grant');
             Route::post('admin/billing/users/{user}/revoke', [AdminBillingController::class, 'revoke'])->name('admin.billing.revoke');
 

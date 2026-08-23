@@ -5,6 +5,7 @@ export type SettlementAssetKey = 'eth' | 'usdt' | 'usdc';
 export type PaymentStatusKey =
     | 'pending'
     | 'submitted'
+    | 'risk_review'
     | 'confirmed'
     | 'failed'
     | 'quarantined'
@@ -196,6 +197,8 @@ export type PaymentRecord = {
     failure_reason: string | null;
     failure_message: string | null;
     screening_risk: 'no_match' | 'unknown' | 'flagged' | 'sanctioned' | null;
+    review_deadline: string | null;
+    review_status: string | null;
     /** An EIP-681 request a wallet can open with the amount already filled in. */
     payment_uri: string | null;
     created_at: string;

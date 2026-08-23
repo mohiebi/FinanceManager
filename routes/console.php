@@ -4,6 +4,8 @@ use App\Actions\Billing\GrantProAccess;
 use App\Actions\Billing\RevokeProAccess;
 use App\Enums\GrantReason;
 use App\Jobs\BillReminderJob;
+use App\Jobs\ExpirePaymentRiskCasesJob;
+use App\Jobs\RefillDepositAddressPoolJob;
 use App\Jobs\RefreshAssetPricesJob;
 use App\Models\User;
 use Illuminate\Foundation\Inspiring;
@@ -74,3 +76,5 @@ Artisan::command('billing:revoke {email} {--note=}', function (RevokeProAccess $
 
 Schedule::job(new RefreshAssetPricesJob)->everyFiveMinutes();
 Schedule::job(new BillReminderJob)->everyFifteenMinutes();
+Schedule::job(new RefillDepositAddressPoolJob)->everyMinute()->withoutOverlapping();
+Schedule::job(new ExpirePaymentRiskCasesJob)->hourly()->withoutOverlapping();

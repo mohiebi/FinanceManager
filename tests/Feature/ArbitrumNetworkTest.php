@@ -67,7 +67,7 @@ test('an Arbitrum intent snapshots that chain, not the mainnet one', function ()
         ->and($payment->asset_decimals)->toBe(6);
 });
 
-test('the two chains never share an expected amount', function () {
+test('the two chains may share an exact amount but never share a deposit address', function () {
     $onMainnet = app(StartSubscriptionPayment::class)(
         User::factory()->create(), BillingPlan::Monthly, PaymentNetwork::Ethereum, SettlementAsset::Usdc
     );
@@ -75,9 +75,8 @@ test('the two chains never share an expected amount', function () {
         User::factory()->create(), BillingPlan::Monthly, PaymentNetwork::Arbitrum, SettlementAsset::Usdc
     );
 
-    // The nonce pool is scoped per chain and asset, so a mainnet transfer can
-    // never satisfy an Arbitrum intent even at the same price.
-    expect($onArbitrum->expected_amount)->not->toBe($onMainnet->expected_amount);
+    expect($onArbitrum->expected_amount)->toBe($onMainnet->expected_amount)
+        ->and($onArbitrum->pay_to_address)->not->toBe($onMainnet->pay_to_address);
 });
 
 test('a payment settles on Arbitrum through the same driver', function () {

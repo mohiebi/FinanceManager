@@ -215,6 +215,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(SubscriptionPayment::class);
     }
 
+    public function paymentRiskCases(): HasMany
+    {
+        return $this->hasMany(PaymentRiskCase::class);
+    }
+
     /**
      * Every coupon this user has claimed, paid-for or free.
      *

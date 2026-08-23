@@ -99,6 +99,7 @@ return [
     'statuses' => [
         'pending' => 'Awaiting payment',
         'submitted' => 'Checking',
+        'risk_review' => 'Under manual review',
         'confirmed' => 'Paid',
         'failed' => 'Failed',
         'quarantined' => 'Quarantined',
@@ -122,9 +123,18 @@ return [
         'admin_rejected' => 'This payment was rejected after review.',
         'sanctioned_sender' => 'The sending address matched a sanctions list.',
         'flagged_sender' => 'The payment source was classified as high risk.',
+        'reused_flagged_address' => 'This flagged address has already used its one-time exception.',
+        'flagged_address_limit' => 'This account has reached the three-address exception limit.',
         'screening_unavailable' => 'We are still checking the payment source.',
         'expired' => 'This payment window closed before it was paid.',
     ],
+
+    'precheck' => ['results' => [
+        'no_match' => 'No exact sanctions or local-risk match was found. This is advisory; the actual sender is checked again after payment.',
+        'unknown' => 'The check is temporarily unavailable. Do not send from this wallet yet.',
+        'flagged' => 'This wallet is on the local risk list. Use another clean wallet.',
+        'sanctioned' => 'This wallet matched the sanctions oracle and cannot be accepted.',
+    ]],
 
     'checkout' => [
         'heading' => 'Review and pay',
@@ -188,6 +198,11 @@ return [
     ],
 
     'admin' => [
+        'risk_settlement_authorized' => 'The fixed automated settlement was authorized.',
+        'risk_payment_granted' => 'The settled flagged payment was granted once. This address cannot be used again.',
+        'settlement_requeued' => 'Settlement queued again.',
+        'risk_address_saved' => 'Risk address saved.',
+        'risk_address_deactivated' => 'Risk address deactivated.',
         'title' => 'Subscriptions',
         'description' => 'Payments waiting on a decision, and everyone currently on Pro.',
         'needs_attention' => 'Needs a decision',

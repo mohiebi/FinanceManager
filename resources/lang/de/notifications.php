@@ -99,6 +99,32 @@ return [
         'flagged_explanation' => 'Die Zahlungsquelle wurde von der Transaktionsrisikoprüfung markiert.',
     ],
 
+    'flagged_payment_review' => [
+        'title' => 'Ihre Zahlung wird manuell geprüft',
+        'body_generic' => 'Die Zahlungsquelle wurde markiert. Verwenden Sie die Absender-Wallet nicht erneut.',
+        'email_body' => 'Die Wallet :address wurde markiert. Ein Administrator kann die festgelegte Abwicklung bis :deadline prüfen. Pro wird nur nach erfolgreicher Abwicklung und manueller Freigabe gewährt.',
+    ],
+    'flagged_address_denied' => [
+        'title' => 'Diese Zahlung kann keinen Zugang erhalten',
+        'body_generic' => 'Die Ausnahme für markierte Wallets ist für diese Zahlung nicht verfügbar.',
+        'email_body' => 'Diese Zahlung kann keinen Pro-Zugang erhalten, weil die Ausnahme nicht verfügbar ist (:reason). Verwenden Sie eine andere saubere Wallet.',
+    ],
+    'flagged_payment_granted' => [
+        'title' => 'Ihre einmalige Zahlungsausnahme wurde genehmigt',
+        'body_generic' => 'Pro wurde nach manueller Prüfung gewährt. Verwenden Sie die Absender-Wallet nicht erneut.',
+        'email_body' => 'Die Abwicklung war erfolgreich und Pro wurde diesmal gewährt. Die Wallet :address wird nie wieder akzeptiert.',
+    ],
+    'flagged_address_limit_admin' => [
+        'title' => 'Ein Nutzer hat das Limit markierter Wallets erreicht',
+        'body_generic' => ':email hat eine vierte markierte Wallet eingereicht. Der Zugang wird verweigert.',
+        'email_body' => ':email hat eine vierte markierte Wallet eingereicht. Diese Zahlung kann nicht in den Ausnahmeprozess aufgenommen werden.',
+    ],
+    'settlement_needs_attention' => [
+        'title' => 'Eine automatische Abwicklung benötigt Aufmerksamkeit',
+        'body_generic' => 'Abwicklung :operation wurde bei :reason gestoppt.',
+        'email_body' => 'Abwicklung :operation wurde bei :reason gestoppt. Sauberer Pro-Zugang bleibt aktiv; prüfen und erneut starten.',
+    ],
+
     'subscription_activated' => [
         'title' => 'Pro ist aktiv',
         'body_generic' => 'Dein Tarif :plan läuft bis :date.',

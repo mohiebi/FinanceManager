@@ -106,6 +106,16 @@ class SubscriptionPayment extends Model
         return $this->hasMany(PaymentScreening::class, 'subscription_payment_id');
     }
 
+    public function settlement(): HasOne
+    {
+        return $this->hasOne(PaymentSettlement::class, 'subscription_payment_id');
+    }
+
+    public function riskCase(): HasOne
+    {
+        return $this->hasOne(PaymentRiskCase::class, 'subscription_payment_id');
+    }
+
     /** What the coupon took off, or null when none was used. */
     public function discountUsd(): ?string
     {
@@ -179,7 +189,7 @@ class SubscriptionPayment extends Model
             ->where(fn (Builder $unpaid) => $unpaid
                 ->where('status', PaymentStatus::Pending->value)
                 ->where('expires_at', '>', now()))
-            ->orWhere('status', PaymentStatus::Submitted->value));
+            ->orWhereIn('status', [PaymentStatus::Submitted->value, PaymentStatus::RiskReview->value]));
     }
 
     /**

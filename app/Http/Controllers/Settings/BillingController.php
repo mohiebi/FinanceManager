@@ -7,10 +7,13 @@ use App\Actions\Billing\ResolveCoupon;
 use App\Actions\Billing\SettleCouponRedemption;
 use App\Actions\Billing\StartSubscriptionPayment;
 use App\Actions\Billing\SubmitPaymentProof;
+use App\Contracts\Billing\AddressScreener;
 use App\Enums\BillingPlan;
 use App\Enums\CouponRedemptionStatus;
 use App\Enums\DepositAddressStatus;
+use App\Enums\PaymentNetwork;
 use App\Enums\PaymentStatus;
+use App\Enums\SettlementAsset;
 use App\Exceptions\CouponUnavailable;
 use App\Exceptions\DepositAddressLimitExceeded;
 use App\Exceptions\DepositAddressUnavailable;
@@ -23,6 +26,7 @@ use App\Models\CouponRedemption;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
 use App\Support\Billing\BillingCatalog;
+use App\Support\Billing\ScreeningSubject;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,6 +43,7 @@ class BillingController extends Controller
         private readonly ResolveCoupon $resolveCoupon,
         private readonly RedeemFreeCoupon $redeemFreeCoupon,
         private readonly SettleCouponRedemption $settleCoupon,
+        private readonly AddressScreener $addressScreener,
     ) {}
 
     public function edit(Request $request): Response
@@ -170,6 +175,31 @@ class BillingController extends Controller
         ]);
     }
 
+    public function precheckWallet(Request $request): JsonResponse
+    {
+        $this->assertBillingIsAvailable();
+        $validated = $request->validate([
+            'network' => ['required', 'in:ethereum,arbitrum'],
+            'address' => ['required', 'regex:/^0x[0-9a-fA-F]{40}$/'],
+        ]);
+        $network = PaymentNetwork::from($validated['network']);
+        $address = $network->normalizeAddress($validated['address']);
+        $result = $this->addressScreener->screen(new ScreeningSubject(
+            network: $network,
+            transactionHash: str_repeat('0', 66),
+            senderAddress: $address,
+            recipientAddress: $address,
+            asset: SettlementAsset::Eth,
+            receivedAmount: '0',
+        ));
+
+        return response()->json([
+            'risk' => $result->risk->value,
+            'advisory' => true,
+            'message' => __('billing.precheck.results.'.$result->risk->value),
+        ]);
+    }
+
     public function submitProof(SubmitPaymentProofRequest $request, SubscriptionPayment $payment): RedirectResponse
     {
         $this->assertBillingIsAvailable();
@@ -259,7 +289,7 @@ class BillingController extends Controller
         $payments = $user->subscriptionPayments()
             // The presenter reads the coupon's code, so eager load it rather
             // than issuing a query per row.
-            ->with('coupon:id,code')
+            ->with(['coupon:id,code', 'riskCase'])
             ->latest('created_at')
             ->limit(20)
             ->get()

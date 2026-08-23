@@ -126,3 +126,44 @@ test('CommonJS packages are imported by default, never by name', () => {
         `import jalaali from 'jalaali-js' and destructure instead:\n${offenders.join('\n')}`,
     );
 });
+
+/**
+ * The first client render has to paint what the server painted.
+ *
+ * The server only knows the account default; it cannot read a device's
+ * localStorage. A client that consults storage during setup therefore
+ * disagrees with the server whenever the two differ — on the class and the
+ * text of every amount on the page. The dashboard is mostly amounts, and a
+ * mismatch that large is how hydration adopts a tree Vue cannot then patch.
+ */
+test('the amount mask does not read storage before hydration finishes', () => {
+    const source = readFileSync(
+        join(root, 'composables/useAmountMask.ts'),
+        'utf8',
+    );
+    const body = source.slice(source.indexOf('export function useAmountMask'));
+
+    // Storage is adopted on mount, not called straight through in setup.
+    assert.match(body, /onMounted\(syncBrowserUser\)/);
+    assert.doesNotMatch(body, /^\s{4}syncBrowserUser\(\);$/m);
+    // And the pre-mount value is the same one the server used.
+    assert.match(body, /browserMasked\.value = amountMaskDefault\(page\)/);
+});
+
+/**
+ * A watcher callback runs synchronously during setup, so it runs on the server
+ * too. Landing built its JSON-LD tag in one and threw `document is not defined`
+ * on every server render, which Inertia swallowed into a silent client-side
+ * fallback — the page was simply never server-rendered.
+ */
+test('browser APIs are reached from a lifecycle hook, not a watcher', () => {
+    const landing = readFileSync(join(root, 'pages/Landing.vue'), 'utf8');
+    const effect = landing.indexOf('watchEffect(() => {');
+    const mounted = landing.indexOf('onMounted(() => {');
+
+    assert.ok(
+        mounted >= 0 && mounted < effect,
+        'the effect is inside onMounted',
+    );
+    assert.match(landing, /document\.createElement\('script'\)/);
+});

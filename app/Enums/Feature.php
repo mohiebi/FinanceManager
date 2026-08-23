@@ -171,7 +171,10 @@ enum Feature: string
     public function appearsInNav(): bool
     {
         return match ($this) {
-            self::Gamification, self::Vault => false,
+            // The vault is a security setting, not a page. The flight log used
+            // to be in the same position — it rendered on the dashboard — but
+            // it has a route of its own again.
+            self::Vault => false,
             default => true,
         };
     }

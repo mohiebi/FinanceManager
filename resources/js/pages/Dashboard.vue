@@ -263,6 +263,69 @@
             </article>
         </div>
 
+        <!-- ── Flight log strip ───────────────────────────────────────
+             One line, not the two cards this used to be. The run and the
+             month's coverage are worth a glance from here; everything behind
+             them lives on the flight log's own page, which this links to. -->
+        <div v-if="props.streak && props.logbook" class="px-[18px] pt-[18px]">
+            <Link
+                :href="flightLog()"
+                class="group flex flex-wrap items-center gap-x-5 gap-y-3 rounded-[16px] border border-white/7 bg-[#1a1a1a] px-5 py-3.5 transition-colors hover:border-white/12"
+            >
+                <span class="flex shrink-0 items-center gap-2.5">
+                    <span
+                        class="grid size-7 place-items-center rounded-[9px] bg-[#02cd86]/12 text-[#02cd86]"
+                    >
+                        <Plane class="size-3.5" aria-hidden="true" />
+                    </span>
+                    <span>
+                        <span
+                            class="block text-[10px] font-medium tracking-[0.16em] text-[#686868] uppercase"
+                            >{{ t('gamification.title') }}</span
+                        >
+                        <span class="block text-sm text-white">{{
+                            t('gamification.page.strip_run', {
+                                days: props.streak.current_run,
+                            })
+                        }}</span>
+                    </span>
+                </span>
+
+                <span class="flex min-w-[140px] flex-1 gap-1" dir="ltr">
+                    <span
+                        v-for="day in props.streak.days"
+                        :key="day.date"
+                        class="h-[22px] flex-1 rounded-[4px]"
+                        :class="stripDayClass(day.state)"
+                        :title="t(`gamification.states.${day.state}`)"
+                    />
+                </span>
+
+                <span class="shrink-0 text-end">
+                    <span class="block text-[13px] text-white">{{
+                        t('gamification.page.strip_recorded', {
+                            percent: props.logbook.percent,
+                            month: props.logbook.month,
+                        })
+                    }}</span>
+                    <span class="block text-xs text-[#686868]">{{
+                        props.logbook.uncategorised > 0
+                            ? t(
+                                  'gamification.page.strip_uncategorised',
+                                  { count: props.logbook.uncategorised },
+                                  props.logbook.uncategorised,
+                              )
+                            : t('gamification.page.strip_all_sorted')
+                    }}</span>
+                </span>
+
+                <ArrowRight
+                    class="size-4 shrink-0 text-[#686868] transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
+                    aria-hidden="true"
+                />
+            </Link>
+        </div>
+
         <!-- ── Needs you this week / Where it went ────────────────────── -->
         <div
             class="grid items-stretch gap-[18px] px-[18px] pt-[18px] xl:grid-cols-2"
@@ -453,6 +516,7 @@
 
 <script setup lang="ts">
 import { Deferred, Head, Link, usePage } from '@inertiajs/vue3';
+import { ArrowRight, Plane } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import LineChart from '@/components/charts/LineChart.vue';
@@ -469,12 +533,13 @@ import { formatCurrencyDisplay, formatCurrencyNumber } from '@/lib/money';
 import type { CurrencyCode, Rates } from '@/lib/money';
 import {
     dashboard,
+    flightLog,
     portfolio as portfolioRoute,
     report as reportRoute,
 } from '@/routes';
 import { index as billsIndex } from '@/routes/bills';
 import { index as transactionsIndex } from '@/routes/transactions';
-import type { Logbook, Streak } from '@/types/gamification';
+import type { Logbook, Streak, StreakDayState } from '@/types/gamification';
 import type { Encrypted } from '@/types/vault';
 
 type TransactionType = 'cost' | 'income';
@@ -592,6 +657,21 @@ const props = defineProps<{
     /** Sent instead of `portfolio` when the vault is armed — see Portfolio.vue. */
     vaultPortfolio?: VaultPortfolioPayload | null;
 }>();
+
+/**
+ * The strip is a glance, so a day is a bar rather than a numbered square — but
+ * it reads with the same colours the flight log page uses, or the two would
+ * describe the same run differently.
+ */
+function stripDayClass(state: StreakDayState): string {
+    return {
+        logged: 'bg-[#02cd86]',
+        no_spend: 'bg-[#02cd86]/35',
+        grace: 'bg-[#3a3a3a]',
+        missed: 'bg-white/6',
+        open: 'bg-transparent ring-1 ring-inset ring-white/20',
+    }[state];
+}
 
 defineOptions({
     layout: {

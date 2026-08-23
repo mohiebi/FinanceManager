@@ -16,6 +16,7 @@ use App\Http\Controllers\Auth\WebGoogleAuthController;
 use App\Http\Controllers\BillController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\FlightLogController;
 use App\Http\Controllers\GoalController;
 use App\Http\Controllers\InvestmentAssetController;
 use App\Http\Controllers\InvestmentController;
@@ -134,6 +135,13 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     });
 
     Route::get('dashboard', [TransactionController::class, 'dashboard'])->name('dashboard');
+
+    // The flight log has a page again. It lived on the dashboard until that page
+    // was rebuilt to the v3 mock, which left the module switchable but with
+    // nothing to render.
+    Route::middleware(EnsureFeatureEnabled::class.':gamification')
+        ->get('flight-log', FlightLogController::class)
+        ->name('flight-log');
 
     /*
      * Deliberately outside the feature gate below: a user without the Pro

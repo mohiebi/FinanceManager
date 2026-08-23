@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'flight_log' => 'دفتر پرواز',
     'advisor' => 'مشاور',
     'advisor_subtitle' => 'کمک‌خلبان پرتفوی',
     'dashboard' => 'داشبورد',

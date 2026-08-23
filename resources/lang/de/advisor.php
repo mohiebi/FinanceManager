@@ -1,231 +1,318 @@
 <?php
 
-$messages = require resource_path('lang/en/advisor.php');
-$messages['title'] = 'CashPilot Berater';
-$messages['eyebrow'] = 'Private Vermögensintelligenz';
-$messages['tagline'] = 'Dein Portfolio sollte zu deinem Leben passen — nicht nur zum Markt.';
-$messages['start'] = 'Bewertung starten';
-$messages['view_profile'] = 'Risikoprofil ansehen';
-
-$messages['resume_at'] = 'Fortsetzen — Abschnitt {current} von {total}';
-$messages['question_count'] = '22 Fragen, dann dein Portfolio';
-$messages['duration'] = 'Etwa 15 Minuten';
-
-$messages['assessment'] = array_merge($messages['assessment'], [
-    'title' => 'Anlegerprofil',
-    'step' => 'Abschnitt {current} von {total}',
-    'saved' => 'Deine Antworten werden verschlüsselt und nach jedem Abschnitt gespeichert.',
-    'continue' => 'Speichern und weiter',
-    'back' => 'Zurück',
-    'finish' => 'Mein Profil erstellen',
-    'loading' => 'Deine Antworten werden geladen…',
-    'vault_notice' => 'Deine Antworten werden entsperrt — entschlüsselt wird hier, nie auf unseren Servern.',
-    'needs_answer' => 'Noch ohne Antwort',
-    'missing_one' => '1 Frage braucht noch eine Antwort.',
-    'missing_many' => '{count} Fragen brauchen noch eine Antwort.',
-    'missing_country' => 'Gib das Land an, aus dem du investierst.',
-    'missing_markets' => 'Gib mindestens einen Markt an, auf den du Zugriff hast.',
-    'missing_assets' => 'Wähle mindestens einen Wert, den der Advisor nutzen darf.',
-    'missing_asset_name' => 'Einem deiner Werte fehlt noch ein Name.',
-    'missing_asset_ticker' => '{name} braucht ein Kürzel oder eine Kennung.',
-    'save_failed' => 'Das wurde nicht gespeichert. Bitte versuche es erneut.',
-]);
-
-$messages['questions'] = array_merge($messages['questions'], [
-    'liquidity_amount' => 'Wie viel',
-    'liquidity_amount_placeholder' => 'Betrag wählen',
-    'liquidity_speed' => 'Wie schnell',
-    'liquidity_speed_placeholder' => 'Zeitraum wählen',
-    'q15_max_drawdown_hint' => 'Nimm an, dass du das Geld nicht sofort brauchst und der Rückgang den ganzen Markt betrifft — nicht Betrug oder das Scheitern eines einzelnen Werts.',
-]);
-
-$messages['portfolio'] = array_merge($messages['portfolio'], [
-    'details' => 'Details',
-    'details_hint' => 'Diese starten mit sinnvollen Vorgaben. Ändere nur, was du über den Wert bereits weißt.',
-]);
-
-$messages['profile'] = array_merge($messages['profile'], [
-    'ai_scope' => 'Die KI sieht genau dieses Profil und sonst nichts über dich. CashPilot prüft ihre vollständige Antwort, bevor du sie siehst.',
-    'options_willingness' => 'Bereitschaft',
-    'options_capability_level' => 'Fähigkeit',
-    'options_knowledge' => 'Wissen',
-    'options_risk_budget' => 'Risikobudget',
-]);
-
-$messages['recommendation'] = array_merge($messages['recommendation'], [
-    'generating' => 'Dein Portfolio wird entworfen',
-    'holdings' => 'Positionen',
-    'largest' => 'Größte Position',
-    'why' => 'Warum diese Gewichtung',
-    'coverage' => 'Abdeckung',
-    'risk_budget' => 'Risikobudget',
-    'asset' => 'Anlage',
-    'current' => 'Aktuell',
-    'target' => 'Ziel',
-    'move' => 'Veränderung',
-    'difference' => 'Differenz',
-    'pricing_required' => 'Preis erforderlich',
-    'prices_missing' => 'Für einige Anlagen liegt kein aktueller Preis vor, daher sind exakte Beträge nicht verfügbar.',
-    'starting' => 'Wird gestartet…',
-    'stage_reading' => 'Dein Profil wird gelesen',
-    'stage_designing' => 'Dein Portfolio wird entworfen',
-    'stage_checking' => 'Abgleich mit deinen Grenzen',
-    'stage_sealing' => 'Wird in deinem Browser verschlüsselt',
-    'leave_safe' => 'Du kannst diese Seite verlassen. Dein Portfolio ist da, wenn du zurückkommst.',
-    'locked' => 'Entsperre deinen Vault, um diese Empfehlung zu lesen.',
-    'validated_badge' => 'Von CashPilot geprüft',
-    'integrity_failed' => 'Die entschlüsselte Empfehlung stimmte nicht mit der erzeugten überein und wird deshalb nicht angezeigt.',
-    'chat_encrypted' => 'Dieses Gespräch ist in deinem Browser verschlüsselt.',
-    'ask_empty' => 'Frag alles zu diesem Plan.',
-    'suggest_fit' => 'Warum passt diese Aufteilung zu mir?',
-    'suggest_risk' => 'Was ist hier das größte Risiko?',
-    'suggest_start' => 'Womit fange ich an?',
-    'send_failed' => 'Nicht gesendet.',
-    'retry' => 'Erneut versuchen',
-    'send_hint' => 'Enter sendet, Shift+Enter macht eine neue Zeile.',
-    'failed' => 'Der Advisor konnte diesen Plan nicht fertigstellen. Deine Antworten sind gespeichert — versuche es erneut.',
-]);
-
-$messages['validation'] = array_merge($messages['validation'], [
-    'pending_payload_expired' => 'Diese Empfehlung wartete zu lange auf das Entsperren und musste verworfen werden. Eine neue zu erzeugen dauert einige Minuten.',
-]);
-
-$messages['personas'] = [
-    'balanced_investor' => 'Ausgewogen',
-    'strategic_growth_investor' => 'Strategisch wachstumsorientiert',
-    'opportunistic_investor' => 'Opportunistisch',
-    'aggressive_growth_investor' => 'Offensiv wachstumsorientiert',
-];
-$messages['risk_bands'] = [
-    'very_conservative' => 'Sehr konservativ', 'conservative' => 'Konservativ', 'balanced' => 'Ausgewogen', 'growth' => 'Wachstum', 'aggressive' => 'Offensiv',
-    'defensive' => 'Defensiv', 'moderate' => 'Moderat', 'speculative' => 'Spekulativ', 'unknown' => 'Nicht eingeordnet',
-];
-$messages['categories'] = [
-    'stock' => 'Aktie', 'etf' => 'ETF oder Indexfonds', 'bond' => 'Anleihe', 'currency' => 'Währung', 'metal' => 'Edelmetall', 'crypto' => 'Krypto', 'commodity' => 'Rohstoff', 'real_estate' => 'Immobilien', 'private_asset' => 'Privater Wert', 'other' => 'Sonstiges',
-];
-$messages['liquidities'] = [
-    'same_day' => 'Am selben Tag', 'within_week' => 'Binnen einer Woche', 'within_month' => 'Binnen eines Monats', 'illiquid' => 'Schwer verkäuflich',
-];
-$messages['perspectives'] = [
-    'bearish' => 'Fallend', 'neutral' => 'Neutral', 'bullish' => 'Steigend',
-];
-$messages['convictions'] = [
-    'low' => 'Geringe Überzeugung', 'medium' => 'Mittlere Überzeugung', 'high' => 'Hohe Überzeugung',
-];
-$messages['holding_periods'] = [
-    'under_1_year' => 'Unter einem Jahr', '1_3_years' => '1–3 Jahre', '3_5_years' => '3–5 Jahre', '5_10_years' => '5–10 Jahre', '10_plus' => 'Über 10 Jahre',
-];
-$messages['inclusions'] = [
-    'allowed' => 'KI darf ihn nutzen', 'required' => 'Muss enthalten sein',
-];
-$messages['underlyings'] = [
-    'stocks' => 'Aktien', 'etfs' => 'ETFs', 'indices' => 'Indizes', 'commodities' => 'Rohstoffe', 'currencies' => 'Währungen', 'crypto' => 'Krypto',
-];
-$messages['options_experience_years'] = [
-    'none' => 'Keine', 'under_1' => 'Unter einem Jahr', '1_3' => '1–3 Jahre', '3_plus' => 'Über 3 Jahre',
-];
-$messages['options_trade_counts'] = [
-    'none' => 'Keine', '1_10' => '1–10', '11_50' => '11–50', '50_plus' => 'Über 50',
-];
-$messages['options_objectives'] = [
-    'downside_hedging' => 'Gegen Rückgänge absichern', 'income' => 'Erträge erzielen', 'defined_risk_growth' => 'Wachstum mit definiertem Risiko', 'combination' => 'Eine Kombination',
-];
-$messages['options_monitoring'] = [
-    'daily' => 'Täglich', 'weekly' => 'Wöchentlich', 'monthly' => 'Monatlich', 'rarely' => 'Selten',
-];
-$messages['options_experience'] = [
-    'none' => 'Keine', 'basic' => 'Grundlagen', 'intermediate' => 'Fortgeschritten', 'advanced' => 'Sehr erfahren',
-];
-$messages['option_strategies'] = [
-    'protective_put' => 'Protective Put', 'covered_call' => 'Covered Call', 'collar' => 'Collar', 'uncovered' => 'Ungedeckt',
-];
-$messages['profile_warnings'] = [
-    'return_expectation_exceeds_risk_capacity' => 'Deine Zielrendite liegt höher, als deine ermittelte Risikotragfähigkeit hergibt.',
-    'willingness_exceeds_capacity' => 'Du bist bereit, mehr Risiko zu tragen, als deine Finanzen derzeit erlauben.',
-    'capacity_exceeds_willingness' => 'Du könntest mehr Risiko tragen, als dir angenehm ist.',
-];
-$messages['recommendation_statuses'] = [
-    'generating' => 'Wird entworfen', 'needs_clarification' => 'Braucht Details', 'awaiting_vault_seal' => 'Wartet auf Entsperren', 'ready' => 'Fertig', 'failed' => 'Fehlgeschlagen',
-];
-$messages['constraints_labels'] = [
-    'minimum_liquid_allocation' => 'Mindestens liquide', 'maximum_single_asset_allocation' => 'Höchstens in einem Wert', 'maximum_high_risk_allocation' => 'Höchstens hohes Risiko', 'maximum_speculative_allocation' => 'Höchstens spekulativ', 'maximum_options_risk_budget' => 'Höchstes Optionsbudget',
-];
-
 /* Advisor redesign. */
-$messages['how_it_works'] = 'So funktioniert es';
-$messages['home'] = [
-    'subtitle' => 'Überblick',
-    'in_progress' => 'Analyse läuft',
-];
-$messages['paywall'] = [
-    'subtitle' => 'Pro-Funktion',
-    'unlock' => 'Advisor mit Pro freischalten',
-    'see_inside' => 'Sieh, was drinsteckt',
-    'included' => 'In CashPilot Pro enthalten · ohne Aufpreis',
-    'members_only' => 'Nur für Pro-Mitglieder',
-    'profile_saved' => 'Dein Anlegerprofil und jede Antwort dahinter sind noch da. Mit einer Verlängerung machst du genau dort weiter, wo du aufgehört hast.',
-    'preview_equity' => 'Heimischer Aktienindexfonds',
-    'preview_gold' => 'Gold, 18 Karat',
-    'preview_global' => 'Globaler Aktien-ETF',
-    'preview_currency' => 'US-Dollar',
-];
-$messages['assessment'] = array_merge($messages['assessment'], [
-    'saved_short' => 'Nach jedem Abschnitt verschlüsselt gespeichert',
-    'answered' => '{count} von {total} beantwortet',
-]);
-$messages['section_intros'] = [
-    'financial_foundation' => 'Diese Antworten legen fest, wie viel du verlieren kannst, bevor irgendetwas entworfen wird. Nichts davon ist ein Urteil — es ist der Boden, auf dem jedes Portfolio darunter stehen muss.',
-    'investment_goals' => 'Wofür das Geld da ist und wann du es brauchst. Horizont und Zweck grenzen die Form eines Portfolios stärker ein als jede Vorliebe.',
-    'risk_and_loss' => 'Antworte so, wie du dich tatsächlich verhalten würdest, nicht so, wie du es gern hättest. Diese Antworten setzen die Verlustgrenze, die jedes Portfolio darunter einhalten muss.',
-    'investment_experience' => 'Was du bereits gehalten hast und wie gut du die Mechanik kennst. Erfahrung erweitert das, was die KI vorschlagen darf.',
-    'behavior' => 'Wie du gehandelt hast, wenn eine Position stark ausgeschlagen ist. Verhalten unter Druck ist der Unterschied zwischen einem Plan auf Papier und einem, den du durchhältst.',
-    'return_expectations' => 'Was du Erfolg nennen würdest. Liegt diese Zahl höher, als deine Tragfähigkeit hergibt, sagt CashPilot das — statt danach zu greifen.',
-    'portfolio_preferences' => 'Die Werte, die die KI verwenden darf, die Märkte, die du erreichst, und die Obergrenzen, die gelten sollen. Nichts außerhalb dieser Liste kommt in einen Plan.',
-    'options_and_hedging' => 'Ob Optionen überhaupt in deinen Plan gehören und welche Strategien du fahren kannst. Antworte mit Nein, und dieser Abschnitt kostet dich nichts.',
-];
-$messages['portfolio'] = array_merge($messages['portfolio'], [
-    'inclusion' => 'Verwendung',
-]);
-$messages['profile'] = array_merge($messages['profile'], [
-    'subtitle' => 'Anlegerprofil',
-    'persona' => 'Anlegertyp',
-    'sealed' => 'Versiegelt',
-    'scoring' => 'Bewertung',
-    'assets_approved' => 'Freigegebene Werte',
-    'derived_scores' => 'Abgeleitete Werte',
-    'deterministic' => 'Deterministisch · keine KI',
-    'hard_caps' => 'Harte Grenzen',
-    'allowed' => 'Erlaubt',
-    'category' => 'Kategorie',
-    'risk' => 'Risiko',
-    'outlook' => 'Einschätzung',
-]);
-$messages['recommendation'] = array_merge($messages['recommendation'], [
-    'primary_tab' => 'Primär',
-    'safer_tab' => 'Sicherer',
-    'higher_tab' => 'Mehr Risiko',
-    'allocated' => 'Zugeteilt',
-    'stage_done' => 'Fertig',
-    'stage_working' => 'Läuft',
-    'designing' => 'Wird entworfen',
-    'open_portfolio' => 'Portfolio öffnen',
-    'open_result' => 'Sieh, was der Advisor gefunden hat',
-    'role' => 'Rolle',
-    'total' => 'Gesamt',
-    'liquid' => 'Binnen einer Woche liquide',
-    'capital' => 'Gesamtkapital',
-    'hash' => 'Hash',
-    'base' => 'Basis',
-    'consultation' => 'Beratung',
-    'back_to_plan' => 'Der Plan',
-    'tag_you' => 'Du',
-    'tag_advisor' => 'Advisor',
-    'drawdown_cap' => 'Verlustgrenze',
-    'clarification_eyebrow' => 'Noch eine Runde',
-    'allow_diversifier' => 'Einen fehlenden Diversifizierer zulassen?',
-]);
-$messages['options_willingness'] = [
-    'no' => 'Nein', 'yes' => 'Ja', 'not_sure' => 'Nicht sicher',
-];
 
-return $messages;
+return [
+    'title' => 'CashPilot Berater',
+    'eyebrow' => 'Private Vermögensintelligenz',
+    'tagline' => 'Dein Portfolio sollte zu deinem Leben passen — nicht nur zum Markt.',
+    'introduction' => 'CashPilot bewertet deine finanzielle Widerstandsfähigkeit, Verlusttragfähigkeit, dein Verhalten, deine Ziele und deine Anlagefähigkeiten. Die KI entwirft ein Portfolio ausschließlich innerhalb dieser Grenzen.',
+    'start' => 'Bewertung starten',
+    'resume_at' => 'Fortsetzen — Abschnitt {current} von {total}',
+    'view_profile' => 'Risikoprofil ansehen',
+    'reassess' => 'Neue Bewertung starten',
+    'pro_feature' => 'Pro-Funktion',
+    'question_count' => '22 Fragen, dann dein Portfolio',
+    'duration' => 'Etwa 15 Minuten',
+    'cashpilot_role' => 'CashPilot setzt die Grenzen',
+    'cashpilot_role_description' => 'Deine Risikotragfähigkeit, dein Liquiditätsbedarf, harte Obergrenzen, der Zugang zu Anlagen und deine Optionsfähigkeit werden deterministisch berechnet.',
+    'ai_role' => 'Die KI entwirft innerhalb dieser Grenzen',
+    'ai_role_description' => 'Die KI wählt Prozentsätze aus deinen Werten, erklärt Kompromisse und schlägt nur Optionsstrategien vor, die du auch nutzen kannst.',
+    'vault_safe' => 'Funktioniert mit dem privaten Vault',
+    'vault_safe_description' => 'Bei aktivem Vault erhält die KI dein abgeleitetes Profil und die ausgewählten Werte — nie deinen aktuellen Bestand oder Portfoliowert.',
+    'how_it_works' => 'So funktioniert es',
+    'history' => 'Letzte Empfehlungen',
+    'home' => [
+        'subtitle' => 'Überblick',
+        'in_progress' => 'Analyse läuft',
+    ],
+    'paywall' => [
+        'subtitle' => 'Pro-Funktion',
+        'unlock' => 'Advisor mit Pro freischalten',
+        'see_inside' => 'Sieh, was drinsteckt',
+        'included' => 'In CashPilot Pro enthalten · ohne Aufpreis',
+        'members_only' => 'Nur für Pro-Mitglieder',
+        'profile_saved' => 'Dein Anlegerprofil und jede Antwort dahinter sind noch da. Mit einer Verlängerung machst du genau dort weiter, wo du aufgehört hast.',
+        'preview_equity' => 'Heimischer Aktienindexfonds',
+        'preview_gold' => 'Gold, 18 Karat',
+        'preview_global' => 'Globaler Aktien-ETF',
+        'preview_currency' => 'US-Dollar',
+    ],
+    'no_history' => 'Deine geprüften Portfolioempfehlungen erscheinen hier.',
+    'target_only' => 'Zielentwurf',
+    'rebalance' => 'Aktuell zu Ziel',
+    'open' => 'Empfehlung öffnen',
+    'assessment' => [
+        'title' => 'Anlegerprofil',
+        'step' => 'Abschnitt {current} von {total}',
+        'saved' => 'Deine Antworten werden verschlüsselt und nach jedem Abschnitt gespeichert.',
+        'continue' => 'Speichern und weiter',
+        'back' => 'Zurück',
+        'finish' => 'Mein Profil erstellen',
+        'loading' => 'Deine Antworten werden geladen…',
+        'vault_notice' => 'Deine Antworten werden entsperrt — entschlüsselt wird hier, nie auf unseren Servern.',
+        'needs_answer' => 'Noch ohne Antwort',
+        'missing_one' => '1 Frage braucht noch eine Antwort.',
+        'missing_many' => '{count} Fragen brauchen noch eine Antwort.',
+        'missing_country' => 'Gib das Land an, aus dem du investierst.',
+        'missing_markets' => 'Gib mindestens einen Markt an, auf den du Zugriff hast.',
+        'missing_assets' => 'Wähle mindestens einen Wert, den der Advisor nutzen darf.',
+        'missing_asset_name' => 'Einem deiner Werte fehlt noch ein Name.',
+        'missing_asset_ticker' => '{name} braucht ein Kürzel oder eine Kennung.',
+        'save_failed' => 'Das wurde nicht gespeichert. Bitte versuche es erneut.',
+        'saved_short' => 'Nach jedem Abschnitt verschlüsselt gespeichert',
+        'answered' => '{count} von {total} beantwortet',
+    ],
+    'sections' => [
+        'financial_foundation' => 'Finanzielle Grundlage',
+        'investment_goals' => 'Deine Ziele',
+        'risk_and_loss' => 'Risiko und Verlust',
+        'investment_experience' => 'Anlageerfahrung',
+        'behavior' => 'Verhalten',
+        'return_expectations' => 'Renditeerwartung',
+        'portfolio_preferences' => 'Portfoliopräferenzen',
+        'options_and_hedging' => 'Optionen und Absicherung',
+    ],
+    'section_intros' => [
+        'financial_foundation' => 'Diese Antworten legen fest, wie viel du verlieren kannst, bevor irgendetwas entworfen wird. Nichts davon ist ein Urteil — es ist der Boden, auf dem jedes Portfolio darunter stehen muss.',
+        'investment_goals' => 'Wofür das Geld da ist und wann du es brauchst. Horizont und Zweck grenzen die Form eines Portfolios stärker ein als jede Vorliebe.',
+        'risk_and_loss' => 'Antworte so, wie du dich tatsächlich verhalten würdest, nicht so, wie du es gern hättest. Diese Antworten setzen die Verlustgrenze, die jedes Portfolio darunter einhalten muss.',
+        'investment_experience' => 'Was du bereits gehalten hast und wie gut du die Mechanik kennst. Erfahrung erweitert das, was die KI vorschlagen darf.',
+        'behavior' => 'Wie du gehandelt hast, wenn eine Position stark ausgeschlagen ist. Verhalten unter Druck ist der Unterschied zwischen einem Plan auf Papier und einem, den du durchhältst.',
+        'return_expectations' => 'Was du Erfolg nennen würdest. Liegt diese Zahl höher, als deine Tragfähigkeit hergibt, sagt CashPilot das — statt danach zu greifen.',
+        'portfolio_preferences' => 'Die Werte, die die KI verwenden darf, die Märkte, die du erreichst, und die Obergrenzen, die gelten sollen. Nichts außerhalb dieser Liste kommt in einen Plan.',
+        'options_and_hedging' => 'Ob Optionen überhaupt in deinen Plan gehören und welche Strategien du fahren kannst. Antworte mit Nein, und dieser Abschnitt kostet dich nichts.',
+    ],
+    'questions' => [
+        'q1_age' => 'Wie alt bist du?',
+        'q2_income_stability' => 'Wie stabil ist dein Haupteinkommen?',
+        'q3_emergency_fund' => 'Wie viele Monate deiner wichtigsten Ausgaben deckt deine Notreserve?',
+        'q4_high_interest_debt' => 'Hast du derzeit hochverzinsliche Schulden?',
+        'q5_portfolio_wealth_share' => 'Welchen Anteil deines liquiden Vermögens macht dieses Portfolio aus?',
+        'q6_primary_goal' => 'Was ist der Hauptzweck dieses Portfolios?',
+        'q7_goal_importance' => 'Wie wichtig ist es, dieses Ziel zu erreichen?',
+        'q8_time_horizon' => 'Wann brauchst du voraussichtlich einen wesentlichen Teil dieses Geldes?',
+        'q9_early_withdrawal' => 'Wie wahrscheinlich ist es, dass du einen bedeutenden Teil früher als geplant abhebst?',
+        'q10_liquidity' => 'Wie viel könntest du unerwartet brauchen, und wie schnell?',
+        'q11_permanent_loss_impact' => 'Wenn dein Portfolio dauerhaft 25 % verliert — welche praktische Auswirkung hätte das?',
+        'q12_drawdown_10' => 'Das Portfolio fällt um 10 %, während sich an deiner langfristigen These nichts ändert. Was tust du?',
+        'q13_drawdown_20' => 'Ein Portfolio im Wert von 20.000 $ fällt auf 16.000 $, während sich an der These nichts ändert. Was tust du?',
+        'q14_drawdown_35' => 'Das Portfolio fällt in einer Rezession um 35 %, und die Erholung kann Jahre dauern. Wie würdest du dich fühlen?',
+        'q15_max_drawdown' => 'Welchen vorübergehenden Rückgang könntest du ertragen, ohne die Strategie aufzugeben?',
+        'q16_risk_return' => 'Welches hypothetische Portfolio würdest du wählen?',
+        'q17_experience' => 'Wie viele Jahre investierst du schon aktiv?',
+        'q18_asset_classes' => 'In welche Werte hast du persönlich schon investiert?',
+        'q19_diversification' => 'Diversifikation hilft Anlegern vor allem dabei…',
+        'q20_fomo' => 'Ein Wert, den du nicht besitzt, steigt in sechs Monaten um 80 %. Was machst du am ehesten?',
+        'q21_concentration' => 'Ein Wert wächst auf 45 % deines Portfolios an. Was würdest du bevorzugen?',
+        'q22_target_return' => 'Welche langfristige jährliche Rendite würde dieses Portfolio für dich erfolgreich machen?',
+        'liquidity_amount' => 'Wie viel',
+        'liquidity_amount_placeholder' => 'Betrag wählen',
+        'liquidity_speed' => 'Wie schnell',
+        'liquidity_speed_placeholder' => 'Zeitraum wählen',
+        'q15_max_drawdown_hint' => 'Nimm an, dass du das Geld nicht sofort brauchst und der Rückgang den ganzen Markt betrifft — nicht Betrug oder das Scheitern eines einzelnen Werts.',
+    ],
+    'options' => [
+        '18_24' => '18–24', '25_34' => '25–34', '35_44' => '35–44', '45_54' => '45–54', '55_64' => '55–64', '65_plus' => '65+',
+        'very_stable' => 'Sehr stabil', 'mostly_stable' => 'Größtenteils stabil', 'variable' => 'Schwankend', 'unpredictable' => 'Sehr unvorhersehbar', 'no_regular_income' => 'Kein regelmäßiges Einkommen',
+        'under_1' => 'Unter 1', '1_3' => '1–3', '3_6' => '3–6', '6_12' => '6–12', 'over_12' => 'Über 12',
+        'none' => 'Keine', 'manageable' => 'Klein / überschaubar', 'significant' => 'Erheblich',
+        'under_10' => 'Unter 10 %', '10_25' => '10–25 %', '25_50' => '25–50 %', '50_75' => '50–75 %', 'over_75' => 'Über 75 %',
+        'purchasing_power' => 'Kaufkraft erhalten', 'long_term_wealth' => 'Langfristig Vermögen aufbauen', 'retirement' => 'Ruhestand', 'income' => 'Erträge erzielen', 'property' => 'Haus oder Immobilie kaufen', 'financial_independence' => 'Finanzielle Unabhängigkeit', 'business' => 'Geschäftskapital aufbauen', 'speculative_growth' => 'Spekulatives / wachstumsstarkes Investieren', 'other' => 'Sonstiges',
+        'optional' => 'Optional', 'important' => 'Wichtig', 'very_important' => 'Sehr wichtig', 'essential' => 'Unverzichtbar — ein Scheitern würde mein Leben spürbar beeinträchtigen',
+        'under_1_year' => 'Unter 1 Jahr', '1_3_years' => '1–3 Jahre', '3_5_years' => '3–5 Jahre', '5_10_years' => '5–10 Jahre', '10_plus' => 'Über 10 Jahre', 'no_planned_withdrawal' => 'Keine geplante Entnahme',
+        'very_unlikely' => 'Sehr unwahrscheinlich', 'unlikely' => 'Unwahrscheinlich', 'possible' => 'Möglich', 'likely' => 'Wahrscheinlich', 'very_likely' => 'Sehr wahrscheinlich',
+        'almost_none' => 'Fast nichts', 'over_50' => 'Über 50 %', 'same_day' => 'Am selben Tag', 'within_week' => 'Binnen einer Woche', 'within_month' => 'Binnen eines Monats', 'several_months' => 'Mehrere Monate sind vertretbar',
+        'severe' => 'Gravierend — ich käme finanziell in Bedrängnis', 'moderate' => 'Moderat — unangenehm, aber machbar', 'small' => 'Geringe Auswirkung', 'minimal' => 'Keine spürbare Auswirkung',
+        'sell_all' => 'Alles verkaufen', 'sell_part' => 'Teilweise verkaufen', 'hold' => 'Halten', 'buy_some' => 'Etwas mehr investieren', 'buy_more' => 'Deutlich mehr investieren',
+        'cannot_tolerate' => 'Das könnte ich nicht ertragen', 'extremely_uncomfortable' => 'Äußerst unangenehm', 'uncomfortable_hold' => 'Unangenehm, aber ich könnte durchhalten', 'normal' => 'Normales Marktverhalten', 'buying_opportunity' => 'Eine Kaufgelegenheit',
+        '5' => '5 %', '10' => '10 %', '15' => '15 %', '20' => '20 %', '30' => '30 %', '40' => '40 %', '50' => '50 %+',
+        'portfolio_a' => 'A · Typisch +6 % · Schlechtes Jahr −8 % · Sehr gut +14 %', 'portfolio_b' => 'B · Typisch +10 % · Schlechtes Jahr −22 % · Sehr gut +28 %', 'portfolio_c' => 'C · Typisch +15 % · Schlechtes Jahr −40 % · Sehr gut +50 %',
+        'never' => 'Nie', '3_5' => '3–5 Jahre', '5_plus' => 'Über 5 Jahre',
+        'deposits' => 'Sparen / Einlagen', 'gold' => 'Gold', 'silver' => 'Silber', 'stocks' => 'Aktien', 'etfs' => 'ETFs / Indexfonds', 'bonds' => 'Anleihen', 'real_estate' => 'Immobilien', 'bitcoin' => 'Bitcoin', 'crypto' => 'Andere Kryptowährungen', 'derivatives' => 'Derivate / Optionen / Futures',
+        'guarantee_profit' => 'Gewinn garantieren', 'reduce_specific_risk' => 'Wertspezifisches Risiko senken', 'eliminate_declines' => 'Marktrückgänge ausschließen', 'increase_leverage' => 'Hebel erhöhen',
+        'buy_immediately' => 'Sofort kaufen', 'research_small' => 'Recherchieren und eine kleine Position erwägen', 'evaluate_fundamentals' => 'Jüngste Entwicklung ignorieren und Fundamentaldaten prüfen', 'avoid_after_rise' => 'Meiden, weil er schon gestiegen ist',
+        'keep_winner' => 'Behalten, weil er der Gewinner ist', 'add_more' => 'Mehr hinzufügen', 'leave' => 'Unverändert lassen', 'rebalance_part' => 'Teilweise umschichten', 'rebalance_aggressively' => 'Stark umschichten',
+        '5_8' => '5–8 %', '8_12' => '8–12 %', '12_18' => '12–18 %', '18_plus' => '18 %+', 'not_sure' => 'Nicht sicher — hilf mir, es zu bestimmen',
+    ],
+    'portfolio' => [
+        'scope' => 'Was soll diese Empfehlung abdecken?', 'scope_current' => 'Aktueller Bestand', 'scope_new' => 'Neues Kapital', 'scope_both' => 'Beides',
+        'new_amount' => 'Neu zu investierender Betrag', 'recurring' => 'Regelmäßiger Beitrag', 'currency' => 'Hauptwährung', 'country' => 'Land', 'markets' => 'Märkte, auf die du Zugriff hast',
+        'max_concentration' => 'Maximal gewünschte Zuteilung in einen Wert', 'tax_sensitive' => 'Steuerlich sinnvolle Umschichtung bevorzugen',
+        'assets' => 'Werte, die die KI nutzen darf', 'assets_help' => 'Wähle CashPilot-Werte zur Nachverfolgung oder füge strukturierte eigene Werte hinzu. Die KI kann nichts anderes stillschweigend einbringen.',
+        'add_custom' => 'Eigenen Wert hinzufügen', 'inclusion' => 'Verwendung', 'required_asset' => 'Muss enthalten sein', 'allowed_asset' => 'KI darf ein- oder ausschließen', 'perspective' => 'Deine Einschätzung', 'conviction' => 'Überzeugung', 'holding_period' => 'Haltedauer', 'remove' => 'Entfernen',
+        'name' => 'Name des Werts', 'ticker' => 'Kürzel', 'identifier' => 'ISIN oder Kennung', 'exchange' => 'Börse / Markt', 'category' => 'Kategorie', 'risk_band' => 'Geschätztes Risiko', 'liquidity' => 'Liquidität', 'notes' => 'Private Notizen (werden nicht an die KI gesendet)',
+        'details' => 'Details', 'details_hint' => 'Diese starten mit sinnvollen Vorgaben. Ändere nur, was du über den Wert bereits weißt.',
+    ],
+    'options_section' => [
+        'willingness' => 'Bist du bereit und in der Lage, Optionen zur Steuerung des Portfoliorisikos einzusetzen?', 'no' => 'Nein', 'yes' => 'Ja', 'not_sure' => 'Nicht sicher — erkläre, ob es zu mir passen könnte',
+        'broker_access' => 'Mein Broker-Konto hat Optionszugang', 'underlyings' => 'Freigegebene Basiswert-Kategorien', 'experience' => 'Jahre Erfahrung mit Optionen', 'trades' => 'Ungefähre Anzahl an Optionsgeschäften', 'knowledge' => 'Wissenstest zu Optionen',
+        'objective' => 'Hauptziel', 'max_budget' => 'Maximale Prämie oder definierter Verlust (% des Portfolios)', 'recurring_premium' => 'Bereit, wiederkehrende Absicherungsprämien zu zahlen', 'cap_upside' => 'Bereit, die Aufwärtschance zugunsten von Schutz zu begrenzen', 'assignment' => 'Andienung bei Covered Calls akzeptieren', 'monitoring' => 'Wie oft kannst du Positionen überwachen?',
+        'defined_loss' => 'Mir ist klar, dass ein Trade mit definiertem Risiko einen bekannten Maximalverlust hat.', 'covered' => 'Mir ist klar, dass ein Covered Call den Verkauf des Basiswerts erfordern kann.', 'expiry' => 'Mir ist klar, dass Optionen wertlos verfallen können.',
+    ],
+    'consent' => [
+        'title' => 'Einwilligung zur Datennutzung durch den KI-Berater',
+        'body' => 'CashPilot speichert dein abgeleitetes Advisor-Profil in einer für den Server lesbaren Form, damit es dem KI-Berater bereitgestellt werden kann — auch wenn der private Vault aktiv ist. Deine rohen Bewertungsantworten und dein aktueller Bestand bleiben verschlüsselt.',
+        'agree' => 'KI-Empfehlungen mit meinem abgeleiteten Profil aktivieren',
+        'decline_note' => 'Du kannst CashPilots deterministisches Profil weiterhin vervollständigen und ansehen — auch ohne KI-Empfehlungen.',
+    ],
+    'profile' => [
+        'title' => 'Dein Anlegerprofil', 'risk_score' => 'Effektives Risiko', 'risk_willingness' => 'Risikobereitschaft', 'risk_capacity' => 'Risikotragfähigkeit', 'financial_resilience' => 'Finanzielle Widerstandsfähigkeit', 'liquidity_need' => 'Liquiditätsbedarf', 'investment_knowledge' => 'Anlagewissen', 'behavioral_stability' => 'Verhaltensstabilität', 'loss_aversion' => 'Verlustaversion', 'return_ambition' => 'Renditeanspruch', 'max_drawdown' => 'Maximal tolerierter Rückgang', 'constraints' => 'CashPilot-Leitplanken', 'assets' => 'Ausgewählte Werte', 'options' => 'Optionsfähigkeit', 'generate' => 'KI-Portfolio erstellen', 'ai_disabled' => 'KI-Empfehlungen sind deaktiviert, weil die Einwilligung abgelehnt wurde.',
+        'ai_scope' => 'Die KI sieht genau dieses Profil und sonst nichts über dich. CashPilot prüft ihre vollständige Antwort, bevor du sie siehst.',
+        'options_willingness' => 'Bereitschaft', 'options_capability_level' => 'Fähigkeit', 'options_knowledge' => 'Wissen', 'options_risk_budget' => 'Risikobudget',
+        'subtitle' => 'Anlegerprofil',
+        'persona' => 'Anlegertyp',
+        'sealed' => 'Versiegelt',
+        'scoring' => 'Bewertung',
+        'assets_approved' => 'Freigegebene Werte',
+        'derived_scores' => 'Abgeleitete Werte',
+        'deterministic' => 'Deterministisch · keine KI',
+        'hard_caps' => 'Harte Grenzen',
+        'allowed' => 'Erlaubt',
+        'category' => 'Kategorie',
+        'risk' => 'Risiko',
+        'outlook' => 'Einschätzung',
+    ],
+    'recommendation' => [
+        'generating' => 'Dein Portfolio wird entworfen', 'primary' => 'Primäre Empfehlung', 'safer' => 'Sicherere Alternative', 'higher' => 'Risikoreichere Alternative', 'allocation' => 'Basisallokation', 'overlay' => 'Optionsüberlagerung', 'risks' => 'Risiken', 'tradeoffs' => 'Kompromisse', 'change' => 'Was diesen Plan ändern würde', 'transition' => 'Aktuell zu Ziel', 'increase' => 'Erhöhen', 'reduce' => 'Reduzieren', 'clarification' => 'Der Advisor braucht noch ein paar Details', 'submit_answers' => 'Empfehlung fortsetzen', 'failed' => 'Der Advisor konnte diesen Plan nicht fertigstellen. Deine Antworten sind gespeichert — versuche es erneut.', 'ask' => 'CashPilot Advisor fragen', 'ask_placeholder' => 'Warum passt diese Aufteilung zu mir?', 'send' => 'Senden', 'consulting' => 'CashPilot Advisor prüft gerade dein Profil …', 'model_only' => 'In dieser Version werden keine Live-Marktdaten verwendet.',
+        'holdings' => 'Positionen',
+        'largest' => 'Größte Position',
+        'why' => 'Warum diese Gewichtung',
+        'coverage' => 'Abdeckung',
+        'risk_budget' => 'Risikobudget',
+        'asset' => 'Anlage',
+        'current' => 'Aktuell',
+        'target' => 'Ziel',
+        'move' => 'Veränderung',
+        'difference' => 'Differenz',
+        'pricing_required' => 'Preis erforderlich',
+        'prices_missing' => 'Für einige Anlagen liegt kein aktueller Preis vor, daher sind exakte Beträge nicht verfügbar.',
+
+        'starting' => 'Wird gestartet…',
+        'stage_reading' => 'Dein Profil wird gelesen',
+        'stage_designing' => 'Dein Portfolio wird entworfen',
+        'stage_checking' => 'Abgleich mit deinen Grenzen',
+        'stage_sealing' => 'Wird in deinem Browser verschlüsselt',
+        'leave_safe' => 'Du kannst diese Seite verlassen. Dein Portfolio ist da, wenn du zurückkommst.',
+        'locked' => 'Entsperre deinen Vault, um diese Empfehlung zu lesen.',
+        'validated_badge' => 'Von CashPilot geprüft',
+        'integrity_failed' => 'Die entschlüsselte Empfehlung stimmte nicht mit der erzeugten überein und wird deshalb nicht angezeigt.',
+        'chat_encrypted' => 'Dieses Gespräch ist in deinem Browser verschlüsselt.',
+        'ask_empty' => 'Frag alles zu diesem Plan.',
+        'suggest_fit' => 'Warum passt diese Aufteilung zu mir?',
+        'suggest_risk' => 'Was ist hier das größte Risiko?',
+        'suggest_start' => 'Womit fange ich an?',
+        'send_failed' => 'Nicht gesendet.',
+        'retry' => 'Erneut versuchen',
+        'send_hint' => 'Enter sendet, Shift+Enter macht eine neue Zeile.',
+        'closest_fit_title' => 'Das ist das Portfolio, das deinen Risikogrenzen am nächsten kommt',
+        'closest_fit_body' => 'Deine erwartete Rendite wird von deiner aktuellen Risikotragfähigkeit, deinem Zeithorizont, deinem Liquiditätsbedarf und deiner Verlustgrenze nicht getragen. Dieses Portfolio bleibt innerhalb dieser Grenzen, statt das Risiko zu erhöhen, um das Ziel zu erreichen.',
+        'guidance_title' => 'Deine aktuellen Ziele brauchen eine Anpassung, bevor eine Allokation passen kann',
+        'guidance_body' => 'Der Advisor konnte aus den ausgewählten Werten keine verantwortbare Allokation erstellen, die jedes Ziel und jede Leitplanke erfüllt. Die Hinweise unten erklären, was sich ändern lässt.',
+        'guidance_badge' => 'CashPilot-Hinweis',
+        'next_steps' => 'Was du ändern kannst',
+        'next_step_return' => 'Senke die erwartete Rendite auf ein Niveau, das zur ermittelten Risikotragfähigkeit passt.',
+        'next_step_horizon' => 'Verlängere den Anlagehorizont, falls das Geld nicht so bald benötigt wird wie angegeben.',
+        'next_step_assets' => 'Erweitere die freigegebene Werteliste, damit die KI mehr Möglichkeiten zur Diversifikation hat.',
+        'next_step_reassess' => 'Führe nur dann eine neue Bewertung durch, wenn sich deine finanzielle Situation oder deine tatsächliche Risikotoleranz geändert hat.',
+        'next_step_review_assets' => 'Überprüfe die ausgewählten Werte, verpflichtenden Einschlüsse und Kenndaten auf alles, was zu einschränkend oder unklar ist.',
+        'next_step_retry' => 'Versuche es nach der Überprüfung des Profils erneut; CashPilot führt den vollständigen geprüften Ablauf erneut aus.',
+        'alternative_omitted' => 'Eine optionale Alternative erfüllte nicht jede CashPilot-Leitplanke und wurde weggelassen. Das primäre Portfolio unten hat die Prüfung bestanden.',
+        'higher_unavailable' => 'Innerhalb der ermittelten Tragfähigkeit und der Portfoliogrenzen bleibt keine nennenswert risikoreichere Alternative übrig.',
+
+        'primary_tab' => 'Primär',
+        'safer_tab' => 'Sicherer',
+        'higher_tab' => 'Mehr Risiko',
+
+        'allocated' => 'Zugeteilt',
+        'stage_done' => 'Fertig',
+        'stage_working' => 'Läuft',
+        'designing' => 'Wird entworfen',
+        'open_portfolio' => 'Portfolio öffnen',
+        'open_result' => 'Sieh, was der Advisor gefunden hat',
+
+        'role' => 'Rolle',
+        'total' => 'Gesamt',
+        'liquid' => 'Binnen einer Woche liquide',
+        'capital' => 'Gesamtkapital',
+        'hash' => 'Hash',
+        'base' => 'Basis',
+
+        'consultation' => 'Beratung',
+        'back_to_plan' => 'Der Plan',
+        'tag_you' => 'Du',
+        'tag_advisor' => 'Advisor',
+        'drawdown_cap' => 'Verlustgrenze',
+
+        'clarification_eyebrow' => 'Noch eine Runde',
+        'allow_diversifier' => 'Einen fehlenden Diversifizierer zulassen?',
+    ],
+    'personas' => [
+        'balanced_investor' => 'Ausgewogen',
+        'strategic_growth_investor' => 'Strategisch wachstumsorientiert',
+        'opportunistic_investor' => 'Opportunistisch',
+        'aggressive_growth_investor' => 'Offensiv wachstumsorientiert',
+    ],
+    'risk_bands' => [
+        'very_conservative' => 'Sehr konservativ', 'conservative' => 'Konservativ', 'balanced' => 'Ausgewogen', 'growth' => 'Wachstum', 'aggressive' => 'Offensiv',
+        'defensive' => 'Defensiv', 'moderate' => 'Moderat', 'speculative' => 'Spekulativ', 'unknown' => 'Nicht eingeordnet',
+    ],
+    'categories' => [
+        'stock' => 'Aktie', 'etf' => 'ETF oder Indexfonds', 'bond' => 'Anleihe', 'currency' => 'Währung', 'metal' => 'Edelmetall', 'crypto' => 'Krypto', 'commodity' => 'Rohstoff', 'real_estate' => 'Immobilien', 'private_asset' => 'Privater Wert', 'other' => 'Sonstiges',
+    ],
+    'liquidities' => [
+        'same_day' => 'Am selben Tag', 'within_week' => 'Binnen einer Woche', 'within_month' => 'Binnen eines Monats', 'illiquid' => 'Schwer verkäuflich',
+    ],
+    'perspectives' => [
+        'bearish' => 'Fallend', 'neutral' => 'Neutral', 'bullish' => 'Steigend',
+    ],
+    'convictions' => [
+        'low' => 'Geringe Überzeugung', 'medium' => 'Mittlere Überzeugung', 'high' => 'Hohe Überzeugung',
+    ],
+    'holding_periods' => [
+        'under_1_year' => 'Unter einem Jahr', '1_3_years' => '1–3 Jahre', '3_5_years' => '3–5 Jahre', '5_10_years' => '5–10 Jahre', '10_plus' => 'Über 10 Jahre',
+    ],
+    'inclusions' => [
+        'allowed' => 'KI darf ihn nutzen', 'required' => 'Muss enthalten sein',
+    ],
+    'underlyings' => [
+        'stocks' => 'Aktien', 'etfs' => 'ETFs', 'indices' => 'Indizes', 'commodities' => 'Rohstoffe', 'currencies' => 'Währungen', 'crypto' => 'Krypto',
+    ],
+    'options_experience_years' => [
+        'none' => 'Keine', 'under_1' => 'Unter einem Jahr', '1_3' => '1–3 Jahre', '3_plus' => 'Über 3 Jahre',
+    ],
+    'options_trade_counts' => [
+        'none' => 'Keine', '1_10' => '1–10', '11_50' => '11–50', '50_plus' => 'Über 50',
+    ],
+    'options_objectives' => [
+        'downside_hedging' => 'Gegen Rückgänge absichern', 'income' => 'Erträge erzielen', 'defined_risk_growth' => 'Wachstum mit definiertem Risiko', 'combination' => 'Eine Kombination',
+    ],
+    'options_monitoring' => [
+        'daily' => 'Täglich', 'weekly' => 'Wöchentlich', 'monthly' => 'Monatlich', 'rarely' => 'Selten',
+    ],
+    'options_experience' => [
+        'none' => 'Keine', 'basic' => 'Grundlagen', 'intermediate' => 'Fortgeschritten', 'advanced' => 'Sehr erfahren',
+    ],
+    'options_willingness' => [
+        'no' => 'Nein', 'yes' => 'Ja', 'not_sure' => 'Nicht sicher',
+    ],
+    'option_strategies' => [
+        'protective_put' => 'Protective Put', 'covered_call' => 'Covered Call', 'collar' => 'Collar', 'uncovered' => 'Ungedeckt',
+    ],
+    'profile_warnings' => [
+        'return_expectation_exceeds_risk_capacity' => 'Deine Zielrendite liegt höher, als deine ermittelte Risikotragfähigkeit hergibt.',
+        'willingness_exceeds_capacity' => 'Du bist bereit, mehr Risiko zu tragen, als deine Finanzen derzeit erlauben.',
+        'capacity_exceeds_willingness' => 'Du könntest mehr Risiko tragen, als dir angenehm ist.',
+    ],
+    'recommendation_statuses' => [
+        'generating' => 'Wird entworfen', 'needs_clarification' => 'Braucht Details', 'awaiting_vault_seal' => 'Wartet auf Entsperren', 'ready' => 'Fertig', 'failed' => 'Fehlgeschlagen',
+    ],
+    'constraints_labels' => [
+        'minimum_liquid_allocation' => 'Mindestens liquide', 'maximum_single_asset_allocation' => 'Höchstens in einem Wert', 'maximum_high_risk_allocation' => 'Höchstens hohes Risiko', 'maximum_speculative_allocation' => 'Höchstens spekulativ', 'maximum_options_risk_budget' => 'Höchstes Optionsbudget',
+    ],
+    'disclosure' => 'CashPilot Advisor bietet personalisierte, edukative Orientierung auf Grundlage der von dir bereitgestellten Informationen. Anlageergebnisse sind ungewiss, und die vergangene Wertentwicklung ist keine Garantie für zukünftige Ergebnisse.',
+    'validation' => [
+        'invalid_section' => 'Diesen Bewertungsabschnitt gibt es nicht.', 'custom_asset_identifier' => 'Ein eigener Wert braucht ein Kürzel oder eine Kennung.', 'missing_answers' => 'Vervollständige zuerst jeden Abschnitt der Bewertung.', 'completed_immutable' => 'Abgeschlossene Bewertungen können nicht mehr geändert werden.', 'ai_consent_required' => 'Aktiviere die KI-Einwilligung, bevor du eine Empfehlung erstellst.', 'output_hash_mismatch' => 'Die verschlüsselte Empfehlung stimmt nicht mit dem erzeugten Ergebnis überein.', 'provider_failure' => 'Der KI-Anbieter ist gerade nicht verfügbar. Dein CashPilot-Profil bleibt weiterhin verfügbar.', 'recommendation_rate_limited' => 'Du hast das Tageslimit von fünf KI-Portfolio-Sitzungen erreicht. Bitte versuche es erneut, nachdem das Tageslimit zurückgesetzt wurde.',
+        'pending_payload_expired' => 'Diese Empfehlung wartete zu lange auf das Entsperren und musste verworfen werden. Eine neue zu erzeugen dauert einige Minuten.',
+    ],
+];

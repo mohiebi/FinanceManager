@@ -21,16 +21,16 @@ class DefaultCategorySeeder extends Seeder
         // colour here is the only place these ever get one.
         $categories = [
             TransactionType::Cost->value => [
-                'Food' => '#F59E0B',
-                'Transport' => '#3B82F6',
-                'Housing' => '#6B7280',
-                'Health' => '#E94E50',
-                'Shopping' => '#947BFF',
-                'Bills' => '#F97316',
+                'Food' => Category::DEFAULT_COLORS[TransactionType::Cost->value]['food'],
+                'Transport' => Category::DEFAULT_COLORS[TransactionType::Cost->value]['transport'],
+                'Housing' => Category::DEFAULT_COLORS[TransactionType::Cost->value]['housing'],
+                'Health' => Category::DEFAULT_COLORS[TransactionType::Cost->value]['health'],
+                'Shopping' => Category::DEFAULT_COLORS[TransactionType::Cost->value]['shopping'],
+                'Bills' => Category::DEFAULT_COLORS[TransactionType::Cost->value]['bills'],
                 // Money moved into assets rather than spent. Reports can exclude
                 // this category so a large purchase does not read as overspending.
-                'Investment' => '#02CD86',
-                'Other' => '#686868',
+                'Investment' => Category::DEFAULT_COLORS[TransactionType::Cost->value]['investment'],
+                'Other' => Category::DEFAULT_COLORS[TransactionType::Cost->value]['other'],
             ],
             // No "Investment" on this side, deliberately. Money coming back out of
             // an asset is either a sale — which is portfolio profit and loss, and
@@ -39,10 +39,10 @@ class DefaultCategorySeeder extends Seeder
             // actually is. Naming a category after the source rather than the kind
             // of money made it ambiguous which of the two it meant.
             TransactionType::Income->value => [
-                'Salary' => '#02CD86',
-                'Freelance' => '#947BFF',
-                'Gift' => '#F59E0B',
-                'Other' => '#686868',
+                'Salary' => Category::DEFAULT_COLORS[TransactionType::Income->value]['salary'],
+                'Freelance' => Category::DEFAULT_COLORS[TransactionType::Income->value]['freelance'],
+                'Gift' => Category::DEFAULT_COLORS[TransactionType::Income->value]['gift'],
+                'Other' => Category::DEFAULT_COLORS[TransactionType::Income->value]['other'],
             ],
         ];
 

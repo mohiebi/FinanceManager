@@ -301,24 +301,9 @@
                                 :class="maskClass"
                                 dir="ltr"
                             >
-                                <template
-                                    v-if="
-                                        props.pricesAvailable &&
-                                        !isCiphertext(entry.quantity)
-                                    "
-                                >
-                                    {{
-                                        formatEntryValue(
-                                            Number(entry.quantity),
-                                            entry.asset_type,
-                                        )
-                                    }}
+                                <template v-if="!isCiphertext(entry.quantity)">
+                                    {{ formatEntryValue(entry) }}
                                 </template>
-                                <span
-                                    v-else-if="pricesResolved"
-                                    class="text-xs text-[#686868]"
-                                    >{{ t('finance.price_unavailable') }}</span
-                                >
                                 <span v-else class="text-xs text-[#686868]">{{
                                     t('finance.calculating')
                                 }}</span>
@@ -449,6 +434,9 @@ type Entry = {
     quantity: Encrypted<string | number>;
     cost_basis: Encrypted<string | number> | null;
     cost_basis_currency: string | null;
+    /** Proceeds per unit. Only a disposal has one. */
+    sale_price: Encrypted<string | number> | null;
+    sale_price_currency: string | null;
     note: string | null;
     occurred_at: string;
 };
@@ -530,7 +518,6 @@ const selectedCurrencyLabel = computed(
         )?.label ?? t(`finance.currencies.${selectedCurrency.value}`),
 );
 
-const pricesResolved = computed(() => props.pricesAvailable !== undefined);
 const visibleMarketPriceRows = computed<MarketPriceRow[]>(() =>
     (props.marketPriceRows ?? []).filter((row) => row.assets.length > 0),
 );
@@ -583,8 +570,13 @@ const entryGroups = computed<EntryGroup[]>(() => {
             label: asset.label,
             color: asset.color,
             qtyDisplay: `${asset.quantity_display} ${asset.unit}`,
+            // What was put in, matching the entries underneath, rather than
+            // what the holding is worth today.
             totalFormatted: formatCurrencyDisplay(
-                asset.value_formatted,
+                convertFromToman(
+                    (asset.avg_cost_basis ?? 0) * asset.quantity,
+                    selectedCurrency.value,
+                ),
                 selectedCurrency.value as CurrencyCode,
             ),
             entries: props.entries.filter(
@@ -671,13 +663,21 @@ function convertFromToman(amount: number, currency: string): number {
     }
 }
 
-function formatEntryValue(quantity: number, assetType: AssetKey): string {
-    const price = (props.prices ?? {})[assetType] ?? 0;
-    const valueInToman = quantity * price;
-    const converted = convertFromToman(valueInToman, selectedCurrency.value);
+/**
+ * What the entry moved when it happened, not what it would be worth today.
+ *
+ * A purchase is priced at the basis it was bought for and a disposal at the
+ * proceeds it made — both frozen on the row, so the figure matches the ledger
+ * entry recorded alongside it. Pricing rows at the live rate made two sales of
+ * the same weight read identically when they sold for different amounts.
+ */
+function formatEntryValue(entry: Entry): string {
+    const perUnit = entry.kind === 'sell' ? entry.sale_price : entry.cost_basis;
+    const amountInToman =
+        Math.abs(Number(entry.quantity)) * Number(perUnit ?? 0);
 
     return formatCurrencyDisplay(
-        converted,
+        convertFromToman(amountInToman, selectedCurrency.value),
         selectedCurrency.value as CurrencyCode,
     );
 }

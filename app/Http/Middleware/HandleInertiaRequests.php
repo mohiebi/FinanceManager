@@ -4,12 +4,62 @@ namespace App\Http\Middleware;
 
 use App\Support\FrontendLocalization;
 use App\Support\SeoMetadata;
+use Closure;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Middleware;
+use Symfony\Component\HttpFoundation\Response;
 
 class HandleInertiaRequests extends Middleware
 {
+    /**
+     * Never let a browser or proxy reuse an Inertia response across a deploy.
+     *
+     * The root template carries three things that are only valid for the build
+     * that produced it: the server-rendered markup, the hashed asset URLs, and
+     * the Inertia asset version — which is a hash of the Vite manifest, so it
+     * changes every single deploy.
+     *
+     * Laravel's default `no-cache, private` still permits *storing* the
+     * response; it only asks for revalidation, and the back/forward cache
+     * ignores even that. A document served from that store after a deploy
+     * hydrates the new JS bundle against the previous build's markup, which is
+     * how a page ends up half-updated: the shell hydrates, the page subtree
+     * does not, and Inertia's later visits swap the header while the stale
+     * body stays on screen.
+     *
+     * `no-store` is the only directive that actually forbids keeping it.
+     * Hashed assets under /build are immutable and cache normally — this is
+     * about the one document that must always be fetched fresh.
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        $response = parent::handle($request, $next);
+
+        if ($this->shouldPreventCaching($response)) {
+            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+            $response->headers->set('Pragma', 'no-cache');
+        }
+
+        return $response;
+    }
+
+    /**
+     * Only the HTML shell and Inertia's own JSON — never a streamed download or
+     * a redirect, which carry no markup and no asset version.
+     */
+    private function shouldPreventCaching(Response $response): bool
+    {
+        if ($response->isRedirection()) {
+            return false;
+        }
+
+        $contentType = (string) $response->headers->get('Content-Type', '');
+
+        return str_contains($contentType, 'text/html')
+            || str_contains($contentType, 'application/json');
+    }
+
     /**
      * The root template that's loaded on the first page visit.
      *

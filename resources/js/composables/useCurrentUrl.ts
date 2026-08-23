@@ -22,18 +22,30 @@ export type UseCurrentUrlReturn = {
     ) => T | F;
 };
 
-const page = usePage();
-const currentUrlReactive = computed(
-    () =>
-        new URL(
-            page.url,
-            typeof window !== 'undefined'
-                ? window.location.origin
-                : 'http://localhost',
-        ).pathname,
-);
-
 export function useCurrentUrl(): UseCurrentUrlReturn {
+    /*
+     * Both of these have to be created per call, not once per module.
+     *
+     * `usePage()` must run during component setup: at module scope it resolves
+     * while the module is first imported, which during SSR is before Inertia
+     * has installed the page being rendered. Worse, a module-level page
+     * reference and the computed built on it are shared by every concurrent
+     * render in a long-lived SSR worker, so one request's URL could decide
+     * which nav item another request draws as active.
+     *
+     * useAmountMask carries the same warning for the same reason.
+     */
+    const page = usePage();
+    const currentUrlReactive = computed(
+        () =>
+            new URL(
+                page.url,
+                typeof window !== 'undefined'
+                    ? window.location.origin
+                    : 'http://localhost',
+            ).pathname,
+    );
+
     function isCurrentUrl(
         urlToCheck: NonNullable<InertiaLinkProps['href']>,
         currentUrl?: string,

@@ -524,3 +524,43 @@ test('selling can mirror the full proceeds into income, not just the profit', fu
     // 4,000,000 profit would describe a payment that never happened.
     expect((float) Transaction::query()->sole()->amount)->toBe(12000000.0);
 });
+
+/*
+ * The entries table used to price every row at today's rate, so two disposals
+ * of the same weight on consecutive days read identically even though one made
+ * more than the other. What a row moved is frozen on the row itself.
+ */
+test('an entry carries the proceeds a disposal actually made', function () {
+    $user = User::factory()->withModules()->create();
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->sole();
+
+    $this->actingAs($user)->post(route('investments.store'), [
+        'asset_type' => AssetType::Gold->value,
+        'quantity' => '2',
+        'total_cost' => '1000000',
+        'cost_basis_currency' => Currency::Toman->value,
+        'occurred_at' => now()->subDay()->toDateString(),
+    ])->assertRedirect();
+
+    $this->actingAs($user)->post(route('investments.sell'), [
+        'investment_asset_id' => $asset->id,
+        'quantity' => '1',
+        'total_sale' => '900000',
+        'sale_price_currency' => Currency::Toman->value,
+        'occurred_at' => now()->toDateString(),
+    ])->assertRedirect();
+
+    $this->actingAs($user)->get(route('investments.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('entries', 2)
+            ->where('entries', function ($entries): bool {
+                $rows = collect($entries)->keyBy('kind');
+
+                // Per unit, as stored — the page multiplies by the quantity.
+                return (float) $rows['sell']['sale_price'] === 900000.0
+                    && $rows['sell']['sale_price_currency'] === Currency::Toman->value
+                    // A purchase has no proceeds, and must not borrow the sale's.
+                    && $rows['buy']['sale_price'] === null;
+            })
+            ->etc());
+});

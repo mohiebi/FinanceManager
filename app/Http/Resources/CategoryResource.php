@@ -30,7 +30,7 @@ class CategoryResource extends JsonResource
             'name' => $name,
             'slug' => $this->slug,
             'type' => $this->type->value,
-            'color' => $this->color,
+            'color' => $this->resolvedColor(),
             'is_default' => $this->is_default,
         ];
     }

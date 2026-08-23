@@ -10,6 +10,7 @@ return [
     'investments_subtitle' => 'Cargo Flight',
     'portfolio' => 'Portfolio',
     'goals' => 'Goals',
+    'flight_log' => 'Flight log',
     'goals_subtitle' => 'Flight path',
     'bills' => 'Bills',
     'budgets' => 'Budgets',

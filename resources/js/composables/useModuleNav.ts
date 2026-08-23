@@ -4,6 +4,7 @@ import {
     BrainCircuit,
     ChartPie,
     LayoutGrid,
+    Plane,
     Receipt,
     ReceiptText,
     Sparkles,
@@ -16,7 +17,7 @@ import type { ComputedRef } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useNavigationNaming } from '@/composables/useNavigationNaming';
-import { dashboard, goals, portfolio, report } from '@/routes';
+import { dashboard, flightLog, goals, portfolio, report } from '@/routes';
 import { index as advisorIndex } from '@/routes/advisor';
 import { edit as editAiConnections } from '@/routes/ai-connections';
 import { index as billsIndex } from '@/routes/bills';
@@ -139,14 +140,6 @@ export function useModuleNav(): UseModuleNavReturn {
                 group: 'plan',
             },
             {
-                key: 'portfolio',
-                feature: 'portfolio',
-                title: navigationName('navigation.portfolio'),
-                href: portfolio(),
-                icon: Wallet,
-                group: 'grow',
-            },
-            {
                 key: 'investments',
                 feature: 'investments',
                 title: navigationName(
@@ -155,6 +148,22 @@ export function useModuleNav(): UseModuleNavReturn {
                 ),
                 href: investmentsIndex(),
                 icon: TrendingUp,
+                group: 'grow',
+            },
+            {
+                key: 'gamification',
+                feature: 'gamification',
+                title: navigationName('navigation.flight_log'),
+                href: flightLog(),
+                icon: Plane,
+                group: 'plan',
+            },
+            {
+                key: 'portfolio',
+                feature: 'portfolio',
+                title: navigationName('navigation.portfolio'),
+                href: portfolio(),
+                icon: Wallet,
                 group: 'grow',
             },
             {

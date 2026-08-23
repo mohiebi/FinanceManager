@@ -77,6 +77,13 @@ class InvestmentController extends Controller
                     'quantity' => $vaultArmed ? $investment->quantity : (float) $investment->quantity,
                     'cost_basis' => $vaultArmed || $investment->cost_basis === null ? $investment->cost_basis : (float) $investment->cost_basis,
                     'cost_basis_currency' => $investment->cost_basis_currency,
+                    // What a disposal actually made, per unit. A sale's
+                    // cost_basis is the average frozen at sale time, not its
+                    // proceeds, so without this the page could only ever price
+                    // a sale at today's rate — which is why two sales of the
+                    // same weight showed the same figure.
+                    'sale_price' => $vaultArmed || $investment->sale_price === null ? $investment->sale_price : (float) $investment->sale_price,
+                    'sale_price_currency' => $investment->sale_price_currency,
                     'note' => $investment->note,
                     'occurred_at' => $investment->occurred_at->toDateString(),
                 ];

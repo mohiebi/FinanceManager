@@ -27,7 +27,7 @@ import {
     Wallet,
     X,
 } from 'lucide-vue-next';
-import { computed, onUnmounted, ref, watchEffect } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { dashboard, home, login } from '@/routes';
 import logoGreen from '../../img/Logo-green.svg';
@@ -168,21 +168,35 @@ function toggleFaq(key: string): void {
 
 let structuredDataEl: HTMLScriptElement | null = null;
 
-watchEffect(() => {
-    const data = seo.value?.structuredData;
+/*
+ * Inside onMounted, because this reaches for `document`.
+ *
+ * A bare watchEffect runs synchronously during setup — including on the server,
+ * where there is no document — so this threw `ReferenceError: document is not
+ * defined` on every server render of this page. Inertia caught it and fell back
+ * to client rendering, which is silent from the outside but means the page is
+ * never actually server-rendered.
+ *
+ * onMounted never runs on the server, and the effect it registers is bound to
+ * this instance's scope, so it is still torn down with the component.
+ */
+onMounted(() => {
+    watchEffect(() => {
+        const data = seo.value?.structuredData;
 
-    if (structuredDataEl) {
-        structuredDataEl.remove();
-        structuredDataEl = null;
-    }
+        if (structuredDataEl) {
+            structuredDataEl.remove();
+            structuredDataEl = null;
+        }
 
-    if (data) {
-        structuredDataEl = document.createElement('script');
-        structuredDataEl.type = 'application/ld+json';
-        structuredDataEl.setAttribute('data-head-key', 'structured-data');
-        structuredDataEl.textContent = data;
-        document.head.appendChild(structuredDataEl);
-    }
+        if (data) {
+            structuredDataEl = document.createElement('script');
+            structuredDataEl.type = 'application/ld+json';
+            structuredDataEl.setAttribute('data-head-key', 'structured-data');
+            structuredDataEl.textContent = data;
+            document.head.appendChild(structuredDataEl);
+        }
+    });
 });
 
 onUnmounted(() => {

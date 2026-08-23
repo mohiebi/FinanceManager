@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import { usePage } from '@inertiajs/vue3';
-import {
-    isValidJalaaliDate,
-    jalaaliMonthLength,
-    toGregorian,
-    toJalaali,
-} from 'jalaali-js';
+import jalaali from 'jalaali-js';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
@@ -45,6 +40,17 @@ const props = withDefaults(
 );
 
 const modelValue = defineModel<string>({ default: '' });
+/*
+ * jalaali-js is CommonJS. Named imports from it resolve through a bundler but
+ * not through Node's ESM loader, so an SSR build fails at module instantiation
+ * — before any component renders, which puts it out of reach of Vue's error
+ * handler and takes the whole page's SSR down with it. Destructuring the
+ * default export works in both. lib/date.ts and lib/bill-recurrence.ts do the
+ * same for the same reason.
+ */
+const { isValidJalaaliDate, jalaaliMonthLength, toGregorian, toJalaali } =
+    jalaali;
+
 const page = usePage();
 const { t } = useI18n();
 const selectedYear = ref('');

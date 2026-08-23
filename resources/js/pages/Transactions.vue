@@ -102,6 +102,7 @@
                                 v-if="summaryCost !== null"
                                 :value="summaryCost"
                                 :currency="selectedCurrency"
+                                mask-variant="placeholder"
                             />
                             <span v-else class="text-base text-[#686868]"
                                 >—</span
@@ -294,6 +295,7 @@
                                 v-if="summaryIncome !== null"
                                 :value="summaryIncome"
                                 :currency="selectedCurrency"
+                                mask-variant="placeholder"
                             />
                             <span v-else class="text-base text-[#686868]"
                                 >—</span

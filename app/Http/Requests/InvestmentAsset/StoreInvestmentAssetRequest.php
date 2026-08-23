@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\InvestmentAsset;
 
+use App\Enums\AssetClass;
 use App\Enums\InvestmentAssetPriceSource;
 use App\Models\InvestmentAsset;
 use App\Support\SvgIconSanitizer;
@@ -24,6 +25,9 @@ class StoreInvestmentAssetRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:100'],
             'unit' => ['required', 'string', 'max:20'],
+            'asset_class' => ['nullable', Rule::enum(AssetClass::class)],
+            'underlying_asset_id' => ['nullable', 'integer'],
+            'underlying_ratio' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'icon' => ['nullable', 'string', 'max:20'],
             'icon_svg' => ['nullable', 'string', 'max:5000'],
             'color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
@@ -51,6 +55,14 @@ class StoreInvestmentAssetRequest extends FormRequest
             'icon' => trim((string) $this->input('icon')),
             'color' => trim((string) $this->input('color')) ?: '#02CD86',
         ]);
+
+        // An empty select posts as '', which is not a valid enum value and is not
+        // null either — normalise both to "not stated".
+        foreach (['asset_class', 'underlying_asset_id', 'underlying_ratio'] as $key) {
+            if ($this->input($key) === '') {
+                $this->merge([$key => null]);
+            }
+        }
     }
 
     public function after(): array
@@ -60,6 +72,7 @@ class StoreInvestmentAssetRequest extends FormRequest
                 $this->validateUniqueSlug($validator);
                 $this->validateSvgIcon($validator);
                 $this->validatePriceSource($validator);
+                $this->validateUnderlying($validator);
             },
         ];
     }
@@ -69,6 +82,9 @@ class StoreInvestmentAssetRequest extends FormRequest
      *     name: string,
      *     slug: string,
      *     unit: string,
+     *     asset_class: string|null,
+     *     underlying_asset_id: int|null,
+     *     underlying_ratio: float|null,
      *     icon: string|null,
      *     icon_svg: string|null,
      *     color: string,
@@ -80,17 +96,71 @@ class StoreInvestmentAssetRequest extends FormRequest
     {
         $name = (string) $this->validated('name');
         $sourceType = (string) $this->validated('price_source_type');
+        $underlyingId = $this->validated('underlying_asset_id');
 
         return [
             'name' => $name,
             'slug' => InvestmentAsset::slugForName($name),
             'unit' => (string) $this->validated('unit'),
+            'asset_class' => $this->nullableString($this->validated('asset_class')),
+            'underlying_asset_id' => blank($underlyingId) ? null : (int) $underlyingId,
+            // Meaningless without something to be a ratio of, and leaving a stale
+            // one behind would make a later equivalent-quantity total wrong.
+            'underlying_ratio' => blank($underlyingId)
+                ? null
+                : $this->nullableFloat($this->validated('underlying_ratio')),
             'icon' => $this->nullableString($this->validated('icon')),
             'icon_svg' => app(SvgIconSanitizer::class)->sanitize($this->validated('icon_svg')),
             'color' => (string) ($this->validated('color') ?: '#02CD86'),
             'price_source_type' => $sourceType,
             'price_source_config' => $this->sourceConfig($sourceType),
         ];
+    }
+
+    /**
+     * The underlying has to be an asset the user can see, and a root.
+     *
+     * Rejecting a non-root here rather than silently flattening it (which is
+     * what the model does for every other writer) is the difference between the
+     * user learning that the tree is one level deep and quietly getting a
+     * different answer than they asked for.
+     */
+    protected function validateUnderlying(Validator $validator): void
+    {
+        $underlyingId = $this->input('underlying_asset_id');
+
+        if (blank($underlyingId)) {
+            return;
+        }
+
+        $underlying = InvestmentAsset::query()
+            ->availableFor($this->user())
+            ->whereKey((int) $underlyingId)
+            ->first();
+
+        if ($underlying === null) {
+            $validator->errors()->add('underlying_asset_id', __('settings.assets.invalid'));
+
+            return;
+        }
+
+        $editing = $this->route('investment_asset');
+
+        if ($editing instanceof InvestmentAsset && $underlying->id === $editing->id) {
+            $validator->errors()->add('underlying_asset_id', __('settings.assets.underlying_self'));
+
+            return;
+        }
+
+        if (! $underlying->canBeUnderlying()) {
+            $validator->errors()->add('underlying_asset_id', __('settings.assets.underlying_not_root'));
+
+            return;
+        }
+
+        if ($editing instanceof InvestmentAsset && $editing->variants()->exists()) {
+            $validator->errors()->add('underlying_asset_id', __('settings.assets.underlying_has_variants'));
+        }
     }
 
     protected function validateUniqueSlug(Validator $validator): void

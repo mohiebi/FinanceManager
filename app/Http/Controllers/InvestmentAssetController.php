@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AssetClass;
 use App\Http\Requests\InvestmentAsset\StoreInvestmentAssetRequest;
 use App\Http\Requests\InvestmentAsset\UpdateInvestmentAssetRequest;
 use App\Http\Resources\InvestmentAssetResource;
@@ -17,6 +18,7 @@ class InvestmentAssetController extends Controller
     {
         $assets = InvestmentAsset::query()
             ->where('user_id', $request->user()->id)
+            ->with('underlying')
             ->withCount('investments')
             ->orderBy('name')
             ->get()
@@ -28,6 +30,8 @@ class InvestmentAssetController extends Controller
         return Inertia::render('settings/Assets', [
             'assets' => $assets,
             'sourceTypes' => $this->sourceTypes(),
+            'assetClasses' => $this->assetClasses(),
+            'underlyingOptions' => $this->underlyingOptions($request),
         ]);
     }
 
@@ -67,6 +71,44 @@ class InvestmentAssetController extends Controller
         $investmentAsset->delete();
 
         return back();
+    }
+
+    /**
+     * @return list<array{label: string, value: string}>
+     */
+    private function assetClasses(): array
+    {
+        return array_map(
+            fn (AssetClass $class): array => ['label' => $class->label(), 'value' => $class->value],
+            AssetClass::cases(),
+        );
+    }
+
+    /**
+     * The assets that may be named as an underlying.
+     *
+     * Roots only — an asset that already tracks something cannot itself be
+     * tracked, which is what keeps the tree one level deep.
+     *
+     * @return list<array{label: string, value: string, slug: string, unit: string, asset_class: string|null}>
+     */
+    private function underlyingOptions(Request $request): array
+    {
+        return InvestmentAsset::query()
+            ->availableFor($request->user())
+            ->whereNull('underlying_asset_id')
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (InvestmentAsset $asset): array => [
+                'label' => $asset->label(),
+                'value' => (string) $asset->id,
+                'slug' => $asset->slug,
+                'unit' => $asset->unit,
+                'asset_class' => $asset->asset_class?->value,
+            ])
+            ->values()
+            ->all();
     }
 
     /**

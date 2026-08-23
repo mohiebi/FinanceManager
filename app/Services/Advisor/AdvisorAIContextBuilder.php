@@ -2,6 +2,7 @@
 
 namespace App\Services\Advisor;
 
+use App\Actions\Investments\BuildExposureBreakdown;
 use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Actions\Transactions\CurrencyConverter;
 use App\Contracts\AdvisorKnowledgeProvider;
@@ -17,6 +18,7 @@ class AdvisorAIContextBuilder
 {
     public function __construct(
         private readonly BuildPortfolioBreakdown $portfolioBreakdown,
+        private readonly BuildExposureBreakdown $exposureBreakdown,
         private readonly CurrencyConverter $currencyConverter,
         private readonly AdvisorKnowledgeProvider $knowledgeProvider,
     ) {}
@@ -38,7 +40,10 @@ class AdvisorAIContextBuilder
         }
 
         $context = [
-            'context_version' => 1,
+            // 2: holdings carry their class and the market they track, and the
+            // portfolio carries exposure and class roll-ups. A recommendation
+            // written before that could not see two gold holdings as one bet.
+            'context_version' => 2,
             'recommendation_mode' => $mode->value,
             // Part of the hashed context on purpose: a recommendation written in
             // the wrong language is a different answer, so switching the
@@ -108,6 +113,12 @@ class AdvisorAIContextBuilder
                 'asset_key' => $selected['asset_key'] ?? null,
                 'investment_asset_id' => $asset['id'],
                 'name' => $asset['label'],
+                'asset_class' => $asset['asset_class'],
+                // Two holdings naming the same market are one bet. Without this
+                // a portfolio held as bullion, half coins and quarter coins reads
+                // as diversified, and the advice that follows says to buy gold.
+                'tracks' => $asset['underlying_label'],
+                'exposure_id' => $asset['exposure_id'],
                 'quantity' => $asset['quantity'],
                 'current_value' => $priceAvailable ? $this->fromToman((float) $asset['current_value'], $currency) : null,
                 'current_percent' => $priceAvailable && $totalValue > 0 ? round(((float) $asset['current_value'] / $totalValue) * 100, 2) : null,
@@ -130,11 +141,37 @@ class AdvisorAIContextBuilder
             ->firstWhere('question_key', 'portfolio_preferences')?->answer;
         $newAmount = is_array($preferencesAnswer) ? $preferencesAnswer['new_investable_amount'] ?? null : null;
 
+        // The context carries numbers, not display strings — the model has to be
+        // able to compare them — so the formatted fields go unread and this
+        // formatter only has to satisfy the signature.
+        $exposure = $this->exposureBreakdown->handle(
+            $breakdown['assets'],
+            fn (float $amount): string => (string) $this->fromToman($amount, $currency),
+        );
+
         return [[
             'base_currency' => $currency->value,
             'total_value' => $hasUnpricedAssets ? null : $this->fromToman($totalValue, $currency),
             'priced_subtotal' => $this->fromToman($totalValue, $currency),
             'holdings' => $holdings,
+            // The concentration figures. `holdings` counts positions; these count
+            // bets, and they are what a maximum-single-asset limit has to be
+            // measured against.
+            'exposures' => collect($exposure['exposures'])->map(fn (array $group): array => [
+                'market' => $group['label'],
+                'asset_class' => $group['asset_class'],
+                'value' => $this->fromToman($group['value'], $currency),
+                'percent_of_portfolio' => $group['percent'],
+                'total_units' => $group['equivalent_quantity'],
+                'unit' => $group['equivalent_unit'],
+                'held_as' => array_column($group['members'], 'label'),
+            ])->values()->all(),
+            'asset_classes' => collect($exposure['classes'])->map(fn (array $group): array => [
+                'class' => $group['key'],
+                'value' => $this->fromToman($group['value'], $currency),
+                'percent_of_portfolio' => $group['percent'],
+                'distinct_markets' => $group['exposure_count'],
+            ])->values()->all(),
             'has_unpriced_assets' => $hasUnpricedAssets,
         ], $newAmount === null ? null : [
             'amount' => (float) $newAmount,

@@ -27,7 +27,7 @@ class BuildPortfolioBreakdown
     public function entriesFor(User $user): Collection
     {
         return $user->investments()
-            ->with('asset')
+            ->with('asset.underlying')
             ->orderBy('occurred_at')
             ->orderBy('created_at')
             ->get()
@@ -60,6 +60,17 @@ class BuildPortfolioBreakdown
                 'icon_svg' => $asset->icon_svg,
                 'color' => $asset->color,
                 'unit' => $asset->unit,
+                // Sent so the browser can roll holdings up by exposure itself.
+                // With the vault armed no value is readable here, so this is the
+                // only side that can group "half coin" under gold.
+                'asset_class' => $asset->asset_class?->value,
+                'underlying_asset_id' => $asset->underlying_asset_id,
+                // Sent rather than looked up among the held assets: a user can
+                // own half coins without owning bullion, and the browser would
+                // then have no row to read the name "Gold" off.
+                'underlying_label' => $asset->underlying?->label(),
+                'underlying_unit' => $asset->underlying?->unit,
+                'underlying_ratio' => $asset->underlying_ratio,
                 'price' => $this->priceService->priceFor($asset),
                 'price_available' => $this->priceService->priceAvailableFor($asset),
             ])
@@ -200,6 +211,16 @@ class BuildPortfolioBreakdown
                 'icon_svg' => $asset->icon_svg,
                 'color' => $asset->color,
                 'unit' => $asset->unit,
+                'asset_class' => $asset->asset_class?->value,
+                'asset_class_label' => $asset->asset_class?->label(),
+                // The market this row is really exposed to. Equal to its own id
+                // for an asset that is its own market, so grouping on it needs
+                // no special case for the roots.
+                'exposure_id' => $asset->exposureId(),
+                'underlying_asset_id' => $asset->underlying_asset_id,
+                'underlying_label' => $asset->underlying?->label(),
+                'underlying_unit' => $asset->underlying?->unit,
+                'underlying_ratio' => $asset->underlying_ratio,
                 'quantity' => round($totalQuantity, 8),
                 'current_price' => $currentPrice,
                 'current_price_formatted' => $fmt($currentPrice),

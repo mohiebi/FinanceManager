@@ -48,12 +48,17 @@ class VerifySettlementInfrastructure extends Command
 
     /**
      * Compare the vault this application was told about against the one the
-     * signer will actually sweep to, and prove something is deployed there.
+     * signer will actually sweep to, and say what kind of address it is.
      *
-     * A Safe address is the same on every chain it was deployed to with the same
-     * salt — and identical on every chain it was never deployed to at all. Ether
-     * swept to the second kind is gone until somebody deploys the Safe there,
-     * which is not a discovery to make with a buyer's money.
+     * A plain account works as a vault on every chain and needs no deployment.
+     * A contract does not: a Safe address is the same on every chain it was
+     * deployed to with the same salt, and identical on every chain it was never
+     * deployed to at all. Ether swept to the second kind is stuck until somebody
+     * deploys the Safe there.
+     *
+     * Which of the two is right is the operator's decision, so the absence of
+     * bytecode is reported rather than refused — only a disagreement between
+     * this application and the signer is fatal.
      *
      * @param  array<string, mixed>  $health
      */
@@ -86,20 +91,17 @@ class VerifySettlementInfrastructure extends Command
             return false;
         }
 
-        if (($reported['vaultHasCode'] ?? false) !== true) {
-            $this->line("{$network->label()}: vault {$configured} has no bytecode. If this is a Safe it was never deployed on this chain.");
-
-            return false;
-        }
-
-        if (($reported['riskVaultHasCode'] ?? false) !== true) {
-            $this->line("{$network->label()}: risk vault ".(string) ($reported['riskVault'] ?? '').' has no bytecode.');
-
-            return false;
-        }
-
+        $kind = fn (bool $hasCode): string => $hasCode ? 'contract' : 'plain account';
+        $vaultKind = $kind(($reported['vaultHasCode'] ?? false) === true);
+        $riskVaultKind = $kind(($reported['riskVaultHasCode'] ?? false) === true);
         $segregated = ($reported['segregated'] ?? false) === true;
-        $this->line("{$network->label()}: vault ok, risk vault ".($segregated ? 'segregated' : 'NOT segregated (flagged and unscreened funds go to the main vault)'));
+
+        $this->line("{$network->label()}: vault ok ({$vaultKind}), risk vault {$riskVaultKind}, "
+            .($segregated ? 'segregated' : 'NOT segregated — flagged and unscreened funds go to the main vault'));
+
+        if ($vaultKind === 'plain account' || $riskVaultKind === 'plain account') {
+            $this->warn('  A vault with no bytecode is a plain account. That is fine and works on every chain — but if you meant to use a Safe, it was never deployed here, and anything swept to it stays stuck until you deploy one.');
+        }
 
         return true;
     }

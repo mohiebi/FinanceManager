@@ -211,7 +211,13 @@ function enableBilling(array $overrides = []): void
         'billing.plans.yearly.price_usd' => '45.00',
 
         'billing.networks.ethereum.enabled' => true,
+        // Both spellings. PaymentNetwork::rpcUrls() prefers the plural, which is
+        // built from env at config load — leaving it alone let a test reach
+        // whichever real endpoint the developer happens to have configured.
         'billing.networks.ethereum.rpc_url' => 'https://ethereum.test/rpc',
+        'billing.networks.ethereum.rpc_urls' => ['https://ethereum.test/rpc'],
+        'billing.screening.rpc_urls.ethereum' => [],
+        'billing.screening.rpc_urls.arbitrum' => [],
         'billing.networks.ethereum.confirmations' => 12,
         'billing.networks.ethereum.assets.eth.enabled' => true,
         'billing.networks.ethereum.assets.usdt.enabled' => true,

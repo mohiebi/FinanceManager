@@ -212,3 +212,64 @@ test('recovery sweeps a retired address and records the operation for resumption
         ->and($captured)->not->toHaveKey('destination')
         ->and($captured['derivationIndex'])->toBe($address->derivation_index);
 });
+
+test('a plain-account vault verifies rather than being refused as undeployed', function () {
+    // A Safe is a contract; a hardware or browser wallet address is not. Both
+    // are valid vaults, and only the operator knows which they meant — so a
+    // missing bytecode is reported, never treated as a failure.
+    config()->set([
+        'billing.settlement.vaults.ethereum' => '0xb7b03c8e73d66e37da23923b9b5ca2fd37a8e6b6',
+        'billing.deposit_pool.low_address_warning' => 0,
+    ]);
+
+    Http::fake([
+        'ethereum.test/*' => Http::response(['jsonrpc' => '2.0', 'id' => 1, 'result' => '0x1']),
+        '*' => Http::response([
+            'ok' => true,
+            'locked' => false,
+            'vaults' => [
+                'ethereum' => [
+                    'configured' => true,
+                    'vault' => '0xb7b03c8e73d66e37da23923b9b5ca2fd37a8e6b6',
+                    'riskVault' => '0x1111111111111111111111111111111111111111',
+                    'segregated' => true,
+                    'vaultHasCode' => false,
+                    'riskVaultHasCode' => false,
+                ],
+            ],
+        ]),
+    ]);
+
+    $this->artisan('billing:verify-settlement')
+        ->expectsOutputToContain('plain account')
+        ->assertSuccessful();
+});
+
+test('a vault the signer disagrees about is still fatal', function () {
+    config()->set([
+        'billing.settlement.vaults.ethereum' => '0xb7b03c8e73d66e37da23923b9b5ca2fd37a8e6b6',
+        'billing.deposit_pool.low_address_warning' => 0,
+    ]);
+
+    Http::fake([
+        'ethereum.test/*' => Http::response(['jsonrpc' => '2.0', 'id' => 1, 'result' => '0x1']),
+        '*' => Http::response([
+            'ok' => true,
+            'locked' => false,
+            'vaults' => [
+                'ethereum' => [
+                    'configured' => true,
+                    'vault' => '0x9999999999999999999999999999999999999999',
+                    'riskVault' => '0x9999999999999999999999999999999999999999',
+                    'segregated' => false,
+                    'vaultHasCode' => true,
+                    'riskVaultHasCode' => true,
+                ],
+            ],
+        ]),
+    ]);
+
+    $this->artisan('billing:verify-settlement')
+        ->expectsOutputToContain('MISMATCH')
+        ->assertFailed();
+});

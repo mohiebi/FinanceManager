@@ -116,6 +116,8 @@ function screenablePayment(?Coupon $coupon = null): SubscriptionPayment
 test('oracle returns no match and sanctioned only for valid chain responses', function () {
     Http::fakeSequence()
         ->push(oracleResponse())
+        ->push(oracleResponse())
+        ->push(oracleResponse('1'))
         ->push(oracleResponse('1'));
 
     $screener = app(OnChainSanctionsOracleScreener::class);
@@ -169,10 +171,30 @@ test('a screening quorum believes an answer only when every endpoint agrees', fu
         ->and($unavailable->errorCode)->toBe('endpoint_unavailable');
 });
 
-test('the buyer wallet pre-check never answers questions about the private risk list', function () {
-    // The endpoint takes any address a caller names, so consulting the operator's
-    // own list would turn it into an enumeration tool for that list — and a way
-    // to shop for a wallet that passes before paying with it.
+test('screening fails closed without two independent provider hosts', function (array $endpoints) {
+    config()->set('billing.screening.rpc_urls.ethereum', $endpoints);
+    Http::fake(fn () => Http::response(oracleResponse()));
+
+    $result = app(OnChainSanctionsOracleScreener::class)->screen(screeningSubject());
+
+    expect($result->risk)->toBe(ScreeningRisk::Unknown)
+        ->and($result->errorCode)->toBe('not_configured');
+})->with([
+    'one endpoint' => [['https://screening-one.test/rpc']],
+    'two URLs at one host' => [[
+        'https://screening-one.test/primary',
+        'https://screening-one.test/secondary',
+    ]],
+    'screening reuses payment provider' => [[
+        'https://ethereum.test/screening',
+        'https://screening-two.test/rpc',
+    ]],
+]);
+
+test('the buyer wallet pre-check catches local risk without exposing its details', function () {
+    // Calling a known flagged address clean makes the advisory actively
+    // misleading. Return only the verdict and generic copy, never the private
+    // source, reason, category, or internal risk-list record.
     config()->set('billing.screening.enabled', true);
     $flagged = '0x9999999999999999999999999999999999999999';
 
@@ -193,7 +215,11 @@ test('the buyer wallet pre-check never answers questions about the private risk 
         'address' => $flagged,
     ]);
 
-    $response->assertOk()->assertJsonPath('risk', ScreeningRisk::NoMatch->value);
+    $response->assertOk()->assertExactJson([
+        'risk' => ScreeningRisk::Flagged->value,
+        'advisory' => true,
+        'message' => __('billing.precheck.results.flagged'),
+    ]);
 
     // The full screen a real payment gets still catches it.
     expect(app(AddressScreenerFactory::class)->configured()->screen(new ScreeningSubject(
@@ -250,6 +276,8 @@ test('optional chainalysis http fallback handles clear sanctioned and mismatched
 test('oracle verification command requires a positive and negative result', function () {
     Http::fakeSequence()
         ->push(oracleResponse('1'))
+        ->push(oracleResponse('1'))
+        ->push(oracleResponse('0'))
         ->push(oracleResponse('0'));
 
     $this->artisan('billing:verify-screening-oracle', [

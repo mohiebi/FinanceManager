@@ -126,9 +126,7 @@ test('internal transfers to somebody else are not counted', function () {
         ->and($payment->fresh()->failure_reason)->toBe(PaymentFailureReason::WrongRecipient);
 });
 
-test('the amount still has to match exactly, trace or no trace', function () {
-    // Etherscan changes what we can see, never what counts as payment. The
-    // nonce guard is untouched.
+test('an internally forwarded payment still has to meet the minimum amount', function () {
     $payment = nativePayment();
 
     fakeEvmChain([

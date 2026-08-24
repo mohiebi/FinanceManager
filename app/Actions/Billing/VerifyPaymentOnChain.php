@@ -59,11 +59,11 @@ final readonly class VerifyPaymentOnChain
             return PaymentVerification::rejected(PaymentFailureReason::QuoteExpired, $transfer);
         }
 
-        // Exact, with no tolerance band. The amount carries a per-payment nonce
-        // in its lowest digits, and any band wide enough to absorb a rounding
-        // error would also be wide enough to span the next intent's amount —
-        // which would let one buyer's transfer settle another's payment.
-        if (TokenAmount::compare($transfer->creditedAmount, $payment->expectedBaseUnits()) !== 0) {
+        // Every intent has its own single-use address, so an overpayment cannot
+        // be confused with another buyer's intent. Reject only a short payment;
+        // the signer receives the amount that actually arrived and settles the
+        // complete balance into the appropriate vault.
+        if (TokenAmount::compare($transfer->creditedAmount, $payment->expectedBaseUnits()) < 0) {
             return PaymentVerification::rejected(PaymentFailureReason::AmountMismatch, $transfer);
         }
 

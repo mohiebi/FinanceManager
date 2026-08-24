@@ -61,7 +61,9 @@ export class SettlementRunner {
 
         const network: NetworkConfig = config.networks[request.network];
         if (!network || request.chainId !== network.chainId) throw new Error('Unknown network or chain ID.');
-        if (network.rpcUrls.length === 0 || network.vault === '') throw new Error('Network is not configured for settlement.');
+        if (network.rpcUrls.length === 0) throw new Error('Network is not configured for settlement.');
+        if (network.vault === '') throw new Error('Safe vault is not configured.');
+        this.assertRiskVault(network);
 
         // A recovery carries no payment, so none of the payment invariants below
         // apply to it. Proving the address came off our own derivation path is
@@ -122,15 +124,14 @@ export class SettlementRunner {
         const balance = BigInt(await token.getFunction('balanceOf').staticCall(deposit.address));
         operation.remainingTokenBalance = balance.toString();
 
-        // Less than the payment verified against means the deposit is not what
-        // we were told it was, and that is worth a person's attention. Anything
-        // at or above it settles in full: an overpayment, a dust transfer, and
-        // somebody adding a single wei to strand the sweep are all just balance
-        // to be moved.
-        if (balance < expected) throw new Error('token_balance_mismatch');
+        // `expected` is the complete amount credited by the verified payment
+        // transaction, including any overpayment. A larger live balance means
+        // another transaction arrived later; do not silently mix those unknown
+        // funds into this settlement.
+        if (balance !== expected) throw new Error('token_balance_mismatch');
 
         if (!operation.settleAmount) {
-            operation.settleAmount = balance.toString();
+            operation.settleAmount = expected.toString();
             await this.store.put(operation);
         }
 
@@ -194,17 +195,31 @@ export class SettlementRunner {
             if (balance > 0n) balances.push({ asset: name as AssetName, contract, balance });
         }
 
-        if (balances.length > 0) {
-            await this.fundGas(operation, deposit, root, provider, 70_000n * BigInt(balances.length));
+        const transfers = await Promise.all(balances.map(async (entry) => {
+            const token = new Contract(entry.contract, erc20Abi, deposit);
+
+            return {
+                ...entry,
+                transaction: await token.getFunction('transfer').populateTransaction(destination, entry.balance),
+            };
+        }));
+
+        if (transfers.length > 0) {
+            const gasUnits = await this.recoveryGasUnits(
+                provider,
+                deposit.address,
+                destination,
+                transfers.map((entry) => entry.transaction),
+            );
+            await this.fundGas(operation, deposit, root, provider, gasUnits);
         }
 
-        for (const entry of balances) {
-            const token = new Contract(entry.contract, erc20Abi, deposit);
+        for (const entry of transfers) {
             await this.broadcast(
                 operation,
                 `recover_${entry.asset}`,
                 deposit,
-                await token.getFunction('transfer').populateTransaction(destination, entry.balance),
+                entry.transaction,
             );
         }
 
@@ -218,6 +233,25 @@ export class SettlementRunner {
         await this.sweep(operation, deposit, network);
 
         if (residue !== 0n) throw new Error('token_balance_not_zero');
+    }
+
+    /**
+     * Reserve enough gas for every token transfer and the native-ETH sweep
+     * that follows them. Funding only the token legs strands the recovered ETH
+     * at the deposit address once those transfers consume the top-up.
+     */
+    private async recoveryGasUnits(provider: Provider, from: string, destination: string, transfers: TransactionRequest[]): Promise<bigint> {
+        let gasUnits = await this.sweepGasLimit(provider, from, destination);
+
+        for (const transaction of transfers) {
+            try {
+                gasUnits += await provider.estimateGas({ ...transaction, from });
+            } catch {
+                gasUnits += 100_000n;
+            }
+        }
+
+        return gasUnits;
     }
 
     private async fundGas(operation: Operation, deposit: Wallet, root: HDNodeWallet, provider: FallbackProvider, gasUnits: bigint): Promise<void> {
@@ -290,7 +324,20 @@ export class SettlementRunner {
      * rather than "screened funds and whatever else we decided to keep".
      */
     private destination(operation: Operation, network: NetworkConfig): string {
-        return operation.screeningRisk === 'no_match' ? network.vault : network.riskVault;
+        this.assertRiskVault(network);
+
+        if (operation.screeningRisk === 'no_match') {
+            if (network.vault === '') throw new Error('safe_vault_not_configured');
+            return network.vault;
+        }
+
+        return network.riskVault;
+    }
+
+    private assertRiskVault(network: NetworkConfig): void {
+        if (network.riskVault === '' || network.riskVault === network.vault) {
+            throw new Error('risk_vault_not_segregated');
+        }
     }
 
     private async bestQuote(network: NetworkConfig, provider: FallbackProvider, asset: 'usdt' | 'usdc', amount: bigint): Promise<{ path: string; amountOut: bigint; gasEstimate: bigint }> {

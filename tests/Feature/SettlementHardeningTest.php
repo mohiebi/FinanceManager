@@ -11,6 +11,7 @@ use App\Jobs\ProcessPaymentSettlementJob;
 use App\Jobs\RequeueStalledSettlementsJob;
 use App\Jobs\ScreenSubscriptionPaymentJob;
 use App\Models\DepositAddress;
+use App\Models\DepositRecovery;
 use App\Models\PaymentSettlement;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
@@ -185,7 +186,7 @@ test('recovery refuses quarantined funds and any address a payment still owns', 
             ->assertFailed();
 
         expect($address->fresh()->status)->toBe($status)
-            ->and($address->fresh()->recovery_operation_id)->toBeNull();
+            ->and(DepositRecovery::query()->whereBelongsTo($address)->exists())->toBeFalse();
     }
 });
 
@@ -206,11 +207,64 @@ test('recovery sweeps a retired address and records the operation for resumption
 
     expect($address->fresh()->status)->toBe(DepositAddressStatus::Recovered)
         ->and($address->fresh()->recovered_at)->not->toBeNull()
-        ->and($address->fresh()->recovery_operation_id)->not->toBeNull()
+        ->and($address->recoveries()->count())->toBe(1)
+        ->and($address->recoveries()->first()->status)->toBe(SettlementStatus::Completed)
         // The destination is never named by the caller — it is whatever the
         // signer's own configuration says the risk vault is.
         ->and($captured)->not->toHaveKey('destination')
         ->and($captured['derivationIndex'])->toBe($address->derivation_index);
+});
+
+test('a recovered address can be swept again when funds arrive later', function () {
+    $address = DepositAddress::factory()->create([
+        'network' => PaymentNetwork::Ethereum,
+        'status' => DepositAddressStatus::Retired,
+    ]);
+
+    Http::fake(fn () => Http::response([
+        'status' => 'completed',
+        'stage' => 'completed',
+        'transactionHashes' => ['vault_sweep' => '0x'.str_repeat('a', 64)],
+    ]));
+
+    $this->artisan('billing:recover-address', ['address' => $address->address, '--force' => true])
+        ->assertSuccessful();
+    $this->artisan('billing:recover-address', ['address' => $address->address, '--force' => true])
+        ->assertSuccessful();
+
+    $recoveries = $address->recoveries()->oldest()->get();
+
+    expect($recoveries)->toHaveCount(2)
+        ->and($recoveries->pluck('operation_id')->unique())->toHaveCount(2)
+        ->and($recoveries->every(fn (DepositRecovery $recovery): bool => $recovery->status === SettlementStatus::Completed))->toBeTrue();
+});
+
+test('a retryable recovery resumes the same signer operation', function () {
+    $address = DepositAddress::factory()->create([
+        'network' => PaymentNetwork::Ethereum,
+        'status' => DepositAddressStatus::Retired,
+    ]);
+    $operationIds = [];
+
+    Http::fake(function (Request $request) use (&$operationIds) {
+        $operationIds[] = $request->data()['operationId'];
+
+        return Http::response([
+            'status' => count($operationIds) === 1 ? 'retryable_failure' : 'completed',
+            'stage' => count($operationIds) === 1 ? 'gas_topup' : 'completed',
+            'transactionHashes' => [],
+        ]);
+    });
+
+    $this->artisan('billing:recover-address', ['address' => $address->address, '--force' => true])
+        ->assertFailed();
+    $this->artisan('billing:recover-address', ['address' => $address->address, '--force' => true])
+        ->assertSuccessful();
+
+    expect($address->recoveries()->count())->toBe(1)
+        ->and($operationIds)->toHaveCount(2)
+        ->and($operationIds[0])->toBe($operationIds[1])
+        ->and($address->recoveries()->first()->status)->toBe(SettlementStatus::Completed);
 });
 
 test('a plain-account vault verifies rather than being refused as undeployed', function () {
@@ -219,6 +273,7 @@ test('a plain-account vault verifies rather than being refused as undeployed', f
     // missing bytecode is reported, never treated as a failure.
     config()->set([
         'billing.settlement.vaults.ethereum' => '0xb7b03c8e73d66e37da23923b9b5ca2fd37a8e6b6',
+        'billing.settlement.risk_vaults.ethereum' => '0x1111111111111111111111111111111111111111',
         'billing.deposit_pool.low_address_warning' => 0,
     ]);
 
@@ -248,6 +303,7 @@ test('a plain-account vault verifies rather than being refused as undeployed', f
 test('a vault the signer disagrees about is still fatal', function () {
     config()->set([
         'billing.settlement.vaults.ethereum' => '0xb7b03c8e73d66e37da23923b9b5ca2fd37a8e6b6',
+        'billing.settlement.risk_vaults.ethereum' => '0x1111111111111111111111111111111111111111',
         'billing.deposit_pool.low_address_warning' => 0,
     ]);
 
@@ -271,5 +327,36 @@ test('a vault the signer disagrees about is still fatal', function () {
 
     $this->artisan('billing:verify-settlement')
         ->expectsOutputToContain('MISMATCH')
+        ->assertFailed();
+});
+
+test('infrastructure verification refuses a missing or shared risk vault', function () {
+    $mainVault = '0xb7b03c8e73d66e37da23923b9b5ca2fd37a8e6b6';
+    config()->set([
+        'billing.settlement.vaults.ethereum' => $mainVault,
+        'billing.settlement.risk_vaults.ethereum' => $mainVault,
+        'billing.deposit_pool.low_address_warning' => 0,
+    ]);
+
+    Http::fake([
+        'ethereum.test/*' => Http::response(['jsonrpc' => '2.0', 'id' => 1, 'result' => '0x1']),
+        '*' => Http::response([
+            'ok' => true,
+            'locked' => false,
+            'vaults' => [
+                'ethereum' => [
+                    'configured' => true,
+                    'vault' => $mainVault,
+                    'riskVault' => $mainVault,
+                    'segregated' => false,
+                    'vaultHasCode' => false,
+                    'riskVaultHasCode' => false,
+                ],
+            ],
+        ]),
+    ]);
+
+    $this->artisan('billing:verify-settlement')
+        ->expectsOutputToContain('must be valid, distinct addresses')
         ->assertFailed();
 });

@@ -41,8 +41,8 @@ const publicOperation = (operation: Operation): Omit<Operation, 'signedTransacti
  *
  * Reported rather than assumed because a Safe that was never deployed on a
  * given chain is an address with no code, and sweeping to it is a one-way trip.
- * `billing:verify-settlement` refuses to pass while any configured vault has no
- * bytecode behind it.
+ * `billing:verify-settlement` compares both destinations and reports whether
+ * each is a contract or a plain account before billing is enabled.
  */
 const vaultSnapshot = async (): Promise<Record<string, unknown>> => {
     const entries = await Promise.all((Object.keys(config.networks) as NetworkName[]).map(async (name) => {
@@ -55,13 +55,14 @@ const vaultSnapshot = async (): Promise<Record<string, unknown>> => {
             const provider = new JsonRpcProvider(network.rpcUrls[0], network.chainId, { staticNetwork: true });
             const [vaultCode, riskVaultCode] = await Promise.all([
                 provider.getCode(network.vault),
-                provider.getCode(network.riskVault),
+                network.riskVault === '' ? Promise.resolve('0x') : provider.getCode(network.riskVault),
             ]);
             return [name, {
                 configured: true,
                 vault: network.vault,
                 riskVault: network.riskVault,
-                segregated: network.riskVault !== network.vault,
+                riskVaultConfigured: network.riskVault !== '',
+                segregated: network.riskVault !== '' && network.riskVault !== network.vault,
                 vaultHasCode: vaultCode !== '0x',
                 riskVaultHasCode: riskVaultCode !== '0x',
             }];

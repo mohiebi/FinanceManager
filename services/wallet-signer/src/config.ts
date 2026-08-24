@@ -18,9 +18,6 @@ const address = (name: string): string => {
 
 const csv = (name: string): string[] => optional(name).split(',').map((value) => value.trim()).filter(Boolean);
 
-/** Falls back to the main vault, so the service runs before a second one exists. */
-const vaultOr = (name: string, fallback: string): string => address(name) || fallback;
-
 const token = (name: string): string | undefined => address(name) || undefined;
 
 export type NetworkConfig = {
@@ -72,7 +69,7 @@ export const config = {
             chainId: 1,
             rpcUrls: csv('ETHEREUM_RPC_URLS'),
             vault: ethereumVault,
-            riskVault: vaultOr('ETHEREUM_RISK_VAULT_ADDRESS', ethereumVault),
+            riskVault: address('ETHEREUM_RISK_VAULT_ADDRESS'),
             tokens: {},
             priceFeeds: {},
         },
@@ -80,7 +77,7 @@ export const config = {
             chainId: 42161,
             rpcUrls: csv('ARBITRUM_RPC_URLS'),
             vault: arbitrumVault,
-            riskVault: vaultOr('ARBITRUM_RISK_VAULT_ADDRESS', arbitrumVault),
+            riskVault: address('ARBITRUM_RISK_VAULT_ADDRESS'),
             weth: token('ARBITRUM_WETH_ADDRESS'),
             router: token('ARBITRUM_UNISWAP_ROUTER_ADDRESS'),
             quoter: token('ARBITRUM_UNISWAP_QUOTER_ADDRESS'),

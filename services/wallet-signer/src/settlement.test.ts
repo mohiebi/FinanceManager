@@ -13,6 +13,7 @@ import { SettlementRunner } from './settlement.js';
 type Internals = {
     isUnusable(provider: unknown, signer: unknown, raw: string): Promise<boolean>;
     sweepGasLimit(provider: unknown, from: string, to: string): Promise<bigint>;
+    recoveryGasUnits(provider: unknown, from: string, to: string, transfers: unknown[]): Promise<bigint>;
     destination(operation: unknown, network: unknown): string;
 };
 
@@ -86,6 +87,19 @@ test('the sweep gas limit follows the estimate rather than a hardcoded 21,000', 
     assert.equal(await runner().sweepGasLimit(broken, '0xfrom', '0xto'), 100_000n);
 });
 
+test('recovery gas includes every token transfer and the final ETH sweep', async () => {
+    const provider = {
+        estimateGas: async (transaction: { to: string }) => transaction.to === '0xriskvault' ? 34_000n : 50_000n,
+    };
+    const transfers = [{ to: '0xtoken-one' }, { to: '0xtoken-two' }];
+
+    // 34,000 buffered by 25% for the vault sweep, plus both token transfers.
+    assert.equal(
+        await runner().recoveryGasUnits(provider, '0xfrom', '0xriskvault', transfers),
+        142_500n,
+    );
+});
+
 test('only a clean screening result reaches the main vault', async () => {
     const network = { vault: '0xvault', riskVault: '0xriskvault' };
     const destination = (screeningRisk: string): string => runner().destination({ screeningRisk }, network);
@@ -93,4 +107,19 @@ test('only a clean screening result reaches the main vault', async () => {
     assert.equal(destination('no_match'), '0xvault');
     assert.equal(destination('flagged'), '0xriskvault');
     assert.equal(destination('unscreened'), '0xriskvault');
+});
+
+test('every operation is refused without a separate risk vault', async () => {
+    assert.throws(
+        () => runner().destination({ screeningRisk: 'flagged' }, { vault: '0xvault', riskVault: '' }),
+        /risk_vault_not_segregated/,
+    );
+    assert.throws(
+        () => runner().destination({ screeningRisk: 'unscreened' }, { vault: '0xvault', riskVault: '0xvault' }),
+        /risk_vault_not_segregated/,
+    );
+    assert.throws(
+        () => runner().destination({ screeningRisk: 'no_match' }, { vault: '0xvault', riskVault: '' }),
+        /risk_vault_not_segregated/,
+    );
 });

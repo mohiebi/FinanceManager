@@ -194,8 +194,9 @@ return [
         | the whole screening layer worth exactly as much as that one provider's
         | honesty. Give two or more and every definitive answer must agree
         | before it is believed; disagreement reads as Unknown and holds the
-        | funds. Empty falls back to the network's own endpoints, which works
-        | but buys you nothing.
+        | funds. These must contain at least two distinct hosts and must not
+        | share a host with payment verification. Missing or dependent
+        | endpoints fail closed as Unknown.
         */
         'rpc_urls' => [
             'ethereum' => array_values(array_filter(array_map('trim', explode(',', (string) env('BILLING_ETHEREUM_SCREENING_RPC_URLS', ''))))),

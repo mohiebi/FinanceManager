@@ -216,8 +216,14 @@ function enableBilling(array $overrides = []): void
         // whichever real endpoint the developer happens to have configured.
         'billing.networks.ethereum.rpc_url' => 'https://ethereum.test/rpc',
         'billing.networks.ethereum.rpc_urls' => ['https://ethereum.test/rpc'],
-        'billing.screening.rpc_urls.ethereum' => [],
-        'billing.screening.rpc_urls.arbitrum' => [],
+        'billing.screening.rpc_urls.ethereum' => [
+            'https://screening-ethereum-one.test/rpc',
+            'https://screening-ethereum-two.test/rpc',
+        ],
+        'billing.screening.rpc_urls.arbitrum' => [
+            'https://screening-arbitrum-one.test/rpc',
+            'https://screening-arbitrum-two.test/rpc',
+        ],
         'billing.networks.ethereum.confirmations' => 12,
         'billing.networks.ethereum.assets.eth.enabled' => true,
         'billing.networks.ethereum.assets.usdt.enabled' => true,

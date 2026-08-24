@@ -4,11 +4,14 @@ namespace App\Console\Commands;
 
 use App\Enums\DepositAddressStatus;
 use App\Enums\PaymentNetwork;
+use App\Enums\SettlementStatus;
 use App\Models\DepositAddress;
+use App\Models\DepositRecovery;
 use App\Services\Billing\WalletSignerClient;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -40,9 +43,22 @@ class RecoverDepositAddress extends Command
     private const RECOVERABLE = [
         DepositAddressStatus::Retired,
         DepositAddressStatus::Swept,
+        DepositAddressStatus::Recovered,
     ];
 
-    private const TERMINAL = ['completed', 'failed', 'needs_review'];
+    private const TERMINAL = [
+        SettlementStatus::Completed,
+        SettlementStatus::RetryableFailure,
+        SettlementStatus::Failed,
+        SettlementStatus::NeedsReview,
+    ];
+
+    private const ACTIVE = [
+        SettlementStatus::Queued,
+        SettlementStatus::Submitted,
+        SettlementStatus::Processing,
+        SettlementStatus::RetryableFailure,
+    ];
 
     public function handle(WalletSignerClient $signer): int
     {
@@ -64,7 +80,7 @@ class RecoverDepositAddress extends Command
 
         if (! in_array($depositAddress->status, self::RECOVERABLE, true)) {
             $this->error("Refusing to recover an address in the {$depositAddress->status->value} state.");
-            $this->line('Only retired and already-swept addresses can be recovered. Quarantined funds must never be moved.');
+            $this->line('Only retired, swept, and previously recovered addresses can be recovered. Quarantined funds must never be moved.');
 
             return self::FAILURE;
         }
@@ -88,30 +104,37 @@ class RecoverDepositAddress extends Command
             return self::FAILURE;
         }
 
-        // Persisted before the call so a re-run resumes the signer's existing
-        // operation instead of opening a second one against the same address.
-        if (blank($depositAddress->recovery_operation_id)) {
-            $depositAddress->forceFill(['recovery_operation_id' => (string) Str::uuid()])->save();
-        }
-
-        $operationId = (string) $depositAddress->recovery_operation_id;
+        $recovery = $this->recoveryFor($depositAddress, $network, $reason);
+        $operationId = $recovery->operation_id;
 
         try {
-            $operation = $signer->startRecovery($depositAddress, $network, $operationId, $reason);
+            $operation = $signer->startRecovery($depositAddress, $network, $operationId, $recovery->reason);
         } catch (Throwable $exception) {
+            $recovery->forceFill([
+                'status' => SettlementStatus::RetryableFailure,
+                'failure_reason' => mb_substr($exception->getMessage(), 0, 2000),
+            ])->save();
             $this->error('The signer refused or could not be reached: '.$exception->getMessage());
 
             return self::FAILURE;
         }
 
         $operation = $this->awaitCompletion($signer, $operationId, $operation);
-        $status = (string) ($operation['status'] ?? 'unknown');
+        $status = SettlementStatus::tryFrom((string) ($operation['status'] ?? '')) ?? SettlementStatus::RetryableFailure;
+
+        $recovery->forceFill([
+            'status' => $status,
+            'transaction_hashes' => $operation['transactionHashes'] ?? null,
+            'failure_reason' => $operation['failureReason'] ?? null,
+            'submitted_at' => $recovery->submitted_at ?? now(),
+            'completed_at' => $status === SettlementStatus::Completed ? now() : null,
+        ])->save();
 
         foreach ((array) ($operation['transactionHashes'] ?? []) as $stage => $hash) {
             $this->line("  {$stage}: {$hash}");
         }
 
-        if ($status === 'completed') {
+        if ($status === SettlementStatus::Completed) {
             $depositAddress->forceFill([
                 'status' => DepositAddressStatus::Recovered,
                 'recovered_at' => now(),
@@ -122,10 +145,36 @@ class RecoverDepositAddress extends Command
             return self::SUCCESS;
         }
 
-        $this->warn("Operation {$operationId} is {$status}: ".(string) ($operation['failureReason'] ?? 'still running'));
-        $this->line('Re-run this command to resume it — the operation id is stored on the address.');
+        $this->warn("Operation {$operationId} is {$status->value}: ".(string) ($operation['failureReason'] ?? 'still running'));
+        $this->line('Re-run this command to resume it — the operation is stored in the address recovery history.');
 
         return self::FAILURE;
+    }
+
+    private function recoveryFor(DepositAddress $depositAddress, PaymentNetwork $network, string $reason): DepositRecovery
+    {
+        return DB::transaction(function () use ($depositAddress, $network, $reason): DepositRecovery {
+            $locked = DepositAddress::query()->whereKey($depositAddress->getKey())->lockForUpdate()->firstOrFail();
+            $active = $locked->recoveries()
+                ->where('network', $network->value)
+                ->whereIn('status', array_map(
+                    static fn (SettlementStatus $status): string => $status->value,
+                    self::ACTIVE,
+                ))
+                ->latest()
+                ->first();
+
+            if ($active !== null) {
+                return $active;
+            }
+
+            return $locked->recoveries()->create([
+                'network' => $network,
+                'operation_id' => (string) Str::uuid(),
+                'status' => SettlementStatus::Queued,
+                'reason' => $reason,
+            ]);
+        });
     }
 
     private function network(DepositAddress $depositAddress): ?PaymentNetwork
@@ -163,7 +212,10 @@ class RecoverDepositAddress extends Command
         // sit behind a settlement for a while before it starts.
         $deadline = now()->addMinutes(10);
 
-        while (! in_array((string) ($operation['status'] ?? ''), self::TERMINAL, true) && now()->lessThan($deadline)) {
+        while (
+            ! in_array(SettlementStatus::tryFrom((string) ($operation['status'] ?? '')), self::TERMINAL, true)
+            && now()->lessThan($deadline)
+        ) {
             $this->line('  '.(string) ($operation['stage'] ?? 'working').'...');
             sleep(5);
 

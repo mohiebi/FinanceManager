@@ -27,10 +27,12 @@ final readonly class OnChainSanctionsOracleScreener implements AddressScreener
     /** keccak256("isSanctioned(address)") first four bytes. */
     private const IS_SANCTIONED_SELECTOR = 'df592f7d';
 
+    public function __construct(private ScreeningRpcPolicy $rpcPolicy) {}
+
     public function screen(ScreeningSubject $subject): ScreeningResult
     {
         $network = $subject->network;
-        $endpoints = $this->endpointsFor($network);
+        $endpoints = $this->rpcPolicy->endpointsFor($network);
         $contract = mb_strtolower(trim((string) config("billing.screening.oracle.contracts.{$network->value}")));
         $sender = $network->normalizeAddress($subject->senderAddress);
 
@@ -70,33 +72,6 @@ final readonly class OnChainSanctionsOracleScreener implements AddressScreener
             categories: $sanctioned ? ['sanctions'] : [],
             screenedAt: now()->toImmutable(),
         );
-    }
-
-    /**
-     * Dedicated endpoints when they are configured, the network's own otherwise.
-     *
-     * Falling back keeps a single-endpoint deployment working exactly as it did,
-     * while making the independent case a configuration change rather than a
-     * code change.
-     *
-     * @return array<int, string>
-     */
-    private function endpointsFor(PaymentNetwork $network): array
-    {
-        $configured = config("billing.screening.rpc_urls.{$network->value}", []);
-
-        if (is_array($configured)) {
-            $urls = array_values(array_filter(array_map(
-                static fn (mixed $url): string => trim((string) $url),
-                $configured,
-            )));
-
-            if ($urls !== []) {
-                return $urls;
-            }
-        }
-
-        return $network->rpcUrls();
     }
 
     /** True when sanctioned, false when clear, null when this endpoint could not say. */

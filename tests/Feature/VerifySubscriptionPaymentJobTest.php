@@ -341,24 +341,32 @@ test('ether moved inside a contract goes to a human, not to a refusal', function
         ->and($payment->fresh()->failure_reason->needsReview())->toBeTrue();
 });
 
-test('the amount must match exactly, under or over', function () {
-    foreach (['0x5b8d7f', '0x5b8d81'] as $paidHex) {
-        $payment = paymentExpecting(USDT_AMOUNT_HEX);
-        fakeEvmChain([
-            'tx_to' => USDT_CONTRACT,
-            'logs' => [evmTransferLog(USDT_CONTRACT, TEST_RECEIVING_ADDRESS, $paidHex)],
-        ]);
+test('a short payment needs review', function () {
+    $payment = paymentExpecting(USDT_AMOUNT_HEX);
+    fakeEvmChain([
+        'tx_to' => USDT_CONTRACT,
+        'logs' => [evmTransferLog(USDT_CONTRACT, TEST_RECEIVING_ADDRESS, '0x5b8d7f')],
+    ]);
 
-        verify($payment);
+    verify($payment);
 
-        // No tolerance band, deliberately. The expected amount carries a nonce in
-        // its lowest digits so that no two open intents share a figure; a band
-        // wide enough to absorb a rounding error would be wide enough to reach
-        // the next intent's amount and settle the wrong payment.
-        expect($payment->fresh()->status)->toBe(PaymentStatus::Failed)
-            ->and($payment->fresh()->failure_reason)->toBe(PaymentFailureReason::AmountMismatch)
-            ->and($payment->fresh()->failure_reason->needsReview())->toBeTrue();
-    }
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Failed)
+        ->and($payment->fresh()->failure_reason)->toBe(PaymentFailureReason::AmountMismatch)
+        ->and($payment->fresh()->failure_reason->needsReview())->toBeTrue();
+});
+
+test('an overpayment is accepted and records the complete credited amount', function () {
+    $payment = paymentExpecting(USDT_AMOUNT_HEX);
+    fakeEvmChain([
+        'tx_to' => USDT_CONTRACT,
+        'logs' => [evmTransferLog(USDT_CONTRACT, TEST_RECEIVING_ADDRESS, '0x5b8d81')],
+    ]);
+
+    verify($payment);
+
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Confirmed)
+        ->and($payment->fresh()->received_amount)->toBe('6.000001')
+        ->and($payment->user->fresh()->isPro())->toBeTrue();
 });
 
 test('a transaction mined before the intent existed cannot be claimed', function () {

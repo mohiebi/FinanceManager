@@ -185,11 +185,10 @@ class BillingController extends Controller
         $network = PaymentNetwork::from($validated['network']);
         $address = $network->normalizeAddress($validated['address']);
 
-        // Sanctions only. This endpoint answers questions about any address the
-        // caller names, so it must never consult the operator's private risk
-        // list: that would make it an enumeration tool for the list, and a way
-        // to shop for a wallet that passes before paying with it.
-        $result = $this->addressScreeners->publicSanctionsOnly()->screen(new ScreeningSubject(
+        // The authenticated, rate-limited pre-check includes the local risk
+        // list but exposes no source or reason. A known flagged wallet must not
+        // be told it is clean and discover the real answer only after paying.
+        $result = $this->addressScreeners->publicPrecheck()->screen(new ScreeningSubject(
             network: $network,
             transactionHash: str_repeat('0', 66),
             senderAddress: $address,

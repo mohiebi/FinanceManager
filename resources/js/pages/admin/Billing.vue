@@ -68,14 +68,10 @@ type DepositRow = {
     asset: string | null;
     asset_symbol: string | null;
     amount: string | null;
-    requires_conversion: boolean;
     screening_risk: string | null;
     block_timestamp: string | null;
     quarantine_reason: string | null;
     quarantined_at: string | null;
-    authorization_expires_at: string | null;
-    sweep_tx_hash: string | null;
-    conversion_tx_hash: string | null;
     swept_at: string | null;
 };
 
@@ -83,7 +79,7 @@ type SignerHealth = {
     ok: boolean;
     locked: boolean;
     keyVersion?: string;
-    error?: string;
+    unreachable?: boolean;
     gasWallet?: {
         address: string;
         balanceWei: string;
@@ -138,8 +134,6 @@ defineProps<{
     needsAttention: AdminPayment[];
     delayedScreening: AdminPayment[];
     quarantined: DepositRow[];
-    cooling: DepositRow[];
-    readyToSweep: DepositRow[];
     completedSweeps: DepositRow[];
     recent: AdminPayment[];
     proUsers: ProUser[];
@@ -286,20 +280,10 @@ function shortHash(value: string | null): string {
         </p>
 
         <p
-            v-if="
-                page.props.errors.sweep ||
-                page.props.errors.note ||
-                page.props.errors.sweep_tx_hash ||
-                page.props.errors.conversion_tx_hash
-            "
+            v-if="page.props.errors.note"
             class="rounded-xl bg-[#2c1b1b] px-4 py-3 text-sm text-[#E94E50] ring-1 ring-[#E94E50]/20"
         >
-            {{
-                page.props.errors.sweep ??
-                page.props.errors.note ??
-                page.props.errors.sweep_tx_hash ??
-                page.props.errors.conversion_tx_hash
-            }}
+            {{ page.props.errors.note }}
         </p>
 
         <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">
@@ -477,8 +461,11 @@ function shortHash(value: string | null): string {
                     }}
                 </span>
             </div>
-            <p v-if="signerHealth.error" class="mt-3 text-xs text-[#E94E50]">
-                {{ signerHealth.error }}
+            <p
+                v-if="signerHealth.unreachable"
+                class="mt-3 text-xs text-[#E94E50]"
+            >
+                {{ t('billing.admin.signer_unreachable') }}
             </p>
             <div
                 v-if="signerHealth.gasWallet"

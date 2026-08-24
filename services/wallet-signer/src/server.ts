@@ -1,13 +1,13 @@
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { createServer as createSocketServer } from 'node:net';
-import { readFile, rm } from 'node:fs/promises';
+import { rm } from 'node:fs/promises';
 import { HDNodeWallet, JsonRpcProvider, Mnemonic, Wallet } from 'ethers';
 import { RequestAuthenticator } from './auth.js';
 import { config } from './config.js';
 import { derivePublicAddresses, readKeystore, unlockKeystore } from './keystore.js';
 import { SettlementRunner } from './settlement.js';
 import { OperationStore } from './store.js';
-import type { Operation, SettlementRequest } from './types.js';
+import type { NetworkName, Operation, SettlementRequest } from './types.js';
 
 let unlockedMnemonic: string | undefined;
 const store = new OperationStore(config.operationsPath);
@@ -36,6 +36,43 @@ const publicOperation = (operation: Operation): Omit<Operation, 'signedTransacti
     return safe;
 };
 
+/**
+ * What the vaults look like from here.
+ *
+ * Reported rather than assumed because a Safe that was never deployed on a
+ * given chain is an address with no code, and sweeping to it is a one-way trip.
+ * `billing:verify-settlement` refuses to pass while any configured vault has no
+ * bytecode behind it.
+ */
+const vaultSnapshot = async (): Promise<Record<string, unknown>> => {
+    const entries = await Promise.all((Object.keys(config.networks) as NetworkName[]).map(async (name) => {
+        const network = config.networks[name];
+        if (network.vault === '' || network.rpcUrls.length === 0) {
+            return [name, { configured: false }];
+        }
+
+        try {
+            const provider = new JsonRpcProvider(network.rpcUrls[0], network.chainId, { staticNetwork: true });
+            const [vaultCode, riskVaultCode] = await Promise.all([
+                provider.getCode(network.vault),
+                provider.getCode(network.riskVault),
+            ]);
+            return [name, {
+                configured: true,
+                vault: network.vault,
+                riskVault: network.riskVault,
+                segregated: network.riskVault !== network.vault,
+                vaultHasCode: vaultCode !== '0x',
+                riskVaultHasCode: riskVaultCode !== '0x',
+            }];
+        } catch (error) {
+            return [name, { configured: true, vault: network.vault, riskVault: network.riskVault, unreachable: true }];
+        }
+    }));
+
+    return Object.fromEntries(entries);
+};
+
 const healthSnapshot = async (): Promise<Record<string, unknown>> => {
     const operations = await store.list();
     const now = Date.now();
@@ -44,7 +81,7 @@ const healthSnapshot = async (): Promise<Record<string, unknown>> => {
         .reduce((total, operation) => total + BigInt(operation.gasTopupWei ?? '0'), 0n);
     let gasWallet: Record<string, string> | null = null;
 
-    if (unlockedMnemonic) {
+    if (unlockedMnemonic && config.networks.arbitrum.rpcUrls.length > 0) {
         const root = HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(unlockedMnemonic), 'm');
         const provider = new JsonRpcProvider(config.networks.arbitrum.rpcUrls[0], config.networks.arbitrum.chainId, { staticNetwork: true });
         const wallet = new Wallet(root.derivePath("m/44'/60'/1'/0/0").privateKey, provider);
@@ -56,16 +93,78 @@ const healthSnapshot = async (): Promise<Record<string, unknown>> => {
         };
     }
 
-    return { ok: true, locked: unlockedMnemonic === undefined, keyVersion: keystore.keyVersion, gasWallet };
+    return {
+        ok: true,
+        locked: unlockedMnemonic === undefined,
+        keyVersion: keystore.keyVersion,
+        gasWallet,
+        vaults: await vaultSnapshot(),
+        stuckOperations: operations.filter((operation) => operation.status === 'needs_review').length,
+    };
 };
 
 const validRequest = (value: unknown): value is SettlementRequest => {
     if (!value || typeof value !== 'object') return false;
     const item = value as Record<string, unknown>;
-    return typeof item.operationId === 'string' && typeof item.paymentId === 'string'
+    return item.kind === 'settlement'
+        && typeof item.operationId === 'string' && typeof item.paymentId === 'string'
         && typeof item.network === 'string' && typeof item.chainId === 'number'
         && typeof item.derivationIndex === 'number' && typeof item.depositAddress === 'string'
-        && typeof item.asset === 'string' && typeof item.verifiedAmount === 'string';
+        && typeof item.keyVersion === 'string' && typeof item.asset === 'string'
+        && typeof item.verifiedAmount === 'string' && typeof item.chainVerified === 'boolean'
+        && typeof item.screeningRisk === 'string' && typeof item.riskAuthorized === 'boolean';
+};
+
+/**
+ * A recovery names an address and nothing else.
+ *
+ * It cannot name a destination — that comes from this service's own
+ * configuration — so the worst an attacker with the HMAC secret can do here is
+ * move our funds into our own risk vault ahead of schedule.
+ */
+const validRecovery = (value: unknown): value is Omit<SettlementRequest, 'kind'> & { reason: string } => {
+    if (!value || typeof value !== 'object') return false;
+    const item = value as Record<string, unknown>;
+    return typeof item.operationId === 'string' && typeof item.network === 'string'
+        && typeof item.chainId === 'number' && typeof item.derivationIndex === 'number'
+        && typeof item.depositAddress === 'string' && typeof item.keyVersion === 'string'
+        && typeof item.reason === 'string' && item.reason.length >= 3 && item.reason.length <= 500;
+};
+
+const accept = async (response: ServerResponse, request: SettlementRequest): Promise<void> => {
+    const existing = await store.get(request.operationId);
+
+    if (existing) {
+        if (existing.paymentId !== request.paymentId || existing.kind !== request.kind) {
+            json(response, 409, { error: 'operation_id_conflict' });
+            return;
+        }
+        if (existing.status === 'retryable_failure') {
+            existing.status = 'submitted';
+            existing.failureCode = undefined;
+            existing.failureReason = undefined;
+            existing.updatedAt = new Date().toISOString();
+            await store.put(existing);
+            runner.enqueue(existing);
+        }
+        json(response, 200, publicOperation(existing));
+        return;
+    }
+
+    await runner.validate(request);
+    const now = new Date().toISOString();
+    const operation: Operation = {
+        ...request,
+        status: 'submitted',
+        stage: 'accepted',
+        createdAt: now,
+        updatedAt: now,
+        transactionHashes: {},
+        signedTransactions: {},
+    };
+    await store.put(operation);
+    runner.enqueue(operation);
+    json(response, 202, publicOperation(operation));
 };
 
 await auth.initialize();
@@ -105,41 +204,36 @@ const server = createHttpServer(async (request, response) => {
                 json(response, 422, { error: 'invalid_settlement' });
                 return;
             }
-            const existing = await store.get(payload.operationId);
-            if (existing) {
-                if (existing.paymentId !== payload.paymentId) {
-                    json(response, 409, { error: 'operation_id_conflict' });
-                    return;
-                }
-                if (existing.status === 'retryable_failure') {
-                    existing.status = 'submitted';
-                    existing.failureCode = undefined;
-                    existing.failureReason = undefined;
-                    existing.updatedAt = new Date().toISOString();
-                    await store.put(existing);
-                    runner.enqueue(existing);
-                }
-                json(response, 200, publicOperation(existing));
-                return;
-            }
-            await runner.validate(payload);
-            const now = new Date().toISOString();
-            const operation: Operation = {
-                ...payload,
-                status: 'submitted',
-                stage: 'accepted',
-                createdAt: now,
-                updatedAt: now,
-                transactionHashes: {},
-                signedTransactions: {},
-            };
-            await store.put(operation);
-            runner.enqueue(operation);
-            json(response, 202, publicOperation(operation));
+            await accept(response, payload);
             return;
         }
 
-        const settlementMatch = path.match(/^\/v1\/settlements\/([0-9a-f-]{36})$/i);
+        if (method === 'POST' && path === '/v1/recoveries') {
+            const payload: unknown = JSON.parse(body);
+            if (!validRecovery(payload)) {
+                json(response, 422, { error: 'invalid_recovery' });
+                return;
+            }
+            await accept(response, {
+                kind: 'recovery',
+                operationId: payload.operationId,
+                paymentId: payload.reason,
+                network: payload.network,
+                chainId: payload.chainId,
+                derivationIndex: payload.derivationIndex,
+                keyVersion: payload.keyVersion,
+                depositAddress: payload.depositAddress,
+                asset: 'eth',
+                tokenContract: null,
+                verifiedAmount: '0',
+                chainVerified: false,
+                screeningRisk: 'unscreened',
+                riskAuthorized: false,
+            });
+            return;
+        }
+
+        const settlementMatch = path.match(/^\/v1\/(?:settlements|recoveries)\/([0-9a-f-]{36})$/i);
         if (method === 'GET' && settlementMatch?.[1]) {
             const operation = await store.get(settlementMatch[1]);
             json(response, operation ? 200 : 404, operation ? publicOperation(operation) : { error: 'not_found' });

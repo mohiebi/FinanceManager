@@ -31,13 +31,7 @@ final class RefillDepositAddressPoolJob implements ShouldBeUnique, ShouldQueue
     public function handle(WalletSignerClient $signer): void
     {
         $target = (int) config('billing.deposit_pool.target', 100);
-        $available = DepositAddress::query()
-            ->available()
-            ->whereNotIn('address', DepositAddress::query()
-                ->where('status', '!=', DepositAddressStatus::Available->value)
-                ->select('address'))
-            ->distinct()
-            ->count('address');
+        $available = DepositAddress::query()->available()->count();
 
         if ($available >= $target) {
             return;

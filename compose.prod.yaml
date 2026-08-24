@@ -19,6 +19,7 @@ services:
       - wallet_signer_hmac
     networks:
       - portfolio-net
+      - signer-net
 
   wallet-signer:
     image: ghcr.io/mohiebi/financemanager-wallet-signer:latest
@@ -45,7 +46,7 @@ services:
     expose:
       - "8080"
     networks:
-      - portfolio-net
+      - signer-net
 
 volumes:
   storage-data:
@@ -61,3 +62,17 @@ secrets:
 networks:
   portfolio-net:
     external: true
+
+  # The signer sits here and nowhere else.
+  #
+  # portfolio-net is shared with every other application on this host, and any
+  # container on it can open a socket to anything else on it. The HMAC keeps
+  # them out, but a service holding keys should not be reachable from unrelated
+  # software in the first place — only cashpilot-app has any business talking to
+  # it.
+  #
+  # Deliberately not `internal: true`: the signer has to reach the chain, and an
+  # internal network would take its egress away along with everyone else's
+  # access.
+  signer-net:
+    driver: bridge

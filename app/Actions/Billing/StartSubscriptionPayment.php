@@ -129,9 +129,6 @@ final readonly class StartSubscriptionPayment
                 ->where(fn ($query) => $query
                     ->whereNull('network')
                     ->orWhere('network', $network->value))
-                ->whereNotIn('address', DepositAddress::query()
-                    ->where('status', '!=', DepositAddressStatus::Available->value)
-                    ->select('address'))
                 ->orderBy('derivation_index')
                 ->lockForUpdate()
                 ->first();
@@ -162,13 +159,7 @@ final readonly class StartSubscriptionPayment
                 'assigned_at' => now(),
             ])->save();
 
-            $remainingAddresses = DepositAddress::query()
-                ->available()
-                ->whereNotIn('address', DepositAddress::query()
-                    ->where('status', '!=', DepositAddressStatus::Available->value)
-                    ->select('address'))
-                ->distinct()
-                ->count('address');
+            $remainingAddresses = DepositAddress::query()->available()->count();
 
             $this->schedulePoolWarning($network, $remainingAddresses);
 

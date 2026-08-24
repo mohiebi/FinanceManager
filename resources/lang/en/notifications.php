@@ -131,6 +131,11 @@ return [
         'body_generic' => ':email submitted a fourth distinct flagged wallet. Access is denied even if funds can be settled.',
         'email_body' => ':email submitted a fourth distinct flagged wallet. The payment is denied and cannot enter the exception workflow, even if funds can be settled.',
     ],
+    'signer_locked' => [
+        'title' => 'The wallet signer is locked',
+        'body_generic' => ':count settlement(s) cannot run until the signer is unlocked.',
+        'email_body' => 'The wallet signer restarted and is waiting to be unlocked. :count settlement(s) cannot run until somebody unlocks it, and behind every one of them is real money still sitting at a deposit address. Unlock it with: docker exec -i cashpilot-wallet-signer node dist/cli.js unlock',
+    ],
     'settlement_needs_attention' => [
         'title' => 'An automated settlement needs attention',
         'body_generic' => 'Settlement operation :operation stopped at :reason.',

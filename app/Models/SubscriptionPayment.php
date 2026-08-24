@@ -130,6 +130,26 @@ class SubscriptionPayment extends Model
         return TokenAmount::fromDecimal((string) $this->expected_amount, (int) $this->asset_decimals);
     }
 
+    /**
+     * What the signer must find at the deposit address.
+     *
+     * The received amount whenever the chain gave us one, because that is what
+     * is actually sitting there. Handing over the quoted figure instead meant
+     * an administrator honouring a payment an exchange had shaved a fee off
+     * sent the signer a number the address could never match, and the
+     * settlement it triggered could only ever end in review.
+     *
+     * Falls back to the quote for the approvals where no transfer was readable
+     * at all — those are native ether, which sweeps whatever is present and
+     * never compares against this.
+     */
+    public function settlementBaseUnits(): string
+    {
+        return blank($this->received_amount)
+            ? $this->expectedBaseUnits()
+            : TokenAmount::fromDecimal((string) $this->received_amount, (int) $this->asset_decimals);
+    }
+
     /** Whether the buyer can still pay against this intent. */
     public function isOpen(): bool
     {

@@ -57,11 +57,14 @@ final class ScreenSubscriptionPaymentJob implements ShouldBeUnique, ShouldQueue
             return;
         }
 
+        // Deliberately not requiring a received amount. No screener reads one,
+        // and demanding it stranded every payment an administrator approved
+        // for a transfer the node could not read a value out of — which is the
+        // exact case that escape hatch exists for.
         if (
             blank($payment->tx_hash)
             || blank($payment->from_address)
             || blank($payment->pay_to_address)
-            || blank($payment->received_amount)
         ) {
             $result = ScreeningResult::unknown('application', 'missing_subject');
         } else {

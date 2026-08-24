@@ -120,6 +120,12 @@ final readonly class FinalizeScreenedPayment
 
     private function openFlaggedCase(SubscriptionPayment $payment): void
     {
+        // Serializes this account against itself before the cases are counted.
+        // Without it two flagged payments arriving together both read the same
+        // count and both open a case, which is how a three-address limit
+        // quietly becomes a four-address one.
+        User::query()->whereKey($payment->user_id)->lockForUpdate()->first();
+
         $sourceAddress = $payment->network->normalizeAddress((string) $payment->from_address);
         $wasAlreadyUsed = PaymentRiskCase::query()
             ->where('source_address', $sourceAddress)
@@ -176,9 +182,6 @@ final readonly class FinalizeScreenedPayment
             'status' => DepositAddressStatus::Quarantined,
             'quarantine_reason' => $failureReason->value,
             'quarantined_at' => now(),
-            'sweep_authorized_at' => null,
-            'sweep_authorization_expires_at' => null,
-            'sweep_authorized_by_admin_id' => null,
         ])->save();
 
         $this->settleCouponRedemption->release($payment);

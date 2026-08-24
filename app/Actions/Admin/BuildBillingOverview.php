@@ -7,8 +7,6 @@ use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentNetwork;
 use App\Enums\PaymentStatus;
 use App\Enums\ScreeningRisk;
-use App\Enums\ScreeningStage;
-use App\Enums\SettlementAsset;
 use App\Models\DepositAddress;
 use App\Models\PaymentRiskCase;
 use App\Models\PaymentSettlement;
@@ -18,6 +16,7 @@ use App\Models\User;
 use App\Services\Billing\WalletSignerClient;
 use App\Support\Billing\BillingCatalog;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * The operator's view of subscriptions.
@@ -50,8 +49,6 @@ final readonly class BuildBillingOverview
             'needsAttention' => $this->present($this->needsAttention()),
             'delayedScreening' => $this->present($this->delayedScreening()),
             'quarantined' => $this->presentDeposits($this->deposits(DepositAddressStatus::Quarantined)),
-            'cooling' => $this->presentDeposits($this->cooling()),
-            'readyToSweep' => $this->presentDeposits($this->readyToSweep()),
             'completedSweeps' => $this->presentDeposits($this->deposits(DepositAddressStatus::Swept)),
             'recent' => $this->present(
                 SubscriptionPayment::query()
@@ -64,14 +61,28 @@ final readonly class BuildBillingOverview
         ];
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * The signer's own account of itself.
+     *
+     * Cached because this page is refreshed freely and the call behind it makes
+     * RPC requests of its own. The failure branch reports that the signer could
+     * not be reached and nothing else: the exception carries internal hostnames
+     * and secret paths, and the page it would render on is a browser tab like
+     * any other.
+     *
+     * @return array<string, mixed>
+     */
     private function signerHealth(): array
     {
-        try {
-            return $this->signer->health();
-        } catch (\Throwable $exception) {
-            return ['ok' => false, 'locked' => true, 'error' => $exception->getMessage()];
-        }
+        return Cache::remember('billing.signer-health', now()->addSeconds(30), function (): array {
+            try {
+                return $this->signer->health();
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                return ['ok' => false, 'locked' => true, 'unreachable' => true];
+            }
+        });
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -234,54 +245,6 @@ final readonly class BuildBillingOverview
             ->get();
     }
 
-    /** @return Collection<int, DepositAddress> */
-    private function cooling(): Collection
-    {
-        $cutoff = now()->subHours((int) config('billing.sweep.cooling_hours', 72));
-
-        return DepositAddress::query()
-            ->with(['payment.user:id,name,email'])
-            ->where('status', DepositAddressStatus::Assigned->value)
-            ->whereHas('payment', fn ($query) => $query
-                ->where('status', PaymentStatus::Confirmed->value)
-                ->where(fn ($screening) => $screening
-                    ->where('screening_risk', ScreeningRisk::NoMatch->value)
-                    ->orWhereHas('screenings', fn ($attempt) => $attempt
-                        ->where('stage', ScreeningStage::Settlement->value)
-                        ->where('risk', ScreeningRisk::NoMatch->value)))
-                ->where(fn ($date) => $date
-                    ->whereNull('block_timestamp')
-                    ->orWhere('block_timestamp', '>', $cutoff)))
-            ->oldest('assigned_at')
-            ->limit(50)
-            ->get();
-    }
-
-    /** @return Collection<int, DepositAddress> */
-    private function readyToSweep(): Collection
-    {
-        $cutoff = now()->subHours((int) config('billing.sweep.cooling_hours', 72));
-
-        return DepositAddress::query()
-            ->with(['payment.user:id,name,email'])
-            ->whereIn('status', [
-                DepositAddressStatus::Assigned->value,
-                DepositAddressStatus::SweepAuthorized->value,
-            ])
-            ->whereHas('payment', fn ($query) => $query
-                ->where('status', PaymentStatus::Confirmed->value)
-                ->where(fn ($screening) => $screening
-                    ->where('screening_risk', ScreeningRisk::NoMatch->value)
-                    ->orWhereHas('screenings', fn ($attempt) => $attempt
-                        ->where('stage', ScreeningStage::Settlement->value)
-                        ->where('risk', ScreeningRisk::NoMatch->value)))
-                ->whereNotNull('block_timestamp')
-                ->where('block_timestamp', '<=', $cutoff))
-            ->oldest('assigned_at')
-            ->limit(50)
-            ->get();
-    }
-
     /**
      * @param  Collection<int, DepositAddress>  $deposits
      * @return array<int, array<string, mixed>>
@@ -293,8 +256,8 @@ final readonly class BuildBillingOverview
 
             return [
                 'id' => $deposit->getKey(),
-                'network' => $deposit->network->value,
-                'network_label' => $deposit->network->label(),
+                'network' => $deposit->network?->value,
+                'network_label' => $deposit->network?->label(),
                 'address' => $deposit->address,
                 'derivation_index' => $deposit->derivation_index,
                 'status' => $deposit->status->value,
@@ -303,14 +266,10 @@ final readonly class BuildBillingOverview
                 'asset' => $payment?->asset->value,
                 'asset_symbol' => $payment?->asset->symbol(),
                 'amount' => $payment?->received_amount,
-                'requires_conversion' => $payment?->asset !== null && $payment->asset !== SettlementAsset::Eth,
                 'screening_risk' => $payment?->screening_risk?->value,
                 'block_timestamp' => $payment?->block_timestamp?->toIso8601String(),
                 'quarantine_reason' => $deposit->quarantine_reason,
                 'quarantined_at' => $deposit->quarantined_at?->toIso8601String(),
-                'authorization_expires_at' => $deposit->sweep_authorization_expires_at?->toIso8601String(),
-                'sweep_tx_hash' => $deposit->sweep_tx_hash,
-                'conversion_tx_hash' => $deposit->conversion_tx_hash,
                 'swept_at' => $deposit->swept_at?->toIso8601String(),
             ];
         })->values()->all();

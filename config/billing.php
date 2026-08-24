@@ -184,6 +184,24 @@ return [
         'driver' => env('BILLING_SCREENING_DRIVER', 'oracle'),
         'timeout' => env('BILLING_SCREENING_TIMEOUT', 8),
         'connect_timeout' => env('BILLING_SCREENING_CONNECT_TIMEOUT', 4),
+
+        /*
+        | Endpoints the oracle is read through, and they should not be the ones
+        | that verify payments.
+        |
+        | A single provider answering both questions can say "this payment
+        | confirmed" and "this sender is clean" in the same breath, which makes
+        | the whole screening layer worth exactly as much as that one provider's
+        | honesty. Give two or more and every definitive answer must agree
+        | before it is believed; disagreement reads as Unknown and holds the
+        | funds. Empty falls back to the network's own endpoints, which works
+        | but buys you nothing.
+        */
+        'rpc_urls' => [
+            'ethereum' => array_values(array_filter(array_map('trim', explode(',', (string) env('BILLING_ETHEREUM_SCREENING_RPC_URLS', ''))))),
+            'arbitrum' => array_values(array_filter(array_map('trim', explode(',', (string) env('BILLING_ARBITRUM_SCREENING_RPC_URLS', ''))))),
+        ],
+
         'oracle' => [
             'contracts' => [
                 'ethereum' => env('BILLING_ETHEREUM_SANCTIONS_ORACLE', '0x40c57923924b5c5c5455c48d93317139addac8fb'),
@@ -205,16 +223,26 @@ return [
         'connect_timeout' => env('BILLING_SIGNER_CONNECT_TIMEOUT', 3),
     ],
 
+    /*
+    | Vault addresses, mirrored here so `billing:verify-settlement` can check
+    | them against what the signer reports before anything is switched on.
+    |
+    | Nothing in this application moves funds, and these values are not what the
+    | signer sweeps to — it reads its own environment for that, which is the
+    | reason a compromise of this application cannot redirect a payment. The
+    | slippage, gas and quote tunables that used to sit here have been removed
+    | rather than left to be edited hopefully: they lived only in the signer,
+    | and a copy here that changed nothing was worse than no copy at all.
+    */
     'settlement' => [
         'vaults' => [
             'ethereum' => env('BILLING_ETHEREUM_SAFE_VAULT_ADDRESS'),
             'arbitrum' => env('BILLING_ARBITRUM_SAFE_VAULT_ADDRESS'),
         ],
-        'gas_buffer_percent' => env('BILLING_GAS_BUFFER_PERCENT', 25),
-        'max_slippage_bps' => env('BILLING_MAX_SLIPPAGE_BPS', 100),
-        'max_price_deviation_bps' => env('BILLING_MAX_PRICE_DEVIATION_BPS', 200),
-        'quote_lifetime_seconds' => env('BILLING_QUOTE_LIFETIME_SECONDS', 60),
-        'max_remaining_native_wei' => env('BILLING_MAX_REMAINING_NATIVE_WEI', '10000000000000'),
+        'risk_vaults' => [
+            'ethereum' => env('BILLING_ETHEREUM_RISK_VAULT_ADDRESS'),
+            'arbitrum' => env('BILLING_ARBITRUM_RISK_VAULT_ADDRESS'),
+        ],
     ],
 
     'risk' => [

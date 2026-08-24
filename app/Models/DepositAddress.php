@@ -25,18 +25,6 @@ class DepositAddress extends Model
         return $this->belongsTo(SubscriptionPayment::class, 'assigned_payment_id');
     }
 
-    /** @return BelongsTo<User, DepositAddress> */
-    public function sweepAuthorizedByAdmin(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'sweep_authorized_by_admin_id');
-    }
-
-    /** @return BelongsTo<User, DepositAddress> */
-    public function sweptByAdmin(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'swept_by_admin_id');
-    }
-
     /** @param  Builder<static>  $query */
     #[Scope]
     protected function available(Builder $query): void
@@ -52,9 +40,8 @@ class DepositAddress extends Model
             'status' => DepositAddressStatus::class,
             'assigned_at' => 'datetime',
             'quarantined_at' => 'datetime',
-            'sweep_authorized_at' => 'datetime',
-            'sweep_authorization_expires_at' => 'datetime',
             'swept_at' => 'datetime',
+            'recovered_at' => 'datetime',
         ];
     }
 }

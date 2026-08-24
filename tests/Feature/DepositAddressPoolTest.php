@@ -11,6 +11,7 @@ use App\Jobs\ReconcileSubscriptionsJob;
 use App\Models\DepositAddress;
 use App\Models\User;
 use App\Support\Billing\BillingCatalog;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Artisan;
 
 beforeEach(function () {
@@ -28,18 +29,28 @@ function depositCsv(string $contents): string
 test('offline csv import validates normalizes and imports atomically', function () {
     DepositAddress::query()->delete();
 
-    $valid = depositCsv("network,derivation_index,address\nethereum,4,0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\narbitrum,4,0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\n");
+    $valid = depositCsv('derivation_index,address
+4,0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+5,0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+');
 
     $exitCode = Artisan::call('billing:import-deposit-addresses', ['file' => $valid]);
 
     expect($exitCode)->toBe(0)
         ->and(Artisan::output())->toContain('Imported 2 deposit address(es).');
 
+    // Imported without a network, the same shape the signer's own batches take:
+    // one key controls the address on every chain, and the payment that claims
+    // it decides which chain that turns out to be.
     expect(DepositAddress::query()->count())->toBe(2)
-        ->and(DepositAddress::query()->where('network', 'ethereum')->sole()->address)
+        ->and(DepositAddress::query()->whereNotNull('network')->count())->toBe(0)
+        ->and(DepositAddress::query()->where('derivation_index', 4)->sole()->address)
         ->toBe('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
 
-    $conflict = depositCsv("network,derivation_index,address\nethereum,5,0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\nethereum,4,0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\n");
+    $conflict = depositCsv('derivation_index,address
+6,0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+4,0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+');
     $before = DepositAddress::query()->count();
 
     $this->artisan('billing:import-deposit-addresses', ['file' => $conflict])->assertFailed();
@@ -53,16 +64,60 @@ test('offline csv import validates normalizes and imports atomically', function 
 test('csv import rejects secret columns and duplicate indexes or addresses', function () {
     DepositAddress::query()->delete();
 
-    $secret = depositCsv("network,derivation_index,address,private_key\nethereum,1,0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,secret\n");
-    $duplicate = depositCsv("network,derivation_index,address\nethereum,1,0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nethereum,1,0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n");
+    $secret = depositCsv('derivation_index,address,private_key
+1,0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,secret
+');
+    $duplicateIndex = depositCsv('derivation_index,address
+1,0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+1,0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+');
+    $duplicateAddress = depositCsv('derivation_index,address
+1,0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2,0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+');
 
     $this->artisan('billing:import-deposit-addresses', ['file' => $secret])->assertFailed();
-    $this->artisan('billing:import-deposit-addresses', ['file' => $duplicate])->assertFailed();
+    $this->artisan('billing:import-deposit-addresses', ['file' => $duplicateIndex])->assertFailed();
+    $this->artisan('billing:import-deposit-addresses', ['file' => $duplicateAddress])->assertFailed();
 
     expect(DepositAddress::query()->count())->toBe(0);
 
     unlink($secret);
-    unlink($duplicate);
+    unlink($duplicateIndex);
+    unlink($duplicateAddress);
+});
+
+test('the schema refuses a reused address or derivation index outright', function () {
+    DepositAddress::query()->delete();
+
+    DepositAddress::create([
+        'key_version' => 'v1',
+        'network' => null,
+        'derivation_index' => 7,
+        'address' => '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        'status' => DepositAddressStatus::Available,
+    ]);
+
+    // A pooled row carries a null network, and MySQL does not treat two NULLs
+    // as equal — so a uniqueness rule that mentioned network constrained
+    // nothing at all here. These two inserts are the regression.
+    expect(fn () => DepositAddress::create([
+        'key_version' => 'v1',
+        'network' => PaymentNetwork::Arbitrum,
+        'derivation_index' => 8,
+        'address' => '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        'status' => DepositAddressStatus::Available,
+    ]))->toThrow(QueryException::class);
+
+    expect(fn () => DepositAddress::create([
+        'key_version' => 'v1',
+        'network' => PaymentNetwork::Arbitrum,
+        'derivation_index' => 7,
+        'address' => '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        'status' => DepositAddressStatus::Available,
+    ]))->toThrow(QueryException::class);
+
+    expect(DepositAddress::query()->count())->toBe(1);
 });
 
 test('each intent atomically consumes a distinct address and equivalent retries consume none', function () {

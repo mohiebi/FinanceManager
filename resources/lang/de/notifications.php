@@ -119,6 +119,11 @@ return [
         'body_generic' => ':email hat eine vierte markierte Wallet eingereicht. Der Zugang wird verweigert.',
         'email_body' => ':email hat eine vierte markierte Wallet eingereicht. Diese Zahlung kann nicht in den Ausnahmeprozess aufgenommen werden.',
     ],
+    'signer_locked' => [
+        'title' => 'Der Wallet-Signer ist gesperrt',
+        'body_generic' => ':count Abrechnung(en) können erst nach dem Entsperren laufen.',
+        'email_body' => 'Der Wallet-Signer wurde neu gestartet und wartet auf das Entsperren. :count Abrechnung(en) können bis dahin nicht laufen, und hinter jeder davon liegt echtes Geld auf einer Einzahlungsadresse. Entsperren mit: docker exec -i cashpilot-wallet-signer node dist/cli.js unlock',
+    ],
     'settlement_needs_attention' => [
         'title' => 'Eine automatische Abwicklung benötigt Aufmerksamkeit',
         'body_generic' => 'Abwicklung :operation wurde bei :reason gestoppt.',

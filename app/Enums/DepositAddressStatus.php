@@ -9,7 +9,7 @@ enum DepositAddressStatus: string
     case RiskReview = 'risk_review';
     case Settling = 'settling';
     case Retired = 'retired';
-    case SweepAuthorized = 'sweep_authorized';
     case Swept = 'swept';
+    case Recovered = 'recovered';
     case Quarantined = 'quarantined';
 }

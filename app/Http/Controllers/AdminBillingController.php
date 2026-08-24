@@ -4,23 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Actions\Admin\BuildBillingOverview;
 use App\Actions\Admin\BuildCouponOverview;
-use App\Actions\Billing\AuthorizeDepositSweep;
 use App\Actions\Billing\AuthorizeRiskSettlement;
 use App\Actions\Billing\GrantProAccess;
 use App\Actions\Billing\GrantRiskPayment;
-use App\Actions\Billing\RecordDepositSweep;
 use App\Actions\Billing\RevokeProAccess;
 use App\Actions\Billing\SettleCouponRedemption;
 use App\Enums\DepositAddressStatus;
 use App\Enums\GrantReason;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentStatus;
-use App\Exceptions\SweepAuthorizationDenied;
-use App\Exceptions\SweepRecordRejected;
 use App\Jobs\ProcessPaymentSettlementJob;
 use App\Jobs\ScreenSubscriptionPaymentJob;
 use App\Jobs\VerifySubscriptionPaymentJob;
-use App\Models\DepositAddress;
 use App\Models\PaymentRiskCase;
 use App\Models\PaymentSettlement;
 use App\Models\RiskAddress;
@@ -136,46 +131,6 @@ class AdminBillingController extends Controller
         }
 
         return back()->with('status', __('billing.admin.rechecking'));
-    }
-
-    public function authorizeSweep(
-        Request $request,
-        DepositAddress $depositAddress,
-        AuthorizeDepositSweep $authorizeDepositSweep,
-    ): RedirectResponse {
-        try {
-            $authorizeDepositSweep($depositAddress, $request->user());
-        } catch (SweepAuthorizationDenied $exception) {
-            return back()->withErrors(['sweep' => __("billing.admin.sweep_errors.{$exception->reason}")]);
-        }
-
-        return back()->with('status', __('billing.admin.sweep_authorized'));
-    }
-
-    public function recordSweep(
-        Request $request,
-        DepositAddress $depositAddress,
-        RecordDepositSweep $recordDepositSweep,
-    ): RedirectResponse {
-        $validated = $request->validate([
-            'note' => ['required', 'string', 'min:3', 'max:2000'],
-            'sweep_tx_hash' => ['required', 'string', 'max:80'],
-            'conversion_tx_hash' => ['nullable', 'string', 'max:80'],
-        ]);
-
-        try {
-            $recordDepositSweep(
-                depositAddress: $depositAddress,
-                admin: $request->user(),
-                note: $validated['note'],
-                sweepTransactionHash: $validated['sweep_tx_hash'],
-                conversionTransactionHash: $validated['conversion_tx_hash'] ?? null,
-            );
-        } catch (SweepRecordRejected $exception) {
-            return back()->withErrors(['sweep' => __("billing.admin.sweep_errors.{$exception->reason}")]);
-        }
-
-        return back()->with('status', __('billing.admin.sweep_recorded'));
     }
 
     public function authorizeRiskCase(Request $request, PaymentRiskCase $riskCase, AuthorizeRiskSettlement $authorize): RedirectResponse

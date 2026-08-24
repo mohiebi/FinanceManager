@@ -2,7 +2,6 @@
 
 use App\Actions\Billing\FinalizeScreenedPayment;
 use App\Enums\DepositAddressStatus;
-use App\Enums\PaymentNetwork;
 use App\Enums\PaymentStatus;
 use App\Enums\ScreeningRisk;
 use App\Models\DepositAddress;
@@ -232,25 +231,23 @@ function enableBilling(array $overrides = []): void
         return;
     }
 
-    foreach (PaymentNetwork::cases() as $network) {
-        if (! config("billing.networks.{$network->value}.enabled", false)) {
-            continue;
-        }
+    // Mirrors production: the pool is derived once and carries no network until
+    // a payment claims one, because a single EVM key controls the same address
+    // on every chain. Seeding one pool per network instead would hand two rows
+    // the same address, which the schema now refuses outright.
+    if (DepositAddress::query()->exists()) {
+        return;
+    }
 
-        if (DepositAddress::query()->where('network', $network->value)->exists()) {
-            continue;
-        }
-
-        foreach (range(0, 39) as $index) {
-            DepositAddress::create([
-                'network' => $network,
-                'derivation_index' => $index,
-                'address' => $index === 0
-                    ? TEST_RECEIVING_ADDRESS
-                    : '0x'.str_pad(dechex($index + 1), 40, '0', STR_PAD_LEFT),
-                'status' => DepositAddressStatus::Available,
-            ]);
-        }
+    foreach (range(0, 79) as $index) {
+        DepositAddress::create([
+            'network' => null,
+            'derivation_index' => $index,
+            'address' => $index === 0
+                ? TEST_RECEIVING_ADDRESS
+                : '0x'.str_pad(dechex($index + 1), 40, '0', STR_PAD_LEFT),
+            'status' => DepositAddressStatus::Available,
+        ]);
     }
 }
 

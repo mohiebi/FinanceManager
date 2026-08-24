@@ -24,19 +24,33 @@ export class RequestAuthenticator {
         const now = Math.floor(Date.now() / 1000);
         if (!/^\d+$/.test(timestamp) || Math.abs(now - timestampNumber) > 300 || !/^[0-9a-f-]{36}$/i.test(nonce) || !/^[0-9a-f]{64}$/i.test(signature)) return false;
         this.prune(now);
+
+        // Claimed here rather than after the signature check. Reading the secret
+        // below yields the event loop, so two concurrent copies of one request
+        // would otherwise both pass this test and both be accepted. A request
+        // that then fails to authenticate hands the nonce back.
         if (this.nonces.has(nonce)) return false;
-        const secret = (await readFile(this.secretFile, 'utf8')).trim();
-        if (secret.length < 32) return false;
-        const canonical = [timestamp, nonce, method, path, createHash('sha256').update(body).digest('hex')].join('\n');
-        const expected = createHmac('sha256', secret).update(canonical).digest();
-        const supplied = Buffer.from(signature, 'hex');
-        if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return false;
         this.nonces.set(nonce, timestampNumber);
+
+        if (!await this.hasValidSignature(timestamp, nonce, method, path, body, signature)) {
+            this.nonces.delete(nonce);
+            return false;
+        }
+
         const snapshot = JSON.stringify(Object.fromEntries(this.nonces));
         const persist = this.persistQueue.then(() => writeFile(this.nonceFile, snapshot, { mode: 0o600 }));
         this.persistQueue = persist.catch(() => undefined);
         await persist;
         return true;
+    }
+
+    private async hasValidSignature(timestamp: string, nonce: string, method: string, path: string, body: string, signature: string): Promise<boolean> {
+        const secret = (await readFile(this.secretFile, 'utf8')).trim();
+        if (secret.length < 32) return false;
+        const canonical = [timestamp, nonce, method, path, createHash('sha256').update(body).digest('hex')].join('\n');
+        const expected = createHmac('sha256', secret).update(canonical).digest();
+        const supplied = Buffer.from(signature, 'hex');
+        return supplied.length === expected.length && timingSafeEqual(supplied, expected);
     }
 
     private prune(now: number): void {

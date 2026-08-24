@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Enums\DepositAddressStatus;
-use App\Enums\PaymentNetwork;
 use App\Models\DepositAddress;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -12,12 +11,19 @@ use Illuminate\Support\Facades\DB;
 use SplFileObject;
 use Throwable;
 
-#[Signature('billing:import-deposit-addresses {file : CSV containing network, derivation_index, address} {--dry-run : Validate without importing}')]
+#[Signature('billing:import-deposit-addresses {file : CSV containing derivation_index, address} {--dry-run : Validate without importing}')]
 #[Description('Import public, offline-generated single-use billing addresses')]
 class ImportDepositAddresses extends Command
 {
-    /** @var array<int, string> */
-    private const HEADERS = ['network', 'derivation_index', 'address'];
+    /**
+     * @var array<int, string>
+     *
+     * No network column. One EVM key controls the same address on every chain,
+     * so a pooled address belongs to no network until a payment claims one —
+     * and a CSV that named a network produced two rows sharing one derivation
+     * index, which the schema now refuses outright.
+     */
+    private const HEADERS = ['derivation_index', 'address'];
 
     /**
      * Execute the console command.
@@ -51,6 +57,8 @@ class ImportDepositAddresses extends Command
             foreach ($rows as $row) {
                 DepositAddress::create([
                     ...$row,
+                    'key_version' => (string) config('billing.signer.key_version', 'v1'),
+                    'network' => null,
                     'status' => DepositAddressStatus::Available,
                 ]);
             }
@@ -61,7 +69,7 @@ class ImportDepositAddresses extends Command
         return self::SUCCESS;
     }
 
-    /** @return array<int, array{network: string, derivation_index: int, address: string}> */
+    /** @return array<int, array{derivation_index: int, address: string}> */
     private function readRows(string $path): array
     {
         $file = new SplFileObject($path, 'r');
@@ -79,7 +87,7 @@ class ImportDepositAddresses extends Command
         );
 
         if ($headers !== self::HEADERS) {
-            throw new \RuntimeException('CSV headers must be exactly: network,derivation_index,address. Secret or additional columns are forbidden.');
+            throw new \RuntimeException('CSV headers must be exactly: derivation_index,address. Secret or additional columns are forbidden.');
         }
 
         $rows = [];
@@ -100,25 +108,20 @@ class ImportDepositAddresses extends Command
                 throw new \RuntimeException("CSV row {$line} has the wrong number of columns.");
             }
 
-            $network = PaymentNetwork::tryFrom(mb_strtolower(trim((string) $values[0])));
-            $index = filter_var(trim((string) $values[1]), FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
-            $address = mb_strtolower(trim((string) $values[2]));
+            $index = filter_var(trim((string) $values[0]), FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+            $address = mb_strtolower(trim((string) $values[1]));
 
-            if ($network === null || $index === false || preg_match('/^0x[0-9a-f]{40}$/', $address) !== 1) {
-                throw new \RuntimeException("CSV row {$line} contains an invalid network, derivation index, or EVM address.");
+            if ($index === false || preg_match('/^0x[0-9a-f]{40}$/', $address) !== 1) {
+                throw new \RuntimeException("CSV row {$line} contains an invalid derivation index or EVM address.");
             }
 
-            $indexKey = $network->value.':'.$index;
-            $addressKey = $network->value.':'.$address;
-
-            if (isset($seenIndexes[$indexKey]) || isset($seenAddresses[$addressKey])) {
-                throw new \RuntimeException("CSV row {$line} duplicates an earlier network index or address.");
+            if (isset($seenIndexes[$index]) || isset($seenAddresses[$address])) {
+                throw new \RuntimeException("CSV row {$line} duplicates an earlier derivation index or address.");
             }
 
-            $seenIndexes[$indexKey] = true;
-            $seenAddresses[$addressKey] = true;
+            $seenIndexes[$index] = true;
+            $seenAddresses[$address] = true;
             $rows[] = [
-                'network' => $network->value,
                 'derivation_index' => $index,
                 'address' => $address,
             ];
@@ -131,19 +134,22 @@ class ImportDepositAddresses extends Command
         return $rows;
     }
 
-    /** @param  array<int, array{network: string, derivation_index: int, address: string}>  $rows */
+    /** @param  array<int, array{derivation_index: int, address: string}>  $rows */
     private function assertDatabaseHasNoConflicts(array $rows): void
     {
+        $keyVersion = (string) config('billing.signer.key_version', 'v1');
+
         foreach ($rows as $row) {
             $exists = DepositAddress::query()
-                ->where('network', $row['network'])
                 ->where(fn ($query) => $query
-                    ->where('derivation_index', $row['derivation_index'])
-                    ->orWhere('address', $row['address']))
+                    ->where('address', $row['address'])
+                    ->orWhere(fn ($derivation) => $derivation
+                        ->where('key_version', $keyVersion)
+                        ->where('derivation_index', $row['derivation_index'])))
                 ->exists();
 
             if ($exists) {
-                throw new \RuntimeException("A {$row['network']} address or derivation index already exists in the pool.");
+                throw new \RuntimeException("Address {$row['address']} or derivation index {$row['derivation_index']} already exists in the pool.");
             }
         }
     }

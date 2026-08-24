@@ -1,0 +1,214 @@
+<?php
+
+use App\Actions\Billing\FinalizeScreenedPayment;
+use App\Contracts\Billing\AddressScreener;
+use App\Enums\DepositAddressStatus;
+use App\Enums\PaymentNetwork;
+use App\Enums\PaymentStatus;
+use App\Enums\ScreeningRisk;
+use App\Enums\SettlementStatus;
+use App\Jobs\ProcessPaymentSettlementJob;
+use App\Jobs\RequeueStalledSettlementsJob;
+use App\Jobs\ScreenSubscriptionPaymentJob;
+use App\Models\DepositAddress;
+use App\Models\PaymentSettlement;
+use App\Models\SubscriptionPayment;
+use App\Models\User;
+use App\Notifications\SignerLockedNotification;
+use App\Services\Billing\WalletSignerClient;
+use App\Support\Billing\ScreeningResult;
+use App\Support\Billing\ScreeningSubject;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
+
+beforeEach(function () {
+    enableBilling();
+    config()->set(['billing.signer.secret_file' => $this->signerSecret = tempnam(sys_get_temp_dir(), 'signer-secret-')]);
+    file_put_contents($this->signerSecret, str_repeat('a', 64));
+});
+
+afterEach(function () {
+    if (is_string($this->signerSecret ?? null) && is_file($this->signerSecret)) {
+        unlink($this->signerSecret);
+    }
+});
+
+function settleablePayment(array $overrides = []): SubscriptionPayment
+{
+    static $sequence = 0;
+
+    $sequence++;
+    $address = '0x'.str_pad(dechex($sequence), 40, '7', STR_PAD_LEFT);
+    $txHash = '0x'.str_pad(dechex($sequence), 64, 'b', STR_PAD_LEFT);
+    $payment = SubscriptionPayment::factory()->submitted($txHash)->create([
+        'user_id' => User::factory()->create()->getKey(),
+        'pay_to_address' => $address,
+        'from_address' => '0x2222222222222222222222222222222222222222',
+        'chain_verified_at' => now(),
+        ...$overrides,
+    ]);
+
+    DepositAddress::factory()->create([
+        'network' => PaymentNetwork::Ethereum,
+        'address' => $address,
+        'status' => DepositAddressStatus::Assigned,
+        'assigned_payment_id' => $payment->getKey(),
+        'assigned_at' => now(),
+    ]);
+
+    return $payment->fresh(['depositAddress']);
+}
+
+test('the signer is told what actually arrived rather than what was quoted', function () {
+    // An exchange shaved a fee off, an administrator honoured it anyway. Sending
+    // the quoted figure here meant the signer compared the deposit balance
+    // against a number that address could never hold, and every such settlement
+    // ended in review no matter how correct the admin decision was.
+    $payment = settleablePayment([
+        'expected_amount' => '5.004317',
+        'received_amount' => '5.003000',
+        'asset_decimals' => 6,
+    ]);
+
+    expect($payment->settlementBaseUnits())->toBe('5003000')
+        ->and($payment->expectedBaseUnits())->toBe('5004317');
+
+    $captured = null;
+    Http::fake(function (Request $request) use (&$captured) {
+        $captured = $request->data();
+
+        return Http::response(['status' => 'submitted']);
+    });
+
+    app(WalletSignerClient::class)->startSettlement($payment, (string) Str::uuid());
+
+    expect($captured['verifiedAmount'])->toBe('5003000')
+        ->and($captured['kind'])->toBe('settlement');
+});
+
+test('a payment with no readable amount still falls back to the quote', function () {
+    $payment = settleablePayment([
+        'expected_amount' => '5.004317',
+        'received_amount' => null,
+        'asset_decimals' => 6,
+    ]);
+
+    expect($payment->settlementBaseUnits())->toBe('5004317');
+});
+
+test('screening runs for an approved payment whose transfer amount was never readable', function () {
+    // Native ether moved inside a contract call: real money, genuinely paid,
+    // with no value a receipt can be read for. Requiring a received amount here
+    // stranded the exact case the approve button exists for.
+    Queue::fake();
+    $payment = settleablePayment(['received_amount' => null]);
+
+    app(ScreenSubscriptionPaymentJob::class, ['paymentId' => $payment->getKey()])
+        ->handle(
+            new class implements AddressScreener
+            {
+                public function screen(ScreeningSubject $subject): ScreeningResult
+                {
+                    return new ScreeningResult(
+                        ScreeningRisk::NoMatch,
+                        'test',
+                        screenedAt: now()->toImmutable(),
+                    );
+                }
+            },
+            app(FinalizeScreenedPayment::class),
+        );
+
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Confirmed)
+        ->and($payment->fresh()->screening_risk)->toBe(ScreeningRisk::NoMatch);
+});
+
+test('stalled settlements are re-driven and ones awaiting a person are left alone', function () {
+    Queue::fake();
+    Http::fake(fn () => Http::response(['ok' => true, 'locked' => false]));
+
+    $stalled = PaymentSettlement::query()->create([
+        'subscription_payment_id' => settleablePayment()->getKey(),
+        'operation_id' => (string) Str::uuid(),
+        'status' => SettlementStatus::RetryableFailure,
+    ]);
+    $needsReview = PaymentSettlement::query()->create([
+        'subscription_payment_id' => settleablePayment()->getKey(),
+        'operation_id' => (string) Str::uuid(),
+        'status' => SettlementStatus::NeedsReview,
+    ]);
+    $fresh = PaymentSettlement::query()->create([
+        'subscription_payment_id' => settleablePayment()->getKey(),
+        'operation_id' => (string) Str::uuid(),
+        'status' => SettlementStatus::Processing,
+    ]);
+
+    PaymentSettlement::query()->whereKey([$stalled->getKey(), $needsReview->getKey()])
+        ->update(['updated_at' => now()->subHour()]);
+
+    app(RequeueStalledSettlementsJob::class)->handle(app(WalletSignerClient::class));
+
+    Queue::assertPushed(ProcessPaymentSettlementJob::class, 1);
+    Queue::assertPushed(
+        ProcessPaymentSettlementJob::class,
+        fn (ProcessPaymentSettlementJob $job) => $job->settlementId === $stalled->getKey(),
+    );
+    expect($fresh->fresh()->status)->toBe(SettlementStatus::Processing);
+});
+
+test('a signer left locked after a restart raises exactly one alert', function () {
+    // Every container restart leaves it locked by design, and nothing else
+    // notices: settlements just fail retryably and stop.
+    Notification::fake();
+    $admin = User::factory()->create(['email' => 'ops@example.test']);
+    config()->set('app.admin_email', 'ops@example.test');
+    Http::fake(fn () => Http::response(['ok' => true, 'locked' => true]));
+
+    app(RequeueStalledSettlementsJob::class)->handle(app(WalletSignerClient::class));
+    app(RequeueStalledSettlementsJob::class)->handle(app(WalletSignerClient::class));
+
+    Notification::assertSentToTimes($admin, SignerLockedNotification::class, 1);
+});
+
+test('recovery refuses quarantined funds and any address a payment still owns', function () {
+    foreach ([DepositAddressStatus::Quarantined, DepositAddressStatus::Assigned, DepositAddressStatus::Settling] as $status) {
+        $address = DepositAddress::factory()->create([
+            'network' => PaymentNetwork::Ethereum,
+            'status' => $status,
+        ]);
+
+        $this->artisan('billing:recover-address', ['address' => $address->address, '--force' => true])
+            ->assertFailed();
+
+        expect($address->fresh()->status)->toBe($status)
+            ->and($address->fresh()->recovery_operation_id)->toBeNull();
+    }
+});
+
+test('recovery sweeps a retired address and records the operation for resumption', function () {
+    $address = DepositAddress::factory()->create([
+        'network' => PaymentNetwork::Ethereum,
+        'status' => DepositAddressStatus::Retired,
+    ]);
+
+    $captured = null;
+    Http::fake(function (Request $request) use (&$captured) {
+        $captured = $request->data();
+
+        return Http::response(['status' => 'completed', 'stage' => 'completed', 'transactionHashes' => ['vault_sweep' => '0x'.str_repeat('a', 64)]]);
+    });
+
+    Artisan::call('billing:recover-address', ['address' => $address->address, '--force' => true]);
+
+    expect($address->fresh()->status)->toBe(DepositAddressStatus::Recovered)
+        ->and($address->fresh()->recovered_at)->not->toBeNull()
+        ->and($address->fresh()->recovery_operation_id)->not->toBeNull()
+        // The destination is never named by the caller — it is whatever the
+        // signer's own configuration says the risk vault is.
+        ->and($captured)->not->toHaveKey('destination')
+        ->and($captured['derivationIndex'])->toBe($address->derivation_index);
+});

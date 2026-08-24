@@ -2,7 +2,9 @@
 
 namespace App\Services\Billing;
 
+use App\Enums\PaymentNetwork;
 use App\Exceptions\SignerUnavailable;
+use App\Models\DepositAddress;
 use App\Models\SubscriptionPayment;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
@@ -32,6 +34,7 @@ final readonly class WalletSignerClient
     public function startSettlement(SubscriptionPayment $payment, string $operationId): array
     {
         return $this->request('POST', '/v1/settlements', [
+            'kind' => 'settlement',
             'operationId' => $operationId,
             'paymentId' => (string) $payment->getKey(),
             'network' => $payment->network->value,
@@ -41,10 +44,34 @@ final readonly class WalletSignerClient
             'depositAddress' => $payment->pay_to_address,
             'asset' => $payment->asset->value,
             'tokenContract' => $payment->token_contract,
-            'verifiedAmount' => $payment->expectedBaseUnits(),
+            // What is actually at the address, not what we asked for. See
+            // SubscriptionPayment::settlementBaseUnits().
+            'verifiedAmount' => $payment->settlementBaseUnits(),
             'chainVerified' => $payment->chain_verified_at !== null,
-            'screeningRisk' => $payment->screening_risk?->value,
+            'screeningRisk' => $payment->screening_risk?->value ?? 'unscreened',
             'riskAuthorized' => $payment->riskCase?->authorized_at !== null,
+        ]);
+    }
+
+    /**
+     * Move whatever is stranded at an address no payment will ever settle.
+     *
+     * Names an address and a reason and nothing else. The destination is the
+     * signer's own configured risk vault, so this widens what an attacker
+     * holding the HMAC secret can schedule, never where the funds can go.
+     *
+     * @return array<string, mixed>
+     */
+    public function startRecovery(DepositAddress $depositAddress, PaymentNetwork $network, string $operationId, string $reason): array
+    {
+        return $this->request('POST', '/v1/recoveries', [
+            'operationId' => $operationId,
+            'network' => $network->value,
+            'chainId' => $network->chainId(),
+            'derivationIndex' => $depositAddress->derivation_index,
+            'keyVersion' => $depositAddress->key_version,
+            'depositAddress' => $depositAddress->address,
+            'reason' => $reason,
         ]);
     }
 
@@ -52,6 +79,12 @@ final readonly class WalletSignerClient
     public function settlement(string $operationId): array
     {
         return $this->request('GET', "/v1/settlements/{$operationId}");
+    }
+
+    /** @return array<string, mixed> */
+    public function recovery(string $operationId): array
+    {
+        return $this->request('GET', "/v1/recoveries/{$operationId}");
     }
 
     /** @param array<string, mixed> $payload

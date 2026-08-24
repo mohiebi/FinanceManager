@@ -15,16 +15,19 @@ use App\Jobs\VerifySubscriptionPaymentJob;
 use App\Models\Coupon;
 use App\Models\CouponRedemption;
 use App\Models\DepositAddress;
+use App\Models\RiskAddress;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
 use App\Notifications\PaymentQuarantinedNotification;
 use App\Notifications\SubscriptionActivatedNotification;
 use App\Notifications\SubscriptionPaymentQuarantinedNotification;
+use App\Services\Billing\AddressScreenerFactory;
 use App\Services\Billing\ChainalysisSanctionsScreener;
 use App\Services\Billing\OnChainSanctionsOracleScreener;
 use App\Support\Billing\ScreeningResult;
 use App\Support\Billing\ScreeningSubject;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
@@ -83,7 +86,10 @@ function screenablePayment(?Coupon $coupon = null): SubscriptionPayment
     static $sequence = 0;
 
     $user = User::factory()->create();
-    $deposit = DepositAddress::query()->available()->where('network', 'ethereum')->firstOrFail();
+    // The pool carries no network until a payment claims one, exactly as in
+    // production, so the network is set on assignment below rather than looked
+    // up here.
+    $deposit = DepositAddress::query()->available()->orderBy('derivation_index')->firstOrFail();
     $payment = SubscriptionPayment::factory()->submitted()->create([
         'user_id' => $user->id,
         'tx_hash' => '0x'.str_pad(dechex(++$sequence), 64, 'a', STR_PAD_LEFT),
@@ -99,6 +105,7 @@ function screenablePayment(?Coupon $coupon = null): SubscriptionPayment
 
     $deposit->forceFill([
         'status' => DepositAddressStatus::Assigned,
+        'network' => PaymentNetwork::Ethereum,
         'assigned_payment_id' => $payment->id,
         'assigned_at' => now(),
     ])->save();
@@ -115,6 +122,88 @@ test('oracle returns no match and sanctioned only for valid chain responses', fu
 
     expect($screener->screen(screeningSubject())->risk)->toBe(ScreeningRisk::NoMatch)
         ->and($screener->screen(screeningSubject())->risk)->toBe(ScreeningRisk::Sanctioned);
+});
+
+test('a screening quorum believes an answer only when every endpoint agrees', function () {
+    // One provider answering both "did this payment confirm?" and "is this
+    // sender clean?" reduces screening to that provider's honesty, so screening
+    // gets its own endpoints and they have to agree.
+    config()->set('billing.screening.rpc_urls.ethereum', [
+        'https://screening-one.test/rpc',
+        'https://screening-two.test/rpc',
+    ]);
+
+    $verdicts = ['one' => '1', 'two' => '1'];
+    $statuses = ['one' => 200, 'two' => 200];
+
+    // A single fake with mutable state, because repeated Http::fake() calls
+    // stack rather than replace and the first matching stub keeps winning.
+    Http::fake(function (Request $request) use (&$verdicts, &$statuses) {
+        $endpoint = str_contains($request->url(), 'screening-one') ? 'one' : 'two';
+
+        return $statuses[$endpoint] === 200
+            ? Http::response(oracleResponse($verdicts[$endpoint]))
+            : Http::response(null, $statuses[$endpoint]);
+    });
+
+    $screener = app(OnChainSanctionsOracleScreener::class);
+
+    expect($screener->screen(screeningSubject())->risk)->toBe(ScreeningRisk::Sanctioned);
+
+    $verdicts = ['one' => '0', 'two' => '0'];
+    expect($screener->screen(screeningSubject())->risk)->toBe(ScreeningRisk::NoMatch);
+
+    // A provider claiming a sanctioned wallet is clean is exactly the attack
+    // this exists to survive: disagreement holds the funds rather than picking
+    // a side.
+    $verdicts = ['one' => '0', 'two' => '1'];
+    $disagreement = $screener->screen(screeningSubject());
+    expect($disagreement->risk)->toBe(ScreeningRisk::Unknown)
+        ->and($disagreement->errorCode)->toBe('endpoint_disagreement');
+
+    // A quorum that silently shrinks to whoever is reachable is not a quorum.
+    $verdicts = ['one' => '0', 'two' => '0'];
+    $statuses = ['one' => 200, 'two' => 503];
+    $unavailable = $screener->screen(screeningSubject());
+    expect($unavailable->risk)->toBe(ScreeningRisk::Unknown)
+        ->and($unavailable->errorCode)->toBe('endpoint_unavailable');
+});
+
+test('the buyer wallet pre-check never answers questions about the private risk list', function () {
+    // The endpoint takes any address a caller names, so consulting the operator's
+    // own list would turn it into an enumeration tool for that list — and a way
+    // to shop for a wallet that passes before paying with it.
+    config()->set('billing.screening.enabled', true);
+    $flagged = '0x9999999999999999999999999999999999999999';
+
+    RiskAddress::query()->create([
+        'network' => 'ethereum',
+        'address' => $flagged,
+        'source' => 'manual',
+        'reason' => 'Chargeback abuse.',
+        'active' => true,
+        'created_by_admin_id' => User::factory()->create()->getKey(),
+    ]);
+
+    Http::fake(fn () => Http::response(oracleResponse()));
+
+    $user = User::factory()->create();
+    $response = $this->actingAs($user)->postJson(route('billing.wallet-precheck'), [
+        'network' => 'ethereum',
+        'address' => $flagged,
+    ]);
+
+    $response->assertOk()->assertJsonPath('risk', ScreeningRisk::NoMatch->value);
+
+    // The full screen a real payment gets still catches it.
+    expect(app(AddressScreenerFactory::class)->configured()->screen(new ScreeningSubject(
+        network: PaymentNetwork::Ethereum,
+        transactionHash: '0x'.str_repeat('a', 64),
+        senderAddress: $flagged,
+        recipientAddress: TEST_RECEIVING_ADDRESS,
+        asset: SettlementAsset::Eth,
+        receivedAmount: '1',
+    ))->risk)->toBe(ScreeningRisk::Flagged);
 });
 
 test('oracle fails closed on malformed timeout wrong chain and unavailable contract responses', function () {

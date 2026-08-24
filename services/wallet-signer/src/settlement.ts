@@ -7,18 +7,21 @@ import {
     Mnemonic,
     Transaction,
     Wallet,
+    type Provider,
+    type TransactionReceipt,
     type TransactionRequest,
     getAddress,
     solidityPacked,
 } from 'ethers';
 import { config, type NetworkConfig } from './config.js';
 import { OperationStore } from './store.js';
-import type { Operation, SettlementRequest } from './types.js';
+import type { AssetName, Operation, SettlementRequest } from './types.js';
 
 const erc20Abi = [
     'function balanceOf(address) view returns (uint256)',
     'function allowance(address,address) view returns (uint256)',
     'function approve(address,uint256) returns (bool)',
+    'function transfer(address,uint256) returns (bool)',
     'function decimals() view returns (uint8)',
 ];
 const quoterAbi = [
@@ -47,21 +50,29 @@ export class SettlementRunner {
     }
 
     public async validate(request: SettlementRequest): Promise<void> {
-        if (!request.chainVerified) throw new Error('Payment has not been chain verified.');
-        if (request.screeningRisk === 'flagged' && !request.riskAuthorized) throw new Error('Flagged settlement is not authorized.');
-        if (!['no_match', 'flagged'].includes(request.screeningRisk)) throw new Error('Screening result is not settleable.');
         if (!Number.isSafeInteger(request.derivationIndex) || request.derivationIndex < 0) throw new Error('Invalid derivation index.');
-        if (!/^\d+$/.test(request.verifiedAmount) || BigInt(request.verifiedAmount) <= 0n) throw new Error('Invalid verified amount.');
+        if (request.keyVersion !== config.keyVersion) throw new Error('Unknown key version.');
 
         const phrase = this.mnemonic();
         if (!phrase) throw new Error('Signer is locked.');
         const root = HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(phrase), 'm');
         const derived = root.derivePath(`m/44'/60'/0'/0/${request.derivationIndex}`);
         if (derived.address.toLowerCase() !== getAddress(request.depositAddress).toLowerCase()) throw new Error('Deposit address does not match derivation path.');
-        if (request.keyVersion !== config.keyVersion) throw new Error('Unknown key version.');
 
         const network: NetworkConfig = config.networks[request.network];
         if (!network || request.chainId !== network.chainId) throw new Error('Unknown network or chain ID.');
+        if (network.rpcUrls.length === 0 || network.vault === '') throw new Error('Network is not configured for settlement.');
+
+        // A recovery carries no payment, so none of the payment invariants below
+        // apply to it. Proving the address came off our own derivation path is
+        // the whole check, and its funds go to the risk vault because nothing
+        // ever screened them.
+        if (request.kind === 'recovery') return;
+
+        if (!request.chainVerified) throw new Error('Payment has not been chain verified.');
+        if (request.screeningRisk === 'flagged' && !request.riskAuthorized) throw new Error('Flagged settlement is not authorized.');
+        if (!['no_match', 'flagged'].includes(request.screeningRisk)) throw new Error('Screening result is not settleable.');
+        if (!/^\d+$/.test(request.verifiedAmount) || BigInt(request.verifiedAmount) <= 0n) throw new Error('Invalid verified amount.');
         if (request.network === 'ethereum' && request.asset !== 'eth') throw new Error('Ethereum accepts ETH only.');
         if (request.asset !== 'eth' && network.tokens[request.asset]?.toLowerCase() !== request.tokenContract?.toLowerCase()) throw new Error('Token is not allowlisted.');
     }
@@ -81,7 +92,9 @@ export class SettlementRunner {
             if (Number(actualNetwork.chainId) !== network.chainId) throw new Error('RPC returned the wrong chain ID.');
             const deposit = new Wallet(root.derivePath(`m/44'/60'/0'/0/${operation.derivationIndex}`).privateKey, provider);
 
-            if (operation.asset === 'eth') {
+            if (operation.kind === 'recovery') {
+                await this.recover(operation, deposit, root, provider, network);
+            } else if (operation.asset === 'eth') {
                 await this.sweep(operation, deposit, network);
             } else {
                 await this.swapAndSweep(operation, deposit, root, provider, network);
@@ -105,11 +118,23 @@ export class SettlementRunner {
         await this.assertCode(provider, [network.router, network.quoter, network.weth, operation.tokenContract]);
         const token = new Contract(operation.tokenContract, erc20Abi, deposit);
         const asset = operation.asset as 'usdt' | 'usdc';
-        const amount = BigInt(operation.verifiedAmount);
+        const expected = BigInt(operation.verifiedAmount);
         const balance = BigInt(await token.getFunction('balanceOf').staticCall(deposit.address));
         operation.remainingTokenBalance = balance.toString();
-        if (balance !== amount) throw new Error(balance > amount ? 'extra_token_balance' : 'token_balance_mismatch');
 
+        // Less than the payment verified against means the deposit is not what
+        // we were told it was, and that is worth a person's attention. Anything
+        // at or above it settles in full: an overpayment, a dust transfer, and
+        // somebody adding a single wei to strand the sweep are all just balance
+        // to be moved.
+        if (balance < expected) throw new Error('token_balance_mismatch');
+
+        if (!operation.settleAmount) {
+            operation.settleAmount = balance.toString();
+            await this.store.put(operation);
+        }
+
+        const amount = BigInt(operation.settleAmount);
         const quote = await this.bestQuote(network, provider, asset, amount);
         await this.assertReferencePrice(network, provider, asset, amount, quote.amountOut);
         operation.quotedEth = quote.amountOut.toString();
@@ -118,22 +143,7 @@ export class SettlementRunner {
         await this.store.put(operation);
 
         await token.getFunction('approve').staticCall(network.router, amount);
-
-        const feeData = await provider.getFeeData();
-        const feePerGas = feeData.maxFeePerGas ?? feeData.gasPrice;
-        if (!feePerGas) throw new Error('fee_data_unavailable');
-        const topupGas = 70_000n + quote.gasEstimate + 100_000n;
-        const topup = topupGas * feePerGas * config.gasBufferBps / 10_000n;
-        if (topup > config.maxGasTopupWei) throw new Error('gas_topup_limit');
-        const gasWallet = new Wallet(root.derivePath("m/44'/60'/1'/0/0").privateKey, provider);
-        if (!operation.gasTopupWei) {
-            await this.assertGasLimits(topup);
-            const gasBalance = await provider.getBalance(gasWallet.address);
-            if (gasBalance < topup) throw new Error('gas_wallet_low_balance');
-            operation.gasTopupWei = topup.toString();
-            await this.store.put(operation);
-        }
-        await this.broadcast(operation, 'gas_topup', gasWallet, { to: deposit.address, value: BigInt(operation.gasTopupWei) });
+        await this.fundGas(operation, deposit, root, provider, 70_000n + quote.gasEstimate + 100_000n);
 
         const allowance = BigInt(await token.getFunction('allowance').staticCall(deposit.address, network.router));
         if (allowance !== amount) {
@@ -157,29 +167,130 @@ export class SettlementRunner {
 
         const remainingToken = BigInt(await token.getFunction('balanceOf').staticCall(deposit.address));
         operation.remainingTokenBalance = remainingToken.toString();
-        if (remainingToken !== 0n) throw new Error('token_balance_not_zero');
         operation.receivedEth = (await provider.getBalance(deposit.address)).toString();
+
+        // The ether reaches the vault before any residue is reported, so a token
+        // that landed mid-swap parks a review rather than the money.
         await this.sweep(operation, deposit, network);
+
+        if (remainingToken !== 0n) throw new Error('token_balance_not_zero');
+    }
+
+    /**
+     * Move whatever is stranded at a derived address somewhere safe.
+     *
+     * Tokens are transferred as they are rather than swapped: recovery is about
+     * getting funds out of an address nothing else will ever touch again, not
+     * about pricing them.
+     */
+    private async recover(operation: Operation, deposit: Wallet, root: HDNodeWallet, provider: FallbackProvider, network: NetworkConfig): Promise<void> {
+        const destination = this.destination(operation, network);
+        const balances: Array<{ asset: AssetName; contract: string; balance: bigint }> = [];
+
+        for (const [name, contract] of Object.entries(network.tokens)) {
+            if (!contract) continue;
+            const token = new Contract(contract, erc20Abi, provider);
+            const balance = BigInt(await token.getFunction('balanceOf').staticCall(deposit.address));
+            if (balance > 0n) balances.push({ asset: name as AssetName, contract, balance });
+        }
+
+        if (balances.length > 0) {
+            await this.fundGas(operation, deposit, root, provider, 70_000n * BigInt(balances.length));
+        }
+
+        for (const entry of balances) {
+            const token = new Contract(entry.contract, erc20Abi, deposit);
+            await this.broadcast(
+                operation,
+                `recover_${entry.asset}`,
+                deposit,
+                await token.getFunction('transfer').populateTransaction(destination, entry.balance),
+            );
+        }
+
+        let residue = 0n;
+        for (const entry of balances) {
+            const token = new Contract(entry.contract, erc20Abi, provider);
+            residue += BigInt(await token.getFunction('balanceOf').staticCall(deposit.address));
+        }
+        operation.remainingTokenBalance = residue.toString();
+
+        await this.sweep(operation, deposit, network);
+
+        if (residue !== 0n) throw new Error('token_balance_not_zero');
+    }
+
+    private async fundGas(operation: Operation, deposit: Wallet, root: HDNodeWallet, provider: FallbackProvider, gasUnits: bigint): Promise<void> {
+        const feeData = await provider.getFeeData();
+        const feePerGas = feeData.maxFeePerGas ?? feeData.gasPrice;
+        if (!feePerGas) throw new Error('fee_data_unavailable');
+        const topup = gasUnits * feePerGas * config.gasBufferBps / 10_000n;
+        if (topup > config.maxGasTopupWei) throw new Error('gas_topup_limit');
+        const gasWallet = new Wallet(root.derivePath("m/44'/60'/1'/0/0").privateKey, provider);
+
+        if (!operation.gasTopupWei) {
+            await this.assertGasLimits(topup);
+            const gasBalance = await provider.getBalance(gasWallet.address);
+            if (gasBalance < topup) throw new Error('gas_wallet_low_balance');
+            operation.gasTopupWei = topup.toString();
+            await this.store.put(operation);
+        }
+
+        await this.broadcast(operation, 'gas_topup', gasWallet, { to: deposit.address, value: BigInt(operation.gasTopupWei) });
     }
 
     private async sweep(operation: Operation, deposit: Wallet, network: NetworkConfig): Promise<void> {
         const provider = deposit.provider;
         if (!provider) throw new Error('provider_unavailable');
-        let balance = await provider.getBalance(deposit.address);
+        const destination = this.destination(operation, network);
         const feeData = await provider.getFeeData();
         const feePerGas = feeData.maxFeePerGas ?? feeData.gasPrice;
         if (!feePerGas) throw new Error('fee_data_unavailable');
-        const fee = 21_000n * feePerGas * config.gasBufferBps / 10_000n;
+        const gasLimit = await this.sweepGasLimit(provider, deposit.address, destination);
+        const fee = gasLimit * feePerGas * config.gasBufferBps / 10_000n;
+        let balance = await provider.getBalance(deposit.address);
         if (balance <= fee) throw new Error('balance_below_final_fee');
-        await this.broadcast(operation, 'vault_sweep', deposit, { to: network.vault, value: balance - fee, gasLimit: 21_000n });
+        await this.broadcast(operation, 'vault_sweep', deposit, { to: destination, value: balance - fee, gasLimit });
         operation.vaultReceipt = operation.transactionHashes.vault_sweep;
         balance = await provider.getBalance(deposit.address);
 
         if (balance > config.dustWei && balance > fee) {
-            await this.broadcast(operation, 'cleanup_sweep', deposit, { to: network.vault, value: balance - fee, gasLimit: 21_000n });
+            await this.broadcast(operation, 'cleanup_sweep', deposit, { to: destination, value: balance - fee, gasLimit });
             balance = await provider.getBalance(deposit.address);
         }
         operation.remainingEthWei = balance.toString();
+    }
+
+    /**
+     * What a plain value transfer to this destination actually costs.
+     *
+     * Never the 21,000 a transfer between two accounts costs. A Safe's
+     * `receive()` emits an event and runs well past it, and Arbitrum folds an
+     * L1 component into the units it charges, so a fixed limit is an
+     * out-of-gas revert on both counts.
+     */
+    private async sweepGasLimit(provider: Provider, from: string, to: string): Promise<bigint> {
+        try {
+            const estimate = await provider.estimateGas({ from, to, value: 1n });
+            const buffered = estimate * config.gasBufferBps / 10_000n;
+            return buffered > 21_000n ? buffered : 21_000n;
+        } catch {
+            // Unused gas is refunded, so a generous ceiling costs nothing beyond
+            // a slightly larger reserve held back from the sweep.
+            return 100_000n;
+        }
+    }
+
+    /**
+     * Where this operation's funds belong.
+     *
+     * Only a clean screening result reaches the main vault. A flagged payment an
+     * administrator accepted and a recovery nothing ever screened both go to the
+     * risk vault, so the answer to "what is in the vault" stays "screened funds"
+     * rather than "screened funds and whatever else we decided to keep".
+     */
+    private destination(operation: Operation, network: NetworkConfig): string {
+        return operation.screeningRisk === 'no_match' ? network.vault : network.riskVault;
     }
 
     private async bestQuote(network: NetworkConfig, provider: FallbackProvider, asset: 'usdt' | 'usdc', amount: bigint): Promise<{ path: string; amountOut: bigint; gasEstimate: bigint }> {
@@ -234,41 +345,73 @@ export class SettlementRunner {
     }
 
     private async broadcast(operation: Operation, stage: string, signer: Wallet, transaction: TransactionRequest): Promise<void> {
-        if (!signer.provider) throw new Error('provider_unavailable');
+        const provider = signer.provider;
+        if (!provider) throw new Error('provider_unavailable');
+
         let raw = operation.signedTransactions[stage];
+
+        if (raw && await this.isUnusable(provider, signer, raw)) {
+            delete operation.signedTransactions[stage];
+            delete operation.transactionHashes[stage];
+            operation.updatedAt = new Date().toISOString();
+            await this.store.put(operation);
+            raw = undefined;
+        }
+
         if (!raw) {
             const populated = await signer.populateTransaction(transaction);
             raw = await signer.signTransaction(populated);
-            operation.stage = `${stage}_signed`;
+            const signedHash = Transaction.from(raw).hash;
+            if (!signedHash) throw new Error(`${stage}_hash_unavailable`);
             operation.signedTransactions[stage] = raw;
+            operation.transactionHashes[stage] = signedHash;
+            operation.stage = `${stage}_signed`;
             operation.updatedAt = new Date().toISOString();
             await this.store.put(operation);
         }
 
         const transactionHash = Transaction.from(raw).hash;
         if (!transactionHash) throw new Error(`${stage}_hash_unavailable`);
-        if (!operation.transactionHashes[stage]) {
-            operation.transactionHashes[stage] = transactionHash;
-            operation.updatedAt = new Date().toISOString();
-            await this.store.put(operation);
-        }
 
-        let receipt = await signer.provider.getTransactionReceipt(transactionHash);
+        let receipt = await provider.getTransactionReceipt(transactionHash);
         if (!receipt) {
             try {
-                await signer.provider.broadcastTransaction(raw);
+                await provider.broadcastTransaction(raw);
             } catch (error) {
-                if (!await signer.provider.getTransaction(transactionHash)) throw error;
+                if (!await provider.getTransaction(transactionHash)) throw error;
             }
             operation.stage = `${stage}_broadcast`;
             operation.updatedAt = new Date().toISOString();
             await this.store.put(operation);
-            receipt = await signer.provider.waitForTransaction(transactionHash);
+            receipt = await provider.waitForTransaction(transactionHash, 1, config.confirmationTimeoutSeconds * 1000);
         }
         if (!receipt || receipt.status !== 1) throw new Error(`${stage}_reverted`);
         operation.stage = `${stage}_confirmed`;
         operation.updatedAt = new Date().toISOString();
         await this.store.put(operation);
+    }
+
+    /**
+     * Whether a stored signature can never confirm and has to be replaced.
+     *
+     * Two cases land here, and both used to wedge an operation permanently
+     * because nothing ever cleared the cache that produced them. A transaction
+     * that was mined and reverted keeps returning the same failed receipt, so
+     * re-broadcasting it only re-reads the failure. A transaction dropped from
+     * the mempool after its nonce was spent elsewhere — which the shared gas
+     * wallet makes entirely possible — can never be accepted again.
+     */
+    private async isUnusable(provider: Provider, signer: Wallet, raw: string): Promise<boolean> {
+        const parsed = Transaction.from(raw);
+        const hash = parsed.hash;
+        if (!hash) return true;
+
+        const receipt: TransactionReceipt | null = await provider.getTransactionReceipt(hash);
+        if (receipt) return receipt.status !== 1;
+
+        if (await provider.getTransaction(hash)) return false;
+
+        return await provider.getTransactionCount(signer.address, 'latest') > parsed.nonce;
     }
 
     private async assertCode(provider: FallbackProvider, addresses: string[]): Promise<void> {
@@ -295,7 +438,7 @@ export class SettlementRunner {
 
     private needsReview(error: unknown): boolean {
         const message = error instanceof Error ? error.message : '';
-        return ['extra_token_balance', 'token_balance_mismatch', 'unexpected_allowance', 'token_balance_not_zero'].some((code) => message.includes(code));
+        return ['token_balance_mismatch', 'unexpected_allowance', 'token_balance_not_zero'].some((code) => message.includes(code));
     }
 
     private errorCode(error: unknown): string {

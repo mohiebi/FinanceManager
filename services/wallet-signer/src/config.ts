@@ -1,25 +1,46 @@
 import { getAddress } from 'ethers';
 import type { AssetName, NetworkName } from './types.js';
 
-const required = (name: string): string => {
-    const value = process.env[name]?.trim();
-    if (!value) throw new Error(`${name} is required.`);
-    return value;
+/**
+ * Everything here is optional at boot and checked at use.
+ *
+ * A network with no endpoints or no vault is simply one this signer cannot
+ * settle on, and {@see SettlementRunner.validate} refuses it by name. Demanding
+ * every value up front meant an operator running ether on one chain could not
+ * start the service at all without inventing addresses for the other.
+ */
+const optional = (name: string): string => process.env[name]?.trim() ?? '';
+
+const address = (name: string): string => {
+    const value = optional(name);
+    return value === '' ? '' : getAddress(value).toLowerCase();
 };
 
-const address = (name: string): string => getAddress(required(name)).toLowerCase();
-const csv = (name: string): string[] => required(name).split(',').map((value) => value.trim()).filter(Boolean);
+const csv = (name: string): string[] => optional(name).split(',').map((value) => value.trim()).filter(Boolean);
+
+/** Falls back to the main vault, so the service runs before a second one exists. */
+const vaultOr = (name: string, fallback: string): string => address(name) || fallback;
+
+const token = (name: string): string | undefined => address(name) || undefined;
 
 export type NetworkConfig = {
     chainId: number;
     rpcUrls: string[];
+    /** Empty when this network is not configured for settlement. */
     vault: string;
+    riskVault: string;
     weth?: string;
     router?: string;
     quoter?: string;
     tokens: Partial<Record<AssetName, string>>;
     priceFeeds: Partial<Record<AssetName, string>>;
 };
+
+const ethereumVault = address('ETHEREUM_SAFE_VAULT_ADDRESS');
+const arbitrumVault = address('ARBITRUM_SAFE_VAULT_ADDRESS');
+
+const defined = <T extends Record<string, string | undefined>>(values: T): Partial<Record<AssetName, string>> =>
+    Object.fromEntries(Object.entries(values).filter(([, value]) => Boolean(value))) as Partial<Record<AssetName, string>>;
 
 export const config = {
     port: Number(process.env.PORT ?? 8080),
@@ -31,6 +52,17 @@ export const config = {
     maxSlippageBps: BigInt(process.env.MAX_SLIPPAGE_BPS ?? '100'),
     maxPriceDeviationBps: BigInt(process.env.MAX_PRICE_DEVIATION_BPS ?? '200'),
     quoteLifetimeSeconds: Number(process.env.QUOTE_LIFETIME_SECONDS ?? '60'),
+
+    /*
+     * How long one broadcast may wait for its receipt.
+     *
+     * Operations run one at a time so the deposit and gas wallet nonces stay
+     * ordered, which means an unbounded wait is not one stuck settlement but
+     * every settlement stuck behind it. On expiry the attempt becomes a
+     * retryable failure and the next one re-reads the receipt.
+     */
+    confirmationTimeoutSeconds: Number(process.env.CONFIRMATION_TIMEOUT_SECONDS ?? '120'),
+
     gasBufferBps: BigInt(10_000 + Number(process.env.GAS_BUFFER_PERCENT ?? '25') * 100),
     maxGasTopupWei: BigInt(process.env.MAX_GAS_TOPUP_WEI ?? '3000000000000000'),
     dustWei: BigInt(process.env.MAX_REMAINING_NATIVE_WEI ?? '10000000000000'),
@@ -39,26 +71,28 @@ export const config = {
         ethereum: {
             chainId: 1,
             rpcUrls: csv('ETHEREUM_RPC_URLS'),
-            vault: address('ETHEREUM_SAFE_VAULT_ADDRESS'),
+            vault: ethereumVault,
+            riskVault: vaultOr('ETHEREUM_RISK_VAULT_ADDRESS', ethereumVault),
             tokens: {},
             priceFeeds: {},
         },
         arbitrum: {
             chainId: 42161,
             rpcUrls: csv('ARBITRUM_RPC_URLS'),
-            vault: address('ARBITRUM_SAFE_VAULT_ADDRESS'),
-            weth: address('ARBITRUM_WETH_ADDRESS'),
-            router: address('ARBITRUM_UNISWAP_ROUTER_ADDRESS'),
-            quoter: address('ARBITRUM_UNISWAP_QUOTER_ADDRESS'),
-            tokens: {
-                usdt: address('ARBITRUM_USDT_ADDRESS'),
-                usdc: address('ARBITRUM_USDC_ADDRESS'),
-            },
-            priceFeeds: {
-                eth: address('ARBITRUM_ETH_USD_FEED'),
-                usdt: address('ARBITRUM_USDT_USD_FEED'),
-                usdc: address('ARBITRUM_USDC_USD_FEED'),
-            },
+            vault: arbitrumVault,
+            riskVault: vaultOr('ARBITRUM_RISK_VAULT_ADDRESS', arbitrumVault),
+            weth: token('ARBITRUM_WETH_ADDRESS'),
+            router: token('ARBITRUM_UNISWAP_ROUTER_ADDRESS'),
+            quoter: token('ARBITRUM_UNISWAP_QUOTER_ADDRESS'),
+            tokens: defined({
+                usdt: token('ARBITRUM_USDT_ADDRESS'),
+                usdc: token('ARBITRUM_USDC_ADDRESS'),
+            }),
+            priceFeeds: defined({
+                eth: token('ARBITRUM_ETH_USD_FEED'),
+                usdt: token('ARBITRUM_USDT_USD_FEED'),
+                usdc: token('ARBITRUM_USDC_USD_FEED'),
+            }),
         },
     } satisfies Record<NetworkName, NetworkConfig>,
 };

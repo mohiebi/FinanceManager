@@ -7,7 +7,6 @@ use App\Actions\Billing\ResolveCoupon;
 use App\Actions\Billing\SettleCouponRedemption;
 use App\Actions\Billing\StartSubscriptionPayment;
 use App\Actions\Billing\SubmitPaymentProof;
-use App\Contracts\Billing\AddressScreener;
 use App\Enums\BillingPlan;
 use App\Enums\CouponRedemptionStatus;
 use App\Enums\DepositAddressStatus;
@@ -25,6 +24,7 @@ use App\Models\Coupon;
 use App\Models\CouponRedemption;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
+use App\Services\Billing\AddressScreenerFactory;
 use App\Support\Billing\BillingCatalog;
 use App\Support\Billing\ScreeningSubject;
 use Illuminate\Http\JsonResponse;
@@ -43,7 +43,7 @@ class BillingController extends Controller
         private readonly ResolveCoupon $resolveCoupon,
         private readonly RedeemFreeCoupon $redeemFreeCoupon,
         private readonly SettleCouponRedemption $settleCoupon,
-        private readonly AddressScreener $addressScreener,
+        private readonly AddressScreenerFactory $addressScreeners,
     ) {}
 
     public function edit(Request $request): Response
@@ -184,7 +184,12 @@ class BillingController extends Controller
         ]);
         $network = PaymentNetwork::from($validated['network']);
         $address = $network->normalizeAddress($validated['address']);
-        $result = $this->addressScreener->screen(new ScreeningSubject(
+
+        // Sanctions only. This endpoint answers questions about any address the
+        // caller names, so it must never consult the operator's private risk
+        // list: that would make it an enumeration tool for the list, and a way
+        // to shop for a wallet that passes before paying with it.
+        $result = $this->addressScreeners->publicSanctionsOnly()->screen(new ScreeningSubject(
             network: $network,
             transactionHash: str_repeat('0', 66),
             senderAddress: $address,

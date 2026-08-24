@@ -65,7 +65,7 @@ const vaultSnapshot = async (): Promise<Record<string, unknown>> => {
                 vaultHasCode: vaultCode !== '0x',
                 riskVaultHasCode: riskVaultCode !== '0x',
             }];
-        } catch (error) {
+        } catch {
             return [name, { configured: true, vault: network.vault, riskVault: network.riskVault, unreachable: true }];
         }
     }));

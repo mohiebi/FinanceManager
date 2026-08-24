@@ -40,6 +40,18 @@ export default defineConfigWithVueTs(
         rules: {
             'vue/multi-word-component-names': 'off',
             '@typescript-eslint/no-explicit-any': 'off',
+            // A leading underscore is the marker for "bound on purpose, never
+            // read" — the destructure that strips a secret off an object before
+            // it is returned needs somewhere to put the field it is discarding.
+            '@typescript-eslint/no-unused-vars': [
+                'error',
+                {
+                    argsIgnorePattern: '^_',
+                    varsIgnorePattern: '^_',
+                    caughtErrorsIgnorePattern: '^_',
+                    destructuredArrayIgnorePattern: '^_',
+                },
+            ],
             '@typescript-eslint/consistent-type-imports': [
                 'error',
                 {
@@ -91,6 +103,15 @@ export default defineConfigWithVueTs(
             // out of tsconfig's include so they can import with explicit .ts
             // extensions. That puts them beyond the typed-lint project service.
             'tests/js/**',
+            // Build config for the standalone React design-system package. That
+            // package's own tsconfig includes only `src`, so this file belongs
+            // to no project and the typed-lint service cannot resolve it. Its
+            // source is still linted.
+            'design-system/**/tsup.config.ts',
+            // Build output. Never linted, and it only exists on a machine that
+            // has run a build — which is why it never failed CI and always
+            // failed locally.
+            '**/dist/**',
         ],
     },
     prettier, // Turn off all rules that might conflict with Prettier

@@ -48,10 +48,6 @@ return [
         'label' => 'Transaktionen',
         'description' => 'Erfasse Einnahmen und Ausgaben. Die Grundlage für alles andere.',
     ],
-    'categories' => [
-        'label' => 'Kategorien',
-        'description' => 'Gruppiere deine Transaktionen, damit Berichte aussagekräftig werden.',
-    ],
     'reports' => [
         'label' => 'Berichte',
         'description' => 'Schlüssle Einnahmen und Ausgaben nach Kategorie und Monat auf.',

@@ -236,6 +236,12 @@ function enableBilling(array $overrides = []): void
         'billing.networks.arbitrum.enabled' => false,
         'billing.etherscan.enabled' => false,
         'billing.quote.enabled' => false,
+
+        // Pinned for the same reason, plus one more: left to .env it reads true
+        // on a developer machine and false in CI, so an assertion depending on
+        // it passes locally and fails on the runner. A test that exercises
+        // screening turns it on itself.
+        'billing.screening.enabled' => false,
         ...$overrides,
     ]);
 

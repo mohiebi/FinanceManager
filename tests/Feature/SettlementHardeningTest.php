@@ -275,6 +275,9 @@ test('a plain-account vault verifies rather than being refused as undeployed', f
         'billing.settlement.vaults.ethereum' => '0xb7b03c8e73d66e37da23923b9b5ca2fd37a8e6b6',
         'billing.settlement.risk_vaults.ethereum' => '0x1111111111111111111111111111111111111111',
         'billing.deposit_pool.low_address_warning' => 0,
+        // On, so each of these fails for the reason under test rather than
+        // incidentally because screening was left off.
+        'billing.screening.enabled' => true,
     ]);
 
     Http::fake([
@@ -305,6 +308,9 @@ test('a vault the signer disagrees about is still fatal', function () {
         'billing.settlement.vaults.ethereum' => '0xb7b03c8e73d66e37da23923b9b5ca2fd37a8e6b6',
         'billing.settlement.risk_vaults.ethereum' => '0x1111111111111111111111111111111111111111',
         'billing.deposit_pool.low_address_warning' => 0,
+        // On, so each of these fails for the reason under test rather than
+        // incidentally because screening was left off.
+        'billing.screening.enabled' => true,
     ]);
 
     Http::fake([
@@ -336,6 +342,9 @@ test('infrastructure verification refuses a missing or shared risk vault', funct
         'billing.settlement.vaults.ethereum' => $mainVault,
         'billing.settlement.risk_vaults.ethereum' => $mainVault,
         'billing.deposit_pool.low_address_warning' => 0,
+        // On, so each of these fails for the reason under test rather than
+        // incidentally because screening was left off.
+        'billing.screening.enabled' => true,
     ]);
 
     Http::fake([

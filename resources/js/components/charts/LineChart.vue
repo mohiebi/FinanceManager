@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type ApexCharts from 'apexcharts';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { formatChartDateLabel } from '@/lib/date';
+import { intlLocale } from '@/lib/locale';
 import { formatCompactCurrencyNumber } from '@/lib/money';
 
 export type ChartSeries = {
@@ -41,6 +43,7 @@ const props = defineProps<{
 
 const chartRef = ref<HTMLElement | null>(null);
 let chart: ApexCharts | null = null;
+const { locale } = useI18n();
 
 const formatExactValue = (amount: number): string => {
     const fractionDigits = Math.min(
@@ -48,7 +51,7 @@ const formatExactValue = (amount: number): string => {
         20,
     );
 
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(intlLocale(locale.value), {
         minimumFractionDigits: fractionDigits,
         maximumFractionDigits: fractionDigits,
     }).format(Number.isFinite(amount) ? amount : 0);
@@ -57,7 +60,7 @@ const formatExactValue = (amount: number): string => {
 const formatChartValue = (amount: number): string =>
     props.compactValues === false
         ? formatExactValue(amount)
-        : formatCompactCurrencyNumber(amount);
+        : formatCompactCurrencyNumber(amount, intlLocale(locale.value));
 
 const formatAxisValue = (amount: number): string =>
     props.masked
@@ -218,6 +221,7 @@ watch(
         props.compactValues,
         props.valueFractionDigits,
         props.masked,
+        locale.value,
     ],
     () => chart?.updateOptions(buildOptions(), false, true),
     { deep: true },

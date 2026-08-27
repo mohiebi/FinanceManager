@@ -138,3 +138,12 @@ test('telegram weekly report follows the preferred jalali calendar', function ()
         ->toContain('Net: *5,000,000 T*')
         ->not->toContain('Income: *6,000,000 T*');
 });
+
+test('telegram weekly report spells out the full jalali month name', function () {
+    $user = User::factory()->withModules()->create(['calendar' => 'jalali']);
+
+    // 2026-08-01 is 1405-05-10 — مرداد, not the 3-letter-truncated "مرد".
+    $report = app(TelegramReportService::class)->weekly($user, Carbon::parse('2026-08-01'));
+
+    expect($report)->toContain('Weekly Report - مرداد 10 week');
+});

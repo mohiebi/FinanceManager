@@ -321,7 +321,7 @@ class TelegramHandler extends WebhookHandler
 
         foreach ($transactions as $transaction) {
             $sign = $transaction->type === TransactionType::Cost ? '−' : '+';
-            $date = DateFormatter::format($transaction->occurred_at, $calendar, 'M j');
+            $date = DateFormatter::format($transaction->occurred_at, $calendar, 'F j');
             $lines[] = "{$sign} *{$transaction->title}* — {$this->fmtAmount((float) $transaction->amount, $transaction->currency)} ({$date})";
         }
 
@@ -405,7 +405,7 @@ class TelegramHandler extends WebhookHandler
             $date = $today->copy()->subDays($i);
 
             if ($calendar === 'jalali') {
-                $shortLabel = Jalalian::fromCarbon($date)->format('j M');
+                $shortLabel = Jalalian::fromCarbon($date)->format('j F');
                 $fullLabel = $shortLabel;
             } else {
                 $shortLabel = $date->locale($locale)->translatedFormat('D');

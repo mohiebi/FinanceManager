@@ -103,3 +103,28 @@ test('compact currency values retain symbol and sign order', () => {
         '(1.3M\u00a0T)',
     );
 });
+
+test('a Persian locale renders Persian digits, symbol and sign order intact', () => {
+    assert.equal(
+        formatCurrencyDisplay('1250000', 'toman', 'fa-IR'),
+        '\u06f1\u066c\u06f2\u06f5\u06f0\u066c\u06f0\u06f0\u06f0\u00a0T',
+    );
+    assert.equal(
+        formatCurrencyDisplay('-1250000', 'toman', 'fa-IR'),
+        '(\u06f1\u066c\u06f2\u06f5\u06f0\u066c\u06f0\u06f0\u06f0\u00a0T)',
+    );
+    assert.equal(
+        formatCurrencyDisplay('-8.5', 'usd', 'fa-IR'),
+        '($\u06f8\u066b\u06f5\u06f0)',
+    );
+    // fa-IR own compact form spells out the magnitude rather than using a
+    // K/M suffix, still Persian digits, still accounting parens.
+    assert.equal(
+        formatCompactCurrencyDisplay('1250000', 'toman', 'fa-IR'),
+        '\u06f1\u066b\u06f3\u00a0\u0645\u06cc\u0644\u06cc\u0648\u0646\u00a0T',
+    );
+    assert.equal(
+        formatCompactCurrencyDisplay('-1250000', 'toman', 'fa-IR'),
+        '(\u06f1\u066b\u06f3\u00a0\u0645\u06cc\u0644\u06cc\u0648\u0646\u00a0T)',
+    );
+});

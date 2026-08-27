@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, useAttrs } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
     Tooltip,
     TooltipContent,
@@ -8,6 +9,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useAmountMask } from '@/composables/useAmountMask';
 import { useCompactFigures } from '@/composables/useCompactFigures';
+import { intlLocale } from '@/lib/locale';
 import {
     formatCompactCurrencyDisplay,
     formatCurrencyDisplay,
@@ -28,10 +30,21 @@ const props = defineProps<{
 const attrs = useAttrs();
 const { masked } = useAmountMask();
 const { compact } = useCompactFigures();
+const { locale } = useI18n();
 
-const full = computed(() => formatCurrencyDisplay(props.value, props.currency));
+const full = computed(() =>
+    formatCurrencyDisplay(
+        props.value,
+        props.currency,
+        intlLocale(locale.value),
+    ),
+);
 const abbreviated = computed(() =>
-    formatCompactCurrencyDisplay(props.value, props.currency),
+    formatCompactCurrencyDisplay(
+        props.value,
+        props.currency,
+        intlLocale(locale.value),
+    ),
 );
 const hasAbbreviation = computed(
     () => compact.value && abbreviated.value !== full.value,

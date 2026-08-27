@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, useAttrs } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
     Tooltip,
     TooltipContent,
@@ -8,6 +9,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useAmountMask } from '@/composables/useAmountMask';
 import { useCompactFigures } from '@/composables/useCompactFigures';
+import { intlLocale } from '@/lib/locale';
 import { formatCompactNumber, formatFullNumber } from '@/lib/number';
 import type { DisplayNumber } from '@/lib/number';
 
@@ -20,9 +22,14 @@ const props = defineProps<{
 const attrs = useAttrs();
 const { masked } = useAmountMask();
 const { compact } = useCompactFigures();
+const { locale } = useI18n();
 
-const full = computed(() => formatFullNumber(props.value));
-const abbreviated = computed(() => formatCompactNumber(props.value));
+const full = computed(() =>
+    formatFullNumber(props.value, intlLocale(locale.value)),
+);
+const abbreviated = computed(() =>
+    formatCompactNumber(props.value, intlLocale(locale.value)),
+);
 const hasAbbreviation = computed(
     () => compact.value && abbreviated.value !== full.value,
 );

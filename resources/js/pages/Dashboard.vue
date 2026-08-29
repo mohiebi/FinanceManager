@@ -529,7 +529,7 @@ import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
 import { usePageSubtitle } from '@/composables/usePageSubtitle';
 import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
 import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
-import { formatAppDate } from '@/lib/date';
+import { dayOfMonthInCalendar, formatAppDate } from '@/lib/date';
 import { intlLocale, localizeDigits } from '@/lib/locale';
 import { formatCurrencyDisplay } from '@/lib/money';
 import type { CurrencyCode, Rates } from '@/lib/money';
@@ -933,8 +933,10 @@ const categoryLegend = computed(() => {
     });
 });
 
+/** Day-of-month in the viewer's own calendar, so the buckets line up with the
+ *  Jalali month the period covers rather than the Gregorian one underneath. */
 function dayOfMonthIndex(isoDate: string): number {
-    return Number(isoDate.slice(8, 10));
+    return dayOfMonthInCalendar(isoDate, displayCalendar.value);
 }
 
 /** Daily income and cost totals across the whole period, for the one

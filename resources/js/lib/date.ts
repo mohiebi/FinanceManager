@@ -75,6 +75,28 @@ export function formatChartDateLabel(
     return `${jalaliMonthAbbreviations[jalali.jm - 1]} ${jalali.jd}`;
 }
 
+/**
+ * Day-of-month for an ISO date, read in the given calendar — so a chart whose
+ * x-axis spans a Jalali month buckets Jalali days rather than Gregorian ones.
+ * Returns 0 for anything unparseable, which callers can treat as out of range.
+ */
+export function dayOfMonthInCalendar(
+    value: string,
+    calendar: string | undefined,
+): number {
+    const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+
+    if (!year || !month || !day) {
+        return 0;
+    }
+
+    if (calendar !== 'jalali') {
+        return day;
+    }
+
+    return toJalaali(year, month, day).jd;
+}
+
 export function monthBucketKeyFromIso(
     value: string,
     calendar: string | undefined,

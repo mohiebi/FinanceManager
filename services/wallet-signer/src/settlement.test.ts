@@ -201,3 +201,27 @@ test('an operation that has finished running can be enqueued again', async () =>
 
     assert.deepEqual(ran, ['a', 'a']);
 });
+
+type SwapInternals = { swapIsPending(settleAmount: bigint, balance: bigint): boolean };
+
+const swapRunner = (): SwapInternals => new SettlementRunner({} as never, () => undefined) as unknown as SwapInternals;
+
+test('a settlement whose swap already confirmed resumes at the sweep', async () => {
+    // The regression this pins: an attempt that failed after its swap confirmed
+    // came back to a zero token balance, which the old equality check rejected
+    // as a mismatch — parking the ether the swap had just bought behind a
+    // needs_review that no retry could ever clear.
+    assert.equal(swapRunner().swapIsPending(5_000_000n, 0n), false);
+});
+
+test('a settlement whose swap never ran still performs it', () => {
+    assert.equal(swapRunner().swapIsPending(5_000_000n, 5_000_000n), true);
+});
+
+test('a balance the settlement cannot account for is still refused', () => {
+    // Funds that arrived after the verified transfer must not be swept into a
+    // settlement priced on a different amount, in either direction.
+    for (const balance of [4_999_999n, 5_000_001n, 9_000_000n]) {
+        assert.throws(() => swapRunner().swapIsPending(5_000_000n, balance), /token_balance_mismatch/);
+    }
+});

@@ -173,47 +173,49 @@ export class SettlementRunner {
         const balance = BigInt(await token.getFunction('balanceOf').staticCall(deposit.address));
         operation.remainingTokenBalance = balance.toString();
 
-        // `expected` is the complete amount credited by the verified payment
-        // transaction, including any overpayment. A larger live balance means
-        // another transaction arrived later; do not silently mix those unknown
-        // funds into this settlement.
-        if (balance !== expected) throw new Error('token_balance_mismatch');
-
         if (!operation.settleAmount) {
+            // First attempt. `expected` is the complete amount credited by the
+            // verified payment transaction, including any overpayment. A larger
+            // live balance means another transaction arrived later; do not
+            // silently mix those unknown funds into this settlement.
+            if (balance !== expected) throw new Error('token_balance_mismatch');
             operation.settleAmount = expected.toString();
             await this.store.put(operation);
         }
 
         const amount = BigInt(operation.settleAmount);
-        const quote = await this.bestQuote(network, provider, asset, amount);
-        await this.assertReferencePrice(network, provider, asset, amount, quote.amountOut);
-        operation.quotedEth = quote.amountOut.toString();
-        operation.minimumEth = (quote.amountOut * (10_000n - config.maxSlippageBps) / 10_000n).toString();
-        operation.quoteExpiresAt = new Date(Date.now() + config.quoteLifetimeSeconds * 1000).toISOString();
-        await this.store.put(operation);
 
-        await token.getFunction('approve').staticCall(network.router, amount);
-        await this.fundGas(operation, deposit, root, provider, 70_000n + quote.gasEstimate + 100_000n);
+        if (this.swapIsPending(amount, balance)) {
+            const quote = await this.bestQuote(network, provider, asset, amount);
+            await this.assertReferencePrice(network, provider, asset, amount, quote.amountOut);
+            operation.quotedEth = quote.amountOut.toString();
+            operation.minimumEth = (quote.amountOut * (10_000n - config.maxSlippageBps) / 10_000n).toString();
+            operation.quoteExpiresAt = new Date(Date.now() + config.quoteLifetimeSeconds * 1000).toISOString();
+            await this.store.put(operation);
 
-        const allowance = BigInt(await token.getFunction('allowance').staticCall(deposit.address, network.router));
-        if (allowance !== amount) {
-            if (allowance !== 0n) throw new Error('unexpected_allowance');
-            await this.broadcast(operation, 'approval', deposit, await token.getFunction('approve').populateTransaction(network.router, amount));
+            await token.getFunction('approve').staticCall(network.router, amount);
+            await this.fundGas(operation, deposit, root, provider, 70_000n + quote.gasEstimate + 100_000n);
+
+            const allowance = BigInt(await token.getFunction('allowance').staticCall(deposit.address, network.router));
+            if (allowance !== amount) {
+                if (allowance !== 0n) throw new Error('unexpected_allowance');
+                await this.broadcast(operation, 'approval', deposit, await token.getFunction('approve').populateTransaction(network.router, amount));
+            }
+
+            const routerInterface = new Interface(routerAbi);
+            const swapCall = routerInterface.encodeFunctionData('exactInput', [{
+                path: quote.path,
+                recipient: network.router,
+                amountIn: amount,
+                amountOutMinimum: BigInt(operation.minimumEth),
+            }]);
+            const unwrapCall = routerInterface.encodeFunctionData('unwrapWETH9', [BigInt(operation.minimumEth), deposit.address]);
+            if (!operation.quoteExpiresAt || new Date(operation.quoteExpiresAt).getTime() <= Date.now()) throw new Error('stale_quote');
+            await this.broadcast(operation, 'swap', deposit, {
+                to: network.router,
+                data: routerInterface.encodeFunctionData('multicall', [[swapCall, unwrapCall]]),
+            });
         }
-
-        const routerInterface = new Interface(routerAbi);
-        const swapCall = routerInterface.encodeFunctionData('exactInput', [{
-            path: quote.path,
-            recipient: network.router,
-            amountIn: amount,
-            amountOutMinimum: BigInt(operation.minimumEth),
-        }]);
-        const unwrapCall = routerInterface.encodeFunctionData('unwrapWETH9', [BigInt(operation.minimumEth), deposit.address]);
-        if (!operation.quoteExpiresAt || new Date(operation.quoteExpiresAt).getTime() <= Date.now()) throw new Error('stale_quote');
-        await this.broadcast(operation, 'swap', deposit, {
-            to: network.router,
-            data: routerInterface.encodeFunctionData('multicall', [[swapCall, unwrapCall]]),
-        });
 
         const remainingToken = BigInt(await token.getFunction('balanceOf').staticCall(deposit.address));
         operation.remainingTokenBalance = remainingToken.toString();
@@ -224,6 +226,29 @@ export class SettlementRunner {
         await this.sweep(operation, deposit, network);
 
         if (remainingToken !== 0n) throw new Error('token_balance_not_zero');
+    }
+
+    /**
+     * Whether this attempt still has to perform the swap.
+     *
+     * Once `settleAmount` is pinned the operation has committed to a trade, and
+     * a resumed attempt sees one of exactly two balances: the full amount, which
+     * means the swap never executed, or zero, which means it did and only the
+     * sweep is left. This is a fork rather than an equality check because it
+     * used to be the latter, and that made an attempt which failed *after* its
+     * swap confirmed permanently unresumable — the balance was zero, the check
+     * rejected it as a mismatch, and the ether the swap had just bought sat at
+     * the deposit address behind a needs_review no retry could clear.
+     *
+     * Any other balance is funds this operation cannot account for, and mixing
+     * them into a settlement priced on a different amount is exactly what the
+     * mismatch guard exists to prevent.
+     */
+    private swapIsPending(settleAmount: bigint, balance: bigint): boolean {
+        if (balance === settleAmount) return true;
+        if (balance === 0n) return false;
+
+        throw new Error('token_balance_mismatch');
     }
 
     /**

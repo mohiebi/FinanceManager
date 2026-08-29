@@ -382,20 +382,48 @@ function shortHash(value: string | null): string {
                             {{ payment.failure_message }}
                         </p>
                     </div>
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        :disabled="busy === payment.id"
-                        @click="
-                            act(
-                                `/admin/billing/payments/${payment.id}/recheck`,
-                                payment.id,
-                                {},
-                            )
-                        "
-                    >
-                        {{ t('billing.admin.recheck_screening') }}
-                    </Button>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            :disabled="busy === payment.id"
+                            @click="
+                                act(
+                                    `/admin/billing/payments/${payment.id}/recheck`,
+                                    payment.id,
+                                    {},
+                                )
+                            "
+                        >
+                            {{ t('billing.admin.recheck_screening') }}
+                        </Button>
+                        <!-- The way out when screening will never answer. The
+                             funds are already at the deposit address, so this
+                             refuses the payment and retires the address for
+                             `billing:recover-address` rather than granting
+                             anything on an unscreened transfer. -->
+                        <Input
+                            v-model="noteFor[payment.id]"
+                            class="min-w-[200px]"
+                            :placeholder="t('billing.admin.note_placeholder')"
+                        />
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            :disabled="
+                                busy === payment.id || !noteFor[payment.id]
+                            "
+                            @click="
+                                act(
+                                    `/admin/billing/payments/${payment.id}/reject`,
+                                    payment.id,
+                                    { note: noteFor[payment.id] ?? '' },
+                                )
+                            "
+                        >
+                            {{ t('billing.admin.reject') }}
+                        </Button>
+                    </div>
                 </li>
             </ul>
         </section>

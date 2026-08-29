@@ -3,6 +3,7 @@
 use App\Actions\Billing\FinalizeScreenedPayment;
 use App\Contracts\Billing\AddressScreener;
 use App\Enums\DepositAddressStatus;
+use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentNetwork;
 use App\Enums\PaymentStatus;
 use App\Enums\ScreeningRisk;
@@ -368,4 +369,49 @@ test('infrastructure verification refuses a missing or shared risk vault', funct
     $this->artisan('billing:verify-settlement')
         ->expectsOutputToContain('must be valid, distinct addresses')
         ->assertFailed();
+});
+
+test('rejecting a payment screening never answered releases it and its address', function () {
+    // The deadlock this closes: screening returns Unknown until the job gives
+    // up, which parks the payment at Submitted with ScreeningUnavailable — a
+    // reason needsReview() deliberately excludes, so approve refused it, and
+    // reject refused it too because the transfer was already chain verified.
+    // Nothing an operator could press moved it, and the buyer's money stayed at
+    // a deposit address the recovery command would not touch either.
+    Queue::fake();
+    config()->set('app.admin_email', 'boss@example.com');
+    $admin = User::factory()->create(['email' => 'boss@example.com']);
+    $payment = settleablePayment(['failure_reason' => PaymentFailureReason::ScreeningUnavailable]);
+
+    $this->actingAs($admin)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->post(route('admin.billing.reject', $payment), ['note' => 'Oracle down for two days; refunding off-platform.'])
+        ->assertRedirect();
+
+    $payment->refresh();
+
+    expect($payment->status)->toBe(PaymentStatus::Failed)
+        ->and($payment->failure_reason)->toBe(PaymentFailureReason::AdminRejected)
+        // Retired is what makes the funds reachable: billing:recover-address
+        // sweeps only retired, swept and already-recovered addresses.
+        ->and($payment->depositAddress->fresh()->status)->toBe(DepositAddressStatus::Retired);
+});
+
+test('a chain-verified payment that is not stuck on screening still cannot be rejected', function () {
+    // The escape hatch is narrow on purpose. A flagged sender has a risk case
+    // with its own authorize, grant and expiry path, and a clean transfer that
+    // simply has not been screened yet is still in flight.
+    config()->set('app.admin_email', 'boss@example.com');
+    $admin = User::factory()->create(['email' => 'boss@example.com']);
+
+    foreach ([PaymentFailureReason::FlaggedSender, null] as $reason) {
+        $payment = settleablePayment(['failure_reason' => $reason]);
+
+        $this->actingAs($admin)
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->post(route('admin.billing.reject', $payment), ['note' => 'let me through'])
+            ->assertStatus(409);
+
+        expect($payment->fresh()->status)->toBe(PaymentStatus::Submitted);
+    }
 });

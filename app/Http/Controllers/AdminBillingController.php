@@ -92,28 +92,66 @@ class AdminBillingController extends Controller
         return back()->with('status', __('billing.admin.approved'));
     }
 
+    /**
+     * Refuse a payment.
+     *
+     * Chain-verified payments are normally out of reach here, because refusing
+     * one means refusing money that demonstrably arrived. The exception is a
+     * payment screening could never reach a verdict on: it holds at Submitted
+     * with ScreeningUnavailable, which {@see PaymentFailureReason::needsReview}
+     * deliberately excludes, so approve refused it too and the buyer's funds sat
+     * at a deposit address with no operator action able to touch them at all.
+     *
+     * Refusing it is the honest resolution rather than approving it, because
+     * approving would hand out entitlement on funds nothing ever screened. The
+     * address is retired, which is what lets `billing:recover-address` sweep it
+     * into the risk vault — where unscreened money belongs — and the refund is
+     * then an ordinary off-platform one.
+     */
     public function reject(Request $request, SubscriptionPayment $payment): RedirectResponse
     {
         $note = $this->requireNote($request);
 
-        abort_if(
-            in_array($payment->status, [PaymentStatus::Confirmed, PaymentStatus::Quarantined], true)
-            || $payment->chain_verified_at !== null,
-            409,
-        );
+        abort_if(in_array($payment->status, [PaymentStatus::Confirmed, PaymentStatus::Quarantined], true), 409);
+        abort_if($payment->chain_verified_at !== null && ! $this->isStuckOnScreening($payment), 409);
 
-        $payment->forceFill([
-            'status' => PaymentStatus::Failed,
-            'failure_reason' => PaymentFailureReason::AdminRejected,
-            'approved_by_admin_id' => $request->user()->getKey(),
-            'admin_note' => $note,
-        ])->save();
-        $payment->depositAddress?->forceFill(['status' => DepositAddressStatus::Retired])->save();
+        // Locked because the screening job can still be cycling: without this,
+        // a verdict landing mid-request could grant entitlement while this
+        // request writes Failed over the top of it.
+        DB::transaction(function () use ($payment, $request, $note): void {
+            $locked = SubscriptionPayment::query()->with('depositAddress')
+                ->whereKey($payment->getKey())->lockForUpdate()->firstOrFail();
 
-        // Nothing was paid for, so the coupon claim goes back into the pool.
-        $this->settleCouponRedemption->release($payment);
+            abort_if(in_array($locked->status, [PaymentStatus::Confirmed, PaymentStatus::Quarantined], true), 409);
+            abort_if($locked->chain_verified_at !== null && ! $this->isStuckOnScreening($locked), 409);
+
+            $locked->forceFill([
+                'status' => PaymentStatus::Failed,
+                'failure_reason' => PaymentFailureReason::AdminRejected,
+                'approved_by_admin_id' => $request->user()->getKey(),
+                'admin_note' => $note,
+            ])->save();
+            $locked->depositAddress?->forceFill(['status' => DepositAddressStatus::Retired])->save();
+
+            // The buyer got no entitlement, so the coupon claim goes back into
+            // the pool whether or not their money arrived.
+            $this->settleCouponRedemption->release($locked);
+        });
 
         return back()->with('status', __('billing.admin.rejected'));
+    }
+
+    /**
+     * Whether screening has given up on a payment whose transfer did arrive.
+     *
+     * A flagged sender is not this: that has a risk case and its own review,
+     * authorization and expiry path.
+     */
+    private function isStuckOnScreening(SubscriptionPayment $payment): bool
+    {
+        return $payment->status === PaymentStatus::Submitted
+            && $payment->chain_verified_at !== null
+            && $payment->failure_reason === PaymentFailureReason::ScreeningUnavailable;
     }
 
     /**

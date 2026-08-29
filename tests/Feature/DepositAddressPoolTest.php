@@ -8,11 +8,16 @@ use App\Enums\SettlementAsset;
 use App\Exceptions\DepositAddressLimitExceeded;
 use App\Exceptions\DepositAddressUnavailable;
 use App\Jobs\ReconcileSubscriptionsJob;
+use App\Jobs\RefillDepositAddressPoolJob;
 use App\Models\DepositAddress;
 use App\Models\User;
+use App\Models\WalletDerivationState;
+use App\Services\Billing\WalletSignerClient;
 use App\Support\Billing\BillingCatalog;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
     enableBilling();
@@ -205,4 +210,112 @@ test('asset availability is eth only on ethereum and eth usdt usdc on arbitrum',
         ->toBe(['eth'])
         ->and(array_map(fn (SettlementAsset $asset) => $asset->value, PaymentNetwork::Arbitrum->assets()))
         ->toBe(['eth', 'usdt', 'usdc']);
+});
+
+test('the refill picks up where an offline import left off instead of wedging', function () {
+    // The deadlock this closes: next_deposit_index was seeded once, when its
+    // row was created, so a CSV import afterwards left it pointing at indices
+    // the table already held. The job asked the signer to re-derive an address
+    // it had already handed out, threw on the duplicate, and rolled back the
+    // counter it never advanced — repeating identically once a minute for ever
+    // while the pool drained to empty and checkout stopped.
+    DepositAddress::query()->delete();
+    config()->set([
+        'billing.deposit_pool.target' => 12,
+        'billing.signer.secret_file' => $secret = tempnam(sys_get_temp_dir(), 'signer-secret-'),
+    ]);
+    file_put_contents($secret, str_repeat('a', 64));
+
+    WalletDerivationState::query()->create(['key_version' => 'v1', 'next_deposit_index' => 5]);
+    Artisan::call('billing:import-deposit-addresses', ['file' => depositCsv(
+        "derivation_index,address\n"
+        ."5,0x0000000000000000000000000000000000000005\n"
+        ."6,0x0000000000000000000000000000000000000006\n"
+        ."7,0x0000000000000000000000000000000000000007\n"
+    )]);
+
+    $requested = null;
+    Http::fake(function (Request $request) use (&$requested) {
+        $requested = $request->data();
+
+        return Http::response([
+            'key_version' => 'v1',
+            'start_index' => $requested['startIndex'],
+            'addresses' => collect(range(0, $requested['count'] - 1))
+                ->map(fn (int $offset): array => [
+                    'index' => $requested['startIndex'] + $offset,
+                    'address' => '0x'.str_pad(dechex(0xAA00 + $requested['startIndex'] + $offset), 40, '0', STR_PAD_LEFT),
+                ])->all(),
+        ]);
+    });
+
+    (new RefillDepositAddressPoolJob)->handle(app(WalletSignerClient::class));
+
+    // 8, not 5: the three imported rows are already handed out.
+    expect($requested['startIndex'])->toBe(8)
+        ->and($requested['count'])->toBe(9)
+        ->and(DepositAddress::query()->count())->toBe(12)
+        ->and(WalletDerivationState::query()->first()->next_deposit_index)->toBe(17);
+
+    unlink($secret);
+});
+
+test('the refill never re-derives an index that was handed out and later deleted', function () {
+    // The counter still wins when it is ahead of the table. An address that was
+    // assigned and then purged must not come back round a second time.
+    DepositAddress::query()->delete();
+    config()->set([
+        'billing.deposit_pool.target' => 2,
+        'billing.signer.secret_file' => $secret = tempnam(sys_get_temp_dir(), 'signer-secret-'),
+    ]);
+    file_put_contents($secret, str_repeat('a', 64));
+
+    WalletDerivationState::query()->create(['key_version' => 'v1', 'next_deposit_index' => 40]);
+
+    $requested = null;
+    Http::fake(function (Request $request) use (&$requested) {
+        $requested = $request->data();
+
+        return Http::response([
+            'key_version' => 'v1',
+            'addresses' => collect(range(0, $requested['count'] - 1))
+                ->map(fn (int $offset): array => [
+                    'index' => $requested['startIndex'] + $offset,
+                    'address' => '0x'.str_pad(dechex(0xBB00 + $offset), 40, '0', STR_PAD_LEFT),
+                ])->all(),
+        ]);
+    });
+
+    (new RefillDepositAddressPoolJob)->handle(app(WalletSignerClient::class));
+
+    expect($requested['startIndex'])->toBe(40)
+        ->and(WalletDerivationState::query()->first()->next_deposit_index)->toBe(42);
+
+    unlink($secret);
+});
+
+test('a derivation index outside the requested range is refused', function () {
+    // The bounds check protects the counter's whole meaning: an index stored
+    // from outside the range would leave the next run overlapping it.
+    DepositAddress::query()->delete();
+    config()->set([
+        'billing.deposit_pool.target' => 2,
+        'billing.signer.secret_file' => $secret = tempnam(sys_get_temp_dir(), 'signer-secret-'),
+    ]);
+    file_put_contents($secret, str_repeat('a', 64));
+
+    Http::fake(fn () => Http::response([
+        'key_version' => 'v1',
+        'addresses' => [
+            ['index' => 0, 'address' => '0x'.str_pad('1', 40, '0', STR_PAD_LEFT)],
+            ['index' => 999, 'address' => '0x'.str_pad('2', 40, '0', STR_PAD_LEFT)],
+        ],
+    ]));
+
+    expect(fn () => (new RefillDepositAddressPoolJob)->handle(app(WalletSignerClient::class)))
+        ->toThrow(RuntimeException::class, 'outside the requested range');
+
+    expect(DepositAddress::query()->count())->toBe(0);
+
+    unlink($secret);
 });

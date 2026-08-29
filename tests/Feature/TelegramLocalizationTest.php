@@ -162,6 +162,44 @@ test('an empty report says so in the recipient language', function () {
         ->toContain('Keine Aktivität in diesem Zeitraum');
 });
 
+test('the daily report day-picker spells out the full jalali month name', function () {
+    Carbon::setTestNow('2026-08-01');
+
+    $user = User::factory()->withModules()->create([
+        'telegram_chat_id' => '910007',
+        'locale' => 'fa',
+        'calendar' => 'jalali',
+    ]);
+
+    localizedHandlerFor($user)->report_daily();
+
+    // 1405-05-10 is مرداد, not the 3-letter-truncated "مرد".
+    expect(lastBotKeyboard())->toContain('امروز (10 مرداد)')
+        ->and(lastBotKeyboard())->toContain('9 مرداد');
+
+    Carbon::setTestNow();
+});
+
+test('the recent transactions list spells out the full jalali month name', function () {
+    $user = User::factory()->withModules()->create([
+        'telegram_chat_id' => '910008',
+        'locale' => 'fa',
+        'calendar' => 'jalali',
+    ]);
+    $category = Category::factory()->cost()->forUser($user)->create(['name' => 'خوراک']);
+
+    Transaction::factory()->cost()->for($user)->for($category)->create([
+        'amount' => 1000000,
+        'currency' => Currency::Toman,
+        'occurred_at' => '2026-08-01',
+    ]);
+
+    localizedHandlerFor($user)->list();
+
+    // 1405-05-10 is مرداد, not the 3-letter-truncated "مرد".
+    expect(lastBotPayload()['text'])->toContain('مرداد 10');
+});
+
 test('every bot string exists in all three locales', function () {
     $flatten = function (array $messages, string $prefix = '') use (&$flatten): array {
         $keys = [];

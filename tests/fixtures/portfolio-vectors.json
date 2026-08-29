@@ -14,7 +14,12 @@
             "color": "#02CD86",
             "unit": "gram",
             "price": 5000000,
-            "price_available": true
+            "price_available": true,
+            "asset_class": "metal",
+            "underlying_asset_id": null,
+            "underlying_label": null,
+            "underlying_unit": null,
+            "underlying_ratio": null
         },
         {
             "id": 2,
@@ -25,7 +30,12 @@
             "color": "#6C4EE9",
             "unit": "unit",
             "price": 900000,
-            "price_available": true
+            "price_available": true,
+            "asset_class": "currency",
+            "underlying_asset_id": null,
+            "underlying_label": null,
+            "underlying_unit": null,
+            "underlying_ratio": null
         }
     ],
     "entries": [
@@ -194,5 +204,138 @@
             "has_realised_data": true,
             "asset_count": 1
         }
+    },
+    "_exposure_comment": "Two holdings that are one bet: half coins track parity gold, so the pair rolls up into a single gold exposure. Asserted by both BuildExposureBreakdown and its browser port so neither can drift.",
+    "exposure": {
+        "target": "toman",
+        "assets": [
+            {
+                "id": 1,
+                "key": "parity-gold",
+                "label": "Parity gold",
+                "icon": null,
+                "icon_svg": null,
+                "color": "#02CD86",
+                "unit": "gram",
+                "asset_class": "metal",
+                "underlying_asset_id": null,
+                "underlying_label": null,
+                "underlying_unit": null,
+                "underlying_ratio": null,
+                "price": 5000000,
+                "price_available": true
+            },
+            {
+                "id": 2,
+                "key": "parity-dollar",
+                "label": "Parity dollar",
+                "icon": null,
+                "icon_svg": null,
+                "color": "#6C4EE9",
+                "unit": "unit",
+                "asset_class": "currency",
+                "underlying_asset_id": null,
+                "underlying_label": null,
+                "underlying_unit": null,
+                "underlying_ratio": null,
+                "price": 900000,
+                "price_available": true
+            },
+            {
+                "id": 3,
+                "key": "parity-half-coin",
+                "label": "Parity half coin",
+                "icon": null,
+                "icon_svg": null,
+                "color": "#F59E0B",
+                "unit": "coin",
+                "asset_class": "metal",
+                "underlying_asset_id": 1,
+                "underlying_label": "Parity gold",
+                "underlying_unit": "gram",
+                "underlying_ratio": 4.88,
+                "price": 24400000,
+                "price_available": true
+            }
+        ],
+        "entries": [
+            {
+                "investment_asset_id": 1,
+                "kind": "buy",
+                "quantity": 2,
+                "cost_basis": null,
+                "cost_basis_currency": null,
+                "sale_price": null,
+                "sale_price_currency": null
+            },
+            {
+                "investment_asset_id": 2,
+                "kind": "buy",
+                "quantity": 10,
+                "cost_basis": null,
+                "cost_basis_currency": null,
+                "sale_price": null,
+                "sale_price_currency": null
+            },
+            {
+                "investment_asset_id": 3,
+                "kind": "buy",
+                "quantity": 1,
+                "cost_basis": null,
+                "cost_basis_currency": null,
+                "sale_price": null,
+                "sale_price_currency": null
+            }
+        ],
+        "exposures": [
+            {
+                "exposure_id": 1,
+                "label": "Parity gold",
+                "asset_class": "metal",
+                "value": 34400000,
+                "value_formatted": "34,400,000",
+                "percent": 79.26,
+                "equivalent_quantity": 6.88,
+                "equivalent_unit": "gram",
+                "is_held_directly": true,
+                "member_slugs": [
+                    "parity-half-coin",
+                    "parity-gold"
+                ]
+            },
+            {
+                "exposure_id": 2,
+                "label": "Parity dollar",
+                "asset_class": "currency",
+                "value": 9000000,
+                "value_formatted": "9,000,000",
+                "percent": 20.74,
+                "equivalent_quantity": 10,
+                "equivalent_unit": "unit",
+                "is_held_directly": true,
+                "member_slugs": [
+                    "parity-dollar"
+                ]
+            }
+        ],
+        "classes": [
+            {
+                "key": "metal",
+                "value": 34400000,
+                "value_formatted": "34,400,000",
+                "percent": 79.26,
+                "asset_count": 2,
+                "exposure_count": 1
+            },
+            {
+                "key": "currency",
+                "value": 9000000,
+                "value_formatted": "9,000,000",
+                "percent": 20.74,
+                "asset_count": 1,
+                "exposure_count": 1
+            }
+        ],
+        "has_unpriced_assets": false
     }
 }

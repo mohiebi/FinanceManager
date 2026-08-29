@@ -9,7 +9,7 @@ import {
     Trash2,
     X,
 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
@@ -19,6 +19,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    guessAssetClassFromUnit,
+    soleAssetSlugInFormula,
+} from '@/lib/assetClasses';
 import {
     destroy as destroyInvestmentAsset,
     store as storeInvestmentAsset,
@@ -36,11 +40,24 @@ type SourceConfig = {
     divide_by?: string | number | null;
 };
 
+type UnderlyingOption = {
+    label: string;
+    value: string;
+    slug: string;
+    unit: string;
+    asset_class: string | null;
+};
+
 type InvestmentAsset = {
     id: number;
     name: string;
     slug: string;
     unit: string;
+    asset_class: string | null;
+    underlying_asset_id: number | null;
+    underlying_label: string | null;
+    underlying_ratio: number | null;
+    can_be_underlying: boolean;
     icon: string | null;
     icon_svg: string | null;
     color: string;
@@ -50,8 +67,10 @@ type InvestmentAsset = {
     investments_count: number;
 };
 
-defineProps<{
+const props = defineProps<{
     assets: InvestmentAsset[];
+    assetClasses: { label: string; value: string }[];
+    underlyingOptions: UnderlyingOption[];
 }>();
 
 const { t } = useI18n();
@@ -176,6 +195,9 @@ const blankConfig = (): Required<Record<keyof SourceConfig, string>> => ({
 const createForm = useForm({
     name: '',
     unit: '',
+    asset_class: '',
+    underlying_asset_id: '',
+    underlying_ratio: '',
     icon: '',
     icon_svg: '',
     color: '#02CD86',
@@ -186,12 +208,88 @@ const createForm = useForm({
 const editForm = useForm({
     name: '',
     unit: '',
+    asset_class: '',
+    underlying_asset_id: '',
+    underlying_ratio: '',
     icon: '',
     icon_svg: '',
     color: '#02CD86',
     price_source_type: 'manual' as PriceSourceType,
     price_source_config: blankConfig(),
 });
+
+/**
+ * Assets that already have something tracking them.
+ *
+ * Such an asset cannot itself be given an underlying — that is what caps the
+ * tree at one level. Derived from the list rather than sent as a count: every
+ * asset that could be a variant is on this page.
+ */
+const assetsWithVariants = computed<Set<number>>(
+    () =>
+        new Set(
+            props.assets
+                .map((asset) => asset.underlying_asset_id)
+                .filter((id): id is number => id !== null),
+        ),
+);
+
+/** The edited asset cannot be its own underlying. */
+function underlyingOptionsFor(assetId: number | null): UnderlyingOption[] {
+    return props.underlyingOptions.filter(
+        (option) => assetId === null || option.value !== String(assetId),
+    );
+}
+
+function underlyingUnitFor(value: string): string {
+    return (
+        props.underlyingOptions.find((option) => option.value === value)
+            ?.unit ?? ''
+    );
+}
+
+/**
+ * A price written as `goldprice * 4.6` already says this asset is gold. Offer
+ * that rather than making the user state it twice — as a default they can still
+ * overrule, and never over an answer they have already given.
+ */
+function suggestUnderlyingFrom(
+    formula: string | null | undefined,
+    form: { asset_class: string; underlying_asset_id: string },
+): void {
+    if (form.underlying_asset_id !== '' || !formula) {
+        return;
+    }
+
+    const slug = soleAssetSlugInFormula(formula);
+    const match = props.underlyingOptions.find(
+        (option) => option.slug === slug,
+    );
+
+    if (match) {
+        form.underlying_asset_id = match.value;
+        form.asset_class = match.asset_class ?? form.asset_class;
+    }
+}
+
+watch(
+    () => createForm.price_source_config.formula,
+    (formula) => suggestUnderlyingFrom(formula, createForm),
+);
+
+watch(
+    () => editForm.price_source_config.formula,
+    (formula) => suggestUnderlyingFrom(formula, editForm),
+);
+
+watch(
+    () => createForm.unit,
+    (unit) => {
+        if (createForm.asset_class === '' && unit.trim() !== '') {
+            createForm.asset_class = guessAssetClassFromUnit(unit);
+        }
+    },
+);
 
 const deleteError = computed(() => {
     const errors = page.props.errors as
@@ -208,6 +306,9 @@ function createAsset(): void {
             createForm.reset();
             createForm.color = '#02CD86';
             createForm.price_source_type = 'manual';
+            createForm.asset_class = '';
+            createForm.underlying_asset_id = '';
+            createForm.underlying_ratio = '';
             createForm.price_source_config = blankConfig();
         },
     });
@@ -218,6 +319,13 @@ function startEdit(asset: InvestmentAsset): void {
     editForm.clearErrors();
     editForm.name = asset.name;
     editForm.unit = asset.unit;
+    editForm.asset_class = asset.asset_class ?? '';
+    editForm.underlying_asset_id =
+        asset.underlying_asset_id === null
+            ? ''
+            : String(asset.underlying_asset_id);
+    editForm.underlying_ratio =
+        asset.underlying_ratio === null ? '' : String(asset.underlying_ratio);
     editForm.icon = asset.icon ?? '';
     editForm.icon_svg = asset.icon_svg ?? '';
     editForm.color = asset.color;
@@ -423,6 +531,99 @@ defineOptions({
                             </label>
                         </div>
                     </div>
+                </div>
+
+                <!-- Row 3: What it is, and what it tracks -->
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-2">
+                        <Label
+                            class="finance-dialog-label"
+                            for="asset_class_create"
+                        >
+                            {{ t('settings.assets.asset_class') }}
+                        </Label>
+                        <select
+                            id="asset_class_create"
+                            v-model="createForm.asset_class"
+                            class="finance-dialog-field finance-dialog-field-income"
+                        >
+                            <option value="">
+                                {{ t('settings.assets.asset_class_none') }}
+                            </option>
+                            <option
+                                v-for="assetClass in assetClasses"
+                                :key="assetClass.value"
+                                :value="assetClass.value"
+                            >
+                                {{ assetClass.label }}
+                            </option>
+                        </select>
+                        <InputError :message="createForm.errors.asset_class" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label
+                            class="finance-dialog-label"
+                            for="asset_underlying_create"
+                        >
+                            {{ t('settings.assets.underlying') }}
+                        </Label>
+                        <select
+                            id="asset_underlying_create"
+                            v-model="createForm.underlying_asset_id"
+                            class="finance-dialog-field finance-dialog-field-income"
+                        >
+                            <option value="">
+                                {{ t('settings.assets.underlying_none') }}
+                            </option>
+                            <option
+                                v-for="option in underlyingOptionsFor(null)"
+                                :key="option.value"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
+                            </option>
+                        </select>
+                        <InputError
+                            :message="createForm.errors.underlying_asset_id"
+                        />
+                    </div>
+                </div>
+                <p class="-mt-2 text-[11px] leading-relaxed text-white/40">
+                    {{ t('settings.assets.underlying_help') }}
+                </p>
+
+                <div
+                    v-if="createForm.underlying_asset_id !== ''"
+                    class="grid gap-2"
+                >
+                    <Label
+                        class="finance-dialog-label"
+                        for="asset_ratio_create"
+                    >
+                        {{
+                            t('settings.assets.underlying_ratio', {
+                                unit: underlyingUnitFor(
+                                    createForm.underlying_asset_id,
+                                ),
+                            })
+                        }}
+                        <span class="ml-1 font-light text-[#989898]"
+                            >({{ t('finance.fields.optional') }})</span
+                        >
+                    </Label>
+                    <Input
+                        id="asset_ratio_create"
+                        v-model="createForm.underlying_ratio"
+                        class="finance-dialog-field finance-dialog-field-income"
+                        type="number"
+                        min="0"
+                        step="any"
+                        :placeholder="
+                            t('settings.assets.underlying_ratio_placeholder')
+                        "
+                    />
+                    <InputError :message="createForm.errors.underlying_ratio" />
                 </div>
 
                 <!-- Row 3: Price (manual default) -->
@@ -795,6 +996,111 @@ defineOptions({
                                 </div>
                             </div>
                         </div>
+                        <!-- What it is, and what it tracks -->
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div class="grid gap-1.5">
+                                <Label class="finance-dialog-label">{{
+                                    t('settings.assets.asset_class')
+                                }}</Label>
+                                <select
+                                    v-model="editForm.asset_class"
+                                    class="finance-dialog-field finance-dialog-field-income"
+                                >
+                                    <option value="">
+                                        {{
+                                            t(
+                                                'settings.assets.asset_class_none',
+                                            )
+                                        }}
+                                    </option>
+                                    <option
+                                        v-for="assetClass in assetClasses"
+                                        :key="assetClass.value"
+                                        :value="assetClass.value"
+                                    >
+                                        {{ assetClass.label }}
+                                    </option>
+                                </select>
+                                <InputError
+                                    :message="editForm.errors.asset_class"
+                                />
+                            </div>
+
+                            <div class="grid gap-1.5">
+                                <Label class="finance-dialog-label">{{
+                                    t('settings.assets.underlying')
+                                }}</Label>
+                                <select
+                                    v-model="editForm.underlying_asset_id"
+                                    class="finance-dialog-field finance-dialog-field-income"
+                                    :disabled="assetsWithVariants.has(asset.id)"
+                                >
+                                    <option value="">
+                                        {{
+                                            t('settings.assets.underlying_none')
+                                        }}
+                                    </option>
+                                    <option
+                                        v-for="option in underlyingOptionsFor(
+                                            asset.id,
+                                        )"
+                                        :key="option.value"
+                                        :value="option.value"
+                                    >
+                                        {{ option.label }}
+                                    </option>
+                                </select>
+                                <InputError
+                                    :message="
+                                        editForm.errors.underlying_asset_id
+                                    "
+                                />
+                            </div>
+                        </div>
+                        <p
+                            class="-mt-1 text-[11px] leading-relaxed text-white/40"
+                        >
+                            {{
+                                assetsWithVariants.has(asset.id)
+                                    ? t(
+                                          'settings.assets.underlying_has_variants',
+                                      )
+                                    : t('settings.assets.underlying_help')
+                            }}
+                        </p>
+
+                        <div
+                            v-if="editForm.underlying_asset_id !== ''"
+                            class="grid gap-1.5"
+                        >
+                            <Label class="finance-dialog-label">
+                                {{
+                                    t('settings.assets.underlying_ratio', {
+                                        unit: underlyingUnitFor(
+                                            editForm.underlying_asset_id,
+                                        ),
+                                    })
+                                }}
+                                <span class="ml-1 font-light text-[#989898]"
+                                    >({{ t('finance.fields.optional') }})</span
+                                >
+                            </Label>
+                            <Input
+                                v-model="editForm.underlying_ratio"
+                                class="finance-dialog-field finance-dialog-field-income"
+                                type="number"
+                                min="0"
+                                step="any"
+                                :placeholder="
+                                    t(
+                                        'settings.assets.underlying_ratio_placeholder',
+                                    )
+                                "
+                            />
+                            <InputError
+                                :message="editForm.errors.underlying_ratio"
+                            />
+                        </div>
                         <!-- Price source -->
                         <div class="grid gap-1.5">
                             <Label class="finance-dialog-label">{{
@@ -1031,6 +1337,30 @@ defineOptions({
                                         `settings.assets.sources.${asset.price_source_type}`,
                                     )
                                 }}
+                            </p>
+                            <p
+                                v-if="
+                                    asset.underlying_label || asset.asset_class
+                                "
+                                class="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-white/45"
+                            >
+                                <span
+                                    v-if="asset.asset_class"
+                                    class="rounded-full bg-white/5 px-2 py-0.5"
+                                >
+                                    {{
+                                        t(
+                                            `finance.asset_classes.${asset.asset_class}`,
+                                        )
+                                    }}
+                                </span>
+                                <span v-if="asset.underlying_label">
+                                    {{
+                                        t('settings.assets.tracks', {
+                                            asset: asset.underlying_label,
+                                        })
+                                    }}
+                                </span>
                             </p>
                         </div>
                         <Button

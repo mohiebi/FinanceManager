@@ -4,6 +4,11 @@ import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
+import {
+    captureSsrPresence,
+    installDiagnostics,
+    reportInertiaEvent,
+} from '@/lib/diagnostics';
 
 const appName = import.meta.env.VITE_APP_NAME || 'CashPilot';
 
@@ -70,6 +75,17 @@ if (page.props?.fallbackTranslations) {
 
 applyLocale(initialLocale, initialDir);
 
+/*
+ * Temporary instrumentation -- see resources/js/lib/diagnostics.ts.
+ *
+ * Installed before createInertiaApp so the console hooks are in place for the
+ * very first hydration, and the SSR-presence read happens while #app is still
+ * exactly as the server sent it. Mounting populates that element either way,
+ * so after this point the distinction is gone.
+ */
+installDiagnostics();
+captureSsrPresence((page as { component?: string }).component ?? null);
+
 const i18n = createI18n({
     legacy: false,
     locale: initialLocale,
@@ -97,6 +113,16 @@ createInertiaApp({
     withApp: (app) => {
         app.use(i18n);
     },
+});
+
+router.on('httpException', (event) => {
+    reportInertiaEvent(
+        `httpException status=${(event.detail as { response?: { status?: number } }).response?.status ?? '?'}`,
+    );
+});
+
+router.on('networkError', () => {
+    reportInertiaEvent('networkError');
 });
 
 router.on('success', (event) => {

@@ -46,10 +46,20 @@ export function isNegativeCurrencyValue(value: string | number): boolean {
     return numericCurrencyValue(value) < 0;
 }
 
+/**
+ * Strips the sign rather than assuming it is an ASCII hyphen: locales such as
+ * `fa-IR` render it as U+2212 (MINUS SIGN) behind an invisible U+200E
+ * (LEFT-TO-RIGHT MARK), and a plain `.replace('-', '')` leaves both sitting
+ * inside the parentheses.
+ */
 function accountingNumber(formattedNumber: string, value: number): string {
-    return value < 0
-        ? `(${formattedNumber.replace('-', '')})`
-        : formattedNumber;
+    if (value >= 0) {
+        return formattedNumber;
+    }
+
+    const unsigned = formattedNumber.replace(/[‎‏]/g, '').replace(/[-−]/, '');
+
+    return `(${unsigned})`;
 }
 
 /**
@@ -60,12 +70,13 @@ function accountingNumber(formattedNumber: string, value: number): string {
 export function formatCurrencyNumber(
     value: string | number,
     currency: CurrencyCode,
+    locale: string = 'en-US',
 ): string {
     const numeric = numericCurrencyValue(value);
     const fractionDigits = currency === 'toman' ? 0 : 2;
 
     return accountingNumber(
-        new Intl.NumberFormat('en-US', {
+        new Intl.NumberFormat(locale, {
             minimumFractionDigits: fractionDigits,
             maximumFractionDigits: fractionDigits,
         }).format(numeric),
@@ -74,11 +85,14 @@ export function formatCurrencyNumber(
 }
 
 /** Compact numeric part for dashboard totals. */
-export function formatCompactCurrencyNumber(value: string | number): string {
+export function formatCompactCurrencyNumber(
+    value: string | number,
+    locale: string = 'en-US',
+): string {
     const numeric = numericCurrencyValue(value);
 
     return accountingNumber(
-        new Intl.NumberFormat('en-US', {
+        new Intl.NumberFormat(locale, {
             notation: 'compact',
             maximumFractionDigits: 1,
         }).format(numeric),
@@ -108,16 +122,21 @@ function joinCurrency(formattedNumber: string, currency: CurrencyCode): string {
 export function formatCurrencyDisplay(
     value: string | number,
     currency: CurrencyCode,
+    locale: string = 'en-US',
 ): string {
-    return joinCurrency(formatCurrencyNumber(value, currency), currency);
+    return joinCurrency(
+        formatCurrencyNumber(value, currency, locale),
+        currency,
+    );
 }
 
 /** Compact financial display for summary cards and charts. */
 export function formatCompactCurrencyDisplay(
     value: string | number,
     currency: CurrencyCode,
+    locale: string = 'en-US',
 ): string {
-    return joinCurrency(formatCompactCurrencyNumber(value), currency);
+    return joinCurrency(formatCompactCurrencyNumber(value, locale), currency);
 }
 
 export type Rates = {

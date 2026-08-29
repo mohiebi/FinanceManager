@@ -35,6 +35,7 @@ class InvestmentController extends Controller
 
         $assetOptions = InvestmentAsset::query()
             ->availableFor($user)
+            ->with('underlying')
             ->orderByDesc('is_default')
             ->orderBy('name')
             ->get();

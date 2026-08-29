@@ -2,8 +2,10 @@
 
 namespace App\Services\Advisor;
 
+use App\Enums\AssetClass;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AdvisorAssessmentDefinition
@@ -183,7 +185,7 @@ class AdvisorAssessmentDefinition
             'assets.*.exchange_or_market' => ['nullable', 'string', 'max:80'],
             'assets.*.country' => ['nullable', 'string', 'max:80'],
             'assets.*.currency' => ['required', 'string', 'max:12'],
-            'assets.*.category' => ['required', 'in:stock,etf,bond,currency,metal,crypto,commodity,real_estate,private_asset,other'],
+            'assets.*.category' => ['required', Rule::enum(AssetClass::class)],
             'assets.*.risk_band' => ['required', 'in:defensive,moderate,growth,speculative,unknown'],
             'assets.*.liquidity' => ['required', 'in:same_day,within_week,within_month,illiquid'],
             'assets.*.perspective' => ['required', 'in:bearish,neutral,bullish'],

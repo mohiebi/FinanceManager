@@ -29,7 +29,7 @@ class TelegramReportService
         $calendar = FrontendLocalization::normalizeCalendar($user->calendar);
         [$from, $to] = $this->weekRange($date, $calendar);
         $label = $calendar === 'jalali'
-            ? DateFormatter::format($date, $calendar, 'M j')
+            ? DateFormatter::format($date, $calendar, 'F j')
             : $date->copy()->locale($this->locale($user))->translatedFormat('M j');
 
         return $this->buildReport($user, $from, $to, $this->line($user, 'weekly_title', ['date' => $label]));

@@ -22,6 +22,13 @@ export type PortfolioAssetMeta = {
     icon_svg: string | null;
     color: string;
     unit: string;
+    asset_class: string | null;
+    /** The asset whose market this one really tracks; null when it is its own. */
+    underlying_asset_id: number | null;
+    underlying_label: string | null;
+    underlying_unit: string | null;
+    /** Units of the underlying one unit of this asset is worth, when known. */
+    underlying_ratio: number | null;
     /** Current unit price, in toman. */
     price: number;
     price_available: boolean;
@@ -69,6 +76,16 @@ export type PortfolioAsset = {
     icon_svg: string | null;
     color: string;
     unit: string;
+    asset_class: string | null;
+    /**
+     * The market this row is exposed to — its own id when it is its own market,
+     * so grouping on it needs no special case for the roots.
+     */
+    exposure_id: number;
+    underlying_asset_id: number | null;
+    underlying_label: string | null;
+    underlying_unit: string | null;
+    underlying_ratio: number | null;
     quantity: number;
     current_price: number;
     current_price_formatted: string;
@@ -281,6 +298,12 @@ export function buildBreakdown(
             icon_svg: meta.icon_svg,
             color: meta.color,
             unit: meta.unit,
+            asset_class: meta.asset_class,
+            exposure_id: meta.underlying_asset_id ?? meta.id,
+            underlying_asset_id: meta.underlying_asset_id,
+            underlying_label: meta.underlying_label,
+            underlying_unit: meta.underlying_unit,
+            underlying_ratio: meta.underlying_ratio,
             quantity: round(totalQuantity, 8),
             current_price: meta.price,
             current_price_formatted: fmt(meta.price),
@@ -396,4 +419,189 @@ export function buildSnapshot(
                     : 0,
         })),
     };
+}
+
+export type PortfolioExposureMember = {
+    id: number;
+    label: string;
+    slug: string;
+    quantity: number;
+    unit: string;
+    value: number;
+    value_formatted: string;
+    underlying_ratio: number | null;
+    price_available: boolean;
+};
+
+export type PortfolioExposure = {
+    exposure_id: number;
+    label: string;
+    asset_class: string | null;
+    value: number;
+    value_formatted: string;
+    percent: number | null;
+    equivalent_quantity: number | null;
+    equivalent_unit: string | null;
+    is_held_directly: boolean;
+    members: PortfolioExposureMember[];
+};
+
+export type PortfolioAssetClass = {
+    key: string;
+    value: number;
+    value_formatted: string;
+    percent: number | null;
+    asset_count: number;
+    exposure_count: number;
+};
+
+export type ExposureBreakdown = {
+    exposures: PortfolioExposure[];
+    classes: PortfolioAssetClass[];
+    has_unpriced_assets: boolean;
+};
+
+/**
+ * Collapses holdings into the markets they are actually bets on.
+ *
+ * A deliberate port of App\Actions\Investments\BuildExposureBreakdown, and it
+ * exists for the same reason the rest of this module does: with the vault armed
+ * the server never sees a quantity, so "these four rows are all gold" can only
+ * be worked out here.
+ *
+ * Rolls up value, never quantity — a half coin is counted in coins and bullion
+ * in grams. The equivalent quantity is the exception, and only where every
+ * member states its conversion.
+ */
+export function buildExposureBreakdown(
+    assets: readonly PortfolioAsset[],
+    fmt: (amount: number) => string,
+): ExposureBreakdown {
+    const total = assets.reduce(
+        (carry, asset) => carry + asset.current_value,
+        0,
+    );
+    const hasUnpricedAssets = assets.some((asset) => !asset.price_available);
+    const share = (value: number): number | null =>
+        hasUnpricedAssets || total <= 0
+            ? null
+            : round((value / total) * 100, 2);
+
+    const byExposure = new Map<number, PortfolioAsset[]>();
+
+    for (const asset of assets) {
+        const bucket = byExposure.get(asset.exposure_id);
+
+        if (bucket === undefined) {
+            byExposure.set(asset.exposure_id, [asset]);
+        } else {
+            bucket.push(asset);
+        }
+    }
+
+    const exposures: PortfolioExposure[] = [];
+
+    for (const [exposureId, members] of byExposure) {
+        // The row that *is* the market, when it is held directly. When it is not
+        // — gold owned only as coins — the members all name it, so the label
+        // comes from the link instead.
+        const root = members.find((asset) => asset.id === exposureId);
+        const viaLink = members.find(
+            (asset) =>
+                asset.underlying_label !== null &&
+                asset.underlying_label !== '',
+        );
+        const value = members.reduce(
+            (carry, asset) => carry + asset.current_value,
+            0,
+        );
+
+        exposures.push({
+            exposure_id: exposureId,
+            label: root?.label ?? viaLink?.underlying_label ?? '',
+            asset_class: root?.asset_class ?? members[0]?.asset_class ?? null,
+            value,
+            value_formatted: fmt(value),
+            percent: share(value),
+            equivalent_quantity: equivalentQuantity(members),
+            equivalent_unit: root?.unit ?? viaLink?.underlying_unit ?? null,
+            is_held_directly: root !== undefined,
+            members: members.map((asset) => ({
+                id: asset.id,
+                label: asset.label,
+                slug: asset.key,
+                quantity: asset.quantity,
+                unit: asset.unit,
+                value: asset.current_value,
+                value_formatted: asset.current_value_formatted,
+                underlying_ratio: asset.underlying_ratio,
+                price_available: asset.price_available,
+            })),
+        });
+    }
+
+    exposures.sort((left, right) => right.value - left.value);
+
+    const byClass = new Map<string, PortfolioAsset[]>();
+
+    for (const asset of assets) {
+        const key = asset.asset_class ?? 'unclassified';
+        const bucket = byClass.get(key);
+
+        if (bucket === undefined) {
+            byClass.set(key, [asset]);
+        } else {
+            bucket.push(asset);
+        }
+    }
+
+    const classes: PortfolioAssetClass[] = [];
+
+    for (const [key, members] of byClass) {
+        const value = members.reduce(
+            (carry, asset) => carry + asset.current_value,
+            0,
+        );
+
+        classes.push({
+            key,
+            value,
+            value_formatted: fmt(value),
+            percent: share(value),
+            asset_count: members.length,
+            exposure_count: new Set(members.map((asset) => asset.exposure_id))
+                .size,
+        });
+    }
+
+    classes.sort((left, right) => right.value - left.value);
+
+    return { exposures, classes, has_unpriced_assets: hasUnpricedAssets };
+}
+
+/**
+ * How much of the underlying a group adds up to, in the underlying's unit.
+ *
+ * Null unless every member can be converted — a group where one bar states its
+ * gram weight and another does not would otherwise report a total that looks
+ * complete and is not. A directly held root counts as itself.
+ */
+function equivalentQuantity(members: readonly PortfolioAsset[]): number | null {
+    let total = 0;
+
+    for (const member of members) {
+        if (member.underlying_asset_id === null) {
+            total += member.quantity;
+
+            continue;
+        }
+
+        if (member.underlying_ratio === null) {
+            return null;
+        }
+
+        total += member.quantity * member.underlying_ratio;
+    }
+
+    return round(total, 8);
 }

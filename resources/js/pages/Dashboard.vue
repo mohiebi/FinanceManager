@@ -76,11 +76,11 @@
                     {{ period.month }}
                 </p>
                 <p class="mt-1 text-xs text-[#989898]">
-                    {{ period.year }} &middot;
+                    {{ dn(period.year) }} &middot;
                     {{
                         t('finance.calendar.day_of_month', {
-                            day: period.dayOfMonth,
-                            days: period.daysInMonth,
+                            day: dn(period.dayOfMonth),
+                            days: dn(period.daysInMonth),
                         })
                     }}
                 </p>
@@ -95,7 +95,7 @@
                 <p class="mt-1.5 text-right text-xs text-[#989898]">
                     {{
                         t('finance.calendar.elapsed', {
-                            progress: period.progress,
+                            progress: dn(period.progress),
                         })
                     }}
                 </p>
@@ -135,7 +135,7 @@
                     />
                 </p>
                 <p class="mt-1.5 text-xs text-[#989898]">
-                    {{ props.transactions.incomes.length }}
+                    {{ dn(props.transactions.incomes.length) }}
                     {{ t('finance.reports.transactions') }}
                 </p>
             </article>
@@ -163,7 +163,7 @@
                     />
                 </p>
                 <p class="mt-1.5 text-xs text-[#989898]">
-                    {{ props.transactions.costs.length }}
+                    {{ dn(props.transactions.costs.length) }}
                     {{ t('finance.reports.transactions') }}
                 </p>
             </article>
@@ -285,7 +285,7 @@
                         >
                         <span class="block text-sm text-white">{{
                             t('gamification.page.strip_run', {
-                                days: props.streak.current_run,
+                                days: dn(props.streak.current_run),
                             })
                         }}</span>
                     </span>
@@ -304,7 +304,7 @@
                 <span class="shrink-0 text-end">
                     <span class="block text-[13px] text-white">{{
                         t('gamification.page.strip_recorded', {
-                            percent: props.logbook.percent,
+                            percent: dn(props.logbook.percent),
                             month: props.logbook.month,
                         })
                     }}</span>
@@ -312,7 +312,7 @@
                         props.logbook.uncategorised > 0
                             ? t(
                                   'gamification.page.strip_uncategorised',
-                                  { count: props.logbook.uncategorised },
+                                  { count: dn(props.logbook.uncategorised) },
                                   props.logbook.uncategorised,
                               )
                             : t('gamification.page.strip_all_sorted')
@@ -451,11 +451,12 @@
                                     formatCurrencyDisplay(
                                         entry.value,
                                         props.selectedCurrency,
+                                        intlLocale(locale),
                                     )
                                 }}</span
                             >
                             <span class="w-10 text-end text-xs text-[#989898]"
-                                >{{ entry.pct }}%</span
+                                >{{ dn(entry.pct) }}%</span
                             >
                         </li>
                     </ul>
@@ -528,8 +529,9 @@ import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
 import { usePageSubtitle } from '@/composables/usePageSubtitle';
 import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
 import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
-import { formatAppDate } from '@/lib/date';
-import { formatCurrencyDisplay, formatCurrencyNumber } from '@/lib/money';
+import { dayOfMonthInCalendar, formatAppDate } from '@/lib/date';
+import { intlLocale, localizeDigits } from '@/lib/locale';
+import { formatCurrencyDisplay } from '@/lib/money';
 import type { CurrencyCode, Rates } from '@/lib/money';
 import {
     dashboard,
@@ -681,8 +683,14 @@ defineOptions({
 
 const page = usePage();
 const features = computed(() => page.props.features);
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { masked } = useAmountMask();
+
+/** A plain count, rendered in the viewer's own digits — Persian for `fa`,
+ *  unchanged otherwise. `t()` interpolation stringifies numbers as-is. */
+function dn(value: number): string {
+    return localizeDigits(value, locale.value);
+}
 const maskClass = computed(() =>
     masked.value
         ? 'blur-[6px] transition-[filter] duration-150 select-none'
@@ -793,8 +801,10 @@ const daysRemaining = computed(() =>
 usePageSubtitle(() =>
     t('finance.dashboard.subtitle', {
         month: props.period.month,
-        year: props.period.year,
-        days: t('finance.calendar.days_left', { days: daysRemaining.value }),
+        year: dn(props.period.year),
+        days: t('finance.calendar.days_left', {
+            days: dn(daysRemaining.value),
+        }),
     }),
 );
 
@@ -813,22 +823,25 @@ const safeToSpendExplanation = computed(() =>
         cost: masked.value
             ? '••••••'
             : formatCurrencyDisplay(
-                  formatAmount(costNum.value),
+                  costNum.value,
                   props.selectedCurrency,
+                  intlLocale(locale.value),
               ),
         income: masked.value
             ? '••••••'
             : formatCurrencyDisplay(
-                  formatAmount(incomeNum.value),
+                  incomeNum.value,
                   props.selectedCurrency,
+                  intlLocale(locale.value),
               ),
         month: props.period.month,
-        days: daysRemaining.value,
+        days: dn(daysRemaining.value),
         amount: masked.value
             ? '••••••'
             : formatCurrencyDisplay(
-                  formatAmount(safeToSpendPerDay.value ?? 0),
+                  safeToSpendPerDay.value ?? 0,
                   props.selectedCurrency,
+                  intlLocale(locale.value),
               ),
     }),
 );
@@ -842,8 +855,9 @@ const needsDecision = computed(() => totalsReady.value && balance.value < 0);
 const needsDecisionBody = computed(() =>
     t('finance.dashboard.needs_decision_body', {
         amount: formatCurrencyDisplay(
-            formatAmount(Math.abs(balance.value)),
+            Math.abs(balance.value),
             props.selectedCurrency,
+            intlLocale(locale.value),
         ),
         month: props.period.month,
     }),
@@ -919,8 +933,10 @@ const categoryLegend = computed(() => {
     });
 });
 
+/** Day-of-month in the viewer's own calendar, so the buckets line up with the
+ *  Jalali month the period covers rather than the Gregorian one underneath. */
 function dayOfMonthIndex(isoDate: string): number {
-    return Number(isoDate.slice(8, 10));
+    return dayOfMonthInCalendar(isoDate, displayCalendar.value);
 }
 
 /** Daily income and cost totals across the whole period, for the one
@@ -946,7 +962,7 @@ const cashFlowByDay = computed(() => {
     }
 
     return {
-        categories: cost.map((_, index) => String(index + 1)),
+        categories: cost.map((_, index) => dn(index + 1)),
         income: income.map((value) => Math.round(value * 100) / 100),
         cost: cost.map((value) => Math.round(value * 100) / 100),
     };
@@ -966,10 +982,6 @@ const cashFlowSeries = computed(() => [
         data: cashFlowByDay.value.cost,
     },
 ]);
-
-function formatAmount(amount: string | number): string {
-    return formatCurrencyNumber(amount, props.selectedCurrency);
-}
 
 function findCategory(transaction: Transaction): Category | null {
     if (transaction.category) {

@@ -66,8 +66,20 @@ createInertiaApp({
          */
         vueApp.config.errorHandler = (error, _instance, info): void => {
             console.error(
-                `[ssr] ${props.initialPage.component} failed during ${info}:`,
+                `[ssr] ${props.initialPage.component} url=${props.initialPage.url} failed during ${info}:`,
                 error instanceof Error ? error.stack : error,
+            );
+        };
+
+        /*
+         * Vue warnings are dev-only in the client build but still reach the
+         * handler here, and they name the component that produced them --
+         * which is the fastest way to find a render whose output the browser
+         * then refuses to hydrate.
+         */
+        vueApp.config.warnHandler = (msg, _instance, trace): void => {
+            console.error(
+                `[ssr] warn ${props.initialPage.component}: ${msg}${trace}`,
             );
         };
 

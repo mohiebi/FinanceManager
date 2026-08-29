@@ -13,11 +13,13 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Inertia\Inertia;
 use Laravel\Passport\Passport;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -49,6 +51,29 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureAdvisorRateLimiting();
         $this->configurePassport();
+        $this->configureSsr();
+    }
+
+    /**
+     * Server-render only what benefits from it.
+     *
+     * A signed-in page is never crawled and never shared, so SSR buys it
+     * nothing -- while still requiring the server's markup to match, node for
+     * node, what the browser builds from the same props. Dashboard did not
+     * match, and Vue cannot always patch cleanly past a mismatch, which is how
+     * a page renders but stops responding.
+     *
+     * Google sign-in was only ever the messenger: it is the one route that
+     * reaches an authenticated page through a full browser navigation. Email
+     * login arrives over an Inertia XHR and renders client-side, so it never
+     * hydrated and never showed the fault.
+     *
+     * Landing and the auth screens keep SSR, which is where the SEO and
+     * first-paint value actually is.
+     */
+    protected function configureSsr(): void
+    {
+        Inertia::disableSsr(fn (): bool => Auth::check());
     }
 
     protected function configureAdvisorRateLimiting(): void

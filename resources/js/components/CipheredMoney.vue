@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAmountMask } from '@/composables/useAmountMask';
 import { useVault } from '@/composables/useVault';
+import { intlLocale } from '@/lib/locale';
 import {
     format as formatMoney,
     formatCurrencyDisplay,
@@ -27,6 +29,7 @@ const props = withDefaults(
 
 const { reveal, revealAsync, trackKey } = useVault();
 const { masked } = useAmountMask();
+const { locale } = useI18n();
 
 const resolved = ref<string | number | undefined>(reveal(props.amount));
 
@@ -73,8 +76,16 @@ const formatted = computed(() => {
     }
 
     return props.showCurrency
-        ? formatCurrencyDisplay(value, props.displayCurrency)
-        : formatCurrencyNumber(value, props.displayCurrency);
+        ? formatCurrencyDisplay(
+              value,
+              props.displayCurrency,
+              intlLocale(locale.value),
+          )
+        : formatCurrencyNumber(
+              value,
+              props.displayCurrency,
+              intlLocale(locale.value),
+          );
 });
 const isNegative = computed(() => formatted.value?.startsWith('(') ?? false);
 </script>

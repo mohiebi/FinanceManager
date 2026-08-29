@@ -11,17 +11,23 @@ export function numericValue(value: DisplayNumber): number {
     return Number.isFinite(numeric) ? numeric : 0;
 }
 
-export function formatFullNumber(value: DisplayNumber): string {
+export function formatFullNumber(
+    value: DisplayNumber,
+    locale: string = 'en-US',
+): string {
     const numeric = numericValue(value);
 
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(locale, {
         maximumFractionDigits: 2,
         minimumFractionDigits: numeric % 1 === 0 ? 0 : 2,
     }).format(numeric);
 }
 
-export function formatCompactNumber(value: DisplayNumber): string {
-    return new Intl.NumberFormat('en-US', {
+export function formatCompactNumber(
+    value: DisplayNumber,
+    locale: string = 'en-US',
+): string {
+    return new Intl.NumberFormat(locale, {
         notation: 'compact',
         maximumFractionDigits: 1,
     }).format(numericValue(value));

@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Investments\BuildExposureBreakdown;
 use App\Actions\Investments\BuildPortfolioBreakdown;
 use App\Enums\Currency;
 use App\Models\Investment;
@@ -240,4 +241,86 @@ test('selling everything closes the position without inventing a profit', functi
         ->and($result['summary']['total_pnl'])->toBeNull()
         ->and($result['summary']['total_realised_pnl'])->toBe(2000000.0)
         ->and($result['summary']['has_realised_data'])->toBeTrue();
+});
+
+/**
+ * Two holdings that are one bet.
+ *
+ * Half coins track parity gold, so the pair has to roll up into a single gold
+ * exposure — the whole reason the columns exist. Asserted against the same
+ * fixture the browser port is asserted against; see tests/js/portfolio.test.ts.
+ */
+test('the exposure roll-up matches the browser port', function () {
+    $vectors = portfolioVectors()['exposure'];
+
+    config(['services.tgju.enabled' => true]);
+    Cache::put('asset-prices.tgju', [], now()->addMinutes(5));
+
+    $user = User::factory()->create();
+    $assets = [];
+
+    foreach ($vectors['assets'] as $asset) {
+        $assets[$asset['id']] = InvestmentAsset::query()->create([
+            'user_id' => $user->id,
+            'name' => $asset['label'],
+            'slug' => $asset['key'],
+            'unit' => $asset['unit'],
+            'color' => $asset['color'],
+            'asset_class' => $asset['asset_class'],
+            'underlying_asset_id' => $asset['underlying_asset_id'] === null
+                ? null
+                : $assets[$asset['underlying_asset_id']]->id,
+            'underlying_ratio' => $asset['underlying_ratio'],
+            'price_source_type' => 'manual',
+            'price_source_config' => ['price' => $asset['price']],
+        ]);
+    }
+
+    seedPortfolioEntries($user, $assets, $vectors['entries']);
+
+    $builder = app(BuildPortfolioBreakdown::class);
+    $currency = Currency::from($vectors['target']);
+    $breakdown = $builder->handle($builder->entriesFor($user), $currency);
+    $result = app(BuildExposureBreakdown::class)->handle(
+        $breakdown['assets'],
+        $builder->formatter($currency),
+    );
+
+    // Order is part of the contract — largest exposure first.
+    expect(array_column($result['exposures'], 'label'))
+        ->toBe(array_column($vectors['exposures'], 'label'))
+        ->and(array_column($result['classes'], 'key'))
+        ->toBe(array_column($vectors['classes'], 'key'))
+        ->and($result['has_unpriced_assets'])->toBe($vectors['has_unpriced_assets']);
+
+    foreach ($vectors['exposures'] as $index => $expected) {
+        $actualGroup = $result['exposures'][$index];
+
+        expect(array_column($actualGroup['members'], 'slug'))
+            ->toBe($expected['member_slugs'], "exposure {$expected['label']}: members");
+
+        // exposure_id and member_slugs are checked above or are database ids the
+        // fixture cannot know — the browser asserts the id, which is its own.
+        $comparable = array_diff_key($expected, ['member_slugs' => null, 'exposure_id' => null]);
+
+        foreach ($comparable as $field => $value) {
+            $actual = $actualGroup[$field];
+
+            expect($actual)->toBe(
+                portfolioExpectation($actual, $value),
+                "exposure {$expected['label']}.{$field}",
+            );
+        }
+    }
+
+    foreach ($vectors['classes'] as $index => $expected) {
+        foreach ($expected as $field => $value) {
+            $actual = $result['classes'][$index][$field];
+
+            expect($actual)->toBe(
+                portfolioExpectation($actual, $value),
+                "class {$expected['key']}.{$field}",
+            );
+        }
+    }
 });

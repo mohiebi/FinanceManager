@@ -37,8 +37,23 @@ const feedAbi = [
     'function latestRoundData() view returns (uint80,int256,uint256,uint256,uint80)',
 ];
 
+/** Statuses from which an operation will never move again on its own. */
+const TERMINAL_STATUSES: ReadonlyArray<Operation['status']> = ['completed', 'failed'];
+
 export class SettlementRunner {
     private running = Promise.resolve();
+
+    /**
+     * Operations queued or mid-run in this process.
+     *
+     * Enqueueing is idempotent because more than one thing now asks for an
+     * operation to move: the caller that submits it, a re-submission of one
+     * that stalled, and {@see SettlementRunner.resume} after an unlock. Running
+     * the same operation twice concurrently would double-drive its stages, and
+     * the second pass would re-read balances the first is midway through
+     * changing.
+     */
+    private pending = new Set<string>();
 
     public constructor(
         private readonly store: OperationStore,
@@ -46,7 +61,41 @@ export class SettlementRunner {
     ) {}
 
     public enqueue(operation: Operation): void {
-        this.running = this.running.then(() => this.run(operation)).catch(() => undefined);
+        if (this.pending.has(operation.operationId)) return;
+
+        // Claimed and released in one place on purpose. Releasing inside `run`
+        // instead would leak the id down any path that leaves `run` without
+        // reaching its own cleanup, and a leaked id is an operation that can
+        // never be enqueued again — the precise failure this set exists to stop.
+        this.pending.add(operation.operationId);
+        this.running = this.running
+            .then(() => this.run(operation))
+            .catch(() => undefined)
+            .finally(() => this.pending.delete(operation.operationId));
+    }
+
+    /**
+     * Pick up every operation this process is not already driving.
+     *
+     * The queue lives in memory and the store does not, so a restart leaves
+     * operations recorded as `submitted` or `processing` that nothing will ever
+     * touch again — with a buyer's funds still sitting at a deposit address.
+     * Nothing can run before the signer is unlocked, which is why this is
+     * called on unlock rather than at boot: resuming into a locked signer would
+     * only fail every operation a second time.
+     *
+     * @return the number of operations picked up.
+     */
+    public async resume(): Promise<number> {
+        const stalled = (await this.store.list()).filter(
+            (operation) => !TERMINAL_STATUSES.includes(operation.status) && !this.pending.has(operation.operationId),
+        );
+
+        for (const operation of stalled) {
+            this.enqueue(operation);
+        }
+
+        return stalled.length;
     }
 
     public async validate(request: SettlementRequest): Promise<void> {

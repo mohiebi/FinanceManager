@@ -27,9 +27,10 @@ if (command === 'init') {
         socket.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
         socket.on('error', reject);
     });
-    const parsed = JSON.parse(result) as { ok?: boolean };
+    const parsed = JSON.parse(result) as { ok?: boolean; resumed?: number };
     if (!parsed.ok) throw new Error('Unlock failed.');
     process.stdout.write('Signer unlocked until this container stops.\n');
+    if (parsed.resumed) process.stdout.write(`Resumed ${parsed.resumed} operation(s) left in flight by the last shutdown.\n`);
 } else {
     throw new Error('Usage: cli init|unlock (passphrase on stdin)');
 }

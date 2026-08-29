@@ -123,3 +123,81 @@ test('every operation is refused without a separate risk vault', async () => {
         /risk_vault_not_segregated/,
     );
 });
+
+/**
+ * The resume behaviours below run through `enqueue`/`resume` with a stub store,
+ * because what they assert is which operations the runner picks up and how many
+ * times — not what happens on a chain once it does.
+ */
+type QueueInternals = {
+    enqueue(operation: unknown): void;
+    resume(): Promise<number>;
+    run(operation: unknown): Promise<void>;
+};
+
+const operation = (operationId: string, status: string): Record<string, unknown> => ({
+    operationId,
+    status,
+    kind: 'settlement',
+    transactionHashes: {},
+    signedTransactions: {},
+});
+
+const queueRunner = (stored: Array<Record<string, unknown>>): { runner: QueueInternals; ran: string[] } => {
+    const ran: string[] = [];
+    const store = { list: async () => stored, put: async () => undefined };
+    const instance = new SettlementRunner(store as never, () => undefined) as unknown as QueueInternals;
+
+    // Stand in for the real run so the assertions are about scheduling only.
+    instance.run = async (item: unknown) => {
+        ran.push((item as { operationId: string }).operationId);
+    };
+
+    return { runner: instance, ran };
+};
+
+test('operations orphaned by a restart are picked up when the signer is unlocked', async () => {
+    // The queue lives in memory and the store does not, so a restart used to
+    // leave these recorded as processing with nothing ever driving them again —
+    // and a buyer's funds still sitting at a deposit address.
+    const { runner: instance, ran } = queueRunner([
+        operation('a', 'processing'),
+        operation('b', 'submitted'),
+        operation('c', 'retryable_failure'),
+        operation('d', 'needs_review'),
+        operation('e', 'completed'),
+        operation('f', 'failed'),
+    ]);
+
+    assert.equal(await instance.resume(), 4);
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.deepEqual(ran, ['a', 'b', 'c', 'd']);
+});
+
+test('an operation already in flight is never enqueued twice', async () => {
+    // Two things now ask for an operation to move — a re-submission and resume
+    // after unlock — and driving one twice concurrently would have each pass
+    // re-reading balances the other is midway through changing.
+    const { runner: instance, ran } = queueRunner([operation('a', 'processing')]);
+
+    instance.enqueue(operation('a', 'processing'));
+    await instance.resume();
+    instance.enqueue(operation('a', 'processing'));
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.deepEqual(ran, ['a']);
+});
+
+test('an operation that has finished running can be enqueued again', async () => {
+    // The guard is against concurrent runs, not against ever retrying: a
+    // retryable failure has to be able to come back.
+    const { runner: instance, ran } = queueRunner([]);
+
+    instance.enqueue(operation('a', 'submitted'));
+    await new Promise((resolve) => setImmediate(resolve));
+    instance.enqueue(operation('a', 'retryable_failure'));
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.deepEqual(ran, ['a', 'a']);
+});

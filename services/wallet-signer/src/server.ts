@@ -140,7 +140,19 @@ const accept = async (response: ServerResponse, request: SettlementRequest): Pro
             json(response, 409, { error: 'operation_id_conflict' });
             return;
         }
-        if (existing.status === 'retryable_failure') {
+
+        // A POST is the verb that asks for an operation to move, and the caller
+        // only sends one when it deliberately wants that; routine polling reads
+        // the operation with GET. So every non-terminal status is re-driven
+        // here, not just `retryable_failure`. `submitted` and `processing` used
+        // to be excluded, which meant an operation orphaned by a restart could
+        // never be restarted through this endpoint either, and `needs_review`
+        // left an operator's explicit retry doing nothing at all.
+        //
+        // Re-enqueueing is safe and cheap: the runner ignores an operation it
+        // is already driving, and each stage re-reads its own receipt before
+        // re-broadcasting anything.
+        if (existing.status !== 'completed' && existing.status !== 'failed') {
             existing.status = 'submitted';
             existing.failureCode = undefined;
             existing.failureReason = undefined;
@@ -148,6 +160,7 @@ const accept = async (response: ServerResponse, request: SettlementRequest): Pro
             await store.put(existing);
             runner.enqueue(existing);
         }
+
         json(response, 200, publicOperation(existing));
         return;
     }
@@ -258,7 +271,13 @@ const control = createSocketServer((socket) => {
             const mnemonic = await unlockKeystore(config.keystorePath, command.passphrase);
             HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(mnemonic), 'm');
             unlockedMnemonic = mnemonic;
-            socket.end(JSON.stringify({ ok: true }));
+
+            // The queue is in memory, so a restart drops every operation that
+            // was in flight. This is the first moment they can make progress
+            // again, and an operator who has just unlocked expects the work
+            // that was waiting on them to start moving.
+            const resumed = await runner.resume();
+            socket.end(JSON.stringify({ ok: true, resumed }));
         } catch {
             socket.end(JSON.stringify({ ok: false }));
         }

@@ -6,6 +6,7 @@ use App\Support\FrontendLocalization;
 use App\Support\SeoMetadata;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Middleware;
 use Symfony\Component\HttpFoundation\Response;
@@ -41,7 +42,90 @@ class HandleInertiaRequests extends Middleware
             $response->headers->set('Pragma', 'no-cache');
         }
 
+        $this->logDocumentRender($request, $response);
+
         return $response;
+    }
+
+    /**
+     * Record every full-document render, and whether SSR markup reached the HTML.
+     *
+     * This is the request the Google callback redirects into, and the only kind
+     * of request that server-renders an authenticated page at all -- an Inertia
+     * XHR visit returns JSON and never runs SSR. Logging it makes the two entry
+     * paths directly comparable: sign in with Google, then press F5 on the same
+     * page, and compare the two lines.
+     *
+     * Error level on purpose; the container runs at LOG_LEVEL=error.
+     */
+    private function logDocumentRender(Request $request, Response $response): void
+    {
+        if (! config('diagnostics.log_document_renders')) {
+            return;
+        }
+
+        // An Inertia visit is XHR and carries this header; its absence is what
+        // makes this a real browser navigation.
+        if ($request->headers->has('X-Inertia') || $response->isRedirection()) {
+            return;
+        }
+
+        if (! str_contains((string) $response->headers->get('Content-Type', ''), 'text/html')) {
+            return;
+        }
+
+        $content = (string) $response->getContent();
+        $ssr = $this->ssrMarkupPresent($content);
+
+        Log::error(sprintf(
+            '[document] component=%s ssr=%s authed=%s path=/%s referer=%s',
+            $this->componentFrom($content) ?? '-',
+            $ssr === null ? '?' : ($ssr ? 'yes' : 'NO'),
+            $request->user() ? 'yes' : 'no',
+            ltrim($request->path(), '/'),
+            $request->headers->get('referer') ?? '-',
+        ), [
+            'user_id' => $request->user()?->id,
+            'inertia_version' => $this->version($request),
+        ]);
+    }
+
+    /**
+     * Whether Inertia's root element actually carries server-rendered markup.
+     *
+     * When SSR fails, Inertia still returns a valid document -- just with an
+     * empty root for the client to render into. That fallback is invisible in
+     * an access log: same URL, same 200, only a smaller body. This is the
+     * difference that matters, so it is read straight off the markup rather
+     * than inferred from response size.
+     */
+    private function ssrMarkupPresent(string $content): ?bool
+    {
+        $anchor = strpos($content, 'id="app"');
+
+        if ($anchor === false) {
+            return null;
+        }
+
+        $tagEnd = strpos($content, '>', $anchor);
+
+        if ($tagEnd === false) {
+            return null;
+        }
+
+        return ! str_starts_with(ltrim(substr($content, $tagEnd + 1, 32)), '</div>');
+    }
+
+    /** The page component, read out of the embedded Inertia payload. */
+    private function componentFrom(string $content): ?string
+    {
+        // Inertia v3 embeds the payload as raw JSON in a <script> tag, so this
+        // is unescaped -- confirmed against the rendered document, not assumed.
+        if (! preg_match('/"component"\s*:\s*"([^"]{1,120})"/', $content, $matches)) {
+            return null;
+        }
+
+        return $matches[1];
     }
 
     /**

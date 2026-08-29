@@ -16,6 +16,7 @@ use App\Http\Controllers\Auth\WebGoogleAuthController;
 use App\Http\Controllers\BillController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ClientDiagnosticsController;
 use App\Http\Controllers\FlightLogController;
 use App\Http\Controllers\GoalController;
 use App\Http\Controllers\InvestmentAssetController;
@@ -65,6 +66,14 @@ Route::get('{locale}', function (Request $request, string $locale) {
 Route::post('locale', LocaleController::class)
     ->middleware('throttle:20,1')
     ->name('locale.update');
+
+// Temporary instrumentation for the post-OAuth SSR/hydration investigation.
+// Hydration failures exist only in the browser, so this is how they reach the
+// server log. Guest-accessible on purpose: the login shell is server-rendered
+// too, and a mismatch there would otherwise go unrecorded.
+Route::post('_diagnostics/client', ClientDiagnosticsController::class)
+    ->middleware('throttle:60,1')
+    ->name('diagnostics.client');
 
 Route::middleware('guest')->group(function () {
     Route::get('forgot-password', EmailAuthPageController::class)->name('password.request');

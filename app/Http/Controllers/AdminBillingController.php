@@ -13,6 +13,7 @@ use App\Enums\DepositAddressStatus;
 use App\Enums\GrantReason;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentStatus;
+use App\Enums\SettlementStatus;
 use App\Jobs\ProcessPaymentSettlementJob;
 use App\Jobs\ScreenSubscriptionPaymentJob;
 use App\Jobs\VerifySubscriptionPaymentJob;
@@ -185,9 +186,34 @@ class AdminBillingController extends Controller
         return back()->with('status', __('billing.admin.risk_payment_granted'));
     }
 
+    /**
+     * Drive a settlement that stopped moving.
+     *
+     * The reset to Queued is what makes this do anything. Dispatching alone
+     * left {@see ProcessPaymentSettlementJob} on its polling branch, which only
+     * re-reads the signer's existing verdict — so pressing this on the
+     * NeedsReview settlement it exists for produced a success message and no
+     * work. Queued is the state that sends a fresh instruction to the signer,
+     * and the signer resumes the operation from the stage it reached rather
+     * than starting the money over.
+     */
     public function retrySettlement(PaymentSettlement $settlement): RedirectResponse
     {
-        ProcessPaymentSettlementJob::dispatch($settlement->getKey());
+        abort_if($settlement->status === SettlementStatus::Completed, 409);
+
+        DB::transaction(function () use ($settlement): void {
+            $locked = PaymentSettlement::query()->whereKey($settlement->getKey())->lockForUpdate()->firstOrFail();
+
+            abort_if($locked->status === SettlementStatus::Completed, 409);
+
+            $locked->forceFill([
+                'status' => SettlementStatus::Queued,
+                'failure_code' => null,
+                'failure_message' => null,
+            ])->save();
+
+            ProcessPaymentSettlementJob::dispatch($locked->getKey())->afterCommit();
+        });
 
         return back()->with('status', __('billing.admin.settlement_requeued'));
     }

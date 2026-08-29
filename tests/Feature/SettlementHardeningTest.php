@@ -415,3 +415,61 @@ test('a chain-verified payment that is not stuck on screening still cannot be re
         expect($payment->fresh()->status)->toBe(PaymentStatus::Submitted);
     }
 });
+
+test('retrying a settlement under review sends the signer a fresh instruction', function () {
+    // Dispatching alone left the job on its polling branch, which only re-reads
+    // the verdict the signer already gave — so the button that exists for a
+    // needs_review settlement reported success and did nothing at all.
+    Queue::fake();
+    config()->set('app.admin_email', 'boss@example.com');
+    $admin = User::factory()->create(['email' => 'boss@example.com']);
+    $payment = settleablePayment();
+    $settlement = PaymentSettlement::query()->create([
+        'subscription_payment_id' => $payment->getKey(),
+        'operation_id' => (string) Str::uuid(),
+        'status' => SettlementStatus::NeedsReview,
+    ]);
+    $settlement->forceFill([
+        'failure_code' => 'token_balance_not_zero',
+        'failure_message' => 'a token landed mid-swap',
+    ])->save();
+
+    $requests = collect();
+    Http::fake(function (Request $request) use ($requests) {
+        $requests->push($request);
+
+        return Http::response(['status' => 'submitted']);
+    });
+
+    $this->actingAs($admin)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->post(route('admin.billing.settlements.retry', $settlement))
+        ->assertRedirect();
+
+    expect($settlement->fresh()->status)->toBe(SettlementStatus::Queued)
+        ->and($settlement->fresh()->failure_code)->toBeNull();
+
+    (new ProcessPaymentSettlementJob($settlement->getKey()))->handle(app(WalletSignerClient::class));
+
+    // POST /v1/settlements is the verb that drives an operation; GET only reads.
+    expect($requests)->toHaveCount(1)
+        ->and($requests->first()->method())->toBe('POST');
+});
+
+test('a completed settlement cannot be retried', function () {
+    config()->set('app.admin_email', 'boss@example.com');
+    $admin = User::factory()->create(['email' => 'boss@example.com']);
+    $payment = settleablePayment();
+    $settlement = PaymentSettlement::query()->create([
+        'subscription_payment_id' => $payment->getKey(),
+        'operation_id' => (string) Str::uuid(),
+        'status' => SettlementStatus::Completed,
+    ]);
+
+    $this->actingAs($admin)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->post(route('admin.billing.settlements.retry', $settlement))
+        ->assertStatus(409);
+
+    expect($settlement->fresh()->status)->toBe(SettlementStatus::Completed);
+});

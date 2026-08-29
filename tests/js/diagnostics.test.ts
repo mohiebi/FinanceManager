@@ -11,10 +11,23 @@ function stubBrowser(): void {
     sent.length = 0;
 
     (globalThis as Record<string, unknown>).window = globalThis;
+    (globalThis as Record<string, unknown>).Node = { COMMENT_NODE: 8 };
     (globalThis as Record<string, unknown>).document = {
         cookie: 'XSRF-TOKEN=tok%3Den',
         referrer: 'https://accounts.google.com/',
-        getElementById: () => ({ childElementCount: 0 }),
+        getElementById: () => ({
+            childElementCount: 0,
+            // The shape production reported: an injected <script> sitting where
+            // Vue expects its fragment-anchor comment.
+            firstChild: { nodeType: 1, nodeName: 'SCRIPT' },
+            querySelectorAll: () => [
+                {
+                    getAttribute: (name: string) =>
+                        name === 'src' ? '/cdn-cgi/scripts/x.js' : null,
+                    textContent: '',
+                },
+            ],
+        }),
     };
     (globalThis as Record<string, unknown>).location = {
         pathname: '/dashboard',
@@ -56,6 +69,10 @@ test('a boot report records that the server sent no SSR markup', async () => {
     assert.equal(sent[0].body.component, 'Dashboard');
     // The OAuth entry is identifiable by its referrer.
     assert.equal(sent[0].body.referrer, 'https://accounts.google.com/');
+    // The whole point: name what is sitting where hydration begins.
+    assert.match(String(sent[0].body.message), /first_child=script/);
+    assert.match(String(sent[0].body.message), /scripts_in_app=1/);
+    assert.match(String(sent[0].body.message), /cdn-cgi/);
 });
 
 test('hydration messages are forwarded and other console output is not', async () => {

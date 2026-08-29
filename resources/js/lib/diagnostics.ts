@@ -92,7 +92,45 @@ export function captureSsrPresence(component: string | null): void {
         kind: 'boot',
         ssrMarkup: children > 0,
         ssrChildren: children,
+        message: describeRoot(root),
     });
+}
+
+/**
+ * What the DOM actually looks like where hydration begins.
+ *
+ * Our own SSR output starts #app with a Vue fragment anchor comment, and the
+ * captured mismatch says the browser found a <script> there instead. Nothing in
+ * the rendered body can produce that, so it is being injected into the
+ * delivered HTML -- by a proxy that rewrites responses (Cloudflare Rocket
+ * Loader and Email Obfuscation both do this), or by a browser extension.
+ * Either way the tag itself identifies the source, so record it.
+ */
+function describeRoot(root: HTMLElement | null): string {
+    if (!root) {
+        return 'no #app element';
+    }
+
+    const first = root.firstChild;
+    const firstDescription =
+        first === null
+            ? 'none'
+            : first.nodeType === Node.COMMENT_NODE
+              ? `comment(${(first.nodeValue ?? '').slice(0, 20)})`
+              : first.nodeName.toLowerCase();
+
+    const scripts = Array.from(root.querySelectorAll('script')).map(
+        (script) =>
+            `src=${script.getAttribute('src') ?? '-'} type=${
+                script.getAttribute('type') ?? '-'
+            } text=${(script.textContent ?? '').slice(0, 80)}`,
+    );
+
+    return [
+        `first_child=${firstDescription}`,
+        `scripts_in_app=${scripts.length}`,
+        ...scripts.map((script, index) => `script[${index}] ${script}`),
+    ].join(' | ');
 }
 
 /** Vue routes hydration mismatches through here once the prod flag is on. */

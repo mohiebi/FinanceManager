@@ -8,6 +8,7 @@ use App\Enums\PaymentNetwork;
 use App\Enums\PaymentStatus;
 use App\Enums\ScreeningRisk;
 use App\Enums\SettlementStatus;
+use App\Exceptions\SignerUnavailable;
 use App\Jobs\ProcessPaymentSettlementJob;
 use App\Jobs\RequeueStalledSettlementsJob;
 use App\Jobs\ScreenSubscriptionPaymentJob;
@@ -20,6 +21,7 @@ use App\Notifications\SignerLockedNotification;
 use App\Services\Billing\WalletSignerClient;
 use App\Support\Billing\ScreeningResult;
 use App\Support\Billing\ScreeningSubject;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
@@ -472,4 +474,69 @@ test('a completed settlement cannot be retried', function () {
         ->assertStatus(409);
 
     expect($settlement->fresh()->status)->toBe(SettlementStatus::Completed);
+});
+
+test('a retried signer call is signed again instead of replaying its nonce', function () {
+    // The signer records every nonce it accepts and refuses to see one twice,
+    // so a retry carrying the first attempt's headers was rejected as a replay.
+    // That turned an attempt the signer had actually accepted, whose response
+    // was merely lost, into a recorded signer outage.
+    Http::fake(['*' => Http::sequence()
+        ->push(['error' => 'internal_error'], 500)
+        ->push(['ok' => true, 'locked' => false], 200),
+    ]);
+
+    app(WalletSignerClient::class)->health();
+
+    $attempts = collect(Http::recorded())->map(fn (array $pair) => $pair[0]);
+
+    expect($attempts)->toHaveCount(2);
+
+    $nonces = $attempts->map(fn ($request) => $request->header('X-Signer-Nonce')[0]);
+
+    expect($nonces->unique())->toHaveCount(2);
+
+    // Each attempt must carry a signature over its own timestamp and nonce, not
+    // merely a different nonce with a signature that no longer covers it.
+    $attempts->each(function ($request): void {
+        $canonical = implode("\n", [
+            $request->header('X-Signer-Timestamp')[0],
+            $request->header('X-Signer-Nonce')[0],
+            'GET',
+            '/health',
+            hash('sha256', ''),
+        ]);
+
+        expect($request->header('X-Signer-Signature')[0])
+            ->toBe(hash_hmac('sha256', $canonical, str_repeat('a', 64)));
+    });
+});
+
+test('a signer refusal is not retried', function () {
+    // A 4xx is a decision the signer has already reached. Repeating it only
+    // spends more nonces against a replay cache it writes to disk, to be told
+    // the same thing three times.
+    Http::fake(['*' => Http::response(['error' => 'invalid_settlement'], 422)]);
+
+    expect(fn () => app(WalletSignerClient::class)->health())
+        ->toThrow(SignerUnavailable::class);
+
+    expect(Http::recorded())->toHaveCount(1);
+});
+
+test('an unreachable signer is still retried', function () {
+    // A transport failure is the case retrying exists for, and it must survive
+    // the narrowing that stops 4xx from being repeated.
+    $attempts = 0;
+    Http::fake(function () use (&$attempts) {
+        $attempts++;
+
+        throw new ConnectionException('connection timed out');
+    });
+
+    expect(fn () => app(WalletSignerClient::class)->health())
+        ->toThrow(ConnectionException::class);
+
+    // retry(2) is two attempts in total, not one plus two.
+    expect($attempts)->toBe(2);
 });

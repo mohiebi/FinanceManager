@@ -6,9 +6,13 @@ use App\Enums\PaymentNetwork;
 use App\Exceptions\SignerUnavailable;
 use App\Models\DepositAddress;
 use App\Models\SubscriptionPayment;
+use Closure;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Throwable;
 
 final readonly class WalletSignerClient
 {
@@ -93,35 +97,82 @@ final readonly class WalletSignerClient
     private function request(string $method, string $path, array $payload = []): array
     {
         $body = $payload === [] ? '' : json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
-        $timestamp = (string) now()->getTimestamp();
-        $nonce = (string) Str::uuid();
         $secret = $this->secret();
-        $canonical = implode("\n", [$timestamp, $nonce, $method, $path, hash('sha256', $body)]);
-        $signature = hash_hmac('sha256', $canonical, $secret);
+        $url = $this->url().$path;
 
-        $request = $this->http()->withHeaders([
-            'X-Signer-Timestamp' => $timestamp,
-            'X-Signer-Nonce' => $nonce,
-            'X-Signer-Signature' => $signature,
-        ]);
+        /**
+         * Sign one attempt.
+         *
+         * Called again before every retry rather than once for the whole call.
+         * The signer records each nonce it accepts and refuses to see the same
+         * one twice, so a retry carrying the first attempt's headers reads as a
+         * replay and is refused with a 401 — which is exactly what happened
+         * whenever an attempt reached the signer and only its response was lost
+         * to a timeout. The settlement was then recorded as signer_unavailable,
+         * blaming an outage for an operation the signer had in fact accepted.
+         */
+        $sign = function (PendingRequest $request) use ($method, $path, $body, $secret): void {
+            $timestamp = (string) now()->getTimestamp();
+            $nonce = (string) Str::uuid();
+            $canonical = implode("\n", [$timestamp, $nonce, $method, $path, hash('sha256', $body)]);
+
+            // replaceHeaders, not withHeaders: the latter merges recursively, so
+            // re-signing would leave each header holding both the old value and
+            // the new one and the signer would read the pair joined together.
+            $request->replaceHeaders([
+                'X-Signer-Timestamp' => $timestamp,
+                'X-Signer-Nonce' => $nonce,
+                'X-Signer-Signature' => hash_hmac('sha256', $canonical, $secret),
+            ]);
+        };
+
+        $request = $this->http($sign);
+        $sign($request);
 
         $response = $method === 'GET'
-            ? $request->get($this->url().$path)
-            : $request->withBody($body, 'application/json')->send($method, $this->url().$path);
+            ? $request->get($url)
+            : $request->withBody($body, 'application/json')->send($method, $url);
 
-        if (! $response->successful() || ! is_array($response->json())) {
+        if (! $response->successful() || ! is_array($decoded = $response->json())) {
             throw new SignerUnavailable("Wallet signer returned HTTP {$response->status()} for {$path}.");
         }
 
-        return $response->json();
+        return $decoded;
     }
 
-    private function http(): PendingRequest
+    /** @param  Closure(PendingRequest): void  $sign */
+    private function http(Closure $sign): PendingRequest
     {
         return Http::acceptJson()
             ->timeout((int) config('billing.signer.timeout', 30))
             ->connectTimeout((int) config('billing.signer.connect_timeout', 3))
-            ->retry(2, 200, throw: false);
+            ->retry(2, 200, function (Throwable $exception, PendingRequest $request) use ($sign): bool {
+                if (! $this->isWorthRetrying($exception)) {
+                    return false;
+                }
+
+                $sign($request);
+
+                return true;
+            }, throw: false);
+    }
+
+    /**
+     * Whether another attempt could plausibly land differently.
+     *
+     * A transport failure or the signer's own 5xx, and nothing else. Anything
+     * in the 4xx range is a decision it has already reached — a malformed
+     * request, a conflicting operation id, a signature it will not accept — so
+     * repeating it only spends more nonces against a replay cache the signer
+     * writes to disk, to be told the same thing three times.
+     */
+    private function isWorthRetrying(Throwable $exception): bool
+    {
+        if ($exception instanceof RequestException) {
+            return $exception->response->serverError();
+        }
+
+        return $exception instanceof ConnectionException;
     }
 
     private function url(): string

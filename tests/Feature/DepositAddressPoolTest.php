@@ -17,6 +17,7 @@ use App\Support\Billing\BillingCatalog;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
@@ -318,4 +319,72 @@ test('a derivation index outside the requested range is refused', function () {
     expect(DepositAddress::query()->count())->toBe(0);
 
     unlink($secret);
+});
+
+test('an address taken mid-claim hands the buyer the next one instead of failing', function () {
+    // The regression this pins: allocation used an ordered LIMIT 1 with
+    // lockForUpdate, so simultaneous buyers all queued behind the same
+    // lowest-index row. When the winner committed, the losers re-evaluated that
+    // one row, found it no longer available, and came back with nothing — so a
+    // buyer was told the pool was empty while the rest of it sat unused.
+    DepositAddress::query()->delete();
+    DepositAddress::query()->create([
+        'derivation_index' => 0,
+        'address' => '0x00000000000000000000000000000000000000aa',
+        'status' => DepositAddressStatus::Available,
+    ]);
+    DepositAddress::query()->create([
+        'derivation_index' => 1,
+        'address' => '0x00000000000000000000000000000000000000bb',
+        'status' => DepositAddressStatus::Available,
+    ]);
+
+    // Fires between the select that picks a candidate and the update that
+    // claims it — exactly the window a competing buyer commits in.
+    $stolen = false;
+    Event::listen(
+        'eloquent.retrieved: '.DepositAddress::class,
+        function (DepositAddress $address) use (&$stolen): void {
+            if ($stolen || $address->status !== DepositAddressStatus::Available) {
+                return;
+            }
+
+            $stolen = true;
+            DepositAddress::query()->whereKey($address->getKey())
+                ->update(['status' => DepositAddressStatus::Assigned->value]);
+        },
+    );
+
+    $payment = app(StartSubscriptionPayment::class)(
+        User::factory()->create(),
+        BillingPlan::Monthly,
+        PaymentNetwork::Ethereum,
+        SettlementAsset::Usdt,
+    );
+
+    expect($stolen)->toBeTrue()
+        // The second address, because the first was gone by the time it claimed.
+        ->and($payment->pay_to_address)->toBe('0x00000000000000000000000000000000000000bb')
+        ->and($payment->depositAddress->derivation_index)->toBe(1)
+        ->and($payment->depositAddress->assigned_payment_id)->toBe($payment->getKey());
+});
+
+test('a genuinely empty pool is still refused rather than looped over', function () {
+    // The claim loop must not turn "nothing left" into a spin: an exhausted
+    // pool has to fail closed on the first pass.
+    DepositAddress::query()->delete();
+
+    $selects = 0;
+    Event::listen('eloquent.retrieved: '.DepositAddress::class, function () use (&$selects): void {
+        $selects++;
+    });
+
+    expect(fn () => app(StartSubscriptionPayment::class)(
+        User::factory()->create(),
+        BillingPlan::Monthly,
+        PaymentNetwork::Ethereum,
+        SettlementAsset::Usdt,
+    ))->toThrow(DepositAddressUnavailable::class);
+
+    expect($selects)->toBe(0);
 });

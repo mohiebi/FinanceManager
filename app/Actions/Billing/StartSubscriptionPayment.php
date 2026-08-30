@@ -35,6 +35,14 @@ use RuntimeException;
  */
 final readonly class StartSubscriptionPayment
 {
+    /**
+     * How many addresses one intent will pass over before giving up.
+     *
+     * Bounded by how many buyers are claiming at the same instant, not by the
+     * size of the pool, so this is far more headroom than real contention needs.
+     */
+    private const CLAIM_ATTEMPTS = 25;
+
     public function __construct(
         private AssetQuoteService $quotes,
         private ResolveCoupon $resolveCoupon,
@@ -124,18 +132,7 @@ final readonly class StartSubscriptionPayment
 
             $this->assertWithinAddressLimit($user);
 
-            $depositAddress = DepositAddress::query()
-                ->available()
-                ->where(fn ($query) => $query
-                    ->whereNull('network')
-                    ->orWhere('network', $network->value))
-                ->orderBy('derivation_index')
-                ->lockForUpdate()
-                ->first();
-
-            if ($depositAddress === null) {
-                throw new DepositAddressUnavailable($network);
-            }
+            $depositAddress = $this->claimDepositAddress($network);
 
             $payment = $this->create(
                 user: $user,
@@ -152,12 +149,7 @@ final readonly class StartSubscriptionPayment
                 decimals: $decimals,
             );
 
-            $depositAddress->forceFill([
-                'status' => DepositAddressStatus::Assigned,
-                'network' => $network,
-                'assigned_payment_id' => $payment->getKey(),
-                'assigned_at' => now(),
-            ])->save();
+            $depositAddress->forceFill(['assigned_payment_id' => $payment->getKey()])->save();
 
             $remainingAddresses = DepositAddress::query()->available()->count();
 
@@ -246,6 +238,71 @@ final readonly class StartSubscriptionPayment
             'expected_amount' => $quantized,
             'expires_at' => now()->addHours((int) config('billing.payment_window_hours', 24)),
         ]);
+    }
+
+    /**
+     * Take one address out of the pool for this intent.
+     *
+     * The claim is a conditional update rather than a locking read, and the
+     * difference matters under concurrency. `lockForUpdate()` on an ordered
+     * `LIMIT 1` puts every simultaneous buyer behind the same lowest-index row;
+     * when the winner commits, the losers re-evaluate that one row, find it no
+     * longer available, and come back with nothing — so a buyer was told the
+     * pool was empty while the rest of it sat unused. Nothing retried, because
+     * the transaction's retry count only covers deadlocks and this was not one.
+     *
+     * Here the update itself is the claim: it is refused unless the row is
+     * still available, so exactly one caller can win a given address and a
+     * loser simply moves to the next one. `SKIP LOCKED` would express this more
+     * directly, but it needs MariaDB 10.6 or newer and the deployed server's
+     * version is not something this repository pins.
+     */
+    private function claimDepositAddress(PaymentNetwork $network): DepositAddress
+    {
+        $passedOver = [];
+
+        for ($attempt = 0; $attempt < self::CLAIM_ATTEMPTS; $attempt++) {
+            $candidate = DepositAddress::query()
+                ->available()
+                ->when($passedOver !== [], fn ($query) => $query->whereKeyNot($passedOver))
+                ->where(fn ($query) => $query
+                    ->whereNull('network')
+                    ->orWhere('network', $network->value))
+                ->orderBy('derivation_index')
+                ->first();
+
+            if ($candidate === null) {
+                throw new DepositAddressUnavailable($network);
+            }
+
+            // Excluded by id rather than re-read, because this transaction's
+            // snapshot can still show a row another one has already taken.
+            $passedOver[] = $candidate->getKey();
+
+            $claimed = DepositAddress::query()
+                ->whereKey($candidate->getKey())
+                ->where('status', DepositAddressStatus::Available->value)
+                ->update([
+                    'status' => DepositAddressStatus::Assigned->value,
+                    'network' => $network->value,
+                    'assigned_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            if ($claimed === 1) {
+                // Already written above; syncOriginal keeps the later save to
+                // the payment id alone rather than rewriting all of it.
+                return $candidate->forceFill([
+                    'status' => DepositAddressStatus::Assigned,
+                    'network' => $network,
+                    'assigned_at' => now(),
+                ])->syncOriginal();
+            }
+        }
+
+        // Every candidate was taken mid-claim, repeatedly. That is a pool under
+        // more pressure than it can serve, and refusing is the honest answer.
+        throw new DepositAddressUnavailable($network);
     }
 
     private function assertWithinAddressLimit(User $user): void

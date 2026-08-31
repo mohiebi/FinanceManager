@@ -7,15 +7,15 @@ use App\Enums\PaymentNetwork;
 use App\Models\DepositAddress;
 use App\Services\Billing\ScreeningRpcPolicy;
 use App\Services\Billing\WalletSignerClient;
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 
+#[Signature('billing:verify-settlement')]
+#[Description('Read-only verification of billing RPCs, vaults, signer health, and address pool')]
 class VerifySettlementInfrastructure extends Command
 {
-    protected $signature = 'billing:verify-settlement';
-
-    protected $description = 'Read-only verification of billing RPCs, vaults, signer health, and address pool';
-
     public function handle(WalletSignerClient $signer, ScreeningRpcPolicy $screeningRpcPolicy): int
     {
         $failed = false;

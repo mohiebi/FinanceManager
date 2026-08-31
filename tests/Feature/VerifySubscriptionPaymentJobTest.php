@@ -515,8 +515,14 @@ test('two payments by one buyer stack their months', function () {
         verify($payment);
     }
 
+    // Two single-month grants, applied one after the other, rather than one
+    // two-month jump. The two agree on most days and part company at a month
+    // end: from 31 August, stacking gives 30 September and then 30 October,
+    // where addMonthsNoOverflow(2) gives 31 October. The stacking is what
+    // GrantProAccess does — each grant counts from the pro_until before it —
+    // so asserting the jump made this test fail on the 31st of a month.
     expect($user->fresh()->pro_until->toDateString())
-        ->toBe(now()->addMonthsNoOverflow(2)->toDateString())
+        ->toBe(now()->addMonthsNoOverflow(1)->addMonthsNoOverflow(1)->toDateString())
         ->and($user->subscriptionGrants()->count())->toBe(2);
 });
 

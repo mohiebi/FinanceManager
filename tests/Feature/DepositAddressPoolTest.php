@@ -17,6 +17,7 @@ use App\Support\Billing\BillingCatalog;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 
@@ -387,4 +388,46 @@ test('a genuinely empty pool is still refused rather than looped over', function
     ))->toThrow(DepositAddressUnavailable::class);
 
     expect($selects)->toBe(0);
+});
+
+test('the catalog counts the shared pool once for every chain', function () {
+    enableBilling([
+        'billing.networks.arbitrum.enabled' => true,
+        'billing.networks.arbitrum.rpc_url' => 'https://arbitrum.test/rpc',
+        'billing.networks.arbitrum.rpc_urls' => ['https://arbitrum.test/rpc'],
+    ]);
+    DepositAddress::query()->delete();
+
+    foreach ([
+        DepositAddressStatus::Available,
+        DepositAddressStatus::Available,
+        DepositAddressStatus::Available,
+        DepositAddressStatus::Assigned,
+        DepositAddressStatus::Retired,
+        DepositAddressStatus::Swept,
+    ] as $index => $status) {
+        DepositAddress::query()->create([
+            'derivation_index' => $index,
+            'address' => '0x'.str_pad(dechex(0xC0 + $index), 40, '0', STR_PAD_LEFT),
+            'status' => $status,
+        ]);
+    }
+
+    $poolQueries = 0;
+    DB::listen(function ($query) use (&$poolQueries): void {
+        if (str_contains($query->sql, 'deposit_addresses')) {
+            $poolQueries++;
+        }
+    });
+
+    $networks = collect(app(BillingCatalog::class)->networks());
+
+    expect($networks->pluck('key')->all())->toBe(['ethereum', 'arbitrum'])
+        // Only the three available ones, and the same three for both chains: an
+        // address is derived with no network and belongs to one only once a
+        // payment claims it, at which point it is no longer available.
+        ->and($networks->pluck('available_addresses')->all())->toBe([3, 3])
+        ->and($networks->pluck('available')->all())->toBe([true, true])
+        // One count serves every chain, rather than one query per chain.
+        ->and($poolQueries)->toBe(1);
 });

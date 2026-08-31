@@ -3,7 +3,6 @@
 namespace App\Support\Billing;
 
 use App\Enums\BillingPlan;
-use App\Enums\DepositAddressStatus;
 use App\Enums\PaymentNetwork;
 use App\Enums\SettlementAsset;
 use App\Models\CouponRedemption;
@@ -58,36 +57,36 @@ final readonly class BillingCatalog
      */
     public function networks(): array
     {
-        return array_map(function (PaymentNetwork $network): array {
-            $availableAddresses = DepositAddress::query()
-                ->available()
-                ->where(fn ($query) => $query
-                    ->whereNull('network')
-                    ->orWhere('network', $network->value))
-                ->whereNotIn('address', DepositAddress::query()
-                    ->where('status', '!=', DepositAddressStatus::Available->value)
-                    ->select('address'))
-                ->distinct()
-                ->count('address');
+        // Counted once for every chain rather than once per chain, because the
+        // pool is not partitioned by one: an address is derived with no network
+        // and is claimed for a single chain only when a payment takes it, at
+        // which point it stops being available. So every chain sees the same
+        // number, and this used to ask for it separately for each.
+        //
+        // The exclusion that stood here — addresses also present in some
+        // non-available state — could never match anything either. Addresses
+        // have been globally unique since deposit_addresses was hardened, so one
+        // cannot be available and something else at the same time. It dated from
+        // the older schema, where a single address held one row per chain.
+        $availableAddresses = DepositAddress::query()->available()->count();
 
-            return [
-                'key' => $network->value,
-                'label' => $network->label(),
-                'chain_id' => $network->chainId(),
-                'available' => $availableAddresses > 0,
-                'available_addresses' => $availableAddresses,
-                'confirmations_required' => $network->confirmationsRequired(),
-                'assets' => array_map(fn (SettlementAsset $asset): array => [
-                    'key' => $asset->value,
-                    'label' => $asset->label(),
-                    'symbol' => $asset->symbol(),
-                    'contract' => $asset->contractOn($network),
-                    'decimals' => $asset->decimalsOn($network),
-                    'display_precision' => $asset->displayPrecision(),
-                    'is_stable' => $asset->isStable(),
-                ], $network->assets()),
-            ];
-        }, PaymentNetwork::available());
+        return array_map(fn (PaymentNetwork $network): array => [
+            'key' => $network->value,
+            'label' => $network->label(),
+            'chain_id' => $network->chainId(),
+            'available' => $availableAddresses > 0,
+            'available_addresses' => $availableAddresses,
+            'confirmations_required' => $network->confirmationsRequired(),
+            'assets' => array_map(fn (SettlementAsset $asset): array => [
+                'key' => $asset->value,
+                'label' => $asset->label(),
+                'symbol' => $asset->symbol(),
+                'contract' => $asset->contractOn($network),
+                'decimals' => $asset->decimalsOn($network),
+                'display_precision' => $asset->displayPrecision(),
+                'is_stable' => $asset->isStable(),
+            ], $network->assets()),
+        ], PaymentNetwork::available());
     }
 
     /**

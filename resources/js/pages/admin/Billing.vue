@@ -15,6 +15,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     destroy as destroyCoupon,
     disable as disableCoupon,
@@ -127,7 +128,8 @@ type RiskEntry = {
 defineProps<{
     counts: Record<string, number>;
     poolHealth: PoolHealth[];
-    signerHealth: SignerHealth;
+    // Deferred: absent on the first render, resolved by a follow-up request.
+    signerHealth: SignerHealth | null;
     riskCases: RiskCase[];
     settlements: SettlementRow[];
     riskEntries: RiskEntry[];
@@ -472,7 +474,12 @@ function shortHash(value: string | null): string {
                         Fixed settlement operations only; no raw signing API.
                     </p>
                 </div>
+                <!-- The signer answers a health check by making RPC calls of
+                     its own, so this prop is deferred and the rest of the page
+                     no longer waits behind it. -->
+                <Skeleton v-if="!signerHealth" class="h-7 w-24 rounded-full" />
                 <span
+                    v-else
                     class="rounded-full px-3 py-1 text-xs ring-1"
                     :class="
                         signerHealth.ok && !signerHealth.locked
@@ -489,26 +496,33 @@ function shortHash(value: string | null): string {
                     }}
                 </span>
             </div>
-            <p
-                v-if="signerHealth.unreachable"
-                class="mt-3 text-xs text-[#E94E50]"
-            >
-                {{ t('billing.admin.signer_unreachable') }}
-            </p>
-            <div
-                v-if="signerHealth.gasWallet"
-                class="mt-4 grid gap-2 text-xs text-[#989898] sm:grid-cols-3"
-            >
-                <p class="font-mono break-all" dir="ltr">
-                    {{ signerHealth.gasWallet.address }}
-                </p>
-                <p>Balance: {{ signerHealth.gasWallet.balanceWei }} wei</p>
-                <p>
-                    Spent 1h / 24h:
-                    {{ signerHealth.gasWallet.spentHourlyWei }} /
-                    {{ signerHealth.gasWallet.spentDailyWei }} wei
-                </p>
+            <div v-if="!signerHealth" class="mt-4 grid gap-2 sm:grid-cols-3">
+                <Skeleton class="h-4 w-full" />
+                <Skeleton class="h-4 w-2/3" />
+                <Skeleton class="h-4 w-2/3" />
             </div>
+            <template v-else>
+                <p
+                    v-if="signerHealth.unreachable"
+                    class="mt-3 text-xs text-[#E94E50]"
+                >
+                    {{ t('billing.admin.signer_unreachable') }}
+                </p>
+                <div
+                    v-if="signerHealth.gasWallet"
+                    class="mt-4 grid gap-2 text-xs text-[#989898] sm:grid-cols-3"
+                >
+                    <p class="font-mono break-all" dir="ltr">
+                        {{ signerHealth.gasWallet.address }}
+                    </p>
+                    <p>Balance: {{ signerHealth.gasWallet.balanceWei }} wei</p>
+                    <p>
+                        Spent 1h / 24h:
+                        {{ signerHealth.gasWallet.spentHourlyWei }} /
+                        {{ signerHealth.gasWallet.spentDailyWei }} wei
+                    </p>
+                </div>
+            </template>
         </section>
 
         <section class="rounded-[22px] bg-[#1a1a1a] p-6 ring-1 ring-white/10">

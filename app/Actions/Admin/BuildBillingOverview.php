@@ -17,6 +17,7 @@ use App\Services\Billing\WalletSignerClient;
 use App\Support\Billing\BillingCatalog;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Inertia\Inertia;
 
 /**
  * The operator's view of subscriptions.
@@ -42,7 +43,7 @@ final readonly class BuildBillingOverview
         return [
             'counts' => $this->counts(),
             'poolHealth' => $this->poolHealth(),
-            'signerHealth' => $this->signerHealth(),
+            'signerHealth' => Inertia::defer(fn (): array => $this->signerHealth()),
             'riskCases' => $this->riskCases(),
             'settlements' => $this->settlements(),
             'riskEntries' => $this->riskEntries(),
@@ -64,11 +65,20 @@ final readonly class BuildBillingOverview
     /**
      * The signer's own account of itself.
      *
-     * Cached because this page is refreshed freely and the call behind it makes
-     * RPC requests of its own. The failure branch reports that the signer could
-     * not be reached and nothing else: the exception carries internal hostnames
-     * and secret paths, and the page it would render on is a browser tab like
-     * any other.
+     * Deferred, because it is the one prop on this page that leaves the process:
+     * the signer answers a health check by making RPC calls of its own, and a
+     * slow provider held the whole render behind them. Every other panel here
+     * reads the database and has no reason to wait for that.
+     *
+     * Still fetched per request rather than published by a scheduled probe. An
+     * operator opens this panel to find out whether the signer is unlocked
+     * *now* — usually moments after a restart, which is exactly when a cached
+     * answer from minutes ago is the wrong one.
+     *
+     * Cached briefly all the same, because this page is refreshed freely. The
+     * failure branch reports that the signer could not be reached and nothing
+     * else: the exception carries internal hostnames and secret paths, and the
+     * page it would render on is a browser tab like any other.
      *
      * @return array<string, mixed>
      */

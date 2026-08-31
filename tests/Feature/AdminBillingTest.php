@@ -6,7 +6,9 @@ use App\Enums\PaymentStatus;
 use App\Jobs\VerifySubscriptionPaymentJob;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Inertia\Inertia;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -200,4 +202,44 @@ test('mutating routes demand a fresh password confirmation', function () {
         ->assertRedirect(route('password.confirm'));
 
     expect($payment->fresh()->status)->toBe(PaymentStatus::Submitted);
+});
+
+test('the billing console renders without waiting on the signer', function () {
+    // The signer answers a health check by making RPC calls of its own, so a
+    // slow provider used to hold the whole page behind it. Every other panel
+    // here reads the database and has no reason to wait.
+    admin();
+    Http::preventStrayRequests();
+
+    $this->get(route('admin.billing'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/Billing')
+            // Present as a deferred prop, absent from the payload itself.
+            ->missing('signerHealth')
+            ->has('poolHealth')
+        );
+});
+
+test('the deferred request is what actually asks the signer', function () {
+    admin();
+    config()->set('billing.signer.secret_file', $secret = tempnam(sys_get_temp_dir(), 'signer-secret-'));
+    file_put_contents($secret, str_repeat('a', 64));
+    Http::fake(['*' => Http::response(['ok' => true, 'locked' => false])]);
+
+    $this->get(route('admin.billing'))->assertOk();
+
+    Http::assertNothingSent();
+
+    // Inertia asks for a deferred prop with a partial reload naming it.
+    $this->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => Inertia::getVersion(),
+        'X-Inertia-Partial-Component' => 'admin/Billing',
+        'X-Inertia-Partial-Data' => 'signerHealth',
+    ])->get(route('admin.billing'))->assertOk();
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/health'));
+
+    unlink($secret);
 });

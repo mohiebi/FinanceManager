@@ -305,8 +305,13 @@ final readonly class EvmJsonRpcExplorer implements ChainExplorer
 
         $response = null;
         $lastException = null;
+        $failures = [];
 
         foreach ($urls as $url) {
+            // Host only, never the URL: a keyed provider carries its credential
+            // in the path or query, and everything below reaches the log.
+            $host = (string) parse_url($url, PHP_URL_HOST) ?: 'endpoint';
+
             try {
                 $candidate = Http::timeout((int) config("billing.networks.{$this->network->value}.timeout", 8))
                     ->connectTimeout((int) config("billing.networks.{$this->network->value}.connect_timeout", 4))
@@ -318,13 +323,24 @@ final readonly class EvmJsonRpcExplorer implements ChainExplorer
                     $response = $candidate;
                     break;
                 }
+
+                // Recorded rather than dropped. Failing over used to keep only
+                // exceptions, so a run where every endpoint answered 429 raised
+                // an error naming no status and carrying no previous — leaving
+                // rate-limiting and a genuine outage looking identical, when the
+                // first wants a keyed provider and the second wants debugging.
+                $failures[] = "{$host} answered {$candidate->status()}";
             } catch (Throwable $exception) {
                 $lastException = $exception;
+                $failures[] = "{$host} was unreachable";
             }
         }
 
         if ($response === null) {
-            throw new ExplorerUnavailable("Could not reach a healthy {$this->network->value} endpoint.", previous: $lastException);
+            throw new ExplorerUnavailable(
+                "No healthy {$this->network->value} endpoint: ".implode('; ', $failures).'.',
+                previous: $lastException,
+            );
         }
 
         $body = $response->json();

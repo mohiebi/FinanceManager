@@ -4,13 +4,16 @@ use App\Actions\Billing\GrantProAccess;
 use App\Actions\Billing\VerifyPaymentOnChain;
 use App\Enums\GrantReason;
 use App\Enums\PaymentFailureReason;
+use App\Enums\PaymentNetwork;
 use App\Enums\PaymentStatus;
+use App\Exceptions\ExplorerUnavailable;
 use App\Jobs\VerifySubscriptionPaymentJob;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
 use App\Notifications\PaymentNeedsReviewNotification;
 use App\Notifications\SubscriptionActivatedNotification;
 use App\Notifications\SubscriptionPaymentFailedNotification;
+use App\Services\Billing\ChainExplorerFactory;
 use App\Support\Billing\TokenAmount;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -526,5 +529,36 @@ test('a payment that is no longer awaiting the chain is left alone', function ()
 
         expect($payment->fresh()->status)->toBe($status);
         Http::assertNothingSent();
+    }
+});
+
+test('an rpc failover that exhausts every endpoint names what each one answered', function () {
+    // Failing over used to keep only thrown exceptions, so a run where every
+    // endpoint rate-limited raised an error naming no status and carrying no
+    // previous — leaving 429s and a genuine outage indistinguishable.
+    enableBilling([
+        'billing.networks.ethereum.rpc_urls' => [
+            'https://rpc-one.test/v2/super-secret-provider-key',
+            'https://rpc-two.test/rpc',
+        ],
+    ]);
+
+    Http::fake([
+        'rpc-one.test/*' => Http::response(['error' => 'rate limited'], 429),
+        'rpc-two.test/*' => Http::response('gateway down', 502),
+    ]);
+
+    $explorer = app(ChainExplorerFactory::class)->for(PaymentNetwork::Ethereum);
+
+    try {
+        $explorer->transferFor(paymentExpecting(USDT_AMOUNT_HEX));
+        $this->fail('The explorer should have refused after exhausting every endpoint.');
+    } catch (ExplorerUnavailable $exception) {
+        expect($exception->getMessage())
+            ->toContain('rpc-one.test answered 429')
+            ->toContain('rpc-two.test answered 502')
+            // Hosts only: a keyed provider carries its credential in the path,
+            // and this message reaches the log.
+            ->not->toContain('super-secret-provider-key');
     }
 });

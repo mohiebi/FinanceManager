@@ -1,5 +1,5 @@
-import { CircleAlert } from 'lucide-react';
 import { Checkbox, Input, Label } from '@cashpilot/ui';
+import { CircleAlert } from 'lucide-react';
 
 const Surface = ({ children }: { children: React.ReactNode }) => (
     <div className="dark bg-background text-foreground p-6">{children}</div>

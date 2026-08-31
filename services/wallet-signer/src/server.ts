@@ -1,6 +1,7 @@
-import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { createServer as createSocketServer } from 'node:net';
 import { rm } from 'node:fs/promises';
+import { createServer as createHttpServer } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { createServer as createSocketServer } from 'node:net';
 import { HDNodeWallet, JsonRpcProvider, Mnemonic, Wallet } from 'ethers';
 import { RequestAuthenticator } from './auth.js';
 import { config } from './config.js';
@@ -15,24 +16,34 @@ const runner = new SettlementRunner(store, () => unlockedMnemonic);
 const auth = new RequestAuthenticator(config.hmacSecretFile, '/operations/nonces.json');
 
 const json = (response: ServerResponse, status: number, value: unknown): void => {
-    response.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    response.writeHead(status, {
+        'content-type': 'application/json',
+        'cache-control': 'no-store',
+    });
     response.end(JSON.stringify(value));
 };
 
 const readBody = async (request: IncomingMessage): Promise<string> => {
     const chunks: Buffer[] = [];
     let length = 0;
+
     for await (const chunk of request) {
         const value = Buffer.from(chunk);
         length += value.length;
-        if (length > 65_536) throw new Error('Request body is too large.');
+
+        if (length > 65_536) {
+            throw new Error('Request body is too large.');
+        }
+
         chunks.push(value);
     }
+
     return Buffer.concat(chunks).toString('utf8');
 };
 
 const publicOperation = (operation: Operation): Omit<Operation, 'signedTransactions'> => {
     const { signedTransactions: _signedTransactions, ...safe } = operation;
+
     return safe;
 };
 
@@ -45,41 +56,55 @@ const publicOperation = (operation: Operation): Omit<Operation, 'signedTransacti
  * each is a contract or a plain account before billing is enabled.
  */
 const vaultSnapshot = async (): Promise<Record<string, unknown>> => {
-    const entries = await Promise.all((Object.keys(config.networks) as NetworkName[]).map(async (name) => {
-        const network = config.networks[name];
-        if (network.vault === '' || network.rpcUrls.length === 0) {
-            return [name, { configured: false }];
-        }
+    const entries = await Promise.all(
+        (Object.keys(config.networks) as NetworkName[]).map(async (name) => {
+            const network = config.networks[name];
 
-        try {
-            const provider = new JsonRpcProvider(network.rpcUrls[0], network.chainId, { staticNetwork: true });
-            const [vaultCode, riskVaultCode] = await Promise.all([
-                provider.getCode(network.vault),
-                network.riskVault === '' ? Promise.resolve('0x') : provider.getCode(network.riskVault),
-            ]);
-            return [name, {
-                configured: true,
-                vault: network.vault,
-                riskVault: network.riskVault,
-                riskVaultConfigured: network.riskVault !== '',
-                segregated: network.riskVault !== '' && network.riskVault !== network.vault,
-                vaultHasCode: vaultCode !== '0x',
-                riskVaultHasCode: riskVaultCode !== '0x',
-            }];
-        } catch {
-            return [name, { configured: true, vault: network.vault, riskVault: network.riskVault, unreachable: true }];
-        }
-    }));
+            if (network.vault === '' || network.rpcUrls.length === 0) {
+                return [name, { configured: false }];
+            }
+
+            try {
+                const provider = new JsonRpcProvider(network.rpcUrls[0], network.chainId, { staticNetwork: true });
+                const [vaultCode, riskVaultCode] = await Promise.all([
+                    provider.getCode(network.vault),
+                    network.riskVault === '' ? Promise.resolve('0x') : provider.getCode(network.riskVault),
+                ]);
+
+                return [
+                    name,
+                    {
+                        configured: true,
+                        vault: network.vault,
+                        riskVault: network.riskVault,
+                        riskVaultConfigured: network.riskVault !== '',
+                        segregated: network.riskVault !== '' && network.riskVault !== network.vault,
+                        vaultHasCode: vaultCode !== '0x',
+                        riskVaultHasCode: riskVaultCode !== '0x',
+                    },
+                ];
+            } catch {
+                return [
+                    name,
+                    {
+                        configured: true,
+                        vault: network.vault,
+                        riskVault: network.riskVault,
+                        unreachable: true,
+                    },
+                ];
+            }
+        }),
+    );
 
     return Object.fromEntries(entries);
 };
 
-const healthSnapshot = async (): Promise<Record<string, unknown>> => {
+const healthSnapshot = async (deep = false): Promise<Record<string, unknown>> => {
     const operations = await store.list();
     const now = Date.now();
-    const spent = (since: number): bigint => operations
-        .filter((operation) => new Date(operation.createdAt).getTime() >= since)
-        .reduce((total, operation) => total + BigInt(operation.gasTopupWei ?? '0'), 0n);
+    const spent = (since: number): bigint =>
+        operations.filter((operation) => new Date(operation.createdAt).getTime() >= since).reduce((total, operation) => total + BigInt(operation.gasTopupWei ?? '0'), 0n);
     let gasWallet: Record<string, string> | null = null;
 
     if (unlockedMnemonic && config.networks.arbitrum.rpcUrls.length > 0) {
@@ -94,7 +119,7 @@ const healthSnapshot = async (): Promise<Record<string, unknown>> => {
         };
     }
 
-    return {
+    const snapshot: Record<string, unknown> = {
         ok: true,
         locked: unlockedMnemonic === undefined,
         keyVersion: keystore.keyVersion,
@@ -102,18 +127,36 @@ const healthSnapshot = async (): Promise<Record<string, unknown>> => {
         vaults: await vaultSnapshot(),
         stuckOperations: operations.filter((operation) => operation.status === 'needs_review').length,
     };
+
+    if (deep) {
+        snapshot.dependencies = await runner.readinessSnapshot();
+    }
+
+    return snapshot;
 };
 
 const validRequest = (value: unknown): value is SettlementRequest => {
-    if (!value || typeof value !== 'object') return false;
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
     const item = value as Record<string, unknown>;
-    return item.kind === 'settlement'
-        && typeof item.operationId === 'string' && typeof item.paymentId === 'string'
-        && typeof item.network === 'string' && typeof item.chainId === 'number'
-        && typeof item.derivationIndex === 'number' && typeof item.depositAddress === 'string'
-        && typeof item.keyVersion === 'string' && typeof item.asset === 'string'
-        && typeof item.verifiedAmount === 'string' && typeof item.chainVerified === 'boolean'
-        && typeof item.screeningRisk === 'string' && typeof item.riskAuthorized === 'boolean';
+
+    return (
+        item.kind === 'settlement' &&
+        typeof item.operationId === 'string' &&
+        typeof item.paymentId === 'string' &&
+        typeof item.network === 'string' &&
+        typeof item.chainId === 'number' &&
+        typeof item.derivationIndex === 'number' &&
+        typeof item.depositAddress === 'string' &&
+        typeof item.keyVersion === 'string' &&
+        typeof item.asset === 'string' &&
+        typeof item.verifiedAmount === 'string' &&
+        typeof item.chainVerified === 'boolean' &&
+        typeof item.screeningRisk === 'string' &&
+        typeof item.riskAuthorized === 'boolean'
+    );
 };
 
 /**
@@ -124,12 +167,23 @@ const validRequest = (value: unknown): value is SettlementRequest => {
  * move our funds into our own risk vault ahead of schedule.
  */
 const validRecovery = (value: unknown): value is Omit<SettlementRequest, 'kind'> & { reason: string } => {
-    if (!value || typeof value !== 'object') return false;
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
     const item = value as Record<string, unknown>;
-    return typeof item.operationId === 'string' && typeof item.network === 'string'
-        && typeof item.chainId === 'number' && typeof item.derivationIndex === 'number'
-        && typeof item.depositAddress === 'string' && typeof item.keyVersion === 'string'
-        && typeof item.reason === 'string' && item.reason.length >= 3 && item.reason.length <= 500;
+
+    return (
+        typeof item.operationId === 'string' &&
+        typeof item.network === 'string' &&
+        typeof item.chainId === 'number' &&
+        typeof item.derivationIndex === 'number' &&
+        typeof item.depositAddress === 'string' &&
+        typeof item.keyVersion === 'string' &&
+        typeof item.reason === 'string' &&
+        item.reason.length >= 3 &&
+        item.reason.length <= 500
+    );
 };
 
 const accept = async (response: ServerResponse, request: SettlementRequest): Promise<void> => {
@@ -138,6 +192,7 @@ const accept = async (response: ServerResponse, request: SettlementRequest): Pro
     if (existing) {
         if (existing.paymentId !== request.paymentId || existing.kind !== request.kind) {
             json(response, 409, { error: 'operation_id_conflict' });
+
             return;
         }
 
@@ -162,6 +217,7 @@ const accept = async (response: ServerResponse, request: SettlementRequest): Pro
         }
 
         json(response, 200, publicOperation(existing));
+
         return;
     }
 
@@ -183,51 +239,82 @@ const accept = async (response: ServerResponse, request: SettlementRequest): Pro
 
 await auth.initialize();
 const keystore = await readKeystore(config.keystorePath);
-if (keystore.keyVersion !== config.keyVersion) throw new Error('Configured key version does not match the keystore.');
+
+if (keystore.keyVersion !== config.keyVersion) {
+    throw new Error('Configured key version does not match the keystore.');
+}
 
 const server = createHttpServer(async (request, response) => {
     try {
         const method = request.method ?? 'GET';
-        const path = new URL(request.url ?? '/', 'http://signer').pathname;
+        const target = new URL(request.url ?? '/', 'http://signer');
+        const path = target.pathname;
+        const signedPath = `${target.pathname}${target.search}`;
         const body = method === 'GET' ? '' : await readBody(request);
 
-        if (!await auth.verify(request.headers, method, path, body)) {
+        if (!(await auth.verify(request.headers, method, signedPath, body))) {
             json(response, 401, { error: 'unauthorized' });
+
             return;
         }
 
         if (method === 'GET' && path === '/health') {
-            json(response, 200, await healthSnapshot());
+            json(response, 200, await healthSnapshot(target.searchParams.get('deep') === '1'));
+
             return;
         }
 
         if (method === 'POST' && path === '/v1/addresses/derive-batch') {
-            const payload = JSON.parse(body) as { startIndex?: unknown; count?: unknown };
-            if (!Number.isSafeInteger(payload.startIndex) || Number(payload.startIndex) < 0 || !Number.isSafeInteger(payload.count) || Number(payload.count) < 1 || Number(payload.count) > 250) {
+            const payload = JSON.parse(body) as {
+                startIndex?: unknown;
+                count?: unknown;
+            };
+
+            if (
+                !Number.isSafeInteger(payload.startIndex) ||
+                Number(payload.startIndex) < 0 ||
+                !Number.isSafeInteger(payload.count) ||
+                Number(payload.count) < 1 ||
+                Number(payload.count) > 250
+            ) {
                 json(response, 422, { error: 'invalid_derivation_range' });
+
                 return;
             }
+
             const result = await derivePublicAddresses(config.keystorePath, Number(payload.startIndex), Number(payload.count));
-            json(response, 200, { key_version: result.keyVersion, start_index: payload.startIndex, addresses: result.addresses });
+            json(response, 200, {
+                key_version: result.keyVersion,
+                start_index: payload.startIndex,
+                addresses: result.addresses,
+            });
+
             return;
         }
 
         if (method === 'POST' && path === '/v1/settlements') {
             const payload: unknown = JSON.parse(body);
+
             if (!validRequest(payload)) {
                 json(response, 422, { error: 'invalid_settlement' });
+
                 return;
             }
+
             await accept(response, payload);
+
             return;
         }
 
         if (method === 'POST' && path === '/v1/recoveries') {
             const payload: unknown = JSON.parse(body);
+
             if (!validRecovery(payload)) {
                 json(response, 422, { error: 'invalid_recovery' });
+
                 return;
             }
+
             await accept(response, {
                 kind: 'recovery',
                 operationId: payload.operationId,
@@ -244,19 +331,25 @@ const server = createHttpServer(async (request, response) => {
                 screeningRisk: 'unscreened',
                 riskAuthorized: false,
             });
+
             return;
         }
 
         const settlementMatch = path.match(/^\/v1\/(?:settlements|recoveries)\/([0-9a-f-]{36})$/i);
+
         if (method === 'GET' && settlementMatch?.[1]) {
             const operation = await store.get(settlementMatch[1]);
             json(response, operation ? 200 : 404, operation ? publicOperation(operation) : { error: 'not_found' });
+
             return;
         }
 
         json(response, 404, { error: 'not_found' });
     } catch (error) {
-        json(response, 500, { error: 'internal_error', message: error instanceof Error ? error.message : 'Unknown error.' });
+        json(response, 500, {
+            error: 'internal_error',
+            message: error instanceof Error ? error.message : 'Unknown error.',
+        });
     }
 });
 
@@ -267,7 +360,11 @@ const control = createSocketServer((socket) => {
     socket.on('end', async () => {
         try {
             const command = JSON.parse(Buffer.concat(chunks).toString('utf8')) as { command?: string; passphrase?: string };
-            if (command.command !== 'unlock' || typeof command.passphrase !== 'string') throw new Error('Invalid control command.');
+
+            if (command.command !== 'unlock' || typeof command.passphrase !== 'string') {
+                throw new Error('Invalid control command.');
+            }
+
             const mnemonic = await unlockKeystore(config.keystorePath, command.passphrase);
             HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(mnemonic), 'm');
             unlockedMnemonic = mnemonic;

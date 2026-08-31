@@ -1,5 +1,5 @@
-import { ArrowUpRight, Download, Plus, Trash2 } from 'lucide-react';
 import { Button, Spinner } from '@cashpilot/ui';
+import { ArrowUpRight, Download, Plus, Trash2 } from 'lucide-react';
 
 /**
  * CashPilot renders dark-only — `initializeTheme()` puts `dark` on <html>

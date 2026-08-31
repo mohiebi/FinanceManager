@@ -1,5 +1,5 @@
-import { ArrowDownRight, ArrowUpRight, Clock } from 'lucide-react';
 import { Badge } from '@cashpilot/ui';
+import { ArrowDownRight, ArrowUpRight, Clock } from 'lucide-react';
 
 const Surface = ({ children }: { children: React.ReactNode }) => (
     <div className="dark bg-background text-foreground flex flex-wrap items-center gap-2 p-6">

@@ -1,4 +1,3 @@
-import { Info } from 'lucide-react';
 import {
     Button,
     Tooltip,
@@ -6,6 +5,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@cashpilot/ui';
+import { Info } from 'lucide-react';
 
 /** TooltipContent is portalled — see the note in Select.tsx. */
 if (typeof document !== 'undefined') {

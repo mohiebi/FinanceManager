@@ -1,4 +1,3 @@
-import { LockKeyhole, MoreHorizontal, TrendingUp } from 'lucide-react';
 import {
     Badge,
     Button,
@@ -10,6 +9,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@cashpilot/ui';
+import { LockKeyhole, MoreHorizontal, TrendingUp } from 'lucide-react';
 
 const Surface = ({ children }: { children: React.ReactNode }) => (
     <div className="dark bg-background text-foreground p-6">{children}</div>

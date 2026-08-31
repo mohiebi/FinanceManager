@@ -13,7 +13,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 
 #[Signature('billing:verify-settlement')]
-#[Description('Read-only verification of billing RPCs, vaults, signer health, and address pool')]
+#[Description('Read-only verification of billing RPCs, vaults, signer dependencies, and address pool')]
 class VerifySettlementInfrastructure extends Command
 {
     public function handle(WalletSignerClient $signer, ScreeningRpcPolicy $screeningRpcPolicy): int
@@ -22,7 +22,7 @@ class VerifySettlementInfrastructure extends Command
         $health = [];
 
         try {
-            $health = $signer->health();
+            $health = $signer->health(deep: true);
             $this->line('Signer: '.(($health['ok'] ?? false) ? 'reachable' : 'unhealthy').', '.(($health['locked'] ?? true) ? 'locked' : 'unlocked'));
             $failed = $failed || ! ($health['ok'] ?? false) || ($health['locked'] ?? true);
         } catch (\Throwable $exception) {
@@ -44,7 +44,12 @@ class VerifySettlementInfrastructure extends Command
             $screeningEndpoints = $screeningRpcPolicy->endpointsFor($network);
             $screeningHealthy = count($screeningEndpoints) >= 2;
             $this->line("{$network->label()}: independent screening quorum ".($screeningHealthy ? 'ok' : 'invalid'));
-            $failed = ! $this->reportVault($network, $health) || $failed || ! $rpcHealthy || ! $screeningHealthy;
+            $dependenciesHealthy = $this->reportSettlementDependencies($network, $health);
+            $failed = ! $this->reportVault($network, $health)
+                || $failed
+                || ! $rpcHealthy
+                || ! $screeningHealthy
+                || ! $dependenciesHealthy;
         }
 
         if ($failed) {
@@ -125,6 +130,30 @@ class VerifySettlementInfrastructure extends Command
         if ($vaultKind === 'plain account' || $riskVaultKind === 'plain account') {
             $this->warn('  A vault with no bytecode is a plain account. That is fine and works on every chain — but if you meant to use a Safe, it was never deployed here, and anything swept to it stays stuck until you deploy one.');
         }
+
+        return true;
+    }
+
+    /** @param  array<string, mixed>  $health */
+    private function reportSettlementDependencies(PaymentNetwork $network, array $health): bool
+    {
+        $dependencies = $health['dependencies'][$network->value] ?? null;
+
+        if (! is_array($dependencies)) {
+            $this->line("{$network->label()}: signer did not return deep dependency verification");
+
+            return false;
+        }
+
+        if (($dependencies['ready'] ?? false) !== true) {
+            $reason = trim((string) ($dependencies['error'] ?? 'dependency verification failed'));
+            $this->line("{$network->label()}: settlement dependencies invalid — {$reason}");
+
+            return false;
+        }
+
+        $assets = implode(', ', array_map('strval', (array) ($dependencies['assets'] ?? [])));
+        $this->line("{$network->label()}: settlement dependencies ok".($assets === '' ? '' : " ({$assets})"));
 
         return true;
     }

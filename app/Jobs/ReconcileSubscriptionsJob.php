@@ -16,6 +16,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The billing housekeeping sweep.
@@ -61,32 +62,38 @@ class ReconcileSubscriptionsJob implements ShouldQueue
      */
     private function expireStaleIntents(): void
     {
-        $stale = SubscriptionPayment::query()
-            ->where('status', PaymentStatus::Pending->value)
-            ->where('expires_at', '<=', now());
+        DB::transaction(function (): void {
+            $expiredIds = SubscriptionPayment::query()
+                ->where('status', PaymentStatus::Pending->value)
+                ->where('expires_at', '<=', now())
+                ->lockForUpdate()
+                ->pluck('id')
+                ->all();
 
-        // Collected before the update, because afterwards nothing identifies
-        // which rows this run expired.
-        $expiredIds = $stale->clone()->pluck('id')->all();
+            if ($expiredIds === []) {
+                return;
+            }
 
-        $stale->update([
-            'status' => PaymentStatus::Expired->value,
-            'failure_reason' => PaymentFailureReason::Expired->value,
-            'updated_at' => now(),
-        ]);
+            SubscriptionPayment::query()
+                ->whereKey($expiredIds)
+                ->where('status', PaymentStatus::Pending->value)
+                ->update([
+                    'status' => PaymentStatus::Expired->value,
+                    'failure_reason' => PaymentFailureReason::Expired->value,
+                    'updated_at' => now(),
+                ]);
 
-        DepositAddress::query()
-            ->whereIn('assigned_payment_id', $expiredIds)
-            ->where('status', DepositAddressStatus::Assigned->value)
-            ->update([
-                'status' => DepositAddressStatus::Retired->value,
-                'updated_at' => now(),
-            ]);
+            DepositAddress::query()
+                ->whereIn('assigned_payment_id', $expiredIds)
+                ->where('status', DepositAddressStatus::Assigned->value)
+                ->update([
+                    'status' => DepositAddressStatus::Retired->value,
+                    'updated_at' => now(),
+                ]);
 
-        // Any coupon those intents were holding goes back into the pool.
-        // Without this a single-use code would be spent by the first person who
-        // opened an intent and wandered off, not by the first who paid.
-        app(SettleCouponRedemption::class)->releaseMany($expiredIds);
+            // Any coupon those intents were holding goes back into the pool.
+            app(SettleCouponRedemption::class)->releaseMany($expiredIds);
+        });
     }
 
     /**

@@ -103,11 +103,10 @@ class AdminBillingController extends Controller
      * deliberately excludes, so approve refused it too and the buyer's funds sat
      * at a deposit address with no operator action able to touch them at all.
      *
-     * Refusing it is the honest resolution rather than approving it, because
-     * approving would hand out entitlement on funds nothing ever screened. The
-     * address is retired, which is what lets `billing:recover-address` sweep it
-     * into the risk vault — where unscreened money belongs — and the refund is
-     * then an ordinary off-platform one.
+     * Refusing it is the honest entitlement resolution rather than approving
+     * it, because approving would hand out access on funds nothing screened.
+     * Its address remains on a non-recoverable screening hold: Unknown never
+     * authorizes movement, even to the risk vault.
      */
     public function reject(Request $request, SubscriptionPayment $payment): RedirectResponse
     {
@@ -132,7 +131,7 @@ class AdminBillingController extends Controller
                 'approved_by_admin_id' => $request->user()->getKey(),
                 'admin_note' => $note,
             ])->save();
-            $locked->depositAddress?->forceFill(['status' => DepositAddressStatus::Retired])->save();
+            $locked->depositAddress?->forceFill(['status' => DepositAddressStatus::ScreeningHold])->save();
 
             // The buyer got no entitlement, so the coupon claim goes back into
             // the pool whether or not their money arrived.

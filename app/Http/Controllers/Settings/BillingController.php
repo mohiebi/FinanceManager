@@ -22,6 +22,7 @@ use App\Http\Requests\Settings\StartPaymentRequest;
 use App\Http\Requests\Settings\SubmitPaymentProofRequest;
 use App\Models\Coupon;
 use App\Models\CouponRedemption;
+use App\Models\DepositAddress;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
 use App\Services\Billing\AddressScreenerFactory;
@@ -238,14 +239,27 @@ class BillingController extends Controller
         // back, but the history is the only place either is ever read, and
         // "Expired" against an intent the buyer cancelled on purpose reads as
         // something that failed on them.
-        DB::transaction(function () use ($payment): void {
-            $payment->forceFill(['status' => PaymentStatus::Cancelled])->save();
-            $payment->depositAddress?->forceFill(['status' => DepositAddressStatus::Retired])->save();
-        });
+        DB::transaction(function () use ($payment, $request): void {
+            $locked = SubscriptionPayment::query()
+                ->whereKey($payment->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        // Withdrawing an intent hands back any coupon it was holding, so a
-        // single-use code is not spent by somebody who changed their mind.
-        $this->settleCoupon->release($payment);
+            abort_unless((int) $locked->user_id === (int) $request->user()->getKey(), 404);
+            abort_unless($locked->status === PaymentStatus::Pending, 404);
+
+            $depositAddress = DepositAddress::query()
+                ->where('assigned_payment_id', $locked->getKey())
+                ->lockForUpdate()
+                ->first();
+
+            $locked->forceFill(['status' => PaymentStatus::Cancelled])->save();
+            $depositAddress?->forceFill(['status' => DepositAddressStatus::Retired])->save();
+
+            // Withdrawing an intent hands back any coupon it was holding, so a
+            // single-use code is not spent by somebody who changed their mind.
+            $this->settleCoupon->release($locked);
+        });
 
         return back()->with('status', __('billing.pay.cancelled'));
     }

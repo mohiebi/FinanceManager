@@ -1,9 +1,12 @@
 <?php
 
 use App\Actions\Billing\StartSubscriptionPayment;
+use App\Actions\Billing\SubmitPaymentProof;
 use App\Enums\BillingPlan;
 use App\Enums\DepositAddressStatus;
+use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentNetwork;
+use App\Enums\PaymentStatus;
 use App\Enums\SettlementAsset;
 use App\Exceptions\DepositAddressLimitExceeded;
 use App\Exceptions\DepositAddressUnavailable;
@@ -20,6 +23,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
     enableBilling();
@@ -160,6 +164,36 @@ test('cancelled and expired addresses retire permanently and are never reused', 
     expect($expiring->depositAddress->fresh()->status)->toBe(DepositAddressStatus::Retired)
         ->and($new->pay_to_address)->not->toBe($cancelled->pay_to_address)
         ->and($new->pay_to_address)->not->toBe($expiring->pay_to_address);
+});
+
+test('proof submission re-reads the payment after waiting for its row lock', function () {
+    Queue::fake();
+    $user = User::factory()->create();
+    $payment = app(StartSubscriptionPayment::class)(
+        $user,
+        BillingPlan::Monthly,
+        PaymentNetwork::Ethereum,
+        SettlementAsset::Usdt,
+    );
+    $stalePayment = $payment->fresh();
+
+    $payment->forceFill([
+        'status' => PaymentStatus::Expired,
+        'failure_reason' => PaymentFailureReason::Expired,
+    ])->save();
+    $payment->depositAddress->forceFill(['status' => DepositAddressStatus::Retired])->save();
+
+    $result = app(SubmitPaymentProof::class)(
+        $stalePayment,
+        '0x'.str_repeat('a', 64),
+    );
+
+    expect($result->accepted)->toBeFalse()
+        ->and($result->reason)->toBe(PaymentFailureReason::Expired)
+        ->and($payment->fresh()->status)->toBe(PaymentStatus::Expired)
+        ->and($payment->depositAddress->fresh()->status)->toBe(DepositAddressStatus::Retired);
+
+    Queue::assertNothingPushed();
 });
 
 test('daily allocation limit counts only new addresses', function () {

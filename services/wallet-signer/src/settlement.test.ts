@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { Transaction, Wallet } from 'ethers';
+import { Transaction, Wallet, keccak256 } from 'ethers';
 import { SettlementRunner } from './settlement.js';
 
 /**
@@ -11,7 +11,12 @@ import { SettlementRunner } from './settlement.js';
  * is the decision, not the plumbing around it.
  */
 type Internals = {
-    isUnusable(provider: unknown, signer: unknown, raw: string): Promise<boolean>;
+    transactionDisposition(provider: unknown, signer: unknown, raw: string, signedAt: string, stage: string): Promise<string>;
+    replacementTransaction(provider: unknown, transaction: unknown, previous: Transaction, replacementNonce: number | undefined): Promise<Record<string, unknown>>;
+    requiredGasTopup(operation: unknown, targetBalance: bigint, currentBalance: bigint): { topup: bigint; cumulative: bigint } | null;
+    stageConfirmed(provider: unknown, operation: unknown, stage: string): Promise<boolean>;
+    assertCode(network: unknown, provider: unknown, addresses: string[]): Promise<void>;
+    sweep(operation: unknown, deposit: unknown, network: unknown): Promise<void>;
     sweepGasLimit(provider: unknown, from: string, to: string): Promise<bigint>;
     recoveryGasUnits(provider: unknown, from: string, to: string, transfers: unknown[]): Promise<bigint>;
     destination(operation: unknown, network: unknown): string;
@@ -21,10 +26,18 @@ const runner = (): Internals => new SettlementRunner({} as never, () => undefine
 
 const signedTransaction = async (nonce: number): Promise<string> => {
     const wallet = new Wallet('0x'.padEnd(66, '1'));
-    return wallet.signTransaction({ to: wallet.address, value: 1n, nonce, gasLimit: 21_000n, gasPrice: 1_000_000_000n, chainId: 42161 });
+
+    return wallet.signTransaction({
+        to: wallet.address,
+        value: 1n,
+        nonce,
+        gasLimit: 21_000n,
+        gasPrice: 1_000_000_000n,
+        chainId: 42161,
+    });
 };
 
-test('a mined-and-reverted transaction is discarded instead of re-read forever', async () => {
+test('a mined-and-reverted transaction is replaced at the next nonce', async () => {
     const raw = await signedTransaction(4);
     const provider = {
         getTransactionReceipt: async () => ({ status: 0 }),
@@ -32,7 +45,7 @@ test('a mined-and-reverted transaction is discarded instead of re-read forever',
         getTransactionCount: async () => 4,
     };
 
-    assert.equal(await runner().isUnusable(provider, { address: '0x' }, raw), true);
+    assert.equal(await runner().transactionDisposition(provider, { address: '0x' }, raw, new Date().toISOString(), 'approval'), 'replace_next_nonce');
 });
 
 test('a confirmed transaction is kept', async () => {
@@ -43,7 +56,7 @@ test('a confirmed transaction is kept', async () => {
         getTransactionCount: async () => 5,
     };
 
-    assert.equal(await runner().isUnusable(provider, { address: '0x' }, raw), false);
+    assert.equal(await runner().transactionDisposition(provider, { address: '0x' }, raw, new Date().toISOString(), 'approval'), 'keep');
 });
 
 test('a transaction still pending in the mempool is kept', async () => {
@@ -54,10 +67,10 @@ test('a transaction still pending in the mempool is kept', async () => {
         getTransactionCount: async () => 4,
     };
 
-    assert.equal(await runner().isUnusable(provider, { address: '0x' }, raw), false);
+    assert.equal(await runner().transactionDisposition(provider, { address: '0x' }, raw, new Date().toISOString(), 'approval'), 'keep');
 });
 
-test('a dropped transaction whose nonce was spent elsewhere is discarded', async () => {
+test('a dropped transaction whose nonce was spent elsewhere moves to the next nonce', async () => {
     // The shared gas wallet makes this ordinary rather than exotic, and it used
     // to wedge the operation permanently: the cached signature could never be
     // accepted again, and nothing ever cleared it.
@@ -68,7 +81,82 @@ test('a dropped transaction whose nonce was spent elsewhere is discarded', async
         getTransactionCount: async () => 5,
     };
 
-    assert.equal(await runner().isUnusable(provider, { address: '0x' }, raw), true);
+    assert.equal(await runner().transactionDisposition(provider, { address: '0x' }, raw, new Date().toISOString(), 'approval'), 'replace_next_nonce');
+});
+
+test('a dropped transaction with an unspent nonce is fee bumped at the same nonce', async () => {
+    const raw = await signedTransaction(4);
+    const provider = {
+        getTransactionReceipt: async () => null,
+        getTransaction: async () => null,
+        getTransactionCount: async () => 4,
+    };
+
+    assert.equal(await runner().transactionDisposition(provider, { address: '0x' }, raw, new Date().toISOString(), 'approval'), 'replace_same_nonce');
+});
+
+test('a pending swap older than its quote is replaced with freshly supplied calldata', async () => {
+    const raw = await signedTransaction(4);
+    const provider = {
+        getTransactionReceipt: async () => null,
+        getTransaction: async () => ({ hash: Transaction.from(raw).hash }),
+        getTransactionCount: async () => 4,
+        getFeeData: async () => ({
+            gasPrice: 2_000_000_000n,
+            maxFeePerGas: null,
+            maxPriorityFeePerGas: null,
+        }),
+    };
+    const internals = runner();
+
+    assert.equal(await internals.transactionDisposition(provider, { address: '0x' }, raw, new Date(0).toISOString(), 'swap'), 'replace_same_nonce');
+
+    const replacement = await internals.replacementTransaction(provider, { to: '0x0000000000000000000000000000000000000001', data: '0x1234' }, Transaction.from(raw), 4);
+
+    assert.equal(replacement.nonce, 4);
+    assert.equal(replacement.data, '0x1234');
+    assert.ok((replacement.gasPrice as bigint) > 1_000_000_000n);
+});
+
+test('a retry funds only the missing gas and counts it against the cumulative cap', () => {
+    const internals = runner();
+
+    assert.deepEqual(internals.requiredGasTopup({ gasTopupWei: '100' }, 1_000n, 400n), {
+        topup: 600n,
+        cumulative: 700n,
+    });
+    assert.equal(internals.requiredGasTopup({ gasTopupWei: '700' }, 1_000n, 1_000n), null);
+});
+
+test('a confirmed vault sweep resumes successfully even when only dust remains', async () => {
+    const store = { put: async () => undefined };
+    const instance = new SettlementRunner(store as never, () => undefined) as unknown as Internals;
+    const operation = {
+        screeningRisk: 'no_match',
+        transactionHashes: { vault_sweep: `0x${'a'.repeat(64)}` },
+        signedTransactions: {},
+    };
+    const provider = {
+        getFeeData: async () => ({ gasPrice: 1n, maxFeePerGas: null }),
+        estimateGas: async () => 21_000n,
+        getBalance: async () => 1n,
+        getTransactionReceipt: async () => ({ status: 1 }),
+    };
+
+    await instance.sweep(operation, { provider, address: '0xdeposit' }, { vault: '0xvault', riskVault: '0xriskvault' });
+
+    assert.equal((operation as { vaultReceipt?: string }).vaultReceipt, `0x${'a'.repeat(64)}`);
+});
+
+test('allowlisted contracts require an exact configured runtime bytecode hash', async () => {
+    const code = '0x6000';
+    const address = '0x0000000000000000000000000000000000000001';
+    const provider = { getCode: async () => code };
+    const internals = runner();
+
+    await internals.assertCode({ expectedCodeHashes: { [address]: keccak256(code) } }, provider, [address]);
+    await assert.rejects(internals.assertCode({ expectedCodeHashes: {} }, provider, [address]), /contract_bytecode_hash_unconfigured/);
+    await assert.rejects(internals.assertCode({ expectedCodeHashes: { [address]: `0x${'0'.repeat(64)}` } }, provider, [address]), /contract_bytecode_mismatch/);
 });
 
 test('the sweep gas limit follows the estimate rather than a hardcoded 21,000', async () => {
@@ -83,21 +171,22 @@ test('the sweep gas limit follows the estimate rather than a hardcoded 21,000', 
 
     // Unused gas is refunded, so an unreachable estimate falls back generously
     // rather than guessing low and reverting.
-    const broken = { estimateGas: async () => { throw new Error('unavailable'); } };
+    const broken = {
+        estimateGas: async () => {
+            throw new Error('unavailable');
+        },
+    };
     assert.equal(await runner().sweepGasLimit(broken, '0xfrom', '0xto'), 100_000n);
 });
 
 test('recovery gas includes every token transfer and the final ETH sweep', async () => {
     const provider = {
-        estimateGas: async (transaction: { to: string }) => transaction.to === '0xriskvault' ? 34_000n : 50_000n,
+        estimateGas: async (transaction: { to: string }) => (transaction.to === '0xriskvault' ? 34_000n : 50_000n),
     };
     const transfers = [{ to: '0xtoken-one' }, { to: '0xtoken-two' }];
 
     // 34,000 buffered by 25% for the vault sweep, plus both token transfers.
-    assert.equal(
-        await runner().recoveryGasUnits(provider, '0xfrom', '0xriskvault', transfers),
-        142_500n,
-    );
+    assert.equal(await runner().recoveryGasUnits(provider, '0xfrom', '0xriskvault', transfers), 142_500n);
 });
 
 test('only a clean screening result reaches the main vault', async () => {
@@ -110,18 +199,9 @@ test('only a clean screening result reaches the main vault', async () => {
 });
 
 test('every operation is refused without a separate risk vault', async () => {
-    assert.throws(
-        () => runner().destination({ screeningRisk: 'flagged' }, { vault: '0xvault', riskVault: '' }),
-        /risk_vault_not_segregated/,
-    );
-    assert.throws(
-        () => runner().destination({ screeningRisk: 'unscreened' }, { vault: '0xvault', riskVault: '0xvault' }),
-        /risk_vault_not_segregated/,
-    );
-    assert.throws(
-        () => runner().destination({ screeningRisk: 'no_match' }, { vault: '0xvault', riskVault: '' }),
-        /risk_vault_not_segregated/,
-    );
+    assert.throws(() => runner().destination({ screeningRisk: 'flagged' }, { vault: '0xvault', riskVault: '' }), /risk_vault_not_segregated/);
+    assert.throws(() => runner().destination({ screeningRisk: 'unscreened' }, { vault: '0xvault', riskVault: '0xvault' }), /risk_vault_not_segregated/);
+    assert.throws(() => runner().destination({ screeningRisk: 'no_match' }, { vault: '0xvault', riskVault: '' }), /risk_vault_not_segregated/);
 });
 
 /**
@@ -202,7 +282,9 @@ test('an operation that has finished running can be enqueued again', async () =>
     assert.deepEqual(ran, ['a', 'a']);
 });
 
-type SwapInternals = { swapIsPending(settleAmount: bigint, balance: bigint): boolean };
+type SwapInternals = {
+    swapIsPending(settleAmount: bigint, balance: bigint): boolean;
+};
 
 const swapRunner = (): SwapInternals => new SettlementRunner({} as never, () => undefined) as unknown as SwapInternals;
 

@@ -7,7 +7,10 @@ COPY src ./src
 RUN pnpm run build && pnpm prune --prod
 
 FROM node:24-alpine
-RUN addgroup -S signer && adduser -S -G signer -u 10001 signer
+RUN addgroup -S signer \
+    && adduser -S -G signer -u 10001 signer \
+    && mkdir -p /data /operations \
+    && chown -R signer:signer /data /operations
 WORKDIR /service
 ENV NODE_ENV=production NODE_OPTIONS=--disable-proto=throw
 COPY --from=build --chown=signer:signer /service/package.json ./

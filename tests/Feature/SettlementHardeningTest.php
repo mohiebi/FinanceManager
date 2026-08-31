@@ -178,8 +178,8 @@ test('a signer left locked after a restart raises exactly one alert', function (
     Notification::assertSentToTimes($admin, SignerLockedNotification::class, 1);
 });
 
-test('recovery refuses quarantined funds and any address a payment still owns', function () {
-    foreach ([DepositAddressStatus::Quarantined, DepositAddressStatus::Assigned, DepositAddressStatus::Settling] as $status) {
+test('recovery refuses held funds and any address a payment still owns', function () {
+    foreach ([DepositAddressStatus::Quarantined, DepositAddressStatus::ScreeningHold, DepositAddressStatus::Assigned, DepositAddressStatus::Settling] as $status) {
         $address = DepositAddress::factory()->create([
             'network' => PaymentNetwork::Ethereum,
             'status' => $status,
@@ -288,6 +288,9 @@ test('a plain-account vault verifies rather than being refused as undeployed', f
         '*' => Http::response([
             'ok' => true,
             'locked' => false,
+            'dependencies' => [
+                'ethereum' => ['configured' => true, 'ready' => true, 'assets' => []],
+            ],
             'vaults' => [
                 'ethereum' => [
                     'configured' => true,
@@ -306,6 +309,46 @@ test('a plain-account vault verifies rather than being refused as undeployed', f
         ->assertSuccessful();
 });
 
+test('infrastructure verification fails when signer contract checks fail', function () {
+    $vault = '0xb7b03c8e73d66e37da23923b9b5ca2fd37a8e6b6';
+    $riskVault = '0x1111111111111111111111111111111111111111';
+    config()->set([
+        'billing.settlement.vaults.ethereum' => $vault,
+        'billing.settlement.risk_vaults.ethereum' => $riskVault,
+        'billing.deposit_pool.low_address_warning' => 0,
+        'billing.screening.enabled' => true,
+    ]);
+
+    Http::fake([
+        'ethereum.test/*' => Http::response(['jsonrpc' => '2.0', 'id' => 1, 'result' => '0x1']),
+        '*' => Http::response([
+            'ok' => true,
+            'locked' => false,
+            'dependencies' => [
+                'ethereum' => [
+                    'configured' => true,
+                    'ready' => false,
+                    'error' => 'contract_bytecode_mismatch:0xrouter',
+                ],
+            ],
+            'vaults' => [
+                'ethereum' => [
+                    'configured' => true,
+                    'vault' => $vault,
+                    'riskVault' => $riskVault,
+                    'segregated' => true,
+                    'vaultHasCode' => false,
+                    'riskVaultHasCode' => false,
+                ],
+            ],
+        ]),
+    ]);
+
+    $this->artisan('billing:verify-settlement')
+        ->expectsOutputToContain('contract_bytecode_mismatch')
+        ->assertFailed();
+});
+
 test('a vault the signer disagrees about is still fatal', function () {
     config()->set([
         'billing.settlement.vaults.ethereum' => '0xb7b03c8e73d66e37da23923b9b5ca2fd37a8e6b6',
@@ -321,6 +364,9 @@ test('a vault the signer disagrees about is still fatal', function () {
         '*' => Http::response([
             'ok' => true,
             'locked' => false,
+            'dependencies' => [
+                'ethereum' => ['configured' => true, 'ready' => true, 'assets' => []],
+            ],
             'vaults' => [
                 'ethereum' => [
                     'configured' => true,
@@ -355,6 +401,9 @@ test('infrastructure verification refuses a missing or shared risk vault', funct
         '*' => Http::response([
             'ok' => true,
             'locked' => false,
+            'dependencies' => [
+                'ethereum' => ['configured' => true, 'ready' => true, 'assets' => []],
+            ],
             'vaults' => [
                 'ethereum' => [
                     'configured' => true,
@@ -373,13 +422,13 @@ test('infrastructure verification refuses a missing or shared risk vault', funct
         ->assertFailed();
 });
 
-test('rejecting a payment screening never answered releases it and its address', function () {
+test('rejecting a payment screening never answered denies access but keeps its funds immovable', function () {
     // The deadlock this closes: screening returns Unknown until the job gives
     // up, which parks the payment at Submitted with ScreeningUnavailable — a
     // reason needsReview() deliberately excludes, so approve refused it, and
     // reject refused it too because the transfer was already chain verified.
-    // Nothing an operator could press moved it, and the buyer's money stayed at
-    // a deposit address the recovery command would not touch either.
+    // The operator may close the entitlement decision, but Unknown is not a
+    // non-sanctions verdict and therefore cannot authorize fund movement.
     Queue::fake();
     config()->set('app.admin_email', 'boss@example.com');
     $admin = User::factory()->create(['email' => 'boss@example.com']);
@@ -387,16 +436,21 @@ test('rejecting a payment screening never answered releases it and its address',
 
     $this->actingAs($admin)
         ->withSession(['auth.password_confirmed_at' => time()])
-        ->post(route('admin.billing.reject', $payment), ['note' => 'Oracle down for two days; refunding off-platform.'])
+        ->post(route('admin.billing.reject', $payment), ['note' => 'Oracle unavailable; access denied without moving funds.'])
         ->assertRedirect();
 
     $payment->refresh();
 
     expect($payment->status)->toBe(PaymentStatus::Failed)
         ->and($payment->failure_reason)->toBe(PaymentFailureReason::AdminRejected)
-        // Retired is what makes the funds reachable: billing:recover-address
-        // sweeps only retired, swept and already-recovered addresses.
-        ->and($payment->depositAddress->fresh()->status)->toBe(DepositAddressStatus::Retired);
+        ->and($payment->depositAddress->fresh()->status)->toBe(DepositAddressStatus::ScreeningHold);
+
+    $this->artisan('billing:recover-address', [
+        'address' => $payment->depositAddress->address,
+        '--force' => true,
+    ])->assertFailed();
+
+    expect(DepositRecovery::query()->whereBelongsTo($payment->depositAddress)->exists())->toBeFalse();
 });
 
 test('a chain-verified payment that is not stuck on screening still cannot be rejected', function () {

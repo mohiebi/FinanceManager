@@ -37,6 +37,7 @@ export type Operation = SettlementRequest & {
     updatedAt: string;
     transactionHashes: Record<string, string>;
     signedTransactions: Record<string, string>;
+    signedTransactionCreatedAt?: Record<string, string>;
 
     /**
      * The token amount this operation committed to swapping, pinned on the
@@ -46,6 +47,7 @@ export type Operation = SettlementRequest & {
     settleAmount?: string;
 
     gasUsedWei?: string;
+    gasTopups?: Array<{ stage: string; amountWei: string }>;
     gasTopupWei?: string;
     quotedEth?: string;
     minimumEth?: string;

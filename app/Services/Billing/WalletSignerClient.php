@@ -17,9 +17,9 @@ use Throwable;
 final readonly class WalletSignerClient
 {
     /** @return array<string, mixed> */
-    public function health(): array
+    public function health(bool $deep = false): array
     {
-        return $this->request('GET', '/health');
+        return $this->request('GET', $deep ? '/health?deep=1' : '/health');
     }
 
     /** @return array{key_version:string,start_index:int,addresses:array<int, array{index:int,address:string}>} */

@@ -9,6 +9,7 @@ use App\Models\SubscriptionPayment;
 use App\Support\Billing\TokenAmount;
 use App\Support\Billing\TokenTransfer;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
@@ -303,7 +304,6 @@ final readonly class EvmJsonRpcExplorer implements ChainExplorer
             ];
         }
 
-        $response = null;
         $lastException = null;
         $failures = [];
 
@@ -319,30 +319,35 @@ final readonly class EvmJsonRpcExplorer implements ChainExplorer
                     ->asJson()
                     ->post($url, $payload);
 
-                if ($candidate->successful()) {
-                    $response = $candidate;
-                    break;
+                if (! $candidate->successful()) {
+                    // Recorded rather than dropped. Failing over used to keep
+                    // only exceptions, making rate limits look like outages.
+                    $failures[] = "{$host} answered {$candidate->status()}";
+
+                    continue;
                 }
 
-                // Recorded rather than dropped. Failing over used to keep only
-                // exceptions, so a run where every endpoint answered 429 raised
-                // an error naming no status and carrying no previous — leaving
-                // rate-limiting and a genuine outage looking identical, when the
-                // first wants a keyed provider and the second wants debugging.
-                $failures[] = "{$host} answered {$candidate->status()}";
+                try {
+                    return $this->resultsFromResponse($candidate, count($calls));
+                } catch (ExplorerUnavailable $exception) {
+                    $lastException = $exception;
+                    $failures[] = "{$host} returned invalid JSON-RPC";
+                }
             } catch (Throwable $exception) {
                 $lastException = $exception;
                 $failures[] = "{$host} was unreachable";
             }
         }
 
-        if ($response === null) {
-            throw new ExplorerUnavailable(
-                "No healthy {$this->network->value} endpoint: ".implode('; ', $failures).'.',
-                previous: $lastException,
-            );
-        }
+        throw new ExplorerUnavailable(
+            "No healthy {$this->network->value} endpoint: ".implode('; ', $failures).'.',
+            previous: $lastException,
+        );
+    }
 
+    /** @return array<int, mixed> */
+    private function resultsFromResponse(Response $response, int $expectedResults): array
+    {
         $body = $response->json();
 
         if (! is_array($body)) {
@@ -352,6 +357,10 @@ final readonly class EvmJsonRpcExplorer implements ChainExplorer
         // A single-element batch may come back as a bare object.
         if (array_is_list($body) === false) {
             $body = [$body];
+        }
+
+        if (count($body) !== $expectedResults) {
+            throw new ExplorerUnavailable("The {$this->network->value} endpoint returned an incomplete batch.");
         }
 
         $results = [];
@@ -369,12 +378,20 @@ final readonly class EvmJsonRpcExplorer implements ChainExplorer
                 throw new ExplorerUnavailable("The {$this->network->value} endpoint returned an error: {$message}.");
             }
 
-            $results[(int) ($entry['id'] ?? count($results))] = $entry['result'] ?? null;
+            if (! isset($entry['id']) || ! is_int($entry['id']) || ! array_key_exists('result', $entry)) {
+                throw new ExplorerUnavailable("The {$this->network->value} endpoint returned an invalid entry.");
+            }
+
+            $results[$entry['id']] = $entry['result'];
         }
 
         ksort($results);
 
-        return array_values($results + array_fill(0, count($calls), null));
+        if (array_keys($results) !== range(0, $expectedResults - 1)) {
+            throw new ExplorerUnavailable("The {$this->network->value} endpoint returned mismatched batch IDs.");
+        }
+
+        return array_values($results);
     }
 
     /** The low 20 bytes of a 32-byte indexed address topic. */

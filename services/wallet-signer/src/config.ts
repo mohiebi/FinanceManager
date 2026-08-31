@@ -13,12 +13,31 @@ const optional = (name: string): string => process.env[name]?.trim() ?? '';
 
 const address = (name: string): string => {
     const value = optional(name);
+
     return value === '' ? '' : getAddress(value).toLowerCase();
 };
 
-const csv = (name: string): string[] => optional(name).split(',').map((value) => value.trim()).filter(Boolean);
+const csv = (name: string): string[] =>
+    optional(name)
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
 
 const token = (name: string): string | undefined => address(name) || undefined;
+
+const codeHash = (name: string): string | undefined => {
+    const value = optional(name).toLowerCase();
+
+    if (value === '') {
+        return undefined;
+    }
+
+    if (!/^0x[0-9a-f]{64}$/.test(value)) {
+        throw new Error(`${name} must be a 32-byte hexadecimal code hash.`);
+    }
+
+    return value;
+};
 
 export type NetworkConfig = {
     chainId: number;
@@ -31,13 +50,25 @@ export type NetworkConfig = {
     quoter?: string;
     tokens: Partial<Record<AssetName, string>>;
     priceFeeds: Partial<Record<AssetName, string>>;
+    expectedCodeHashes: Record<string, string>;
 };
 
 const ethereumVault = address('ETHEREUM_SAFE_VAULT_ADDRESS');
 const arbitrumVault = address('ARBITRUM_SAFE_VAULT_ADDRESS');
+const arbitrumWeth = token('ARBITRUM_WETH_ADDRESS');
+const arbitrumRouter = token('ARBITRUM_UNISWAP_ROUTER_ADDRESS');
+const arbitrumQuoter = token('ARBITRUM_UNISWAP_QUOTER_ADDRESS');
+const arbitrumUsdt = token('ARBITRUM_USDT_ADDRESS');
+const arbitrumUsdc = token('ARBITRUM_USDC_ADDRESS');
+const arbitrumEthFeed = token('ARBITRUM_ETH_USD_FEED');
+const arbitrumUsdtFeed = token('ARBITRUM_USDT_USD_FEED');
+const arbitrumUsdcFeed = token('ARBITRUM_USDC_USD_FEED');
 
 const defined = <T extends Record<string, string | undefined>>(values: T): Partial<Record<AssetName, string>> =>
     Object.fromEntries(Object.entries(values).filter(([, value]) => Boolean(value))) as Partial<Record<AssetName, string>>;
+
+const expectedHashes = (values: Array<[string | undefined, string | undefined]>): Record<string, string> =>
+    Object.fromEntries(values.filter((entry): entry is [string, string] => Boolean(entry[0]) && Boolean(entry[1])));
 
 export const config = {
     port: Number(process.env.PORT ?? 8080),
@@ -72,24 +103,35 @@ export const config = {
             riskVault: address('ETHEREUM_RISK_VAULT_ADDRESS'),
             tokens: {},
             priceFeeds: {},
+            expectedCodeHashes: {},
         },
         arbitrum: {
             chainId: 42161,
             rpcUrls: csv('ARBITRUM_RPC_URLS'),
             vault: arbitrumVault,
             riskVault: address('ARBITRUM_RISK_VAULT_ADDRESS'),
-            weth: token('ARBITRUM_WETH_ADDRESS'),
-            router: token('ARBITRUM_UNISWAP_ROUTER_ADDRESS'),
-            quoter: token('ARBITRUM_UNISWAP_QUOTER_ADDRESS'),
+            weth: arbitrumWeth,
+            router: arbitrumRouter,
+            quoter: arbitrumQuoter,
             tokens: defined({
-                usdt: token('ARBITRUM_USDT_ADDRESS'),
-                usdc: token('ARBITRUM_USDC_ADDRESS'),
+                usdt: arbitrumUsdt,
+                usdc: arbitrumUsdc,
             }),
             priceFeeds: defined({
-                eth: token('ARBITRUM_ETH_USD_FEED'),
-                usdt: token('ARBITRUM_USDT_USD_FEED'),
-                usdc: token('ARBITRUM_USDC_USD_FEED'),
+                eth: arbitrumEthFeed,
+                usdt: arbitrumUsdtFeed,
+                usdc: arbitrumUsdcFeed,
             }),
+            expectedCodeHashes: expectedHashes([
+                [arbitrumWeth, codeHash('ARBITRUM_WETH_CODE_HASH')],
+                [arbitrumRouter, codeHash('ARBITRUM_UNISWAP_ROUTER_CODE_HASH')],
+                [arbitrumQuoter, codeHash('ARBITRUM_UNISWAP_QUOTER_CODE_HASH')],
+                [arbitrumUsdt, codeHash('ARBITRUM_USDT_CODE_HASH')],
+                [arbitrumUsdc, codeHash('ARBITRUM_USDC_CODE_HASH')],
+                [arbitrumEthFeed, codeHash('ARBITRUM_ETH_USD_FEED_CODE_HASH')],
+                [arbitrumUsdtFeed, codeHash('ARBITRUM_USDT_USD_FEED_CODE_HASH')],
+                [arbitrumUsdcFeed, codeHash('ARBITRUM_USDC_USD_FEED_CODE_HASH')],
+            ]),
         },
     } satisfies Record<NetworkName, NetworkConfig>,
 };

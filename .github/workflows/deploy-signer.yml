@@ -27,5 +27,11 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             cd /var/www/cashpilot.mohiebi.com
             docker pull ghcr.io/${{ env.SIGNER_IMAGE_NAME }}:latest
+            docker compose -f compose.prod.yaml run --rm --no-deps --user 0 --cap-add CHOWN wallet-signer chown -R 10001:10001 /data /operations
+            if ! docker compose -f compose.prod.yaml run --rm --no-deps wallet-signer test -f /data/keystore.json; then
+              echo "Signer keystore is not initialized. Run the init command interactively on the VPS, back up the mnemonic offline, then re-run this deployment."
+              echo "docker compose -f compose.prod.yaml run --rm --no-deps -T wallet-signer node dist/cli.js init"
+              exit 1
+            fi
             docker compose -f compose.prod.yaml up -d --no-deps --force-recreate wallet-signer
             echo "Signer deployed in locked state. Unlock it interactively with: docker exec -i cashpilot-wallet-signer node dist/cli.js unlock"

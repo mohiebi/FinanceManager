@@ -16,6 +16,7 @@ use App\Notifications\SubscriptionPaymentFailedNotification;
 use App\Services\Billing\ChainExplorerFactory;
 use App\Support\Billing\TokenAmount;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 
@@ -567,4 +568,60 @@ test('an rpc failover that exhausts every endpoint names what each one answered'
             // and this message reaches the log.
             ->not->toContain('super-secret-provider-key');
     }
+});
+
+test('rpc failover continues after an HTTP 200 JSON-RPC error', function () {
+    enableBilling([
+        'billing.networks.ethereum.rpc_urls' => [
+            'https://rpc-one.test/rpc',
+            'https://rpc-two.test/rpc',
+        ],
+    ]);
+
+    Http::fake(function (Request $request) {
+        if (str_contains($request->url(), 'rpc-one.test')) {
+            return Http::response([
+                'jsonrpc' => '2.0',
+                'id' => 0,
+                'error' => ['code' => -32005, 'message' => 'rate limited'],
+            ]);
+        }
+
+        $results = [];
+
+        foreach ($request->data() as $call) {
+            $results[] = [
+                'jsonrpc' => '2.0',
+                'id' => $call['id'],
+                'result' => match ($call['method']) {
+                    'eth_getTransactionByHash' => [
+                        'hash' => $call['params'][0],
+                        'from' => '0x2222222222222222222222222222222222222222',
+                        'to' => USDT_CONTRACT,
+                        'value' => '0x0',
+                        'blockNumber' => '0x1406f40',
+                    ],
+                    'eth_getTransactionReceipt' => [
+                        'status' => '0x1',
+                        'blockNumber' => '0x1406f40',
+                        'logs' => [evmTransferLog(USDT_CONTRACT, TEST_RECEIVING_ADDRESS, USDT_AMOUNT_HEX)],
+                    ],
+                    'eth_blockNumber' => '0x1406f4b',
+                    'eth_chainId' => '0x1',
+                    'eth_getBlockByNumber' => ['timestamp' => '0x'.dechex(now()->getTimestamp())],
+                    default => null,
+                },
+            ];
+        }
+
+        return Http::response($results);
+    });
+
+    $transfer = app(ChainExplorerFactory::class)
+        ->for(PaymentNetwork::Ethereum)
+        ->transferFor(paymentExpecting(USDT_AMOUNT_HEX));
+
+    expect($transfer)->not->toBeNull()
+        ->and(collect(Http::recorded())->map(fn (array $pair): string => $pair[0]->url()))
+        ->toContain('https://rpc-one.test/rpc', 'https://rpc-two.test/rpc');
 });

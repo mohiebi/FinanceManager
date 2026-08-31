@@ -1,5 +1,5 @@
-import { AlertTriangle, Info, WalletMinimal } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@cashpilot/ui';
+import { AlertTriangle, Info, WalletMinimal } from 'lucide-react';
 
 const Surface = ({ children }: { children: React.ReactNode }) => (
     <div className="dark bg-background text-foreground flex flex-col gap-4 p-6">

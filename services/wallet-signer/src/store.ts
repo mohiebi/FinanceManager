@@ -21,7 +21,9 @@ export class OperationStore {
             operations[operation.operationId] = operation;
             await mkdir(dirname(this.path), { recursive: true });
             const temporary = `${this.path}.${process.pid}.tmp`;
-            await writeFile(temporary, JSON.stringify(operations), { mode: 0o600 });
+            await writeFile(temporary, JSON.stringify(operations), {
+                mode: 0o600,
+            });
             await rename(temporary, this.path);
         });
 
@@ -33,11 +35,13 @@ export class OperationStore {
     private async all(): Promise<Record<string, Operation>> {
         try {
             const parsed: unknown = JSON.parse(await readFile(this.path, 'utf8'));
-            return parsed !== null && typeof parsed === 'object' ? parsed as Record<string, Operation> : {};
+
+            return parsed !== null && typeof parsed === 'object' ? (parsed as Record<string, Operation>) : {};
         } catch (error) {
             if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
                 return {};
             }
+
             throw error;
         }
     }

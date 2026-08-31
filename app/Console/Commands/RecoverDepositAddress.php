@@ -105,6 +105,11 @@ class RecoverDepositAddress extends Command
         }
 
         $recovery = $this->recoveryFor($depositAddress, $network, $reason);
+        if ($recovery === null) {
+            $this->error('The address changed state while recovery was being authorized. Nothing was moved.');
+
+            return self::FAILURE;
+        }
         $operationId = $recovery->operation_id;
 
         try {
@@ -151,10 +156,15 @@ class RecoverDepositAddress extends Command
         return self::FAILURE;
     }
 
-    private function recoveryFor(DepositAddress $depositAddress, PaymentNetwork $network, string $reason): DepositRecovery
+    private function recoveryFor(DepositAddress $depositAddress, PaymentNetwork $network, string $reason): ?DepositRecovery
     {
-        return DB::transaction(function () use ($depositAddress, $network, $reason): DepositRecovery {
+        return DB::transaction(function () use ($depositAddress, $network, $reason): ?DepositRecovery {
             $locked = DepositAddress::query()->whereKey($depositAddress->getKey())->lockForUpdate()->firstOrFail();
+
+            if (! in_array($locked->status, self::RECOVERABLE, true)) {
+                return null;
+            }
+
             $active = $locked->recoveries()
                 ->where('network', $network->value)
                 ->whereIn('status', array_map(

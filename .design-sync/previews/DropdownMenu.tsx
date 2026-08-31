@@ -1,4 +1,3 @@
-import { Copy, Download, Pencil, Settings, Trash2, User } from 'lucide-react';
 import {
     Button,
     DropdownMenu,
@@ -10,6 +9,7 @@ import {
     DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@cashpilot/ui';
+import { Copy, Download, Pencil, Settings, Trash2, User } from 'lucide-react';
 
 /** DropdownMenuContent is portalled — see the note in Select.tsx. */
 if (typeof document !== 'undefined') {

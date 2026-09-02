@@ -17,6 +17,10 @@ const sellDialog = source(
 const entryDialog = source(
     '../../resources/js/components/investments/InvestmentEntryDialog.vue',
 );
+const transactionDialog = source(
+    '../../resources/js/components/transactions/TransactionDialog.vue',
+);
+const billsPage = source('../../resources/js/pages/Bills.vue');
 
 test('typed digits are grouped in threes', () => {
     assert.equal(formatMoneyInput('200000000', 'toman'), '200,000,000');
@@ -94,4 +98,22 @@ test('the sell dialog header carries a description like its siblings', () => {
     // Radix also warns about a DialogContent with no description.
     assert.match(sellDialog, /<DialogDescription/);
     assert.match(sellDialog, /finance\.investments\.sell_description/);
+});
+
+test('every money field is driven by the one composable', () => {
+    // These four each carried their own verbatim copy of the helpers. A fifth
+    // copy is how the sell dialog came to be missing the grouping and the x1000
+    // button in the first place, so the rule is worth holding.
+    for (const caller of [
+        sellDialog,
+        entryDialog,
+        transactionDialog,
+        billsPage,
+    ]) {
+        assert.match(caller, /useMoneyInput\(\{/);
+        assert.doesNotMatch(caller, /function normalizeMoneyInput/);
+        assert.doesNotMatch(caller, /function format(Bill)?MoneyInput/);
+        // The x1000 button, open-coded.
+        assert.doesNotMatch(caller, /Math\.trunc\(amount \* 1000\)/);
+    }
 });

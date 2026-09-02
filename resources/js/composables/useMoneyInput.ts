@@ -32,7 +32,6 @@ export type UseMoneyInputReturn = {
     multiplyByThousand: () => void;
     /** Re-normalize the stored value after the currency changes under it. */
     renormalize: () => void;
-    normalize: (value: string, currency: string) => string;
 };
 
 const PERSIAN_ZERO = 0x06f0;
@@ -123,11 +122,5 @@ export function useMoneyInput(
         options.set(normalizeMoneyInput(options.get(), options.currency()));
     }
 
-    return {
-        display,
-        isToman,
-        multiplyByThousand,
-        renormalize,
-        normalize: normalizeMoneyInput,
-    };
+    return { display, isToman, multiplyByThousand, renormalize };
 }

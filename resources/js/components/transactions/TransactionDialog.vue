@@ -238,6 +238,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    normalizeMoneyInput,
+    useMoneyInput,
+} from '@/composables/useMoneyInput';
 import { useVault } from '@/composables/useVault';
 import type { Encrypted } from '@/types/vault';
 
@@ -329,76 +333,18 @@ const confirmButtonClass = computed(() =>
         ? 'h-11 flex-1 rounded-[8px] bg-[#6C4EE9] px-[10px] py-[3px] text-base font-semibold text-white shadow-none hover:bg-[#7D61F0] disabled:opacity-50 sm:h-9 sm:w-[135px] sm:flex-none sm:text-[20px]'
         : 'h-11 flex-1 rounded-[8px] bg-[#02CD86] px-[10px] py-[3px] text-base font-semibold text-[#101010] shadow-none hover:bg-[#08dd93] disabled:opacity-50 sm:h-9 sm:w-[135px] sm:flex-none sm:text-[20px]',
 );
-const isTomanCurrency = computed(() => form.currency === 'toman');
-const displayAmount = computed({
-    get: () => formatMoneyInput(form.amount),
-    set: (value: string) => {
-        form.amount = normalizeMoneyInput(value, form.currency);
+const {
+    display: displayAmount,
+    isToman: isTomanCurrency,
+    multiplyByThousand: multiplyTomanAmount,
+    renormalize: renormalizeAmount,
+} = useMoneyInput({
+    get: () => form.amount,
+    set: (value) => {
+        form.amount = value;
     },
+    currency: () => form.currency,
 });
-
-function normalizeMoneyInput(value: string, currency: Currency): string {
-    const normalizedDigits = value
-        .replace(/[\u06F0-\u06F9]/g, (digit) =>
-            String(digit.charCodeAt(0) - 0x06f0),
-        )
-        .replace(/[\u0660-\u0669]/g, (digit) =>
-            String(digit.charCodeAt(0) - 0x0660),
-        )
-        .replace(/٫/g, '.')
-        .replace(/[٬،]/g, '');
-    let normalized = '';
-    let hasDecimal = false;
-
-    for (const character of normalizedDigits) {
-        if (/\d/.test(character)) {
-            normalized += character;
-
-            continue;
-        }
-
-        if (currency === 'toman' && character === '.') {
-            break;
-        }
-
-        if (currency !== 'toman' && character === '.' && !hasDecimal) {
-            normalized += character;
-            hasDecimal = true;
-        }
-    }
-
-    if (normalized.startsWith('.')) {
-        return `0${normalized}`;
-    }
-
-    return normalized;
-}
-
-function formatMoneyInput(value: string): string {
-    if (value === '') {
-        return '';
-    }
-
-    const normalized = normalizeMoneyInput(value, form.currency);
-    const [integerPart, decimalPart] = normalized.split('.');
-    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-    if (normalized.includes('.')) {
-        return `${formattedInteger}.${decimalPart ?? ''}`;
-    }
-
-    return formattedInteger;
-}
-
-function multiplyTomanAmount(): void {
-    const amount = Number(normalizeMoneyInput(form.amount, 'toman'));
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-        return;
-    }
-
-    form.amount = String(Math.trunc(amount * 1000));
-}
 
 function resetForm(type: TransactionType): void {
     const categories = props.categories[type] ?? [];
@@ -532,10 +478,5 @@ watch(
     },
 );
 
-watch(
-    () => form.currency,
-    (currency) => {
-        form.amount = normalizeMoneyInput(form.amount, currency);
-    },
-);
+watch(() => form.currency, renormalizeAmount);
 </script>

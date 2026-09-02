@@ -328,11 +328,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    normalizeMoneyInput,
+    useMoneyInput,
+} from '@/composables/useMoneyInput';
 import { useVault } from '@/composables/useVault';
 import type { Encrypted } from '@/types/vault';
 
 type AssetKey = string;
-type Currency = 'toman' | 'usd' | 'eur' | string;
 
 type AssetTypeOption = {
     id: number;
@@ -420,76 +423,18 @@ const selectedAsset = computed(
             (asset) => String(asset.id) === String(form.investment_asset_id),
         ) ?? null,
 );
-const isTomanCurrency = computed(() => form.cost_basis_currency === 'toman');
-const displayTotalCost = computed({
-    get: () => formatMoneyInput(form.total_cost),
-    set: (value: string) => {
-        form.total_cost = normalizeMoneyInput(value, form.cost_basis_currency);
+const {
+    display: displayTotalCost,
+    isToman: isTomanCurrency,
+    multiplyByThousand: multiplyTomanTotalCost,
+    renormalize: renormalizeTotalCost,
+} = useMoneyInput({
+    get: () => form.total_cost,
+    set: (value) => {
+        form.total_cost = value;
     },
+    currency: () => form.cost_basis_currency,
 });
-
-function normalizeMoneyInput(value: string, currency: Currency): string {
-    const normalizedDigits = value
-        .replace(/[\u06F0-\u06F9]/g, (digit) =>
-            String(digit.charCodeAt(0) - 0x06f0),
-        )
-        .replace(/[\u0660-\u0669]/g, (digit) =>
-            String(digit.charCodeAt(0) - 0x0660),
-        )
-        .replace(/\u066B/g, '.')
-        .replace(/[\u066C\u060C]/g, '');
-    let normalized = '';
-    let hasDecimal = false;
-
-    for (const character of normalizedDigits) {
-        if (/\d/.test(character)) {
-            normalized += character;
-
-            continue;
-        }
-
-        if (currency === 'toman' && character === '.') {
-            break;
-        }
-
-        if (currency !== 'toman' && character === '.' && !hasDecimal) {
-            normalized += character;
-            hasDecimal = true;
-        }
-    }
-
-    if (normalized.startsWith('.')) {
-        return `0${normalized}`;
-    }
-
-    return normalized;
-}
-
-function formatMoneyInput(value: string): string {
-    if (value === '') {
-        return '';
-    }
-
-    const normalized = normalizeMoneyInput(value, form.cost_basis_currency);
-    const [integerPart, decimalPart] = normalized.split('.');
-    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-    if (normalized.includes('.')) {
-        return `${formattedInteger}.${decimalPart ?? ''}`;
-    }
-
-    return formattedInteger;
-}
-
-function multiplyTomanTotalCost(): void {
-    const amount = Number(normalizeMoneyInput(form.total_cost, 'toman'));
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-        return;
-    }
-
-    form.total_cost = String(Math.trunc(amount * 1000));
-}
 
 function formatFormNumber(value: number): string {
     return String(Number(value.toFixed(8)));
@@ -699,10 +644,5 @@ watch(
     },
 );
 
-watch(
-    () => form.cost_basis_currency,
-    (currency) => {
-        form.total_cost = normalizeMoneyInput(form.total_cost, currency);
-    },
-);
+watch(() => form.cost_basis_currency, renormalizeTotalCost);
 </script>

@@ -257,6 +257,7 @@ return [
         'entries_grouped_by_asset' => '{count} Einträge, nach Vermögenswert gruppiert',
         'nothing_to_sell' => 'Du hast noch nichts zu verkaufen.',
         'sell_asset' => '{asset} verkaufen',
+        'sell_description' => 'Ein Verkauf wird eigenständig erfasst; der zugehörige Kauf bleibt unverändert.',
         'sell_quantity' => 'Wie viel verkaufst du?',
         'sell_total' => 'Gesamterlös aus dem Verkauf',
         'sell_exceeds_holding' => 'Du kannst nicht mehr verkaufen, als du besitzt.',

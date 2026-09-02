@@ -228,6 +228,46 @@ test('an end date is converted into a total payment count and exposed with payme
     }
 });
 
+test('an existing bill with occurrences can be given an end date', function () {
+    Carbon::setTestNow(Carbon::create(2026, 7, 10));
+
+    try {
+        $user = User::factory()->withModules()->create();
+
+        $bill = $user->bills()->create([
+            'title' => 'Room bill',
+            'amount' => 2316000,
+            'currency' => 'toman',
+            'recurrence_type' => 'monthly',
+            'due_day_of_month' => 1,
+        ]);
+
+        // The search date comes off this row, and a model date cast is a
+        // CarbonImmutable — the schedule below it takes the mutable Carbon.
+        $bill->occurrences()->create(['due_date' => '2026-08-01']);
+        $bill->occurrences()->create(['due_date' => '2026-07-01', 'paid_at' => now()]);
+
+        $this->actingAs($user)
+            ->put(route('bills.update', $bill), [
+                'title' => 'Room bill',
+                'amount' => 2316000,
+                'currency' => 'toman',
+                'recurrence_type' => 'monthly',
+                'due_day_of_month' => 1,
+                'recurrence_limit_type' => 'date',
+                'recurrence_end_date' => '2026-11-30',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        // One payment already made, plus August through November.
+        expect($bill->fresh()->recurrence_count)->toBe(5)
+            ->and($bill->fresh()->recurrence_end_date->toDateString())->toBe('2026-11-30');
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
 test('paying the final limited occurrence completes the bill', function () {
     $user = User::factory()->withModules()->create();
     $bill = $user->bills()->create([

@@ -257,6 +257,7 @@ return [
         'entries_grouped_by_asset' => '{count} رکورد، به تفکیک دارایی',
         'nothing_to_sell' => 'هنوز چیزی برای فروش ندارید.',
         'sell_asset' => 'فروش {asset}',
+        'sell_description' => 'فروش جداگانه ثبت می‌شود و خریدی که از آن آمده دست‌نخورده می‌ماند.',
         'sell_quantity' => 'چه مقدار می‌فروشید؟',
         'sell_total' => 'مبلغ کل فروش',
         'sell_exceeds_holding' => 'بیشتر از چیزی که دارید نمی‌توانید بفروشید.',

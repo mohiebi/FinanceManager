@@ -254,6 +254,12 @@ class SaveBill
         return $data;
     }
 
+    /**
+     * Model date casts come back as CarbonImmutable (Date::use in
+     * AppServiceProvider), while the schedule and the Jalali calculator below it
+     * need the mutable Carbon. Carbon::instance() is the boundary between them,
+     * and it already copies, so no ->copy() is needed on top.
+     */
     private function nextScheduleSearchDate(?Bill $bill): Carbon
     {
         if (! $bill) {
@@ -266,7 +272,7 @@ class SaveBill
             ->first();
 
         if ($nextUnpaid) {
-            return $nextUnpaid->due_date->copy()->startOfDay();
+            return Carbon::instance($nextUnpaid->due_date)->startOfDay();
         }
 
         $latestPaid = $bill->occurrences()
@@ -275,7 +281,7 @@ class SaveBill
             ->first();
 
         return $latestPaid
-            ? $latestPaid->due_date->copy()->addDay()->startOfDay()
+            ? Carbon::instance($latestPaid->due_date)->addDay()->startOfDay()
             : Carbon::today();
     }
 }

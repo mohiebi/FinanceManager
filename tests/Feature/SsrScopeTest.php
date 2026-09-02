@@ -6,18 +6,17 @@ use Illuminate\Support\Facades\Http;
 beforeEach(function () {
     $this->withoutVite();
     config()->set('inertia.ssr.enabled', true);
-
-    // What these tests are about is which routes this application chooses to
-    // server render, and that decision is ours. Inertia's own prerequisite —
-    // that a built bundle sits at bootstrap/ssr/ssr.js — is not, and leaving it
-    // in play made both tests answer a question about the machine instead.
+    // What these tests read is whether the gateway *attempted* a render, so the
+    // one other thing that stops it short must not be left to chance. The bundle
+    // at bootstrap/ssr/ssr.js is a gitignored build artifact that only
+    // `npm run build:ssr` emits, and CI runs `npm run build`, so on a fresh
+    // checkout the gateway returns before dispatching: the guest test fails, and
+    // the authenticated one passes for a reason that has nothing to do with the
+    // rule it is meant to be pinning.
     //
-    // The bundle is gitignored and only `npm run build:ssr` emits it, so a
-    // developer who has run that sees the gateway dispatch while CI, which runs
-    // `npm run build`, never does. That is what failed here: the public-shell
-    // test looked for a render request that was skipped before it was ever
-    // attempted. The authenticated test was worse — it passed for the same
-    // reason, asserting nothing was sent in a run where nothing could be.
+    // Which routes this application server renders is our decision; Inertia's
+    // bundle prerequisite is not, and leaving it in play made both tests answer
+    // a question about the machine instead.
     config()->set('inertia.ssr.ensure_bundle_exists', false);
 
     // The gateway POSTs the page to the SSR worker; faking it lets the test

@@ -64,7 +64,7 @@ const inlineButtonClass =
         <template v-if="!showRecoveryInput">
             <Form
                 v-bind="store.form()"
-                :options="{ preserveState: false }"
+                :options="{ preserveState: 'errors' }"
                 :class="formClass"
                 reset-on-error
                 @error="code = ''"
@@ -116,7 +116,7 @@ const inlineButtonClass =
         <template v-else>
             <Form
                 v-bind="store.form()"
-                :options="{ preserveState: false }"
+                :options="{ preserveState: 'errors' }"
                 :class="formClass"
                 reset-on-error
                 #default="{ errors, processing, clearErrors }"

@@ -257,6 +257,7 @@ return [
         'entries_grouped_by_asset' => '{count} records, grouped by asset',
         'nothing_to_sell' => 'You have nothing to sell yet.',
         'sell_asset' => 'Sell {asset}',
+        'sell_description' => 'A sale is recorded on its own, leaving the purchase it came from untouched.',
         'sell_quantity' => 'How much are you selling?',
         'sell_total' => 'Total you sold it for',
         'sell_exceeds_holding' => 'You cannot sell more than you currently hold.',

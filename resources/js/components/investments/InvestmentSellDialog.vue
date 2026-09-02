@@ -3,12 +3,14 @@ import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AssetIcon from '@/components/AssetIcon.vue';
+import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -22,6 +24,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { useMoneyInput } from '@/composables/useMoneyInput';
 import { useVault } from '@/composables/useVault';
 import { signedQuantityFor } from '@/lib/portfolio';
 
@@ -60,6 +63,8 @@ const { isArmed, sealForSubmit } = useVault();
 const today = () => new Date().toISOString().slice(0, 10);
 const fieldClass =
     'finance-dialog-field finance-dialog-field-income focus-visible:ring-[#02CD86]/25';
+const moneyFieldClass =
+    'finance-dialog-money-field finance-dialog-field-income focus-within:border-[#02CD86] focus-within:ring-2 focus-within:ring-[#02CD86]/25';
 
 const sealing = ref(false);
 
@@ -71,6 +76,24 @@ const form = useForm({
     note: '',
     occurred_at: today(),
     record_transaction: false,
+});
+
+/**
+ * The proceeds field, grouped in threes as it is typed and carrying the ×1000
+ * button for toman — the same treatment the purchase and transaction dialogs
+ * give their amounts. `form.total_sale` still holds the plain digits.
+ */
+const {
+    display: displayTotalSale,
+    isToman: isTomanCurrency,
+    multiplyByThousand: multiplyTomanTotalSale,
+    renormalize: renormalizeTotalSale,
+} = useMoneyInput({
+    get: () => form.total_sale,
+    set: (value) => {
+        form.total_sale = value;
+    },
+    currency: () => form.sale_price_currency,
 });
 
 /** Only assets actually held can be sold. */
@@ -217,6 +240,10 @@ async function submit(): Promise<void> {
     });
 }
 
+// The currency decides whether a decimal point is allowed, so a switch has to
+// re-run the digits already typed through it.
+watch(() => form.sale_price_currency, renormalizeTotalSale);
+
 watch(
     () => props.open,
     (open) => {
@@ -237,17 +264,27 @@ watch(
 <template>
     <Dialog :open="props.open" @update:open="emit('update:open', $event)">
         <DialogContent
-            class="max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-[20px] border-0 bg-[#1a1a1a] p-0 text-white shadow-2xl ring-1 ring-white/10 sm:max-w-[480px] sm:rounded-[25px]"
+            class="max-h-[calc(100dvh-1rem)] overflow-hidden rounded-[20px] border-0 bg-[#1a1a1a] p-0 text-white shadow-2xl ring-1 ring-white/10 sm:max-h-[calc(100vh-2rem)] sm:max-w-[560px] sm:rounded-[25px]"
             :show-close-button="false"
         >
-            <form class="flex flex-col" @submit.prevent="submit">
-                <div class="px-6 pt-10 pb-5 sm:px-10 sm:pt-12">
+            <form
+                class="flex max-h-[calc(100dvh-1rem)] flex-col sm:max-h-[calc(100vh-2rem)]"
+                @submit.prevent="submit"
+            >
+                <div
+                    class="flex-1 overflow-y-auto px-4 pt-10 pb-5 sm:px-[80px] sm:pt-[68px] sm:pb-6"
+                >
                     <DialogHeader class="mb-6 space-y-2 text-start">
                         <DialogTitle
                             class="text-[20px] leading-normal font-medium text-white"
                         >
                             {{ t('finance.investments.sell') }}
                         </DialogTitle>
+                        <DialogDescription
+                            class="text-[15px] leading-[18px] font-light text-[#989898]"
+                        >
+                            {{ t('finance.investments.sell_description') }}
+                        </DialogDescription>
                     </DialogHeader>
 
                     <p
@@ -339,49 +376,78 @@ watch(
                             <InputError :message="form.errors.quantity" />
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="grid gap-2">
+                        <!-- Subgrid rather than two independent stacks: the
+                             proceeds label is long enough to wrap in some
+                             locales, and without a shared row track that wrap
+                             pushed its input below the currency beside it. -->
+                        <div
+                            class="grid gap-4 sm:grid-cols-[1fr_140px] sm:grid-rows-[auto_auto_auto]"
+                        >
+                            <div
+                                class="grid gap-2 sm:row-span-3 sm:grid-rows-subgrid"
+                            >
                                 <Label
                                     class="finance-dialog-label"
                                     for="sell-total"
                                 >
                                     {{ t('finance.investments.sell_total') }}
                                 </Label>
+                                <div
+                                    v-if="isTomanCurrency"
+                                    :class="moneyFieldClass"
+                                >
+                                    <Input
+                                        id="sell-total"
+                                        v-model="displayTotalSale"
+                                        class="h-full min-w-0 flex-1 border-0 bg-transparent px-[17px] py-0 text-[16px] leading-[18px] font-normal text-white shadow-none ring-0 outline-none placeholder:text-[#686868] focus-visible:border-0 focus-visible:ring-0"
+                                        inputmode="numeric"
+                                        placeholder="0"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="finance-dialog-money-button"
+                                        title="x 1,000"
+                                        @click="multiplyTomanTotalSale"
+                                    >
+                                        000
+                                    </button>
+                                </div>
                                 <Input
+                                    v-else
                                     id="sell-total"
-                                    v-model="form.total_sale"
+                                    v-model="displayTotalSale"
                                     inputmode="decimal"
                                     :class="fieldClass"
-                                    placeholder="0"
+                                    placeholder="0.00"
                                 />
                                 <InputError :message="form.errors.total_sale" />
                             </div>
-                            <div class="grid gap-2">
+                            <div
+                                class="grid gap-2 sm:row-span-3 sm:grid-rows-subgrid"
+                            >
                                 <Label
                                     class="finance-dialog-label"
                                     for="sell-currency"
                                 >
                                     {{ t('finance.fields.currency') }}
                                 </Label>
-                                <Select v-model="form.sale_price_currency">
-                                    <SelectTrigger
-                                        id="sell-currency"
-                                        :class="fieldClass"
+                                <select
+                                    id="sell-currency"
+                                    v-model="form.sale_price_currency"
+                                    class="finance-dialog-field"
+                                    :class="fieldClass"
+                                >
+                                    <option
+                                        v-for="currency in props.currencies"
+                                        :key="currency.value"
+                                        :value="currency.value"
                                     >
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent
-                                        class="finance-dialog-select-content"
-                                    >
-                                        <SelectItem
-                                            v-for="currency in props.currencies"
-                                            :key="currency.value"
-                                            :value="currency.value"
-                                        >
-                                            {{ currency.label }}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                        {{ currency.label }}
+                                    </option>
+                                </select>
+                                <InputError
+                                    :message="form.errors.sale_price_currency"
+                                />
                             </div>
                         </div>
 
@@ -389,11 +455,12 @@ watch(
                             <Label class="finance-dialog-label" for="sell-date">
                                 {{ t('finance.fields.date') }}
                             </Label>
-                            <Input
-                                id="sell-date"
+                            <BirthdatePicker
                                 v-model="form.occurred_at"
-                                type="date"
-                                :class="fieldClass"
+                                name="occurred_at"
+                                :trigger-class="fieldClass"
+                                :years-back="16"
+                                :years-forward="1"
                             />
                             <InputError :message="form.errors.occurred_at" />
                         </div>
@@ -429,11 +496,11 @@ watch(
                 </div>
 
                 <div
-                    class="flex items-center gap-3 border-t border-white/10 px-6 py-4 sm:px-10"
+                    class="flex shrink-0 justify-end gap-2 border-t border-white/10 bg-[#1a1a1a]/95 px-4 py-4 backdrop-blur sm:border-t-0 sm:bg-transparent sm:px-[80px] sm:pt-1 sm:pb-10"
                 >
                     <Button
                         type="button"
-                        class="h-11 flex-1 rounded-xl bg-white/5 text-white/70 shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
+                        class="h-11 flex-1 rounded-[8px] bg-white/5 px-[10px] text-base font-normal text-[#989898] shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white sm:h-9 sm:w-[90px] sm:flex-none sm:text-[16px]"
                         @click="close"
                     >
                         {{ t('common.cancel') }}
@@ -441,7 +508,7 @@ watch(
                     <Button
                         type="submit"
                         :disabled="!canSubmit || form.processing || sealing"
-                        class="h-11 flex-1 rounded-xl bg-[#02CD86] text-[#101010] shadow-none hover:bg-[#08dd93] disabled:opacity-40"
+                        class="h-11 flex-1 rounded-[8px] bg-[#02CD86] px-[10px] text-base font-semibold text-[#101010] shadow-none hover:bg-[#08dd93] disabled:opacity-40 sm:h-9 sm:w-[120px] sm:flex-none sm:text-[16px]"
                     >
                         <Spinner v-if="form.processing || sealing" />
                         {{ t('finance.investments.sell') }}

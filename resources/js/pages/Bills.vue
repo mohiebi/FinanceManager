@@ -899,6 +899,10 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { useAmountMask } from '@/composables/useAmountMask';
+import {
+    normalizeMoneyInput,
+    useMoneyInput,
+} from '@/composables/useMoneyInput';
 import { usePageSubtitle } from '@/composables/usePageSubtitle';
 import { useVault } from '@/composables/useVault';
 import {
@@ -1346,75 +1350,18 @@ const categoryModel = computed({
 const moneyFieldClass =
     'finance-dialog-money-field finance-dialog-field-income focus-within:border-[#02CD86] focus-within:ring-2 focus-within:ring-[#02CD86]/25';
 
-const isTomanBillCurrency = computed(() => form.currency === 'toman');
-
-function normalizeMoneyInput(value: string, currency: string): string {
-    const normalizedDigits = value
-        .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 0x06f0))
-        .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 0x0660))
-        .replace(/٫/g, '.')
-        .replace(/[٬،]/g, '');
-    let normalized = '';
-    let hasDecimal = false;
-
-    for (const character of normalizedDigits) {
-        if (/\d/.test(character)) {
-            normalized += character;
-            continue;
-        }
-
-        if (currency === 'toman' && character === '.') {
-            break;
-        }
-
-        if (currency !== 'toman' && character === '.' && !hasDecimal) {
-            normalized += character;
-            hasDecimal = true;
-        }
-    }
-
-    if (normalized.startsWith('.')) {
-        return `0${normalized}`;
-    }
-
-    return normalized;
-}
-
-function formatBillMoneyInput(value: string): string {
-    if (value === '') {
-        return '';
-    }
-
-    const normalized = normalizeMoneyInput(value, form.currency);
-    const [integerPart, decimalPart] = normalized.split('.');
-    const formattedInteger = (integerPart ?? '').replace(
-        /\B(?=(\d{3})+(?!\d))/g,
-        ',',
-    );
-
-    if (normalized.includes('.')) {
-        return `${formattedInteger}.${decimalPart ?? ''}`;
-    }
-
-    return formattedInteger;
-}
-
-const displayBillAmount = computed({
-    get: () => formatBillMoneyInput(form.amount),
-    set: (value: string) => {
-        form.amount = normalizeMoneyInput(value, form.currency);
+const {
+    display: displayBillAmount,
+    isToman: isTomanBillCurrency,
+    multiplyByThousand: multiplyBillTomanAmount,
+    renormalize: renormalizeBillAmount,
+} = useMoneyInput({
+    get: () => form.amount,
+    set: (value) => {
+        form.amount = value;
     },
+    currency: () => form.currency,
 });
-
-function multiplyBillTomanAmount(): void {
-    const amount = Number(normalizeMoneyInput(form.amount, 'toman'));
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-        return;
-    }
-
-    form.amount = String(Math.trunc(amount * 1000));
-}
 
 function openCreateDialog(): void {
     editingId.value = null;
@@ -1592,12 +1539,7 @@ async function markPaid(bill: Bill): Promise<void> {
     );
 }
 
-watch(
-    () => form.currency,
-    (currency) => {
-        form.amount = normalizeMoneyInput(form.amount, currency);
-    },
-);
+watch(() => form.currency, renormalizeBillAmount);
 
 watch(
     () => form.recurrence_type,

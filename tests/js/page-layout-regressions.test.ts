@@ -51,6 +51,13 @@ test('the app content is an Inertia-managed scroll region', () => {
 test('successful auth transitions do not preserve the auth page instance', () => {
     // verifySignup joined the list because it is the last step of a signup
     // and ends logged in, exactly like the three already covered.
+    //
+    // 'errors' rather than false: a flat false drops the instance on the failure
+    // path too, and with it the <Form> holding the validation errors — a wrong
+    // password or a rejected signup re-rendered the page with nothing to show.
+    // Inertia resolves 'errors' against the response, so a response carrying
+    // errors keeps the form and every other one still hands the app a fresh
+    // instance.
     for (const action of [
         'login',
         'completeSignup',
@@ -60,7 +67,7 @@ test('successful auth transitions do not preserve the auth page instance', () =>
         assert.match(
             emailAuth,
             new RegExp(
-                `${action}\\.form\\(\\)"[\\s\\S]*?:options="\\{ preserveState: false \\}"`,
+                `${action}\\.form\\(\\)"[\\s\\S]*?:options="\\{ preserveState: 'errors' \\}"`,
             ),
         );
     }
@@ -71,7 +78,7 @@ test('the two-factor challenge is an auth transition too', () => {
     // that ends logged in, so it needs the same treatment. Both branches submit
     // it: the authenticator code and the recovery code.
     const forms = twoFactor.match(
-        /v-bind="store\.form\(\)"\s*\n\s*:options="\{ preserveState: false \}"/g,
+        /v-bind="store\.form\(\)"\s*\n\s*:options="\{ preserveState: 'errors' \}"/g,
     );
 
     assert.equal(forms?.length, 2);

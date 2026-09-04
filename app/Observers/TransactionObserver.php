@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Actions\Gamification\AwardMilestones;
+use App\Actions\Miles\AwardDailyActivity;
 use App\Models\Transaction;
 
 /**
@@ -15,7 +16,10 @@ use App\Models\Transaction;
  */
 class TransactionObserver
 {
-    public function __construct(private readonly AwardMilestones $awardMilestones) {}
+    public function __construct(
+        private readonly AwardMilestones $awardMilestones,
+        private readonly AwardDailyActivity $awardDailyActivity,
+    ) {}
 
     /**
      * Deliberately `created`, not `creating`.
@@ -34,5 +38,7 @@ class TransactionObserver
         // foreign key but never the inverse relation, so reading `$transaction->user`
         // would re-fetch a User the caller already holds — once per imported row.
         $this->awardMilestones->afterTransaction((int) $transaction->user_id);
+
+        $this->awardDailyActivity->forUserId((int) $transaction->user_id, 'transaction');
     }
 }

@@ -8,8 +8,10 @@ use App\Concerns\ScopedToOwner;
 use App\Contracts\HasEncryptionOwner;
 use App\Enums\BudgetIncomeBasis;
 use App\Enums\Currency;
+use App\Observers\MilesActivityObserver;
 use Database\Factories\BudgetFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[ObservedBy([MilesActivityObserver::class])]
 #[Fillable([
     'user_id',
     'title',

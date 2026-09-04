@@ -23,6 +23,7 @@ use App\Http\Controllers\InvestmentAssetController;
 use App\Http\Controllers\InvestmentController;
 use App\Http\Controllers\InvestmentExportController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\MilesClaimController;
 use App\Http\Controllers\NoSpendDayController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\PortfolioExportController;
@@ -113,6 +114,9 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(function () {
+    Route::post('miles/claim', MilesClaimController::class)
+        ->middleware('throttle:10,1')
+        ->name('miles.claim');
     Route::get('admin', AdminDashboardController::class)
         ->middleware(EnsureUserIsAdmin::class)
         ->name('admin.dashboard');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Actions\Features\UpdateUserFeature;
+use App\Actions\Miles\ActivateUserFeature;
 use App\Enums\Feature;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\DisplayUpdateRequest;
@@ -16,7 +17,10 @@ use Inertia\Response;
 
 class ModuleController extends Controller
 {
-    public function __construct(private readonly UpdateUserFeature $updateUserFeature) {}
+    public function __construct(
+        private readonly UpdateUserFeature $updateUserFeature,
+        private readonly ActivateUserFeature $activateUserFeature,
+    ) {}
 
     public function edit(Request $request): Response
     {
@@ -54,7 +58,7 @@ class ModuleController extends Controller
             return back()->with('status', __('modules.saved'));
         }
 
-        $result = ($this->updateUserFeature)($user, $feature, (bool) $validated['enabled']);
+        $result = ($this->activateUserFeature)($user, $feature, (bool) $validated['enabled']);
 
         if ($result->wasRejected()) {
             return back()->withErrors([
@@ -112,6 +116,8 @@ class ModuleController extends Controller
             $feature->requires(),
             fn (Feature $dependency): bool => ! $dependency->isCore(),
         ));
+        $quote = $this->activateUserFeature->quote($user, $feature);
+        $balance = (int) ($user->mileWallet()->value('balance') ?? 0);
 
         return [
             'key' => $feature->value,
@@ -135,6 +141,14 @@ class ModuleController extends Controller
             'manage_url' => $feature->managedRoute() === null
                 ? null
                 : route($feature->managedRoute()),
+            'unlocked' => $quote['cost'] === 0,
+            'activation_cost' => $quote['cost'],
+            'unlock_features' => array_map(
+                fn (string $value): string => Feature::from($value)->label(),
+                $quote['features'],
+            ),
+            'can_afford' => $balance >= $quote['cost'],
+            'shortfall' => max(0, $quote['cost'] - $balance),
         ];
     }
 

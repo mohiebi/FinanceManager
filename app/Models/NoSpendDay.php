@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Observers\MilesActivityObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Sustains a logging streak the way a transaction does, so a genuinely frugal
  * day cannot break the chain.
  */
+#[ObservedBy([MilesActivityObserver::class])]
 #[Fillable(['user_id', 'date'])]
 class NoSpendDay extends Model
 {

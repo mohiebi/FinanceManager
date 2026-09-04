@@ -45,9 +45,9 @@ test('the modules page lists every toggleable module at its default state', func
             ->where('modules.6.key', Feature::AiAssistant->value)
             ->where('modules.6.enabled', false)
             ->where('modules.7.key', Feature::Advisor->value)
-            ->where('modules.7.enabled', false)
-            ->where('modules.7.tier', 'pro')
-            ->where('modules.7.may_use', false)
+            ->where('modules.7.enabled', true)
+            ->where('modules.7.tier', 'free')
+            ->where('modules.7.may_use', true)
             ->where('modules.8.key', Feature::TelegramBot->value)
             ->where('modules.8.enabled', false)
             // Advertised on the page, but switched from its own — the card is a
@@ -58,20 +58,14 @@ test('the modules page lists every toggleable module at its default state', func
         );
 });
 
-/*
- * Advisor defaults to on so that buying Pro is enough to use it. That must not
- * leak into the page a free user sees: the card has to read as off, or the
- * switch says "on" for something that cannot be opened and the "hide from menu"
- * control — which only appears on an off card — disappears with it.
- */
-test('a paid module reads as off for a user whose plan does not cover it', function () {
+test('advisor is available without a pro entitlement', function () {
     $this->actingAs(User::factory()->create())
         ->get(route('modules.edit'))
         ->assertInertia(fn (Assert $page) => $page
             ->where('modules.7.key', Feature::Advisor->value)
-            ->where('modules.7.enabled', false)
-            ->where('modules.7.may_use', false)
-            ->where('modules.7.show_promo', true));
+            ->where('modules.7.enabled', true)
+            ->where('modules.7.may_use', true)
+            ->where('modules.7.show_promo', false));
 });
 
 test('a paid module reads as on for a subscriber who never touched the page', function () {

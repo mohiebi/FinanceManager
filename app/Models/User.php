@@ -165,6 +165,54 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(UserMilestone::class);
     }
 
+    /** @return HasOne<MileWallet, User> */
+    public function mileWallet(): HasOne
+    {
+        return $this->hasOne(MileWallet::class);
+    }
+
+    /** @return HasMany<MileLedgerEntry, User> */
+    public function mileLedgerEntries(): HasMany
+    {
+        return $this->hasMany(MileLedgerEntry::class);
+    }
+
+    /** @return HasMany<MileDay, User> */
+    public function mileDays(): HasMany
+    {
+        return $this->hasMany(MileDay::class);
+    }
+
+    /** @return HasMany<UserFeatureUnlock, User> */
+    public function featureUnlocks(): HasMany
+    {
+        return $this->hasMany(UserFeatureUnlock::class);
+    }
+
+    /** @return HasMany<StreakProtection, User> */
+    public function streakProtections(): HasMany
+    {
+        return $this->hasMany(StreakProtection::class);
+    }
+
+    /** @return HasMany<UserCosmetic, User> */
+    public function cosmetics(): HasMany
+    {
+        return $this->hasMany(UserCosmetic::class);
+    }
+
+    /** @return HasMany<Referral, User> */
+    public function referrals(): HasMany
+    {
+        return $this->hasMany(Referral::class, 'referrer_id');
+    }
+
+    /** @return HasOne<Referral, User> */
+    public function referredBy(): HasOne
+    {
+        return $this->hasOne(Referral::class, 'referred_user_id');
+    }
+
     /**
      * @return HasMany<SavingsGoal, User>
      */

@@ -40,6 +40,7 @@ return [
         'assessment_free_days' => 30,
         'guidance' => 80,
         'consultation' => 15,
+        'provider_rates' => [],
     ],
     'referrals' => [
         'rolling_cap' => 1000,

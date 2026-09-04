@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['user_id', 'advisor_profile_id', 'status', 'pending_status', 'mode', 'profile_version', 'scoring_version', 'prompt_version', 'provider', 'model', 'knowledge_version', 'context_hash', 'output_hash', 'current_portfolio_included', 'current_portfolio_snapshot', 'clarification_answers', 'recommendation_payload', 'failure_code', 'clarification_rounds', 'repair_attempts', 'provider_calls', 'generated_at'])]
+#[Fillable(['user_id', 'advisor_profile_id', 'status', 'pending_status', 'mode', 'profile_version', 'scoring_version', 'prompt_version', 'provider', 'model', 'knowledge_version', 'context_hash', 'output_hash', 'current_portfolio_included', 'current_portfolio_snapshot', 'clarification_answers', 'recommendation_payload', 'failure_code', 'clarification_rounds', 'repair_attempts', 'provider_calls', 'quoted_miles', 'reserved_miles', 'charged_miles', 'miles_outcome', 'miles_settled_at', 'generated_at'])]
 class AdvisorRecommendation extends Model implements HasEncryptionOwner
 {
     /** @use HasFactory<AdvisorRecommendationFactory> */
@@ -52,6 +52,10 @@ class AdvisorRecommendation extends Model implements HasEncryptionOwner
             'clarification_answers' => UserEncrypted::class.':json',
             'recommendation_payload' => UserEncrypted::class.':json',
             'generated_at' => 'datetime',
+            'quoted_miles' => 'integer',
+            'reserved_miles' => 'integer',
+            'charged_miles' => 'integer',
+            'miles_settled_at' => 'datetime',
         ];
     }
 }

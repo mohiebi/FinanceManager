@@ -8,7 +8,10 @@ use App\Models\User;
 
 final readonly class EnsureWelcomeMiles
 {
-    public function __construct(private AwardMilestones $awardMilestones) {}
+    public function __construct(
+        private AwardMilestones $awardMilestones,
+        private AttributeReferral $attributeReferral,
+    ) {}
 
     public function __invoke(User $user): void
     {
@@ -16,6 +19,7 @@ final readonly class EnsureWelcomeMiles
             return;
         }
 
+        ($this->attributeReferral)($user);
         $this->awardMilestones->award($user, Milestone::VerifiedEmail);
     }
 }

@@ -24,6 +24,9 @@ use App\Http\Controllers\InvestmentController;
 use App\Http\Controllers\InvestmentExportController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MilesClaimController;
+use App\Http\Controllers\MilesCosmeticController;
+use App\Http\Controllers\MilesGiftController;
+use App\Http\Controllers\MilesProtectionController;
 use App\Http\Controllers\NoSpendDayController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\PortfolioExportController;
@@ -117,6 +120,18 @@ Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(f
     Route::post('miles/claim', MilesClaimController::class)
         ->middleware('throttle:10,1')
         ->name('miles.claim');
+    Route::post('miles/protections/freezes', [MilesProtectionController::class, 'storeFreeze'])
+        ->middleware('throttle:10,1')
+        ->name('miles.freezes.store');
+    Route::post('miles/protections/repairs', [MilesProtectionController::class, 'repair'])
+        ->middleware('throttle:10,1')
+        ->name('miles.repairs.store');
+    Route::post('miles/cosmetics/{cosmetic}', [MilesCosmeticController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('miles.cosmetics.store');
+    Route::post('miles/gifts', MilesGiftController::class)
+        ->middleware('throttle:10,1')
+        ->name('miles.gifts.store');
     Route::get('admin', AdminDashboardController::class)
         ->middleware(EnsureUserIsAdmin::class)
         ->name('admin.dashboard');

@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('code', 24)->index();
             $table->string('status', 24)->default('pending');
             $table->string('review_reason')->nullable();
+            $table->string('touch_ip_hash', 64)->nullable()->index();
+            $table->string('touch_device_hash', 64)->nullable()->index();
             $table->timestamp('attributed_at');
             $table->timestamps();
             $table->index(['referrer_id', 'status']);

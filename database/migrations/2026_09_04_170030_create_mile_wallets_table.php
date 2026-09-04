@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('mile_wallets', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
+            $table->string('referral_code', 24)->unique();
             $table->unsignedBigInteger('balance')->default(0);
             $table->unsignedBigInteger('lifetime_earned')->default(0);
             $table->unsignedBigInteger('lifetime_spent')->default(0);

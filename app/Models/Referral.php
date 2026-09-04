@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['referrer_id', 'referred_user_id', 'code', 'status', 'review_reason', 'attributed_at'])]
+#[Fillable(['referrer_id', 'referred_user_id', 'code', 'status', 'review_reason', 'touch_ip_hash', 'touch_device_hash', 'attributed_at'])]
 class Referral extends Model
 {
     /** @use HasFactory<ReferralFactory> */

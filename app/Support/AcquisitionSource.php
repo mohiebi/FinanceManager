@@ -2,11 +2,14 @@
 
 namespace App\Support;
 
+use App\Models\MileWallet;
 use Illuminate\Http\Request;
 
 class AcquisitionSource
 {
     public const SESSION_KEY = 'acquisition_source';
+
+    public const REFERRAL_SESSION_KEY = 'miles_referral';
 
     private const MAX_LENGTH = 120;
 
@@ -21,14 +24,25 @@ class AcquisitionSource
             return;
         }
 
-        if ($request->session()->has(self::SESSION_KEY)) {
-            return;
+        if (! $request->session()->has(self::REFERRAL_SESSION_KEY)) {
+            $code = mb_strtoupper(trim((string) $request->query('ref')));
+
+            if ($code !== '' && MileWallet::query()->where('referral_code', $code)->exists()) {
+                $request->session()->put(self::REFERRAL_SESSION_KEY, [
+                    'code' => $code,
+                    'captured_at' => now()->toIso8601String(),
+                    'ip_hash' => hash_hmac('sha256', (string) $request->ip(), (string) config('app.key')),
+                    'device_hash' => hash_hmac('sha256', (string) $request->userAgent(), (string) config('app.key')),
+                ]);
+            }
         }
 
-        $source = self::fromRequest($request);
+        if (! $request->session()->has(self::SESSION_KEY)) {
+            $source = self::fromRequest($request);
 
-        if ($source !== null) {
-            $request->session()->put(self::SESSION_KEY, $source);
+            if ($source !== null) {
+                $request->session()->put(self::SESSION_KEY, $source);
+            }
         }
     }
 
@@ -48,6 +62,23 @@ class AcquisitionSource
         $source = $request->session()->pull(self::SESSION_KEY);
 
         return is_string($source) && $source !== '' ? $source : null;
+    }
+
+    /** @return array{code: string, captured_at: string, ip_hash?: string, device_hash?: string}|null */
+    public static function pullReferral(): ?array
+    {
+        $request = request();
+
+        if (! $request->hasSession()) {
+            return null;
+        }
+
+        $referral = $request->session()->pull(self::REFERRAL_SESSION_KEY);
+
+        return is_array($referral)
+            && isset($referral['code'], $referral['captured_at'])
+            && is_string($referral['code'])
+            && is_string($referral['captured_at']) ? $referral : null;
     }
 
     public static function fromRequest(Request $request): ?string

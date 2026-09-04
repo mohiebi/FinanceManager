@@ -14,6 +14,7 @@ final readonly class ClaimDailyMiles
 {
     public function __construct(
         private AdjustMiles $adjustMiles,
+        private ApplyStreakProtection $applyStreakProtection,
         private StreakCalculator $streakCalculator,
         private AwardMilestones $awardMilestones,
     ) {}
@@ -40,9 +41,10 @@ final readonly class ClaimDailyMiles
                 ->first();
 
             $day->forceFill(['claimed_at' => now()])->save();
+            ($this->applyStreakProtection)($user, $today);
             $streak = $this->streakCalculator->for($user, $today);
             $continues = $previous instanceof MileDay
-                && $streak->currentRun >= $today->diffInDays($previous->local_date) + 1;
+                && $streak->currentRun >= abs($today->diffInDays($previous->local_date)) + 1;
             $step = $continues ? (((int) $previous->claim_step % 7) + 1) : 1;
             $reward = (int) config('miles.daily_claims.'.($step - 1));
 

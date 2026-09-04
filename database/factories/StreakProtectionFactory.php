@@ -2,15 +2,15 @@
 
 namespace Database\Factories;
 
-use App\Models\MileWallet;
+use App\Enums\StreakProtectionType;
+use App\Models\StreakProtection;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
- * @extends Factory<MileWallet>
+ * @extends Factory<StreakProtection>
  */
-class MileWalletFactory extends Factory
+class StreakProtectionFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -21,11 +21,9 @@ class MileWalletFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'referral_code' => Str::upper(Str::random(12)),
-            'balance' => 0,
-            'lifetime_earned' => 0,
-            'lifetime_spent' => 0,
-            'freezes_held' => 0,
+            'protected_date' => today()->subDay(),
+            'type' => StreakProtectionType::WeeklyGrace,
+            'timezone' => 'UTC',
         ];
     }
 }

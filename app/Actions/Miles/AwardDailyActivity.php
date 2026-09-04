@@ -17,6 +17,8 @@ final class AwardDailyActivity
     public function __construct(
         private AdjustMiles $adjustMiles,
         private AwardMilestones $awardMilestones,
+        private ApplyStreakProtection $applyStreakProtection,
+        private EvaluateReferralRewards $evaluateReferralRewards,
     ) {}
 
     public function forUserId(int $userId, string $source): ?MileDay
@@ -49,6 +51,7 @@ final class AwardDailyActivity
                 ['activity_source' => $source],
             );
             $day->forceFill(['activity_miles' => $reward, 'activity_source' => $source])->save();
+            ($this->applyStreakProtection)($user, $user->localToday());
 
             $milestone = match ($source) {
                 'bill' => Milestone::FirstBill,
@@ -61,6 +64,8 @@ final class AwardDailyActivity
             if ($milestone instanceof Milestone) {
                 $this->awardMilestones->award($user, $milestone);
             }
+
+            ($this->evaluateReferralRewards)($user);
 
             return $day->refresh();
         }, 3);

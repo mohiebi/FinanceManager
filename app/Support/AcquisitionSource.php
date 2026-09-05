@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\MileWallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Str;
 
 class AcquisitionSource
 {
@@ -19,6 +20,8 @@ class AcquisitionSource
     public const REFERRAL_COOKIE = 'miles_referral';
 
     public const REFERRAL_DAYS = 30;
+
+    public const DEVICE_COOKIE = 'cashpilot_device';
 
     private const MAX_LENGTH = 120;
 
@@ -69,7 +72,7 @@ class AcquisitionSource
             'code' => $code,
             'captured_at' => now()->toIso8601String(),
             'ip_hash' => hash_hmac('sha256', (string) $request->ip(), (string) config('app.key')),
-            'device_hash' => hash_hmac('sha256', (string) $request->userAgent(), (string) config('app.key')),
+            'device_hash' => hash_hmac('sha256', self::deviceToken($request), (string) config('app.key')),
         ];
 
         $request->session()->put(self::REFERRAL_SESSION_KEY, $touch);
@@ -135,6 +138,20 @@ class AcquisitionSource
             && isset($referral['code'], $referral['captured_at'])
             && is_string($referral['code'])
             && is_string($referral['captured_at']) ? $referral : null;
+    }
+
+    private static function deviceToken(Request $request): string
+    {
+        $token = $request->cookie(self::DEVICE_COOKIE);
+
+        if (is_string($token) && strlen($token) >= 32) {
+            return $token;
+        }
+
+        $token = Str::random(64);
+        Cookie::queue(Cookie::forever(self::DEVICE_COOKIE, $token));
+
+        return $token;
     }
 
     public static function fromRequest(Request $request): ?string

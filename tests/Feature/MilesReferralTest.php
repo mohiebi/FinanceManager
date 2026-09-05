@@ -177,6 +177,45 @@ it('remembers a referral from a shared invite link and keeps the first touch', f
         ->toBe($wallet->referral_code);
 });
 
+it('identifies a device by its private token instead of its shared user agent', function () {
+    $referrer = User::factory()->create();
+    $wallet = MileWallet::factory()->for($referrer)->create();
+    $server = ['HTTP_USER_AGENT' => 'Mozilla/5.0 Common Browser'];
+
+    $first = Request::create(
+        '/?ref='.$wallet->referral_code,
+        'GET',
+        cookies: [AcquisitionSource::DEVICE_COOKIE => str_repeat('a', 64)],
+        server: $server,
+    );
+    $first->setLaravelSession(app('session.store'));
+    AcquisitionSource::capture($first);
+    $firstHash = $first->session()->pull(AcquisitionSource::REFERRAL_SESSION_KEY)['device_hash'];
+
+    $second = Request::create(
+        '/?ref='.$wallet->referral_code,
+        'GET',
+        cookies: [AcquisitionSource::DEVICE_COOKIE => str_repeat('b', 64)],
+        server: $server,
+    );
+    $second->setLaravelSession(app('session.store'));
+    AcquisitionSource::capture($second);
+    $secondHash = $second->session()->pull(AcquisitionSource::REFERRAL_SESSION_KEY)['device_hash'];
+
+    $sameDevice = Request::create(
+        '/?ref='.$wallet->referral_code,
+        'GET',
+        cookies: [AcquisitionSource::DEVICE_COOKIE => str_repeat('a', 64)],
+        server: ['HTTP_USER_AGENT' => 'A completely different browser'],
+    );
+    $sameDevice->setLaravelSession(app('session.store'));
+    AcquisitionSource::capture($sameDevice);
+    $sameDeviceHash = $sameDevice->session()->pull(AcquisitionSource::REFERRAL_SESSION_KEY)['device_hash'];
+
+    expect($firstHash)->not->toBe($secondHash)
+        ->and($sameDeviceHash)->toBe($firstHash);
+});
+
 it('lands an unknown invite code on the marketing page without remembering it', function () {
     $this->get(route('invite', ['code' => 'NOTAREALCODE']))
         ->assertRedirect(route('home'))

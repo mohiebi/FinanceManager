@@ -1,6 +1,26 @@
 <?php
 
 return [
+    'unit' => 'Miles',
+    'close' => 'Close',
+    'pill' => [
+        'claim' => 'Claim',
+        'claim_aria' => 'Claim {miles} Miles',
+        'hub_aria' => 'Open Miles hub',
+    ],
+    'shortfall' => [
+        'title' => '{miles} more Miles needed',
+        'body' => 'This costs {cost} Miles and you have {available}.',
+        'action' => 'See ways to earn Miles',
+    ],
+    'celebration' => [
+        'title' => 'Day {step} collected',
+        'reward' => '+{miles} Miles',
+        'body' => 'Your balance is now {balance} Miles.',
+        'body_next' => 'Come back tomorrow for {miles} more.',
+        'cycle_done' => 'That completes the cycle. Tomorrow starts a new one.',
+        'dismiss' => 'Nice',
+    ],
     'title' => 'Miles',
     'eyebrow' => 'Your activity currency',
     'intro' => 'Earn Miles by keeping your financial record current, then use them for modules, protection, cosmetics, and Advisor services.',
@@ -15,6 +35,18 @@ return [
     'freeze_body' => 'Automatically protects a missed day after your weekly grace is used. Hold up to two.',
     'buy_for' => 'Buy for {miles} Miles',
     'need_more' => 'Need {miles} more Miles',
+    'cosmetic_labels' => [
+        'callsign_pathfinder' => 'Pathfinder',
+        'badge_emerald_wings' => 'Emerald Wings',
+        'palette_horizon' => 'Horizon palette',
+        'theme_night_flight' => 'Night Flight',
+    ],
+    'cosmetic_types' => [
+        'callsign' => 'Callsign',
+        'badge' => 'Badge',
+        'palette' => 'Palette',
+        'theme' => 'Theme',
+    ],
     'repair_title' => 'Streak Repair',
     'repair_body' => 'Reconnect an eligible missed date from the previous seven days.',
     'missed_date' => 'Missed date',

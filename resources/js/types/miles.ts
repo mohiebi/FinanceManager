@@ -59,3 +59,10 @@ export type MilesOverview = MilesShared & {
     giftingEnabled: boolean;
     referrals: { id: number; userId: number; name: string }[];
 };
+
+export type MilesClaimed = {
+    miles: number;
+    step: number;
+    balance: number;
+    nextReward: number;
+};

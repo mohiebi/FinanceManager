@@ -70,6 +70,46 @@ return [
         'strip_all_sorted' => 'Every entry has a category',
     ],
     'moments' => [
+        'verified_email' => [
+            'title' => 'Email verified',
+            'body' => 'The account is confirmed.',
+        ],
+        'first_bill' => [
+            'title' => 'First bill scheduled',
+            'body' => 'Due dates now have somewhere to appear.',
+        ],
+        'first_budget' => [
+            'title' => 'First flight plan set',
+            'body' => 'Spending has a limit to measure against.',
+        ],
+        'first_investment' => [
+            'title' => 'First holding recorded',
+            'body' => 'The portfolio has something to value.',
+        ],
+        'first_savings_goal' => [
+            'title' => 'First goal set',
+            'body' => 'Progress has a target now.',
+        ],
+        'three_day_run' => [
+            'title' => '3-day run',
+            'body' => 'Three days without a gap.',
+        ],
+        'first_flight_week' => [
+            'title' => 'A full cycle',
+            'body' => 'Seven rewards collected in a row.',
+        ],
+        'fourteen_day_run' => [
+            'title' => '14-day run',
+            'body' => 'Two weeks without a gap.',
+        ],
+        'pilot_rank' => [
+            'title' => 'Pilot',
+            'body' => 'Thirty days recorded.',
+        ],
+        'captain_rank' => [
+            'title' => 'Captain',
+            'body' => 'A hundred and eighty days recorded.',
+        ],
         'first_transaction' => [
             'title' => 'First entry logged',
             'body' => 'The record starts here.',

@@ -1,6 +1,26 @@
 <?php
 
 return [
+    'unit' => 'Miles',
+    'close' => 'Schließen',
+    'pill' => [
+        'claim' => 'Abholen',
+        'claim_aria' => '{miles} Miles abholen',
+        'hub_aria' => 'Miles-Übersicht öffnen',
+    ],
+    'shortfall' => [
+        'title' => 'Noch {miles} Miles nötig',
+        'body' => 'Das kostet {cost} Miles und du hast {available}.',
+        'action' => 'So verdienst du Miles',
+    ],
+    'celebration' => [
+        'title' => 'Tag {step} abgeholt',
+        'reward' => '+{miles} Miles',
+        'body' => 'Dein Guthaben liegt jetzt bei {balance} Miles.',
+        'body_next' => 'Komm morgen wieder für {miles} weitere.',
+        'cycle_done' => 'Damit ist der Zyklus voll. Morgen beginnt ein neuer.',
+        'dismiss' => 'Super',
+    ],
     'title' => 'Meilen',
     'eyebrow' => 'Deine Aktivitätswährung',
     'intro' => 'Verdiene Meilen, indem du deine Finanzaufzeichnungen aktuell hältst, und nutze sie für Module, Schutz, Designs und Advisor-Dienste.',
@@ -15,6 +35,18 @@ return [
     'freeze_body' => 'Schützt automatisch einen verpassten Tag, nachdem die wöchentliche Kulanz verbraucht ist. Maximal zwei.',
     'buy_for' => 'Für {miles} Meilen kaufen',
     'need_more' => 'Noch {miles} Miles nötig',
+    'cosmetic_labels' => [
+        'callsign_pathfinder' => 'Pfadfinder',
+        'badge_emerald_wings' => 'Smaragdschwingen',
+        'palette_horizon' => 'Horizont-Palette',
+        'theme_night_flight' => 'Nachtflug',
+    ],
+    'cosmetic_types' => [
+        'callsign' => 'Rufzeichen',
+        'badge' => 'Abzeichen',
+        'palette' => 'Palette',
+        'theme' => 'Design',
+    ],
     'repair_title' => 'Serie reparieren',
     'repair_body' => 'Verbinde einen geeigneten verpassten Tag aus den letzten sieben Tagen.',
     'missed_date' => 'Verpasster Tag',

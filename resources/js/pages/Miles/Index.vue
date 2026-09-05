@@ -19,7 +19,7 @@ import { store as buyCosmetic } from '@/routes/miles/cosmetics';
 import { store as buyFreeze } from '@/routes/miles/freezes';
 import { store as sendGift } from '@/routes/miles/gifts';
 import { store as repairStreak } from '@/routes/miles/repairs';
-import type { MilesOverview } from '@/types/miles';
+import type { MilesClaimed, MilesOverview } from '@/types/miles';
 
 type HistoryEntry = {
     id: string;
@@ -44,7 +44,7 @@ defineOptions({
     layout: { breadcrumbs: [{ title: 'Miles', href: '/miles' }] },
 });
 
-const { t, locale } = useI18n();
+const { t, te, locale } = useI18n();
 const page = usePage();
 const processing = ref<string | null>(null);
 const repairDate = ref('');
@@ -68,6 +68,24 @@ function canAfford(cost: number): boolean {
     return currentOverview.value.balance >= cost;
 }
 
+/**
+ * Cosmetic names and types come from config, which is authored in English.
+ * Translate when a locale has the string and fall back to the configured
+ * label otherwise, so adding a cosmetic without translating it yet shows its
+ * name rather than a raw key.
+ */
+function cosmeticLabel(cosmetic: { key: string; label: string }): string {
+    const key = `miles.cosmetic_labels.${cosmetic.key}`;
+
+    return te(key) ? t(key) : cosmetic.label;
+}
+
+function cosmeticType(type: string): string {
+    const key = `miles.cosmetic_types.${type}`;
+
+    return te(key) ? t(key) : humanize(type);
+}
+
 /** How many more Miles a priced action needs, or zero when it is affordable. */
 function shortfallFor(cost: number): number {
     return Math.max(0, cost - currentOverview.value.balance);
@@ -84,7 +102,12 @@ const earnedMilestones = computed(
         ).length,
 );
 
-function post(key: string, url: string, data: RequestPayload = {}): void {
+function post(
+    key: string,
+    url: string,
+    data: RequestPayload = {},
+    onSuccess?: () => void,
+): void {
     if (processing.value !== null) {
         return;
     }
@@ -93,6 +116,7 @@ function post(key: string, url: string, data: RequestPayload = {}): void {
     router.post(url, data, {
         preserveScroll: true,
         only: ['overview', 'miles', 'history'],
+        onSuccess,
         onFinish: () => {
             processing.value = null;
         },
@@ -100,7 +124,23 @@ function post(key: string, url: string, data: RequestPayload = {}): void {
 }
 
 function collect(): void {
-    post('claim', claim.url());
+    // Read before the request, since the shared props are replaced by the time
+    // it resolves and the celebration should report what was just collected.
+    const step = (currentOverview.value.claimStep % 7) + 1;
+    const reward = currentOverview.value.nextClaimReward;
+
+    post('claim', claim.url(), {}, () => {
+        window.dispatchEvent(
+            new CustomEvent<MilesClaimed>('miles:claimed', {
+                detail: {
+                    miles: reward,
+                    step,
+                    balance: currentOverview.value.balance,
+                    nextReward: currentOverview.value.nextClaimReward,
+                },
+            }),
+        );
+    });
 }
 
 function purchaseFreeze(): void {
@@ -429,10 +469,10 @@ function formatDate(value: string): string {
                             </span>
                             <div class="min-w-0 flex-1">
                                 <p class="truncate text-sm font-medium">
-                                    {{ cosmetic.label }}
+                                    {{ cosmeticLabel(cosmetic) }}
                                 </p>
                                 <p class="text-xs text-[#858585]">
-                                    {{ humanize(cosmetic.type) }}
+                                    {{ cosmeticType(cosmetic.type) }}
                                 </p>
                                 <p
                                     v-if="
@@ -450,7 +490,7 @@ function formatDate(value: string): string {
                             </div>
                             <button
                                 type="button"
-                                class="min-h-11 cursor-pointer rounded-xl px-3 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#a89bf3] focus-visible:outline-none disabled:cursor-wait disabled:opacity-60"
+                                class="min-h-11 cursor-pointer rounded-xl px-3 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#a89bf3] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                                 :class="
                                     cosmetic.selected
                                         ? 'bg-[#02cd86]/10 text-[#5eeeb5]'

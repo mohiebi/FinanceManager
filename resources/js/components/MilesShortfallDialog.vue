@@ -2,10 +2,12 @@
 import { Link } from '@inertiajs/vue3';
 import { Gauge, X } from 'lucide-vue-next';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { index as milesIndex } from '@/routes/miles';
 import type { MilesShortfall } from '@/types/miles';
 
 const shortfall = ref<MilesShortfall | null>(null);
+const { t } = useI18n();
 
 function receive(event: Event): void {
     shortfall.value = (event as CustomEvent<MilesShortfall>).detail;
@@ -47,7 +49,7 @@ onBeforeUnmount(() => window.removeEventListener('miles:shortfall', receive));
                         <button
                             type="button"
                             class="grid size-11 cursor-pointer place-items-center rounded-xl text-[#989898] transition-colors hover:bg-white/5 hover:text-white focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none"
-                            aria-label="Close"
+                            :aria-label="t('miles.close')"
                             @click="close"
                         >
                             <X class="size-5" />
@@ -57,18 +59,26 @@ onBeforeUnmount(() => window.removeEventListener('miles:shortfall', receive));
                         id="miles-shortfall-title"
                         class="mt-4 text-lg font-semibold"
                     >
-                        {{ shortfall.shortfall }} more Miles needed
+                        {{
+                            t('miles.shortfall.title', {
+                                miles: shortfall.shortfall,
+                            })
+                        }}
                     </h2>
                     <p class="mt-2 text-sm leading-6 text-[#a3a3a3]">
-                        This action costs {{ shortfall.cost }} Miles. You
-                        currently have {{ shortfall.available }}.
+                        {{
+                            t('miles.shortfall.body', {
+                                cost: shortfall.cost,
+                                available: shortfall.available,
+                            })
+                        }}
                     </p>
                     <Link
                         :href="milesIndex()"
                         class="mt-6 inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-xl bg-[#02cd86] px-4 text-sm font-semibold text-[#07130e] transition-colors hover:bg-[#32dda0] focus-visible:ring-2 focus-visible:ring-[#5eeeb5] focus-visible:ring-offset-2 focus-visible:ring-offset-[#161616] focus-visible:outline-none"
                         @click="close"
                     >
-                        See ways to earn Miles
+                        {{ t('miles.shortfall.action') }}
                     </Link>
                 </div>
             </div>

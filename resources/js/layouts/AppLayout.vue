@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MilesCelebrationDialog from '@/components/MilesCelebrationDialog.vue';
 import MilesShortfallDialog from '@/components/MilesShortfallDialog.vue';
 import VaultUnlockDialog from '@/components/VaultUnlockDialog.vue';
 import AppLayout from '@/layouts/app/AppSidebarLayout.vue';
@@ -18,4 +19,5 @@ const { breadcrumbs = [] } = defineProps<{
          including a plain reload, not just the login controllers. -->
     <VaultUnlockDialog />
     <MilesShortfallDialog />
+    <MilesCelebrationDialog />
 </template>

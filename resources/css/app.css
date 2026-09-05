@@ -928,3 +928,49 @@ html[dir='rtl'] {
         transition: none;
     }
 }
+
+/* The daily-claim celebration. Decorative only - the reward is also plain
+   text in the dialog, so nothing here carries meaning on its own. */
+@keyframes miles-confetti-fall {
+    from {
+        opacity: 0;
+        transform: translateY(-14px) rotate(0deg);
+    }
+    25% {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+        transform: translateY(96px) rotate(220deg);
+    }
+}
+
+@keyframes miles-celebration-pop {
+    from {
+        transform: scale(0.7);
+    }
+    60% {
+        transform: scale(1.08);
+    }
+    to {
+        transform: scale(1);
+    }
+}
+
+.miles-confetti {
+    animation: miles-confetti-fall 1.1s ease-in forwards;
+}
+
+.miles-celebration-badge {
+    animation: miles-celebration-pop 0.4s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .miles-confetti {
+        display: none;
+    }
+
+    .miles-celebration-badge {
+        animation: none;
+    }
+}

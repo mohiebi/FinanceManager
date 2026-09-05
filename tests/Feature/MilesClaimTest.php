@@ -33,9 +33,13 @@ test('a qualifying activity awards two miles only once per local day', function 
     $award($user, 'bill');
     $award($user, 'investment');
 
+    // One activity bonus for the day, but both first-time records still earn
+    // their own milestone - the bonus is about the day, the milestone is about
+    // the record, and tying the two together is what used to swallow them.
     expect($user->mileDays()->sole()->activity_miles)->toBe(2)
         ->and($user->mileLedgerEntries()->where('reason', 'daily_activity')->count())->toBe(1)
-        ->and($user->mileWallet()->value('balance'))->toBe(7);
+        ->and($user->mileWallet()->value('balance'))
+        ->toBe(2 + Milestone::FirstBill->miles() + Milestone::FirstInvestment->miles());
 });
 
 test('the claim schedule totals thirty miles', function () {
@@ -80,4 +84,30 @@ test('cycling a record through create and delete cannot repeat the daily activit
         ->and($user->mileLedgerEntries()->where('reason', 'daily_activity')->count())->toBe(1)
         ->and($user->milestones()->where('key', Milestone::FirstTransaction->value)->count())->toBe(1)
         ->and($user->mileWallet()->value('balance'))->toBe(2 + Milestone::FirstTransaction->miles());
+});
+
+test('a first bill earns its milestone even when the day already paid its activity bonus', function () {
+    $user = User::factory()->create(['timezone' => 'UTC']);
+    $category = Category::factory()->cost()->create();
+
+    // Morning: a transaction takes the day's one activity bonus.
+    Transaction::factory()->cost()->for($user)->for($category)->create([
+        'occurred_at' => $user->localToday()->toDateString(),
+    ]);
+
+    // Afternoon: the first bill this account has ever had.
+    $user->bills()->create([
+        'title' => 'Rent',
+        'amount' => 100,
+        'currency' => 'toman',
+        'recurrence_type' => 'monthly',
+        'due_day_of_month' => 15,
+    ]);
+
+    expect($user->milestones()->where('key', Milestone::FirstBill->value)->count())->toBe(1)
+        // Still one activity bonus for the day - the milestone is a separate
+        // moment, not a second bonus.
+        ->and($user->mileDays()->sole()->activity_miles)->toBe(2)
+        ->and($user->mileWallet()->value('balance'))
+        ->toBe(2 + Milestone::FirstTransaction->miles() + Milestone::FirstBill->miles());
 });

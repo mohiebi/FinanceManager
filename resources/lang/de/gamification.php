@@ -70,6 +70,46 @@ return [
         'strip_all_sorted' => 'Jeder Eintrag hat eine Kategorie',
     ],
     'moments' => [
+        'verified_email' => [
+            'title' => 'E-Mail bestätigt',
+            'body' => 'Das Konto ist bestätigt.',
+        ],
+        'first_bill' => [
+            'title' => 'Erste Rechnung angelegt',
+            'body' => 'Fälligkeiten haben jetzt einen Platz.',
+        ],
+        'first_budget' => [
+            'title' => 'Erster Flugplan steht',
+            'body' => 'Ausgaben haben eine Grenze zum Messen.',
+        ],
+        'first_investment' => [
+            'title' => 'Erste Position erfasst',
+            'body' => 'Das Portfolio hat etwas zu bewerten.',
+        ],
+        'first_savings_goal' => [
+            'title' => 'Erstes Ziel gesetzt',
+            'body' => 'Fortschritt hat jetzt eine Zielmarke.',
+        ],
+        'three_day_run' => [
+            'title' => '3-Tage-Serie',
+            'body' => 'Drei Tage ohne Lücke.',
+        ],
+        'first_flight_week' => [
+            'title' => 'Ein voller Zyklus',
+            'body' => 'Sieben Belohnungen in Folge abgeholt.',
+        ],
+        'fourteen_day_run' => [
+            'title' => '14-Tage-Serie',
+            'body' => 'Zwei Wochen ohne Lücke.',
+        ],
+        'pilot_rank' => [
+            'title' => 'Pilot',
+            'body' => 'Dreißig Tage erfasst.',
+        ],
+        'captain_rank' => [
+            'title' => 'Kapitän',
+            'body' => 'Einhundertachtzig Tage erfasst.',
+        ],
         'first_transaction' => ['title' => 'Erster Eintrag', 'body' => 'Hier beginnt die Aufzeichnung.'],
         'hundred_transactions' => ['title' => '100 Einträge', 'body' => 'Hundert Datensätze gepflegt.'],
         'thirty_day_run' => ['title' => '30-Tage-Serie', 'body' => 'Ein Monat ohne eine einzige Lücke.'],

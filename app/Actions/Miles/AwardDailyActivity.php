@@ -37,6 +37,23 @@ final class AwardDailyActivity
                 ['timezone' => $user->timezone],
             );
 
+            // Evaluated ahead of the daily-bonus guard below. A first bill is
+            // a first bill whatever else the day held, and awarding it after
+            // the guard tied it to being that day's opening action - so anyone
+            // who logged a transaction first thing lost the moment for good.
+            // The award is idempotent, so repeating it costs a no-op.
+            $milestone = match ($source) {
+                'bill' => Milestone::FirstBill,
+                'budget' => Milestone::FirstBudget,
+                'investment' => Milestone::FirstInvestment,
+                'savings_goal' => Milestone::FirstSavingsGoal,
+                default => null,
+            };
+
+            if ($milestone instanceof Milestone) {
+                $this->awardMilestones->award($user, $milestone);
+            }
+
             if ((int) $day->activity_miles > 0) {
                 return $day;
             }
@@ -52,19 +69,6 @@ final class AwardDailyActivity
             );
             $day->forceFill(['activity_miles' => $reward, 'activity_source' => $source])->save();
             ($this->applyStreakProtection)($user, $user->localToday());
-
-            $milestone = match ($source) {
-                'bill' => Milestone::FirstBill,
-                'budget' => Milestone::FirstBudget,
-                'investment' => Milestone::FirstInvestment,
-                'savings_goal' => Milestone::FirstSavingsGoal,
-                default => null,
-            };
-
-            if ($milestone instanceof Milestone) {
-                $this->awardMilestones->award($user, $milestone);
-            }
-
             ($this->evaluateReferralRewards)($user);
 
             return $day->refresh();

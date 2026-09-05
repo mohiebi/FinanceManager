@@ -5,308 +5,53 @@ namespace App\Actions\Admin;
 use App\Enums\MilesReason;
 use App\Enums\ReferralStage;
 use App\Enums\StreakProtectionType;
-use App\Models\MileDay;
-use App\Models\MileLedgerEntry;
-use App\Models\MileWallet;
-use App\Models\Referral;
-use App\Models\ReferralReward;
-use App\Models\ServiceUsageEvent;
-use App\Models\StreakProtection;
 use App\Models\User;
-use App\Models\UserCosmetic;
-use App\Models\UserFeatureUnlock;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * The Miles economy, summarised for the admin dashboard.
+ *
+ * Everything is counted in the database rather than in PHP. The ledger is the
+ * fastest-growing table in the app, and a dashboard that loads a year of it to
+ * count rows stops working long before the economy does.
+ */
 final class BuildMilesAnalytics
 {
+    /** Users held in memory at once while walking cohorts. */
+    private const CHUNK = 500;
+
     /** @return array<string, mixed> */
     public function __invoke(CarbonInterface $rangeStart): array
     {
-        $customerIds = $this->customers()->pluck('id');
-        $ledger = MileLedgerEntry::query()
-            ->whereIn('user_id', $customerIds)
-            ->where('created_at', '>=', $rangeStart)
-            ->get(['reason', 'amount', 'transfer_id', 'source_type', 'source_id']);
-        $days = MileDay::query()
-            ->whereIn('user_id', $customerIds)
-            ->where('local_date', '>=', $rangeStart->toDateString())
-            ->get();
-        $claims = $days->whereNotNull('claimed_at');
-        $activityDays = $days->where('activity_miles', '>', 0);
+        $ledger = $this->ledgerByReason($rangeStart);
 
         return [
-            'overview' => $this->overview($customerIds, $ledger),
+            'overview' => $this->overview($ledger),
             'retention' => $this->retention($rangeStart),
             'economy' => $this->economy($ledger),
-            'engagement' => [
-                'claimers' => $claims->pluck('user_id')->unique()->count(),
-                'claims' => $claims->count(),
-                'average_claims_per_claimer' => $this->average($claims->count(), $claims->pluck('user_id')->unique()->count()),
-                'completed_cycles' => $claims->where('claim_step', 7)->count(),
-                'activity_days' => $activityDays->count(),
-                'average_activity_days_per_active_user' => $this->average($activityDays->count(), $activityDays->pluck('user_id')->unique()->count()),
-            ],
-            'unlocks' => $this->unlocks($customerIds, $rangeStart),
-            'protections' => $this->protections($customerIds, $ledger, $rangeStart),
-            'referrals' => $this->referrals($customerIds, $ledger, $rangeStart),
-            'advisor' => $this->advisor($customerIds, $ledger, $rangeStart),
-        ];
-    }
-
-    /** @param Collection<int, int> $customerIds
-     * @param  Collection<int, MileLedgerEntry>  $ledger
-     * @return array<string, int>
-     */
-    private function overview(Collection $customerIds, Collection $ledger): array
-    {
-        return [
-            'wallets' => MileWallet::query()->whereIn('user_id', $customerIds)->count(),
-            'outstanding' => (int) MileWallet::query()->whereIn('user_id', $customerIds)->sum('balance'),
-            'issued' => (int) $ledger
-                ->where('amount', '>', 0)
-                ->where('reason', '!=', MilesReason::ReferralGiftReceived)
-                ->sum('amount'),
-            'spent' => abs((int) $ledger
-                ->where('amount', '<', 0)
-                ->where('reason', '!=', MilesReason::ReferralGiftSent)
-                ->sum('amount')),
-            'transferred' => abs((int) $ledger->where('reason', MilesReason::ReferralGiftSent)->sum('amount')),
-        ];
-    }
-
-    /** @return array{labels: array<int, string>, claimed: array<int, float>, never_claimed: array<int, float>} */
-    private function retention(CarbonInterface $rangeStart): array
-    {
-        $labels = ['D1', 'D7', 'D30'];
-        $claimed = [];
-        $neverClaimed = [];
-
-        foreach ([1, 7, 30] as $day) {
-            $eligible = $this->customers()
-                ->where('created_at', '>=', $rangeStart)
-                ->where('created_at', '<=', now()->subDays($day))
-                // timezone is read below, and a restricted select would throw.
-                ->get(['id', 'created_at', 'timezone']);
-            $claimedUserIds = MileDay::query()
-                ->whereIn('user_id', $eligible->pluck('id'))
-                ->whereNotNull('claimed_at')
-                ->pluck('user_id')
-                ->unique();
-
-            $claimed[] = $this->retainedPercentage($eligible->whereIn('id', $claimedUserIds), $day);
-            $neverClaimed[] = $this->retainedPercentage($eligible->whereNotIn('id', $claimedUserIds), $day);
-        }
-
-        return ['labels' => $labels, 'claimed' => $claimed, 'never_claimed' => $neverClaimed];
-    }
-
-    /** @param Collection<int, User> $users */
-    private function retainedPercentage(Collection $users, int $day): float
-    {
-        if ($users->isEmpty()) {
-            return 0;
-        }
-
-        $coveredDates = MileDay::query()
-            ->whereIn('user_id', $users->pluck('id'))
-            ->where(fn (Builder $query): Builder => $query
-                ->whereNotNull('claimed_at')
-                ->orWhere('activity_miles', '>', 0))
-            ->get(['user_id', 'local_date'])
-            ->mapWithKeys(fn (MileDay $mileDay): array => ["{$mileDay->user_id}:{$mileDay->local_date->toDateString()}" => true]);
-        $retained = $users->filter(function (User $user) use ($coveredDates, $day): bool {
-            // Signup is UTC, mile_days is the user's own date. Comparing them
-            // raw marks anyone who signed up near midnight as churned.
-            $target = $user->created_at
-                ->copy()
-                ->setTimezone($user->resolvedTimezone())
-                ->addDays($day)
-                ->toDateString();
-
-            return $coveredDates->has("{$user->id}:{$target}");
-        })->count();
-
-        return round(($retained / $users->count()) * 100, 1);
-    }
-
-    /** @param Collection<int, MileLedgerEntry> $ledger
-     * @return array{labels: array<int, string>, issued: array<int, int>, spent: array<int, int>}
-     */
-    private function economy(Collection $ledger): array
-    {
-        $grouped = $ledger->groupBy(fn (MileLedgerEntry $entry): string => $entry->reason->value);
-        $labels = $grouped->keys()->sort()->values();
-
-        return [
-            'labels' => $labels->all(),
-            'issued' => $labels->map(fn (string $reason): int => (int) $grouped[$reason]->where('amount', '>', 0)->sum('amount'))->all(),
-            'spent' => $labels->map(fn (string $reason): int => abs((int) $grouped[$reason]->where('amount', '<', 0)->sum('amount')))->all(),
-        ];
-    }
-
-    /** @param Collection<int, int> $customerIds
-     * @return array<string, int|float|null>
-     */
-    private function unlocks(Collection $customerIds, CarbonInterface $rangeStart): array
-    {
-        $users = $this->customers()->whereIn('id', $customerIds)->get(['id', 'created_at'])->keyBy('id');
-        $grouped = UserFeatureUnlock::query()
-            ->whereIn('user_id', $customerIds)
-            ->where('unlocked_at', '>=', $rangeStart)
-            ->orderBy('unlocked_at')
-            ->get(['user_id', 'unlocked_at'])
-            ->groupBy('user_id');
-        $first = [];
-        $seventh = [];
-
-        foreach ($grouped as $userId => $unlocks) {
-            $createdAt = $users->get($userId)?->created_at;
-
-            if (! $createdAt instanceof CarbonInterface) {
-                continue;
-            }
-
-            $first[] = $createdAt->diffInHours($unlocks->first()->unlocked_at);
-
-            if ($unlocks->count() >= count((array) config('miles.paid_modules'))) {
-                $seventh[] = $createdAt->diffInHours($unlocks->values()->get(count((array) config('miles.paid_modules')) - 1)->unlocked_at);
-            }
-        }
-
-        return [
-            'total' => $grouped->flatten()->count(),
-            'median_hours_to_first' => $this->median($first),
-            'median_hours_to_seventh' => $this->median($seventh),
-        ];
-    }
-
-    /** @param Collection<int, int> $customerIds
-     * @param  Collection<int, MileLedgerEntry>  $ledger
-     * @return array<string, int>
-     */
-    private function protections(Collection $customerIds, Collection $ledger, CarbonInterface $rangeStart): array
-    {
-        $protections = StreakProtection::query()
-            ->whereIn('user_id', $customerIds)
-            ->where('created_at', '>=', $rangeStart)
-            ->get();
-
-        return [
-            'freeze_purchases' => $ledger->where('reason', MilesReason::StreakFreeze)->count(),
-            'freezes_consumed' => $protections->where('type', StreakProtectionType::Freeze)->count(),
-            'repair_purchases' => $ledger->where('reason', MilesReason::StreakRepair)->count(),
-            'repairs_applied' => $protections->where('type', StreakProtectionType::Repair)->count(),
-            'weekly_graces' => $protections->where('type', StreakProtectionType::WeeklyGrace)->count(),
-            'cosmetics_purchased' => UserCosmetic::query()
-                ->whereIn('user_id', $customerIds)
-                ->where('acquired_at', '>=', $rangeStart)
-                ->count(),
-        ];
-    }
-
-    /** @param Collection<int, int> $customerIds
-     * @param  Collection<int, MileLedgerEntry>  $ledger
-     * @return array<string, int>
-     */
-    private function referrals(Collection $customerIds, Collection $ledger, CarbonInterface $rangeStart): array
-    {
-        $referrals = Referral::query()
-            ->whereIn('referrer_id', $customerIds)
-            ->where('attributed_at', '>=', $rangeStart)
-            ->get();
-        $rewards = ReferralReward::query()
-            ->whereIn('referral_id', $referrals->pluck('id'))
-            ->where('awarded_at', '>=', $rangeStart)
-            ->get();
-
-        return [
-            'signups' => $referrals->count(),
-            'activated' => $rewards->where('stage', ReferralStage::Activated)->count(),
-            'retained' => $rewards->where('stage', ReferralStage::Retained)->count(),
-            'habit' => $rewards->where('stage', ReferralStage::Habit)->count(),
-            'review_holds' => $referrals->where('status', 'review')->count(),
-            'rejections' => $referrals->where('status', 'rejected')->count(),
-            'gifts' => $ledger->where('reason', MilesReason::ReferralGiftSent)->count(),
-        ];
-    }
-
-    /** @param Collection<int, int> $customerIds
-     * @param  Collection<int, MileLedgerEntry>  $ledger
-     * @return array<string, int|float|null>
-     */
-    private function advisor(Collection $customerIds, Collection $ledger, CarbonInterface $rangeStart): array
-    {
-        $events = ServiceUsageEvent::query()
-            ->whereIn('user_id', $customerIds)
-            ->where('service', 'advisor')
-            ->where('created_at', '>=', $rangeStart)
-            ->get();
-        $costs = $events->whereNotNull('provider_cost_usd')->pluck('provider_cost_usd')->map(fn ($value): float => (float) $value)->all();
-        $latencies = $events->whereNotNull('latency_ms')->pluck('latency_ms')->map(fn ($value): float => (float) $value)->all();
-        $advisorLedger = MileLedgerEntry::query()
-            ->whereIn('user_id', $customerIds)
-            ->whereIn('reason', [MilesReason::AdvisorReservation, MilesReason::AdvisorRefund])
-            ->get(['reason', 'amount', 'source_type', 'source_id']);
-        // Per recommendation, not per event: these gate real charging, and
-        // counting events overstates successes and dilutes the failure rate.
-        $outcomes = $this->terminalOutcomes($events);
-        $terminalFailures = $outcomes->whereIn('outcome', ['failure', 'failed', 'expired'])->count();
-
-        return [
-            'operations' => $events->count(),
-            'recommendations' => $outcomes->count(),
-            'successful_recommendations' => $outcomes->where('outcome', 'success')->count(),
-            'terminal_failures' => $terminalFailures,
-            'terminal_failure_rate' => $outcomes->isNotEmpty() ? round(($terminalFailures / $outcomes->count()) * 100, 1) : 0,
-            'provider_cost_p50_usd' => $this->percentile($costs, 50),
-            'provider_cost_p95_usd' => $this->percentile($costs, 95),
-            'latency_p50_ms' => $this->percentile($latencies, 50),
-            'latency_p95_ms' => $this->percentile($latencies, 95),
-            'shadow_miles' => (int) $events->sum('shadow_miles'),
-            'charged_miles' => (int) $events->sum('charged_miles'),
-            'refunded_miles' => (int) $ledger->where('reason', MilesReason::AdvisorRefund)->sum('amount'),
-            'reconciliation_mismatches' => $this->advisorReconciliationMismatches($events, $advisorLedger),
+            'engagement' => $this->engagement($rangeStart),
+            'unlocks' => $this->unlocks($rangeStart),
+            'protections' => $this->protections($ledger, $rangeStart),
+            'referrals' => $this->referrals($ledger, $rangeStart),
+            'advisor' => $this->advisor($ledger, $rangeStart),
         ];
     }
 
     /**
-     * One row per recommendation: its last event, whatever it took to get there.
+     * Every customer's id as a subquery.
      *
-     * @param  Collection<int, ServiceUsageEvent>  $events
-     * @return Collection<int|string, ServiceUsageEvent>
+     * Returned unexecuted so it composes into a WHERE IN rather than arriving
+     * as a list of every id in the table. A fresh builder each call, since
+     * reusing one would carry the previous query's bindings.
      */
-    private function terminalOutcomes(Collection $events): Collection
+    private function customerIds(): Builder
     {
-        return $events
-            ->where('operation', 'recommendation')
-            ->whereNotNull('source_id')
-            ->groupBy('source_id')
-            ->map(fn (Collection $group): ServiceUsageEvent => $group->sortBy('created_at')->last());
-    }
-
-    /** @param Collection<int, ServiceUsageEvent> $events
-     * @param  Collection<int, MileLedgerEntry>  $ledger
-     */
-    private function advisorReconciliationMismatches(Collection $events, Collection $ledger): int
-    {
-        return $events
-            ->where('operation', 'recommendation')
-            ->whereNotNull('source_id')
-            ->groupBy(fn (ServiceUsageEvent $event): string => "{$event->source_type}:{$event->source_id}")
-            ->filter(function (Collection $sourceEvents, string $sourceKey) use ($ledger): bool {
-                [$sourceType, $sourceId] = explode(':', $sourceKey, 2);
-                $expected = (int) $sourceEvents->max('charged_miles');
-                $netDebit = abs((int) $ledger
-                    ->where('source_type', $sourceType)
-                    ->where('source_id', $sourceId)
-                    ->whereIn('reason', [MilesReason::AdvisorReservation, MilesReason::AdvisorRefund])
-                    ->sum('amount'));
-
-                return $expected !== $netDebit;
-            })
-            ->count();
+        return $this->customers()->select('id');
     }
 
     private function customers(): Builder
@@ -314,28 +59,450 @@ final class BuildMilesAnalytics
         return User::query()->whereRaw('LOWER(email) != ?', [strtolower((string) config('app.admin_email'))]);
     }
 
-    private function average(int $total, int $count): float
+    /**
+     * Issued, spent and entry count per reason, in one grouped query.
+     *
+     * @return Collection<string, object>
+     */
+    private function ledgerByReason(CarbonInterface $rangeStart): Collection
     {
-        return $count > 0 ? round($total / $count, 1) : 0;
+        return DB::table('mile_ledger_entries')
+            ->whereIn('user_id', $this->customerIds())
+            ->where('created_at', '>=', $rangeStart)
+            ->groupBy('reason')
+            ->selectRaw('reason')
+            ->selectRaw('COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as issued')
+            ->selectRaw('COALESCE(SUM(CASE WHEN amount < 0 THEN -amount ELSE 0 END), 0) as spent')
+            ->selectRaw('COUNT(*) as entries')
+            ->get()
+            ->keyBy('reason');
+    }
+
+    /** @param Collection<string, object> $ledger */
+    private function issued(Collection $ledger, MilesReason $reason): int
+    {
+        return (int) ($ledger->get($reason->value)->issued ?? 0);
+    }
+
+    /** @param Collection<string, object> $ledger */
+    private function spent(Collection $ledger, MilesReason $reason): int
+    {
+        return (int) ($ledger->get($reason->value)->spent ?? 0);
+    }
+
+    /** @param Collection<string, object> $ledger */
+    private function entries(Collection $ledger, MilesReason $reason): int
+    {
+        return (int) ($ledger->get($reason->value)->entries ?? 0);
+    }
+
+    /**
+     * @param  Collection<string, object>  $ledger
+     * @return array<string, int>
+     */
+    private function overview(Collection $ledger): array
+    {
+        $wallets = DB::table('mile_wallets')
+            ->whereIn('user_id', $this->customerIds())
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('COALESCE(SUM(balance), 0) as outstanding')
+            ->first();
+
+        return [
+            'wallets' => (int) $wallets->total,
+            'outstanding' => (int) $wallets->outstanding,
+            // A gift moves Miles rather than making them, so its two halves are
+            // reported as transferred instead of issued and spent.
+            'issued' => (int) $ledger->sum('issued') - $this->issued($ledger, MilesReason::ReferralGiftReceived),
+            'spent' => (int) $ledger->sum('spent') - $this->spent($ledger, MilesReason::ReferralGiftSent),
+            'transferred' => $this->spent($ledger, MilesReason::ReferralGiftSent),
+        ];
+    }
+
+    /**
+     * @param  Collection<string, object>  $ledger
+     * @return array{labels: array<int, string>, issued: array<int, int>, spent: array<int, int>}
+     */
+    private function economy(Collection $ledger): array
+    {
+        $labels = $ledger->keys()->map(fn (mixed $reason): string => (string) $reason)->sort()->values();
+
+        return [
+            'labels' => $labels->all(),
+            'issued' => $labels->map(fn (string $reason): int => (int) $ledger->get($reason)->issued)->all(),
+            'spent' => $labels->map(fn (string $reason): int => (int) $ledger->get($reason)->spent)->all(),
+        ];
+    }
+
+    /** @return array<string, int|float> */
+    private function engagement(CarbonInterface $rangeStart): array
+    {
+        $totals = DB::table('mile_days')
+            ->whereIn('user_id', $this->customerIds())
+            ->where('local_date', '>=', $rangeStart->toDateString())
+            ->selectRaw('COUNT(CASE WHEN claimed_at IS NOT NULL THEN 1 END) as claims')
+            ->selectRaw('COUNT(DISTINCT CASE WHEN claimed_at IS NOT NULL THEN user_id END) as claimers')
+            ->selectRaw('COUNT(CASE WHEN claimed_at IS NOT NULL AND claim_step = 7 THEN 1 END) as completed_cycles')
+            ->selectRaw('COUNT(CASE WHEN activity_miles > 0 THEN 1 END) as activity_days')
+            ->selectRaw('COUNT(DISTINCT CASE WHEN activity_miles > 0 THEN user_id END) as active_users')
+            ->first();
+
+        return [
+            'claimers' => (int) $totals->claimers,
+            'claims' => (int) $totals->claims,
+            'average_claims_per_claimer' => $this->average((int) $totals->claims, (int) $totals->claimers),
+            'completed_cycles' => (int) $totals->completed_cycles,
+            'activity_days' => (int) $totals->activity_days,
+            'average_activity_days_per_active_user' => $this->average((int) $totals->activity_days, (int) $totals->active_users),
+        ];
+    }
+
+    /** @return array{labels: array<int, string>, claimed: array<int, float>, never_claimed: array<int, float>} */
+    private function retention(CarbonInterface $rangeStart): array
+    {
+        $claimed = [];
+        $neverClaimed = [];
+
+        foreach ([1, 7, 30] as $day) {
+            [$claimed[], $neverClaimed[]] = $this->retentionForDay($day, $rangeStart);
+        }
+
+        return ['labels' => ['D1', 'D7', 'D30'], 'claimed' => $claimed, 'never_claimed' => $neverClaimed];
+    }
+
+    /**
+     * Retention on a given day, split by whether the user ever claimed.
+     *
+     * Walked in chunks: the target date depends on each user's own timezone, so
+     * the comparison cannot be pushed into SQL, but nothing more than a chunk
+     * of the cohort is ever held.
+     *
+     * @return array{0: float, 1: float}
+     */
+    private function retentionForDay(int $day, CarbonInterface $rangeStart): array
+    {
+        $totals = ['claimed' => 0, 'never' => 0];
+        $retained = ['claimed' => 0, 'never' => 0];
+
+        $this->customers()
+            ->where('created_at', '>=', $rangeStart)
+            ->where('created_at', '<=', now()->subDays($day))
+            ->select(['id', 'created_at', 'timezone'])
+            ->chunkById(self::CHUNK, function (Collection $users) use ($day, &$totals, &$retained): void {
+                $ids = $users->pluck('id')->all();
+                $claimers = DB::table('mile_days')
+                    ->whereIn('user_id', $ids)
+                    ->whereNotNull('claimed_at')
+                    ->distinct()
+                    ->pluck('user_id')
+                    ->flip();
+
+                // Signup is UTC, mile_days is the user's own date. Comparing
+                // them raw marks anyone who signed up near midnight as churned.
+                $targets = $users->mapWithKeys(fn (User $user): array => [$user->id => $user->created_at
+                    ->copy()
+                    ->setTimezone($user->resolvedTimezone())
+                    ->addDays($day)
+                    ->toDateString()]);
+
+                $covered = DB::table('mile_days')
+                    ->whereIn('user_id', $ids)
+                    ->whereIn('local_date', $targets->values()->unique()->all())
+                    ->where(fn (QueryBuilder $query): QueryBuilder => $query
+                        ->whereNotNull('claimed_at')
+                        ->orWhere('activity_miles', '>', 0))
+                    ->get(['user_id', 'local_date'])
+                    ->mapWithKeys(fn (object $row): array => [
+                        "{$row->user_id}:".CarbonImmutable::parse($row->local_date)->toDateString() => true,
+                    ]);
+
+                foreach ($users as $user) {
+                    $bucket = $claimers->has($user->id) ? 'claimed' : 'never';
+                    $totals[$bucket]++;
+
+                    if ($covered->has("{$user->id}:{$targets[$user->id]}")) {
+                        $retained[$bucket]++;
+                    }
+                }
+            });
+
+        return [
+            $this->percentageOf($retained['claimed'], $totals['claimed']),
+            $this->percentageOf($retained['never'], $totals['never']),
+        ];
+    }
+
+    /** @return array<string, int|float|null> */
+    private function unlocks(CarbonInterface $rangeStart): array
+    {
+        $paidModules = count((array) config('miles.paid_modules'));
+
+        // One row per user rather than one per unlock: the medians need a
+        // distribution across users, not the unlocks themselves.
+        $perUser = DB::table('user_feature_unlocks')
+            ->join('users', 'users.id', '=', 'user_feature_unlocks.user_id')
+            ->whereIn('user_feature_unlocks.user_id', $this->customerIds())
+            ->where('user_feature_unlocks.unlocked_at', '>=', $rangeStart)
+            ->groupBy('user_feature_unlocks.user_id', 'users.created_at')
+            ->selectRaw('user_feature_unlocks.user_id as user_id')
+            ->selectRaw('users.created_at as signed_up_at')
+            ->selectRaw('COUNT(*) as unlocks')
+            ->selectRaw('MIN(user_feature_unlocks.unlocked_at) as first_unlocked_at')
+            ->get();
+
+        $first = $perUser
+            ->map(fn (object $row): float => $this->hoursBetween($row->signed_up_at, $row->first_unlocked_at))
+            ->all();
+
+        return [
+            'total' => (int) $perUser->sum('unlocks'),
+            'median_hours_to_first' => $this->median($first),
+            'median_hours_to_seventh' => $this->median($this->hoursToNthUnlock($perUser, $paidModules, $rangeStart)),
+        ];
+    }
+
+    /**
+     * Hours from signup to the Nth unlock, for the users who reached it.
+     *
+     * Only those users' rows are read, which is a small slice of the table -
+     * everyone still working through the catalogue is excluded by the count.
+     *
+     * @param  Collection<int, object>  $perUser
+     * @return array<int, float>
+     */
+    private function hoursToNthUnlock(Collection $perUser, int $nth, CarbonInterface $rangeStart): array
+    {
+        $completers = $perUser->where('unlocks', '>=', $nth)->keyBy('user_id');
+
+        if ($completers->isEmpty()) {
+            return [];
+        }
+
+        return DB::table('user_feature_unlocks')
+            ->whereIn('user_id', $completers->keys()->all())
+            ->where('unlocked_at', '>=', $rangeStart)
+            ->orderBy('user_id')
+            ->orderBy('unlocked_at')
+            ->get(['user_id', 'unlocked_at'])
+            ->groupBy('user_id')
+            ->map(fn (Collection $rows, int|string $userId): ?float => $rows->count() >= $nth
+                ? $this->hoursBetween($completers[$userId]->signed_up_at, $rows->values()->get($nth - 1)->unlocked_at)
+                : null)
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<string, object>  $ledger
+     * @return array<string, int>
+     */
+    private function protections(Collection $ledger, CarbonInterface $rangeStart): array
+    {
+        $applied = DB::table('streak_protections')
+            ->whereIn('user_id', $this->customerIds())
+            ->where('created_at', '>=', $rangeStart)
+            ->groupBy('type')
+            ->selectRaw('type, COUNT(*) as total')
+            ->pluck('total', 'type');
+
+        return [
+            'freeze_purchases' => $this->entries($ledger, MilesReason::StreakFreeze),
+            'freezes_consumed' => (int) ($applied[StreakProtectionType::Freeze->value] ?? 0),
+            'repair_purchases' => $this->entries($ledger, MilesReason::StreakRepair),
+            'repairs_applied' => (int) ($applied[StreakProtectionType::Repair->value] ?? 0),
+            'weekly_graces' => (int) ($applied[StreakProtectionType::WeeklyGrace->value] ?? 0),
+            'cosmetics_purchased' => DB::table('user_cosmetics')
+                ->whereIn('user_id', $this->customerIds())
+                ->where('acquired_at', '>=', $rangeStart)
+                ->count(),
+        ];
+    }
+
+    /**
+     * @param  Collection<string, object>  $ledger
+     * @return array<string, int>
+     */
+    private function referrals(Collection $ledger, CarbonInterface $rangeStart): array
+    {
+        $referrals = DB::table('referrals')
+            ->whereIn('referrer_id', $this->customerIds())
+            ->where('attributed_at', '>=', $rangeStart)
+            ->selectRaw('COUNT(*) as signups')
+            ->selectRaw("COUNT(CASE WHEN status = 'review' THEN 1 END) as review_holds")
+            ->selectRaw("COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejections")
+            ->first();
+
+        $stages = DB::table('referral_rewards')
+            ->whereIn('referral_id', $this->referralIds($rangeStart))
+            ->where('awarded_at', '>=', $rangeStart)
+            ->groupBy('stage')
+            ->selectRaw('stage, COUNT(*) as total')
+            ->pluck('total', 'stage');
+
+        return [
+            'signups' => (int) $referrals->signups,
+            'activated' => (int) ($stages[ReferralStage::Activated->value] ?? 0),
+            'retained' => (int) ($stages[ReferralStage::Retained->value] ?? 0),
+            'habit' => (int) ($stages[ReferralStage::Habit->value] ?? 0),
+            'review_holds' => (int) $referrals->review_holds,
+            'rejections' => (int) $referrals->rejections,
+            'gifts' => $this->entries($ledger, MilesReason::ReferralGiftSent),
+        ];
+    }
+
+    private function referralIds(CarbonInterface $rangeStart): QueryBuilder
+    {
+        return DB::table('referrals')
+            ->select('id')
+            ->whereIn('referrer_id', $this->customerIds())
+            ->where('attributed_at', '>=', $rangeStart);
+    }
+
+    /**
+     * @param  Collection<string, object>  $ledger
+     * @return array<string, int|float|null>
+     */
+    private function advisor(Collection $ledger, CarbonInterface $rangeStart): array
+    {
+        $totals = $this->advisorEvents($rangeStart)
+            ->selectRaw('COUNT(*) as operations')
+            ->selectRaw('COALESCE(SUM(shadow_miles), 0) as shadow_miles')
+            ->selectRaw('COALESCE(SUM(charged_miles), 0) as charged_miles')
+            ->first();
+        $outcomes = $this->terminalOutcomes($rangeStart);
+        $failures = (int) $outcomes->failures;
+        $recommendations = (int) $outcomes->total;
+
+        return [
+            'operations' => (int) $totals->operations,
+            'recommendations' => $recommendations,
+            'successful_recommendations' => (int) $outcomes->successes,
+            'terminal_failures' => $failures,
+            'terminal_failure_rate' => $this->percentageOf($failures, $recommendations),
+            'provider_cost_p50_usd' => $this->percentile($rangeStart, 'provider_cost_usd', 50),
+            'provider_cost_p95_usd' => $this->percentile($rangeStart, 'provider_cost_usd', 95),
+            'latency_p50_ms' => $this->percentile($rangeStart, 'latency_ms', 50),
+            'latency_p95_ms' => $this->percentile($rangeStart, 'latency_ms', 95),
+            'shadow_miles' => (int) $totals->shadow_miles,
+            'charged_miles' => (int) $totals->charged_miles,
+            'refunded_miles' => $this->issued($ledger, MilesReason::AdvisorRefund),
+            'reconciliation_mismatches' => $this->advisorReconciliationMismatches($rangeStart),
+        ];
+    }
+
+    private function advisorEvents(CarbonInterface $rangeStart): QueryBuilder
+    {
+        return DB::table('service_usage_events')
+            ->whereIn('user_id', $this->customerIds())
+            ->where('service', 'advisor')
+            ->where('created_at', '>=', $rangeStart);
+    }
+
+    /**
+     * One terminal outcome per recommendation, counted in the database.
+     *
+     * A recommendation can emit several events, so its highest id is the one
+     * that says how it ended - ids rise with insertion, which for these rows is
+     * the order they happened.
+     */
+    private function terminalOutcomes(CarbonInterface $rangeStart): object
+    {
+        $terminalIds = $this->advisorEvents($rangeStart)
+            ->where('operation', 'recommendation')
+            ->whereNotNull('source_id')
+            ->groupBy('source_id')
+            ->selectRaw('MAX(id) as id');
+
+        return DB::table('service_usage_events')
+            ->whereIn('id', $terminalIds)
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw("COUNT(CASE WHEN outcome = 'success' THEN 1 END) as successes")
+            ->selectRaw("COUNT(CASE WHEN outcome IN ('failure', 'failed', 'expired') THEN 1 END) as failures")
+            ->first();
+    }
+
+    /**
+     * Recommendations whose charged Miles do not match what the ledger moved.
+     *
+     * Both sides are grouped in the database and compared per recommendation,
+     * which is the cardinality this metric is about.
+     */
+    private function advisorReconciliationMismatches(CarbonInterface $rangeStart): int
+    {
+        $expected = $this->advisorEvents($rangeStart)
+            ->where('operation', 'recommendation')
+            ->whereNotNull('source_id')
+            ->groupBy('source_type', 'source_id')
+            ->selectRaw('source_type, source_id')
+            ->selectRaw('COALESCE(MAX(charged_miles), 0) as expected')
+            ->get()
+            ->keyBy(fn (object $row): string => "{$row->source_type}:{$row->source_id}");
+
+        if ($expected->isEmpty()) {
+            return 0;
+        }
+
+        $moved = DB::table('mile_ledger_entries')
+            ->whereIn('user_id', $this->customerIds())
+            ->whereIn('reason', [MilesReason::AdvisorReservation->value, MilesReason::AdvisorRefund->value])
+            ->whereNotNull('source_id')
+            ->groupBy('source_type', 'source_id')
+            ->selectRaw('source_type, source_id')
+            ->selectRaw('COALESCE(SUM(amount), 0) as net')
+            ->get()
+            ->keyBy(fn (object $row): string => "{$row->source_type}:{$row->source_id}");
+
+        return $expected
+            ->filter(fn (object $row, string $key): bool => (int) $row->expected !== abs((int) ($moved->get($key)->net ?? 0)))
+            ->count();
+    }
+
+    /**
+     * A percentile read by offset rather than by sorting the column in memory.
+     */
+    private function percentile(CarbonInterface $rangeStart, string $column, int $percentile): float|int|null
+    {
+        $count = $this->advisorEvents($rangeStart)->whereNotNull($column)->count();
+
+        if ($count === 0) {
+            return null;
+        }
+
+        $value = $this->advisorEvents($rangeStart)
+            ->whereNotNull($column)
+            ->orderBy($column)
+            ->offset(max(0, (int) ceil(($percentile / 100) * $count) - 1))
+            ->limit(1)
+            ->value($column);
+
+        return $value === null ? null : round((float) $value, 8);
     }
 
     /** @param array<int, int|float> $values */
     private function median(array $values): float|int|null
-    {
-        return $this->percentile($values, 50);
-    }
-
-    /** @param array<int, int|float> $values */
-    private function percentile(array $values, int $percentile): float|int|null
     {
         if ($values === []) {
             return null;
         }
 
         sort($values, SORT_NUMERIC);
-        $index = (int) ceil(($percentile / 100) * count($values)) - 1;
-        $value = $values[max(0, $index)];
 
-        return is_float($value) ? round($value, 8) : $value;
+        return round((float) $values[max(0, (int) ceil(0.5 * count($values)) - 1)], 8);
+    }
+
+    private function hoursBetween(mixed $from, mixed $to): float
+    {
+        return (float) CarbonImmutable::parse((string) $from)->diffInHours(CarbonImmutable::parse((string) $to));
+    }
+
+    private function average(int $total, int $count): float
+    {
+        return $count > 0 ? round($total / $count, 1) : 0;
+    }
+
+    private function percentageOf(int $part, int $whole): float
+    {
+        return $whole > 0 ? round(($part / $whole) * 100, 1) : 0;
     }
 }

@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Models\UserCosmetic;
 use App\Models\UserFeatureUnlock;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
     config(['app.admin_email' => 'admin@example.com']);
@@ -255,4 +256,77 @@ test('retention reads a signup date on the same clock as the activity it counts'
     } finally {
         Carbon::setTestNow();
     }
+});
+
+/** Builds a customer with a claim, an activity day and a spread of ledger rows. */
+function analyticsCustomer(int $index): User
+{
+    $user = User::factory()->create([
+        'email' => "customer{$index}@example.com",
+        'created_at' => now()->subDays(40),
+    ]);
+    MileWallet::factory()->create(['user_id' => $user, 'balance' => 25]);
+
+    foreach ([MilesReason::Welcome, MilesReason::DailyClaim, MilesReason::ModuleUnlock] as $offset => $reason) {
+        MileLedgerEntry::query()->create([
+            'user_id' => $user->id,
+            'amount' => $reason === MilesReason::ModuleUnlock ? -25 : 10,
+            'balance_after' => 25,
+            'reason' => $reason,
+            'idempotency_key' => "seed:{$index}:{$offset}",
+        ]);
+    }
+
+    foreach ([1, 2] as $day) {
+        MileDay::factory()->create([
+            'user_id' => $user,
+            'local_date' => now()->subDays($day)->toDateString(),
+            'claimed_at' => now()->subDays($day),
+            'activity_miles' => 2,
+        ]);
+    }
+
+    return $user;
+}
+
+test('the dashboard costs the same number of queries however much data it summarises', function () {
+    config(['app.admin_email' => 'admin@example.com']);
+
+    $count = function (): array {
+        $queries = [];
+        DB::listen(function ($query) use (&$queries): void {
+            $queries[] = $query;
+        });
+        app(BuildMilesAnalytics::class)(now()->subDays(90));
+        DB::flushQueryLog();
+
+        return $queries;
+    };
+
+    foreach (range(1, 3) as $index) {
+        analyticsCustomer($index);
+    }
+    $small = $count();
+
+    foreach (range(4, 15) as $index) {
+        analyticsCustomer($index);
+    }
+    $large = $count();
+
+    // Five times the rows, the same work: nothing here iterates the data.
+    expect(count($large))->toBe(count($small));
+
+    // The ledger and the usage log are the tables that grow without bound, so
+    // neither may be read row by row - every touch aggregates, or takes a
+    // single row by limit. Reading a year of either to count it is the failure
+    // this guards.
+    $rowWise = collect($large)
+        ->filter(fn ($query): bool => str_contains($query->sql, 'mile_ledger_entries')
+            || str_contains($query->sql, 'service_usage_events'))
+        ->reject(fn ($query): bool => (bool) preg_match('/(sum|count|max|min)\s*\(/i', $query->sql)
+            || str_contains(strtolower($query->sql), 'limit'))
+        ->pluck('sql')
+        ->all();
+
+    expect($rowWise)->toBe([]);
 });

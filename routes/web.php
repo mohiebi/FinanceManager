@@ -24,6 +24,7 @@ use App\Http\Controllers\InvestmentController;
 use App\Http\Controllers\InvestmentExportController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MilesClaimController;
+use App\Http\Controllers\MilesController;
 use App\Http\Controllers\MilesCosmeticController;
 use App\Http\Controllers\MilesGiftController;
 use App\Http\Controllers\MilesProtectionController;
@@ -117,6 +118,7 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(function () {
+    Route::get('miles', MilesController::class)->name('miles.index');
     Route::post('miles/claim', MilesClaimController::class)
         ->middleware('throttle:10,1')
         ->name('miles.claim');

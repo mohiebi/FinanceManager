@@ -21,6 +21,12 @@ return [
     'confirm_disable_action' => 'Ausschalten',
     'cancel' => 'Abbrechen',
     'requires' => 'Benötigt {features}',
+    'activation' => [
+        'title' => '{module} aktivieren?',
+        'body' => 'Dadurch werden {features} dauerhaft für {miles} Meilen freigeschaltet. Späteres Deaktivieren ist kostenlos und behält den Besitz.',
+        'shortfall' => 'Dir fehlen noch {miles} Meilen.',
+        'confirm' => 'Für {miles} aktivieren',
+    ],
 
     'upgrade' => [
         'title' => '{module} ist ein Pro-Modul',

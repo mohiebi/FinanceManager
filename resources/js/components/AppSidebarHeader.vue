@@ -13,6 +13,7 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import MilesPill from '@/components/MilesPill.vue';
 import NotificationBell from '@/components/NotificationBell.vue';
 import {
     DropdownMenu,
@@ -190,6 +191,7 @@ function changeLocale(value: string) {
                 </div>
 
                 <div class="flex shrink-0 items-center gap-1.5 lg:hidden">
+                    <MilesPill compact />
                     <NotificationBell />
                     <Link
                         :href="editProfile()"
@@ -376,6 +378,9 @@ function changeLocale(value: string) {
             <div
                 class="flex flex-wrap items-center gap-2 lg:flex-nowrap lg:gap-2.5"
             >
+                <div class="hidden lg:block">
+                    <MilesPill />
+                </div>
                 <!-- Currency switcher -->
                 <div
                     v-if="hasCurrencySelector"

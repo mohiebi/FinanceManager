@@ -9,6 +9,7 @@ import {
     installDiagnostics,
     reportInertiaEvent,
 } from '@/lib/diagnostics';
+import type { MilesShortfall } from '@/types/miles';
 
 const appName = import.meta.env.VITE_APP_NAME || 'CashPilot';
 
@@ -116,9 +117,28 @@ createInertiaApp({
 });
 
 router.on('httpException', (event) => {
-    reportInertiaEvent(
-        `httpException status=${(event.detail as { response?: { status?: number } }).response?.status ?? '?'}`,
-    );
+    const response = event.detail.response;
+
+    reportInertiaEvent(`httpException status=${response?.status ?? '?'}`);
+
+    if (response.status !== 402) {
+        return;
+    }
+
+    try {
+        const payload = JSON.parse(response.data) as MilesShortfall;
+
+        if (payload.error === 'insufficient_miles') {
+            event.preventDefault();
+            window.dispatchEvent(
+                new CustomEvent<MilesShortfall>('miles:shortfall', {
+                    detail: payload,
+                }),
+            );
+        }
+    } catch {
+        // Let Inertia render its normal exception screen for malformed payloads.
+    }
 });
 
 router.on('networkError', () => {

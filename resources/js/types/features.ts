@@ -45,6 +45,11 @@ export type ModuleCard = {
      * rather than a toggle, because turning it on re-keys the user's data.
      */
     manage_url: string | null;
+    unlocked: boolean;
+    activation_cost: number;
+    unlock_features: string[];
+    can_afford: boolean;
+    shortfall: number;
 };
 
 export type CoreModuleCard = {

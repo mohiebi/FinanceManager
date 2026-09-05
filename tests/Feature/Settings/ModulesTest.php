@@ -248,53 +248,33 @@ test('every module that claims a nav entry has one', function () {
  * costs. It stays operable now and opens a dialog instead; the server's
  * rejection is unchanged and still the thing that enforces entitlement.
  */
-test('a pro locked module opens the upgrade dialog instead of saving', function () {
+test('a locked module opens a Miles activation confirmation instead of saving immediately', function () {
     $page = file_get_contents(resource_path('js/pages/settings/Modules.vue'));
 
-    expect($page)->toContain('function isProLocked')
-        // The switch must stay operable for exactly this case, and no other.
-        ->and($page)->toContain('!module.may_use && !isProLocked(module)')
-        // Turning one on opens the dialog and sends nothing.
-        ->and($page)->toContain('if (next && isProLocked(module))')
-        ->and($page)->toContain('pendingUpgrade.value = module')
-        // Buying is the user's move from inside the dialog, never a redirect
-        // the toggle performs on their behalf.
-        ->and($page)->toContain('billingEdit().url')
-        ->and($page)->toContain("t('modules.upgrade.later')");
+    expect($page)->toContain('if (next && module.activation_cost > 0)')
+        ->and($page)->toContain('pendingActivation.value = module')
+        ->and($page)->toContain('pendingActivation.unlock_features.join')
+        ->and($page)->toContain('confirmActivation')
+        ->and($page)->toContain("t('modules.activation.confirm'");
 });
 
-test('the upgrade dialog offers no plans page while billing is switched off', function () {
-    // `billing.edit` 404s when the catalog is unavailable, so the button that
-    // leads there has to be gated on the same switch the settings nav reads.
+test('an unaffordable activation shows its exact shortfall and cannot submit', function () {
     $page = file_get_contents(resource_path('js/pages/settings/Modules.vue'));
 
-    expect($page)->toContain('subscription?.billing_enabled === true')
-        ->and($page)->toContain('v-if="billingEnabled"');
+    expect($page)->toContain('!pendingActivation.can_afford')
+        ->and($page)->toContain('pendingActivation.shortfall')
+        ->and($page)->toContain(':disabled="!pendingActivation.can_afford"');
 });
 
-test('the upgrade dialog leads somewhere a free user can actually open', function () {
-    // The full helper, not just the master switch. `billing.edit` is gated on
-    // three things — the switch, a priced plan and a chain with an address, an
-    // endpoint and a payable asset — and setting only the first left the other
-    // two to whatever the developer happened to have in their own .env. It
-    // passed on a machine configured for real payments and 404'd everywhere
-    // else, including against the committed defaults.
-    enableBilling();
-
-    $this->actingAs(User::factory()->create())
-        ->get(route('billing.edit'))
-        ->assertOk();
-});
-
-test('the upgrade dialog is written in every locale', function () {
+test('the activation dialog is written in every locale', function () {
     $missing = [];
 
     foreach (['en', 'fa', 'de'] as $locale) {
         $modules = require resource_path("lang/{$locale}/modules.php");
 
-        foreach (['title', 'body', 'note', 'unavailable', 'continue', 'later'] as $key) {
-            if (! isset($modules['upgrade'][$key])) {
-                $missing[] = "{$locale}.upgrade.{$key}";
+        foreach (['title', 'body', 'shortfall', 'confirm'] as $key) {
+            if (! isset($modules['activation'][$key])) {
+                $missing[] = "{$locale}.activation.{$key}";
             }
         }
     }

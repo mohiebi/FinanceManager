@@ -15,7 +15,7 @@ const mobileSidebar = source(
 );
 const modulesPage = source('../../resources/js/pages/settings/Modules.vue');
 
-test('module badges use the product tier instead of entitlement state', () => {
+test('module settings use Miles activation instead of Pro badges', () => {
     assert.match(moduleNavigation, /tier: state\.tier/);
     assert.match(sidebar, /modules\.tiers\.\$\{item\.tier\}/);
     assert.match(mobileSidebar, /modules\.tiers\.\$\{item\.tier\}/);
@@ -31,9 +31,12 @@ test('module badges use the product tier instead of entitlement state', () => {
     assert.match(mobileSidebar, /item\.tier === 'pro' \|\|/);
     assert.match(sidebar, /<Crown/);
     assert.match(mobileSidebar, /<Crown/);
-    assert.match(modulesPage, /v-if="module\.tier === 'pro'"/);
-    assert.match(modulesPage, /modules\.tiers\.pro/);
-    assert.match(modulesPage, /<Crown/);
+    assert.match(modulesPage, /module\.activation_cost > 0/);
+    assert.match(modulesPage, /pendingActivation\.unlock_features/);
+    assert.match(modulesPage, /module\.can_afford/);
+    assert.match(modulesPage, /pendingActivation\.shortfall/);
+    assert.doesNotMatch(modulesPage, /modules\.tiers\.pro/);
+    assert.doesNotMatch(modulesPage, /<Crown/);
 });
 
 test('a locked module links to its own paywall, not to the modules page', () => {

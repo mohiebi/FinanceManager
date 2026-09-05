@@ -21,6 +21,12 @@ return [
     'confirm_disable_action' => 'Turn off',
     'cancel' => 'Cancel',
     'requires' => 'Needs {features}',
+    'activation' => [
+        'title' => 'Activate {module}?',
+        'body' => 'This permanently unlocks {features} for {miles} Miles. Turning modules off later is free and keeps ownership.',
+        'shortfall' => 'You need {miles} more Miles.',
+        'confirm' => 'Activate for {miles}',
+    ],
 
     // Shown when someone without Pro reaches for a Pro module. Rendered by
     // vue-i18n, so the placeholder is {module} rather than :module.

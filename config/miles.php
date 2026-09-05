@@ -4,6 +4,7 @@ use App\Enums\Feature;
 
 return [
     'enabled' => env('MILES_ENABLED', true),
+    'ui_enabled' => env('MILES_UI_ENABLED', true),
     'advisor_charging' => env('MILES_ADVISOR_CHARGING', false),
     'cosmetics_enabled' => env('MILES_COSMETICS_ENABLED', true),
     'gifting_enabled' => env('MILES_GIFTING_ENABLED', true),

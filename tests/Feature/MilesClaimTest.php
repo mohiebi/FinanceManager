@@ -2,6 +2,9 @@
 
 use App\Actions\Miles\AwardDailyActivity;
 use App\Actions\Miles\ClaimDailyMiles;
+use App\Enums\Milestone;
+use App\Models\Category;
+use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 
@@ -57,4 +60,24 @@ test('moving the clock backwards through a timezone change cannot mint a second 
         ->and($user->mileDays()->whereNotNull('claimed_at')->count())->toBe(1);
 
     Carbon::setTestNow();
+});
+
+test('cycling a record through create and delete cannot repeat the daily activity bonus', function () {
+    $user = User::factory()->create(['timezone' => 'UTC']);
+    $category = Category::factory()->cost()->create();
+
+    foreach (range(1, 5) as $ignored) {
+        $transaction = Transaction::factory()->cost()->for($user)->for($category)->create([
+            'occurred_at' => $user->localToday()->toDateString(),
+        ]);
+        $transaction->delete();
+    }
+
+    // The day is what was paid for, not the row - so deleting it back out
+    // leaves nothing to earn again. The balance is the one activity bonus plus
+    // the first-transaction milestone, both of which fire exactly once.
+    expect($user->mileDays()->sole()->activity_miles)->toBe(2)
+        ->and($user->mileLedgerEntries()->where('reason', 'daily_activity')->count())->toBe(1)
+        ->and($user->milestones()->where('key', Milestone::FirstTransaction->value)->count())->toBe(1)
+        ->and($user->mileWallet()->value('balance'))->toBe(2 + Milestone::FirstTransaction->miles());
 });

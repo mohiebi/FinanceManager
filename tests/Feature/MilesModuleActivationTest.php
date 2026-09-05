@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Features\UpdateUserFeature;
 use App\Actions\Miles\ActivateUserFeature;
 use App\Actions\Miles\AdjustMiles;
 use App\Enums\Feature;
@@ -61,4 +62,33 @@ test('an unaffordable module activation returns the structured 402', function ()
         'shortfall' => 25,
         'action' => 'module_unlock',
     ]);
+});
+
+test('arming the vault evicts the integrations it conflicts with but never their ownership', function () {
+    $user = User::factory()->create();
+    app(AdjustMiles::class)($user, 50, MilesReason::AdminAdjustment, 'seed');
+    $activate = app(ActivateUserFeature::class);
+
+    $activate($user, Feature::AiAssistant, true);
+    $activate($user, Feature::TelegramBot, true);
+
+    expect($user->mileWallet()->value('balance'))->toBe(0);
+
+    // The vault takes the server's key away, so a cron job or an MCP call has
+    // nowhere to decrypt - both integrations are switched off for safety.
+    app(UpdateUserFeature::class)->force($user, Feature::Vault, true);
+    $user->forgetFeatureSet();
+
+    expect($user->hasFeature(Feature::AiAssistant))->toBeFalse()
+        ->and($user->hasFeature(Feature::TelegramBot))->toBeFalse()
+        // Safety is not a refund event, and it is not a repurchase event either.
+        ->and($user->featureUnlocks()->count())->toBe(2);
+
+    app(UpdateUserFeature::class)->force($user, Feature::Vault, false);
+    $user->forgetFeatureSet();
+    $activate($user, Feature::AiAssistant, true);
+
+    expect($user->hasFeature(Feature::AiAssistant))->toBeTrue()
+        ->and($user->mileWallet()->value('balance'))->toBe(0)
+        ->and($user->featureUnlocks()->count())->toBe(2);
 });

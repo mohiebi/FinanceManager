@@ -163,3 +163,25 @@ it('presents assessment recommendation and consultation prices before use', func
             ->where('recommendation.quoted_miles', 0)
             ->where('recommendation.charged_miles', 0));
 });
+
+it('refunds in full when the vault holding window closes before the user returns', function () {
+    config()->set('miles.advisor_charging', true);
+    $user = User::factory()->create();
+    app(AdjustMiles::class)($user, 300, MilesReason::AdminAdjustment, 'seed');
+    $recommendation = AdvisorRecommendation::factory()->for($user)->create([
+        'status' => AdvisorRecommendationStatus::Generating,
+    ]);
+
+    $reserved = app(ReserveAdvisorMiles::class)($recommendation);
+    expect($user->mileWallet()->first()->balance)->toBe(125);
+
+    // The generation succeeded, so nothing here is a job failure — the browser
+    // simply never came back inside advisor.pending_payload_lifetime and the
+    // plaintext is gone. Charging for a result nobody can ever open would be
+    // taking Miles for nothing.
+    $settled = app(SettleAdvisorMiles::class)($reserved, 'failure');
+
+    expect($settled->charged_miles)->toBe(0)
+        ->and($settled->miles_outcome)->toBe('failure')
+        ->and($user->mileWallet()->first()->balance)->toBe(300);
+});

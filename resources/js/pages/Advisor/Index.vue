@@ -38,6 +38,10 @@ const props = defineProps<{
     assessment: AssessmentSummary | null;
     profile: ProfileSummary | null;
     recommendations: RecommendationSummary[];
+    assessmentPricing: {
+        miles: number;
+        charging: boolean;
+    };
 }>();
 
 const { t } = useI18n();
@@ -219,6 +223,18 @@ defineOptions({
                 >
                     <span>{{ t('advisor.duration') }}</span>
                     <span>{{ t('advisor.question_count') }}</span>
+                    <span class="text-[#d9c48f]">
+                        {{
+                            props.assessmentPricing.miles === 0
+                                ? t('advisor.miles.assessment_free')
+                                : t('advisor.miles.assessment_price', {
+                                      miles: props.assessmentPricing.miles,
+                                  })
+                        }}
+                        <template v-if="!props.assessmentPricing.charging">
+                            · {{ t('advisor.miles.shadow') }}
+                        </template>
+                    </span>
                 </div>
 
                 <AdvisorPillars variant="columns" class="mt-[58px]" />

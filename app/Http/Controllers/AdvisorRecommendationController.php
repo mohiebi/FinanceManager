@@ -168,6 +168,10 @@ class AdvisorRecommendationController extends Controller
                 'created_at' => $message->created_at->toIso8601String(),
             ]),
             'vaultArmed' => $request->user()->vaultIsArmed(),
+            'consultationPricing' => [
+                'miles' => (int) config('miles.advisor.consultation'),
+                'charging' => (bool) config('miles.advisor_charging'),
+            ],
         ]);
     }
 }

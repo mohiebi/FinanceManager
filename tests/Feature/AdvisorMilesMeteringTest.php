@@ -8,10 +8,12 @@ use App\Actions\Miles\ReserveAdvisorMiles;
 use App\Actions\Miles\SettleAdvisorMiles;
 use App\Enums\AdvisorRecommendationStatus;
 use App\Enums\MilesReason;
+use App\Models\AdvisorProfile;
 use App\Models\AdvisorRecommendation;
 use App\Models\InvestorAssessment;
 use App\Models\ServiceUsageEvent;
 use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
 
 it('quotes recommendations without debiting during shadow mode', function () {
     $user = User::factory()->create();
@@ -121,4 +123,43 @@ it('refunds a failed consultation reservation', function () {
 
     expect($charged)->toBe(15)
         ->and($user->mileWallet()->first()->balance)->toBe(30);
+});
+
+it('presents assessment recommendation and consultation prices before use', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('advisor.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('assessmentPricing.miles', 0)
+            ->where('assessmentPricing.charging', false));
+
+    $assessment = InvestorAssessment::factory()->completed()->for($user)->create();
+    $profile = AdvisorProfile::factory()->for($user)->create([
+        'investor_assessment_id' => $assessment->getKey(),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('advisor.profile'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('recommendationPricing.full_miles', 175)
+            ->where('recommendationPricing.guidance_miles', 80)
+            ->where('recommendationPricing.charging', false));
+
+    $recommendation = AdvisorRecommendation::factory()->for($user)->create([
+        'advisor_profile_id' => $profile->getKey(),
+        'miles_outcome' => 'full',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('advisor.profile'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('recommendationPricing.full_miles', 250));
+
+    $this->actingAs($user)
+        ->get(route('advisor.recommendations.show', $recommendation))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('consultationPricing.miles', 15)
+            ->where('recommendation.quoted_miles', 0)
+            ->where('recommendation.charged_miles', 0));
 });

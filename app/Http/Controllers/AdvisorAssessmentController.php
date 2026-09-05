@@ -23,7 +23,7 @@ use Inertia\Response;
 
 class AdvisorAssessmentController extends Controller
 {
-    public function show(Request $request, InvestorAssessment $assessment, AdvisorAssessmentDefinition $definition): Response
+    public function show(Request $request, InvestorAssessment $assessment, AdvisorAssessmentDefinition $definition, ChargeAdvisorAssessment $chargeAdvisorAssessment): Response
     {
         $section = max(1, min(8, (int) $request->integer('section', min(8, $assessment->last_completed_section + 1))));
 
@@ -45,6 +45,10 @@ class AdvisorAssessmentController extends Controller
                 ...$this->classifyAsset($asset->slug),
             ]),
             'vaultArmed' => $request->user()->vaultIsArmed(),
+            'completionPricing' => [
+                'miles' => $chargeAdvisorAssessment->quote($request->user(), $assessment),
+                'charging' => (bool) config('miles.advisor_charging'),
+            ],
         ]);
     }
 

@@ -167,4 +167,7 @@ export type RecommendationProp = {
     provider_calls: number;
     repair_attempts: number;
     created_at: string;
+    quoted_miles: number;
+    charged_miles: number;
+    miles_outcome: string | null;
 };

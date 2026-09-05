@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Miles\ChargeAdvisorAssessment;
 use App\Enums\Feature;
 use App\Enums\InvestorAssessmentStatus;
 use App\Http\Middleware\EnsureFeatureEnabled;
@@ -22,7 +23,7 @@ class AdvisorController extends Controller
      * to switch it back on, but a user without the Pro entitlement would find
      * only a locked row there. They get the paywall.
      */
-    public function index(Request $request): Response|RedirectResponse
+    public function index(Request $request, ChargeAdvisorAssessment $chargeAdvisorAssessment): Response|RedirectResponse
     {
         $user = $request->user();
 
@@ -59,6 +60,10 @@ class AdvisorController extends Controller
                 'mode' => $recommendation->mode->value,
                 'generated_at' => $recommendation->generated_at?->toIso8601String(),
             ]),
+            'assessmentPricing' => [
+                'miles' => $chargeAdvisorAssessment->quote($user),
+                'charging' => (bool) config('miles.advisor_charging'),
+            ],
         ]);
     }
 

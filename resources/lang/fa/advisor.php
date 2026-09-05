@@ -29,6 +29,14 @@ return [
         'subtitle' => 'نمای کلی',
         'in_progress' => 'ارزیابی در جریان',
     ],
+    'miles' => [
+        'assessment_free' => 'هر ۳۰ روز یک تکمیل رایگان',
+        'assessment_price' => 'هزینهٔ تکمیل: {miles} مایل',
+        'recommendation_price' => 'تا {miles} مایل · راهنمایی با {guidance} مایل تسویه می‌شود',
+        'consultation_price' => '{miles} مایل برای هر پیام',
+        'shadow' => 'فقط پیش‌نمایش — مایلی کسر نمی‌شود',
+        'shortfall' => 'برای ادامه {miles} مایل دیگر به‌دست آورید',
+    ],
     'paywall' => [
         'subtitle' => 'ویژگی حرفه‌ای',
         'unlock' => 'فعال‌سازی مشاور با نسخهٔ حرفه‌ای',

@@ -25,7 +25,7 @@ function collect(): void {
         {
             preserveScroll: true,
             preserveState: true,
-            only: ['miles', 'overview'],
+            only: ['miles', 'overview', 'milesClaim'],
             onSuccess: () => {
                 announceClaim(page.props.milesClaim);
             },

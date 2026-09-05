@@ -46,6 +46,27 @@ test('the claim schedule totals thirty miles', function () {
     expect(array_sum(config('miles.daily_claims')))->toBe(30);
 });
 
+test('the claim response flashes the collected and following rewards', function () {
+    $user = User::factory()->create(['timezone' => 'UTC']);
+
+    $this->actingAs($user)
+        ->post(route('miles.claim'))
+        ->assertRedirect()
+        ->assertSessionHas('milesClaim', fn (array $claim): bool => $claim['miles'] === 3
+            && $claim['step'] === 1
+            && $claim['nextReward'] === 3);
+
+    Carbon::setTestNow(now()->addDay());
+
+    $this->actingAs($user)
+        ->post(route('miles.claim'))
+        ->assertRedirect()
+        ->assertSessionHas('milesClaim', fn (array $claim): bool => $claim['step'] === 2
+            && $claim['nextReward'] === 3);
+
+    Carbon::setTestNow();
+});
+
 test('moving the clock backwards through a timezone change cannot mint a second claim', function () {
     // 00:30 UTC is already the 5th in Kiritimati (UTC+14) but still the 4th in
     // Midway (UTC-11), so switching between them rewinds the user's local date.

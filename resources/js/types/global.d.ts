@@ -1,7 +1,7 @@
 import type { Auth } from '@/types/auth';
 import type { SubscriptionState } from '@/types/billing';
 import type { FeatureMap } from '@/types/features';
-import type { MilesShared } from '@/types/miles';
+import type { MilesClaimed, MilesShared } from '@/types/miles';
 import type { NotificationData } from '@/types/notifications';
 import type { VaultDescriptor } from '@/types/vault';
 

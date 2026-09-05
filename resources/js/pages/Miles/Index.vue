@@ -108,7 +108,7 @@ function post(
     processing.value = key;
     router.post(url, data, {
         preserveScroll: true,
-        only: ['overview', 'miles', 'history'],
+        only: ['overview', 'miles', 'history', 'milesClaim'],
         onSuccess,
         onFinish: () => {
             processing.value = null;

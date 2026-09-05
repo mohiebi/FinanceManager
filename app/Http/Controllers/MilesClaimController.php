@@ -16,6 +16,7 @@ class MilesClaimController extends Controller
     ): RedirectResponse {
         $day = $claimDailyMiles($request->user());
         $overview = $milesOverview($request->user()->refresh());
+        $nextStep = ((int) $day->claim_step % count((array) config('miles.daily_claims'))) + 1;
 
         // Flashed rather than derived in the browser: the step and reward are
         // decided server-side, and the client cannot infer them from a prop
@@ -26,7 +27,7 @@ class MilesClaimController extends Controller
                 'miles' => (int) $day->claim_miles,
                 'step' => (int) $day->claim_step,
                 'balance' => (int) $overview['balance'],
-                'nextReward' => (int) $overview['nextClaimReward'],
+                'nextReward' => (int) config('miles.daily_claims.'.($nextStep - 1)),
             ]);
     }
 }

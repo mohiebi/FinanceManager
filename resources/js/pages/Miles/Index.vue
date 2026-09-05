@@ -530,7 +530,9 @@ function formatDate(value: string): string {
                             }}</span
                         >
                     </div>
-                    <ul class="mt-4 max-h-72 space-y-2 overflow-y-auto pe-1">
+                    <ul
+                        class="app-scroll-thin mt-4 max-h-72 space-y-2 overflow-y-auto pe-1"
+                    >
                         <li
                             v-for="milestone in props.overview.milestones"
                             :key="milestone.key"

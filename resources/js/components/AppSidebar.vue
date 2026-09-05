@@ -99,7 +99,7 @@ const initial = computed(
                 <!-- ── Grouped navigation ───────────────────────────── -->
                 <nav
                     data-sidebar-scroll
-                    class="sidebar-nav-scroll flex min-h-0 flex-1 touch-pan-y flex-col gap-5 overflow-x-hidden overflow-y-auto overscroll-contain pe-1 pb-3"
+                    class="app-scroll-thin flex min-h-0 flex-1 touch-pan-y flex-col gap-5 overflow-x-hidden overflow-y-auto overscroll-contain pe-1 pb-3"
                     :aria-label="t('navigation.primary')"
                 >
                     <div
@@ -278,27 +278,3 @@ const initial = computed(
     </Sidebar>
     <slot />
 </template>
-
-<style scoped>
-.sidebar-nav-scroll {
-    scrollbar-color: rgb(255 255 255 / 22%) transparent;
-    scrollbar-width: thin;
-}
-
-.sidebar-nav-scroll::-webkit-scrollbar {
-    width: 5px;
-}
-
-.sidebar-nav-scroll::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.sidebar-nav-scroll::-webkit-scrollbar-thumb {
-    border-radius: 9999px;
-    background: rgb(255 255 255 / 22%);
-}
-
-.sidebar-nav-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgb(255 255 255 / 34%);
-}
-</style>

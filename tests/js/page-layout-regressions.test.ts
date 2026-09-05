@@ -83,3 +83,29 @@ test('the two-factor challenge is an auth transition too', () => {
 
     assert.equal(forms?.length, 2);
 });
+
+test('every panel that scrolls inside the page shares one scrollbar', () => {
+    // Firefox reads the two standard properties; Chrome and Safari still only
+    // honour the ::-webkit- rules, so dropping either half leaves half the
+    // users looking at an OS-default slab on a dark card.
+    assert.match(styles, /\.app-scroll-thin\s*\{[^}]*scrollbar-width:\s*thin/);
+    assert.match(styles, /\.app-scroll-thin::-webkit-scrollbar\s*\{/);
+    assert.match(styles, /\.app-scroll-thin::-webkit-scrollbar-thumb\s*\{/);
+
+    // The rules used to live in AppSidebar's scoped block, where nothing else
+    // could reach them. Anything left behind there would be a second answer.
+    const sidebar = source('../../resources/js/components/AppSidebar.vue');
+    assert.match(sidebar, /app-scroll-thin/);
+    assert.doesNotMatch(sidebar, /sidebar-nav-scroll/);
+    assert.doesNotMatch(sidebar, /::-webkit-scrollbar/);
+
+    for (const path of [
+        '../../resources/js/pages/Miles/Index.vue',
+        '../../resources/js/components/NotificationBell.vue',
+        '../../resources/js/components/admin/AdminCustomerDrawer.vue',
+        '../../resources/js/components/transactions/TransactionDialog.vue',
+        '../../resources/js/layouts/app/AppSidebarLayout.vue',
+    ]) {
+        assert.match(source(path), /app-scroll-thin/, path);
+    }
+});

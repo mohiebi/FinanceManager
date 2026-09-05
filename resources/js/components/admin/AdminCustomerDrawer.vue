@@ -62,7 +62,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
         >
             <aside
                 v-if="user"
-                class="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col overflow-y-auto bg-[#161616] p-6 text-white ring-1 ring-white/10"
+                class="app-scroll-thin fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col overflow-y-auto bg-[#161616] p-6 text-white ring-1 ring-white/10"
                 role="dialog"
                 aria-modal="true"
                 :aria-label="`Customer details for ${user.name}`"

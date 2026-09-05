@@ -91,7 +91,7 @@ const markAllRead = () => {
                 </button>
             </div>
 
-            <div class="max-h-80 overflow-y-auto">
+            <div class="app-scroll-thin max-h-80 overflow-y-auto">
                 <div
                     v-if="recent.length === 0"
                     class="flex flex-col items-center gap-1 px-4 py-8 text-center"

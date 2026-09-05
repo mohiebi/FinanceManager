@@ -222,7 +222,7 @@ function changeLocale(value: string) {
                                 t('navigation.primary')
                             }}</SheetTitle>
                             <div
-                                class="flex h-full flex-col gap-5 overflow-y-auto px-4 pt-6 pb-10"
+                                class="app-scroll-thin flex h-full flex-col gap-5 overflow-y-auto px-4 pt-6 pb-10"
                             >
                                 <nav
                                     v-for="group in navGroups"

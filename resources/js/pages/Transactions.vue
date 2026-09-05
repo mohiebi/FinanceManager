@@ -512,7 +512,7 @@
             @update:open="handleImportDialogOpenChange"
         >
             <DialogContent
-                class="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[16px] border-0 bg-[#1a1a1a] p-0 text-white shadow-2xl ring-1 ring-white/10 sm:max-w-[980px]"
+                class="app-scroll-thin max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[16px] border-0 bg-[#1a1a1a] p-0 text-white shadow-2xl ring-1 ring-white/10 sm:max-w-[980px]"
             >
                 <div class="space-y-6 px-6 py-8">
                     <DialogHeader class="space-y-2 text-start">

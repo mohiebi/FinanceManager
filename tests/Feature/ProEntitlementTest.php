@@ -130,14 +130,13 @@ test('pro_until cannot be mass assigned', function () {
     expect($user->fresh()->isPro())->toBeFalse();
 });
 
-test('advisor is the pro feature while all existing modules remain free', function () {
+test('no module is pro gated now that Miles meter usage instead', function () {
     $free = User::factory()->create();
     $pro = User::factory()->pro()->create();
 
     foreach (Feature::cases() as $feature) {
-        $expectedTier = $feature === Feature::Advisor ? FeatureTier::Pro : FeatureTier::Free;
-        expect($feature->tier())->toBe($expectedTier)
-            ->and($free->mayUse($feature))->toBe($feature !== Feature::Advisor)
+        expect($feature->tier())->toBe(FeatureTier::Free)
+            ->and($free->mayUse($feature))->toBeTrue()
             ->and($pro->mayUse($feature))->toBeTrue();
     }
 

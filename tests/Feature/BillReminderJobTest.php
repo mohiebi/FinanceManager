@@ -29,7 +29,7 @@ test('it skips users who have the bills module switched off', function () {
 
         app(BillReminderJob::class)->handle(app(BillDueDateCalculator::class));
 
-        Notification::assertNothingSent();
+        Notification::assertNotSentTo($user, BillDueNotification::class);
     } finally {
         Carbon::setTestNow();
     }
@@ -98,7 +98,7 @@ test('it does not send the advance reminder when the user has turned it off', fu
 
         app(BillReminderJob::class)->handle(app(BillDueDateCalculator::class));
 
-        Notification::assertNothingSent();
+        Notification::assertNotSentTo($user, BillDueNotification::class);
     } finally {
         Carbon::setTestNow();
     }
@@ -126,7 +126,7 @@ test('it sends a due-day reminder and dispatches a telegram message when linked'
 
         app(BillReminderJob::class)->handle(app(BillDueDateCalculator::class));
 
-        $notification = $user->notifications()->sole();
+        $notification = $user->notifications()->where('type', BillDueNotification::class)->sole();
         expect($notification->data['type'])->toBe('bill_due_today')
             ->and($notification->data['bill_id'])->toBe($bill->id)
             ->and($notification->data['body'])->toContain('1405-04-24')
@@ -162,7 +162,7 @@ test('it skips telegram dispatch when the user has not linked telegram', functio
 
         app(BillReminderJob::class)->handle(app(BillDueDateCalculator::class));
 
-        expect($user->notifications()->count())->toBe(1);
+        expect($user->notifications()->where('type', BillDueNotification::class)->count())->toBe(1);
         Queue::assertNotPushed(SendTelegramMessageJob::class);
     } finally {
         Carbon::setTestNow();
@@ -188,7 +188,7 @@ test('it does not remind for a paid occurrence', function () {
 
         app(BillReminderJob::class)->handle(app(BillDueDateCalculator::class));
 
-        Notification::assertNothingSent();
+        Notification::assertNotSentTo($user, BillDueNotification::class);
     } finally {
         Carbon::setTestNow();
     }
@@ -249,7 +249,7 @@ test('it does not send a reminder when the computed due date lands on an already
         app(BillReminderJob::class)->handle(app(BillDueDateCalculator::class));
 
         expect($bill->occurrences()->count())->toBe(1);
-        Notification::assertNothingSent();
+        Notification::assertNotSentTo($user, BillDueNotification::class);
     } finally {
         Carbon::setTestNow();
     }

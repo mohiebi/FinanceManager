@@ -5,6 +5,7 @@ use App\Enums\Feature;
 use App\Enums\MilesReason;
 use App\Enums\ReferralStage;
 use App\Enums\StreakProtectionType;
+use App\Models\AdvisorRecommendation;
 use App\Models\MileDay;
 use App\Models\MileLedgerEntry;
 use App\Models\MileWallet;
@@ -122,6 +123,14 @@ test('it reports the Miles economy retention sinks referrals and advisor costs',
             'stage' => ReferralStage::Activated,
             'awarded_at' => now()->subDays(3),
         ]);
+        $successfulRecommendation = AdvisorRecommendation::factory()->for($claimer)->create([
+            'miles_outcome' => 'full',
+            'miles_settled_at' => now()->subDays(2),
+        ]);
+        $failedRecommendation = AdvisorRecommendation::factory()->for($claimer)->create([
+            'miles_outcome' => 'failure',
+            'miles_settled_at' => now()->subDay(),
+        ]);
         ServiceUsageEvent::factory()->create([
             'user_id' => $claimer,
             'provider_cost_usd' => 0.1,
@@ -131,7 +140,7 @@ test('it reports the Miles economy retention sinks referrals and advisor costs',
             // A real advisor event always names the recommendation it belongs
             // to; the gate counts one terminal outcome per distinct source.
             'source_type' => 'advisor_recommendation',
-            'source_id' => 'rec-analytics-one',
+            'source_id' => $successfulRecommendation->id,
             'created_at' => now()->subDays(2),
         ]);
         ServiceUsageEvent::factory()->create([
@@ -142,7 +151,7 @@ test('it reports the Miles economy retention sinks referrals and advisor costs',
             'shadow_miles' => 250,
             'charged_miles' => 0,
             'source_type' => 'advisor_recommendation',
-            'source_id' => 'rec-analytics-two',
+            'source_id' => $failedRecommendation->id,
             'created_at' => now()->subDay(),
         ]);
 
@@ -197,6 +206,19 @@ test('it reports the Miles economy retention sinks referrals and advisor costs',
 test('the advisor launch gate counts recommendations rather than provider calls', function () {
     $user = User::factory()->create();
 
+    $successful = AdvisorRecommendation::factory()->for($user)->create([
+        'miles_outcome' => 'full',
+        'miles_settled_at' => now()->subDay(),
+    ]);
+    $failed = AdvisorRecommendation::factory()->for($user)->create([
+        'miles_outcome' => 'failure',
+        'miles_settled_at' => now()->subDay(),
+    ]);
+    $unsettled = AdvisorRecommendation::factory()->for($user)->create([
+        'miles_outcome' => null,
+        'miles_settled_at' => null,
+    ]);
+
     $event = function (?string $recommendationId, string $outcome, int $minute, string $operation = 'recommendation') use ($user): void {
         ServiceUsageEvent::factory()->create([
             'user_id' => $user,
@@ -210,14 +232,16 @@ test('the advisor launch gate counts recommendations rather than provider calls'
 
     // One recommendation, three provider calls: the opening one, a
     // clarification, then the repair that produced a usable plan.
-    foreach ([0, 1, 2] as $minute) {
-        $event('rec-one', 'success', $minute);
-    }
+    $event($successful->id, 'success', 0);
+    $event($successful->id, 'failure', 1, 'repair');
+    $event($successful->id, 'success', 2, 'guidance');
 
-    // A second that ran, retried, and still failed. Its terminal event is the
-    // failure, not the successful call that preceded it.
-    $event('rec-two', 'success', 0);
-    $event('rec-two', 'failure', 1);
+    // Provider telemetry says success, but the settled domain outcome says the
+    // recommendation ultimately failed.
+    $event($failed->id, 'success', 0);
+
+    // A provider response is not terminal until its recommendation is settled.
+    $event($unsettled->id, 'success', 0);
 
     // Neither of these is a recommendation, so neither may dilute the rate.
     $event(null, 'success', 0, 'assessment');
@@ -230,6 +254,22 @@ test('the advisor launch gate counts recommendations rather than provider calls'
         ->and($advisor['successful_recommendations'])->toBe(1)
         ->and($advisor['terminal_failures'])->toBe(1)
         ->and($advisor['terminal_failure_rate'])->toBe(50.0);
+});
+
+test('an immediate seventh unlock remains in the median', function () {
+    $user = User::factory()->create(['created_at' => now()->subHour()]);
+
+    foreach (config('miles.paid_modules') as $feature) {
+        UserFeatureUnlock::query()->create([
+            'user_id' => $user->id,
+            'feature' => Feature::from($feature),
+            'unlocked_at' => $user->created_at,
+        ]);
+    }
+
+    $unlocks = app(BuildMilesAnalytics::class)(now()->subDays(90))['unlocks'];
+
+    expect($unlocks['median_hours_to_seventh'])->toBe(0.0);
 });
 
 test('retention reads a signup date on the same clock as the activity it counts', function () {

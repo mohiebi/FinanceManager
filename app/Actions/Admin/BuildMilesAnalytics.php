@@ -5,6 +5,7 @@ namespace App\Actions\Admin;
 use App\Enums\MilesReason;
 use App\Enums\ReferralStage;
 use App\Enums\StreakProtectionType;
+use App\Models\AdvisorRecommendation;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -288,7 +289,7 @@ final class BuildMilesAnalytics
             ->map(fn (Collection $rows, int|string $userId): ?float => $rows->count() >= $nth
                 ? $this->hoursBetween($completers[$userId]->signed_up_at, $rows->values()->get($nth - 1)->unlocked_at)
                 : null)
-            ->filter()
+            ->filter(fn (?float $hours): bool => $hours !== null)
             ->values()
             ->all();
     }
@@ -399,26 +400,16 @@ final class BuildMilesAnalytics
             ->where('created_at', '>=', $rangeStart);
     }
 
-    /**
-     * One terminal outcome per recommendation, counted in the database.
-     *
-     * A recommendation can emit several events, so its highest id is the one
-     * that says how it ended - ids rise with insertion, which for these rows is
-     * the order they happened.
-     */
+    /** One settled domain outcome per recommendation, counted in the database. */
     private function terminalOutcomes(CarbonInterface $rangeStart): object
     {
-        $terminalIds = $this->advisorEvents($rangeStart)
-            ->where('operation', 'recommendation')
-            ->whereNotNull('source_id')
-            ->groupBy('source_id')
-            ->selectRaw('MAX(id) as id');
-
-        return DB::table('service_usage_events')
-            ->whereIn('id', $terminalIds)
+        return DB::table('advisor_recommendations')
+            ->whereIn('user_id', $this->customerIds())
+            ->where('miles_settled_at', '>=', $rangeStart)
+            ->whereIn('miles_outcome', ['full', 'guidance', 'failure'])
             ->selectRaw('COUNT(*) as total')
-            ->selectRaw("COUNT(CASE WHEN outcome = 'success' THEN 1 END) as successes")
-            ->selectRaw("COUNT(CASE WHEN outcome IN ('failure', 'failed', 'expired') THEN 1 END) as failures")
+            ->selectRaw("COUNT(CASE WHEN miles_outcome IN ('full', 'guidance') THEN 1 END) as successes")
+            ->selectRaw("COUNT(CASE WHEN miles_outcome = 'failure' THEN 1 END) as failures")
             ->first();
     }
 
@@ -430,12 +421,11 @@ final class BuildMilesAnalytics
      */
     private function advisorReconciliationMismatches(CarbonInterface $rangeStart): int
     {
-        $expected = $this->advisorEvents($rangeStart)
-            ->where('operation', 'recommendation')
-            ->whereNotNull('source_id')
-            ->groupBy('source_type', 'source_id')
-            ->selectRaw('source_type, source_id')
-            ->selectRaw('COALESCE(MAX(charged_miles), 0) as expected')
+        $sourceType = (new AdvisorRecommendation)->getMorphClass();
+        $expected = DB::table('advisor_recommendations')
+            ->whereIn('user_id', $this->customerIds())
+            ->where('miles_settled_at', '>=', $rangeStart)
+            ->selectRaw('? as source_type, id as source_id, charged_miles as expected', [$sourceType])
             ->get()
             ->keyBy(fn (object $row): string => "{$row->source_type}:{$row->source_id}");
 

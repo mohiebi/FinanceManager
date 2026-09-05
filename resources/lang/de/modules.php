@@ -18,6 +18,8 @@ return [
     'cascade_disabled' => 'Ebenfalls ausgeschaltet: :features.',
     'confirm_disable_title' => '{module} ausschalten?',
     'confirm_disable_body' => 'Damit wird auch {features} ausgeschaltet. Deine Daten bleiben erhalten und sind wieder da, sobald du es erneut einschaltest.',
+    'confirm_disable_body_simple' => 'Deine Daten bleiben erhalten und kommen zurück, wenn du es wieder einschaltest.',
+    'confirm_disable_paid' => 'Die Miles für die Freischaltung werden nicht erstattet, aber sie gehört dir dauerhaft — das spätere Wiedereinschalten kostet nichts.',
     'confirm_disable_action' => 'Ausschalten',
     'cancel' => 'Abbrechen',
     'requires' => 'Benötigt {features}',

@@ -110,9 +110,13 @@ function toggle(module: ModuleCard, next: boolean): void {
         return;
     }
 
-    // Switching a module off can cascade. Say so before it happens rather than
-    // explaining it afterwards in a flash message.
-    if (!next && module.disables.length > 0) {
+    // Switching a module off can cascade, and a module bought with Miles is
+    // worth pausing over even when it cascades nowhere. Say either before it
+    // happens rather than explaining it afterwards in a flash message.
+    if (
+        !next &&
+        (module.disables.length > 0 || (module.paid && module.unlocked))
+    ) {
         pendingDisable.value = module;
 
         return;
@@ -470,11 +474,20 @@ onKeyStroke('Escape', () => {
                         }}
                     </p>
                     <p class="mt-2 text-sm text-[#989898]">
-                        {{
-                            t('modules.confirm_disable_body', {
-                                features: pendingDisable.disables.join(', '),
-                            })
-                        }}
+                        <template v-if="pendingDisable.disables.length > 0">
+                            {{
+                                t('modules.confirm_disable_body', {
+                                    features:
+                                        pendingDisable.disables.join(', '),
+                                })
+                            }}
+                        </template>
+                        <template v-else>
+                            {{ t('modules.confirm_disable_body_simple') }}
+                        </template>
+                        <template v-if="pendingDisable.paid">
+                            {{ t('modules.confirm_disable_paid') }}
+                        </template>
                     </p>
                     <div class="mt-6 flex gap-3">
                         <button

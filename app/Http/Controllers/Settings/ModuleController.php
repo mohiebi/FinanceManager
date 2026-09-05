@@ -142,6 +142,10 @@ class ModuleController extends Controller
                 ? null
                 : route($feature->managedRoute()),
             'unlocked' => $quote['cost'] === 0,
+            // Whether Miles were ever spent here, which `unlocked` alone cannot
+            // say: a free module also quotes zero. Drives the warning shown
+            // before switching a paid module off.
+            'paid' => in_array($feature->value, (array) config('miles.paid_modules'), true),
             'activation_cost' => $quote['cost'],
             'unlock_features' => array_map(
                 fn (string $value): string => Feature::from($value)->label(),

@@ -9,12 +9,16 @@ import {
     CircleUserRound,
     Clock3,
     Download,
+    Gauge,
+    Gift,
     Rocket,
     Search,
     Sparkles,
     SlidersHorizontal,
+    ShieldCheck,
     UserCheck,
     Users,
+    WalletCards,
     X,
 } from 'lucide-vue-next';
 import { computed, onUnmounted, ref, watch } from 'vue';
@@ -68,12 +72,13 @@ const verification = ref<AdminFilters['verification']>(
 const sort = ref<AdminFilters['sort']>(props.filters.sort);
 const range = ref<AdminRange>(props.range);
 
-type AdminTab = 'customers' | 'growth' | 'engagement';
+type AdminTab = 'customers' | 'growth' | 'engagement' | 'miles';
 const activeTab = ref<AdminTab>('customers');
 const tabOptions: { value: AdminTab; label: string }[] = [
     { value: 'customers', label: 'Customers' },
     { value: 'growth', label: 'Growth' },
     { value: 'engagement', label: 'Engagement' },
+    { value: 'miles', label: 'Miles' },
 ];
 
 const isFiltering = ref(false);
@@ -130,6 +135,34 @@ const engagementSeries = computed(() => [
         data: props.analytics?.engagement_trend.active_30d ?? [],
     },
 ]);
+
+const milesRetentionSeries = computed(() => [
+    {
+        name: 'Claimed Miles',
+        key: 'claimed',
+        color: '#02CD86',
+        data: props.analytics?.miles.retention.claimed ?? [],
+    },
+    {
+        name: 'Never claimed',
+        key: 'never_claimed',
+        color: '#6C4EE9',
+        data: props.analytics?.miles.retention.never_claimed ?? [],
+    },
+]);
+
+const milesEconomyValues = computed(() =>
+    (props.analytics?.miles.economy.issued ?? []).map(
+        (issued, index) =>
+            issued - (props.analytics?.miles.economy.spent[index] ?? 0),
+    ),
+);
+
+const formatHours = (value: number | null): string =>
+    value === null ? '—' : `${formatAdminNumber(value)}h`;
+
+const formatUsd = (value: number | null): string =>
+    value === null ? '—' : `$${value.toFixed(4)}`;
 
 const authenticationTotal = computed(() =>
     (props.analytics?.authentication_mix.values ?? []).reduce(
@@ -908,6 +941,427 @@ function activityTone(user: AdminUser): string {
                                 >
                                     No locale data yet
                                 </p>
+                            </article>
+                        </div>
+
+                        <div
+                            v-show="activeTab === 'miles'"
+                            aria-label="Miles economy"
+                            class="grid gap-4 xl:grid-cols-2"
+                        >
+                            <section
+                                class="grid gap-3 sm:grid-cols-2 xl:col-span-2 xl:grid-cols-5"
+                                aria-label="Miles totals"
+                            >
+                                <article
+                                    v-for="metric in [
+                                        {
+                                            label: 'Outstanding',
+                                            value: analytics.miles.overview
+                                                .outstanding,
+                                            icon: WalletCards,
+                                        },
+                                        {
+                                            label: 'Issued',
+                                            value: analytics.miles.overview
+                                                .issued,
+                                            icon: Sparkles,
+                                        },
+                                        {
+                                            label: 'Spent',
+                                            value: analytics.miles.overview
+                                                .spent,
+                                            icon: Gauge,
+                                        },
+                                        {
+                                            label: 'Transferred',
+                                            value: analytics.miles.overview
+                                                .transferred,
+                                            icon: Gift,
+                                        },
+                                        {
+                                            label: 'Wallets',
+                                            value: analytics.miles.overview
+                                                .wallets,
+                                            icon: Users,
+                                        },
+                                    ]"
+                                    :key="metric.label"
+                                    class="rounded-[18px] bg-[#1a1a1a] p-4 ring-1 ring-white/10"
+                                >
+                                    <component
+                                        :is="metric.icon"
+                                        class="size-5 text-[#02CD86]"
+                                    />
+                                    <p class="mt-5 text-2xl font-semibold">
+                                        {{ formatAdminNumber(metric.value) }}
+                                    </p>
+                                    <p class="mt-1 text-xs text-[#989898]">
+                                        {{ metric.label }}
+                                    </p>
+                                </article>
+                            </section>
+
+                            <article
+                                class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 xl:col-span-2"
+                            >
+                                <h2 class="text-lg font-medium">
+                                    Retention by Miles behavior
+                                </h2>
+                                <p class="mt-1 text-sm text-[#686868]">
+                                    Covered-date retention for signup cohorts,
+                                    split by customers who claimed and those who
+                                    never claimed
+                                </p>
+                                <LineChart
+                                    class="mt-4"
+                                    :series="milesRetentionSeries"
+                                    :categories="
+                                        analytics.miles.retention.labels
+                                    "
+                                    raw-labels
+                                    value-suffix="%"
+                                    :height="260"
+                                />
+                            </article>
+
+                            <article
+                                class="overflow-hidden rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
+                            >
+                                <h2 class="text-lg font-medium">
+                                    Net Miles by reason
+                                </h2>
+                                <p class="mt-1 text-sm text-[#686868]">
+                                    Issued less spent in the {{ rangeLabel }}
+                                </p>
+                                <RankedBarChart
+                                    v-if="
+                                        analytics.miles.economy.labels.length >
+                                        0
+                                    "
+                                    class="mt-3"
+                                    :labels="analytics.miles.economy.labels"
+                                    :values="milesEconomyValues"
+                                    :colors="['#02CD86', '#6C4EE9']"
+                                    series-name="Net Miles"
+                                    :percentage-labels="false"
+                                    :height="300"
+                                />
+                                <p
+                                    v-else
+                                    class="flex h-[300px] items-center justify-center text-sm text-[#686868]"
+                                >
+                                    No Miles ledger activity in this period
+                                </p>
+                            </article>
+
+                            <article
+                                class="rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
+                            >
+                                <h2 class="text-lg font-medium">
+                                    Earning and unlock cadence
+                                </h2>
+                                <dl class="mt-5 grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <dt class="text-[#686868]">Claims</dt>
+                                        <dd class="mt-1 text-xl font-medium">
+                                            {{
+                                                formatAdminNumber(
+                                                    analytics.miles.engagement
+                                                        .claims,
+                                                )
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-[#686868]">
+                                            Completed cycles
+                                        </dt>
+                                        <dd class="mt-1 text-xl font-medium">
+                                            {{
+                                                formatAdminNumber(
+                                                    analytics.miles.engagement
+                                                        .completed_cycles,
+                                                )
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-[#686868]">
+                                            Claims per claimer
+                                        </dt>
+                                        <dd class="mt-1 text-xl font-medium">
+                                            {{
+                                                analytics.miles.engagement
+                                                    .average_claims_per_claimer
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-[#686868]">
+                                            Activity days per logger
+                                        </dt>
+                                        <dd class="mt-1 text-xl font-medium">
+                                            {{
+                                                analytics.miles.engagement
+                                                    .average_activity_days_per_active_user
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-[#686868]">
+                                            Median to first unlock
+                                        </dt>
+                                        <dd class="mt-1 text-xl font-medium">
+                                            {{
+                                                formatHours(
+                                                    analytics.miles.unlocks
+                                                        .median_hours_to_first,
+                                                )
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-[#686868]">
+                                            Median to seventh unlock
+                                        </dt>
+                                        <dd class="mt-1 text-xl font-medium">
+                                            {{
+                                                formatHours(
+                                                    analytics.miles.unlocks
+                                                        .median_hours_to_seventh,
+                                                )
+                                            }}
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </article>
+
+                            <article
+                                class="rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
+                            >
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <h2 class="text-lg font-medium">
+                                            Protection and sinks
+                                        </h2>
+                                        <p class="mt-1 text-sm text-[#686868]">
+                                            Weekly-scale Miles uses
+                                        </p>
+                                    </div>
+                                    <ShieldCheck
+                                        class="size-5 text-[#02CD86]"
+                                    />
+                                </div>
+                                <dl class="mt-5 grid grid-cols-2 gap-4 text-sm">
+                                    <div
+                                        v-for="metric in [
+                                            [
+                                                'Freeze purchases',
+                                                analytics.miles.protections
+                                                    .freeze_purchases,
+                                            ],
+                                            [
+                                                'Freezes consumed',
+                                                analytics.miles.protections
+                                                    .freezes_consumed,
+                                            ],
+                                            [
+                                                'Repair purchases',
+                                                analytics.miles.protections
+                                                    .repair_purchases,
+                                            ],
+                                            [
+                                                'Repairs applied',
+                                                analytics.miles.protections
+                                                    .repairs_applied,
+                                            ],
+                                            [
+                                                'Weekly graces',
+                                                analytics.miles.protections
+                                                    .weekly_graces,
+                                            ],
+                                            [
+                                                'Cosmetics',
+                                                analytics.miles.protections
+                                                    .cosmetics_purchased,
+                                            ],
+                                        ]"
+                                        :key="String(metric[0])"
+                                    >
+                                        <dt class="text-[#686868]">
+                                            {{ metric[0] }}
+                                        </dt>
+                                        <dd class="mt-1 text-xl font-medium">
+                                            {{
+                                                formatAdminNumber(
+                                                    Number(metric[1]),
+                                                )
+                                            }}
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </article>
+
+                            <article
+                                class="rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10"
+                            >
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <h2 class="text-lg font-medium">
+                                            Referral funnel
+                                        </h2>
+                                        <p class="mt-1 text-sm text-[#686868]">
+                                            Attributed referrals and earned
+                                            stages
+                                        </p>
+                                    </div>
+                                    <Gift class="size-5 text-[#02CD86]" />
+                                </div>
+                                <ol class="mt-5 space-y-3">
+                                    <li
+                                        v-for="stage in [
+                                            [
+                                                'Signups',
+                                                analytics.miles.referrals
+                                                    .signups,
+                                            ],
+                                            [
+                                                'Activated',
+                                                analytics.miles.referrals
+                                                    .activated,
+                                            ],
+                                            [
+                                                'Retained',
+                                                analytics.miles.referrals
+                                                    .retained,
+                                            ],
+                                            [
+                                                'Habit formed',
+                                                analytics.miles.referrals.habit,
+                                            ],
+                                        ]"
+                                        :key="String(stage[0])"
+                                        class="flex items-center justify-between border-b border-white/[0.06] pb-3 text-sm last:border-0"
+                                    >
+                                        <span class="text-[#989898]">{{
+                                            stage[0]
+                                        }}</span>
+                                        <span class="font-medium">{{
+                                            formatAdminNumber(Number(stage[1]))
+                                        }}</span>
+                                    </li>
+                                </ol>
+                                <p class="mt-3 text-xs text-[#686868]">
+                                    {{ analytics.miles.referrals.review_holds }}
+                                    review holds ·
+                                    {{ analytics.miles.referrals.rejections }}
+                                    rejected ·
+                                    {{ analytics.miles.referrals.gifts }} gifts
+                                </p>
+                            </article>
+
+                            <article
+                                class="rounded-[18px] bg-[#1a1a1a] p-5 ring-1 ring-white/10 xl:col-span-2"
+                            >
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <h2 class="text-lg font-medium">
+                                            Advisor economics
+                                        </h2>
+                                        <p class="mt-1 text-sm text-[#686868]">
+                                            Provider performance and Miles
+                                            reconciliation
+                                        </p>
+                                    </div>
+                                    <Bot class="size-5 text-[#02CD86]" />
+                                </div>
+                                <dl
+                                    class="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6"
+                                >
+                                    <div
+                                        v-for="metric in [
+                                            [
+                                                'Operations',
+                                                analytics.miles.advisor
+                                                    .operations,
+                                            ],
+                                            [
+                                                'Successful runs',
+                                                analytics.miles.advisor
+                                                    .successful_recommendations,
+                                            ],
+                                            [
+                                                'Terminal failures',
+                                                analytics.miles.advisor
+                                                    .terminal_failures,
+                                            ],
+                                            [
+                                                'Failure rate',
+                                                formatAdminPercentage(
+                                                    analytics.miles.advisor
+                                                        .terminal_failure_rate,
+                                                ),
+                                            ],
+                                            [
+                                                'Shadow Miles',
+                                                analytics.miles.advisor
+                                                    .shadow_miles,
+                                            ],
+                                            [
+                                                'Charged Miles',
+                                                analytics.miles.advisor
+                                                    .charged_miles,
+                                            ],
+                                            [
+                                                'Refunded Miles',
+                                                analytics.miles.advisor
+                                                    .refunded_miles,
+                                            ],
+                                            [
+                                                'Cost p50',
+                                                formatUsd(
+                                                    analytics.miles.advisor
+                                                        .provider_cost_p50_usd,
+                                                ),
+                                            ],
+                                            [
+                                                'Cost p95',
+                                                formatUsd(
+                                                    analytics.miles.advisor
+                                                        .provider_cost_p95_usd,
+                                                ),
+                                            ],
+                                            [
+                                                'Latency p50',
+                                                analytics.miles.advisor
+                                                    .latency_p50_ms === null
+                                                    ? '—'
+                                                    : `${analytics.miles.advisor.latency_p50_ms}ms`,
+                                            ],
+                                            [
+                                                'Latency p95',
+                                                analytics.miles.advisor
+                                                    .latency_p95_ms === null
+                                                    ? '—'
+                                                    : `${analytics.miles.advisor.latency_p95_ms}ms`,
+                                            ],
+                                            [
+                                                'Mismatches',
+                                                analytics.miles.advisor
+                                                    .reconciliation_mismatches,
+                                            ],
+                                        ]"
+                                        :key="String(metric[0])"
+                                    >
+                                        <dt class="text-xs text-[#686868]">
+                                            {{ metric[0] }}
+                                        </dt>
+                                        <dd class="mt-1 text-lg font-medium">
+                                            {{ metric[1] }}
+                                        </dd>
+                                    </div>
+                                </dl>
                             </article>
                         </div>
                     </section>

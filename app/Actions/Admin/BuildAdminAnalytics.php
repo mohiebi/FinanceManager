@@ -26,6 +26,8 @@ class BuildAdminAnalytics
     /** @var array<int, array<string, int|float|null>> */
     private array $cohortCache = [];
 
+    public function __construct(private readonly BuildMilesAnalytics $milesAnalytics) {}
+
     /**
      * @return array<string, int|float|null>
      */
@@ -176,6 +178,7 @@ class BuildAdminAnalytics
             'locales' => $this->locales(),
             'retention_segments' => $this->retentionSegments(),
             'engagement_trend' => $this->engagementTrend($range),
+            'miles' => ($this->milesAnalytics)($this->rangeStart($range, now())),
         ];
     }
 

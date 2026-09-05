@@ -51,6 +51,69 @@ export type AdminAnalytics = {
         active_7d: number[];
         active_30d: number[];
     };
+    miles: {
+        overview: {
+            wallets: number;
+            outstanding: number;
+            issued: number;
+            spent: number;
+            transferred: number;
+        };
+        retention: {
+            labels: string[];
+            claimed: number[];
+            never_claimed: number[];
+        };
+        economy: {
+            labels: string[];
+            issued: number[];
+            spent: number[];
+        };
+        engagement: {
+            claimers: number;
+            claims: number;
+            average_claims_per_claimer: number;
+            completed_cycles: number;
+            activity_days: number;
+            average_activity_days_per_active_user: number;
+        };
+        unlocks: {
+            total: number;
+            median_hours_to_first: number | null;
+            median_hours_to_seventh: number | null;
+        };
+        protections: {
+            freeze_purchases: number;
+            freezes_consumed: number;
+            repair_purchases: number;
+            repairs_applied: number;
+            weekly_graces: number;
+            cosmetics_purchased: number;
+        };
+        referrals: {
+            signups: number;
+            activated: number;
+            retained: number;
+            habit: number;
+            review_holds: number;
+            rejections: number;
+            gifts: number;
+        };
+        advisor: {
+            operations: number;
+            successful_recommendations: number;
+            terminal_failures: number;
+            terminal_failure_rate: number;
+            provider_cost_p50_usd: number | null;
+            provider_cost_p95_usd: number | null;
+            latency_p50_ms: number | null;
+            latency_p95_ms: number | null;
+            shadow_miles: number;
+            charged_miles: number;
+            refunded_miles: number;
+            reconciliation_mismatches: number;
+        };
+    };
 };
 
 export type AdminUser = {

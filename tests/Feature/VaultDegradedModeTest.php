@@ -2,6 +2,7 @@
 
 use App\Actions\Features\UpdateUserFeature;
 use App\Actions\Goals\BuildGoalProgress;
+use App\Actions\Miles\ClaimDailyMiles;
 use App\Actions\Vault\ArmVault;
 use App\Enums\AssetType;
 use App\Enums\Feature;
@@ -554,6 +555,53 @@ test('the streak reads identically with the vault armed', function () {
         expect($calculator->for($armed, $today)->toArray())
             ->toBe($calculator->for($plaintext, $today)->toArray())
             ->and($calculator->for($armed, $today)->currentRun)->toBe(3);
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('miles are earned identically with the vault armed', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-30 09:00:00'));
+
+    try {
+        $plaintext = User::factory()->create(['timezone' => 'UTC']);
+        $armed = User::factory()->create(['timezone' => 'UTC']);
+        $dek = armDegradedVault($armed);
+
+        $category = Category::factory()->cost()->create();
+
+        // The two amounts are deliberately nothing alike. Any earning rule that
+        // read money would drive these balances apart, and the armed user's
+        // amount is unreadable server-side anyway - so a divergence here would
+        // mean the economy had grown a dependency it cannot honour.
+        Transaction::factory()->cost()->for($plaintext)->for($category)->create([
+            'occurred_at' => '2026-07-30',
+            'amount' => '12.00',
+        ]);
+
+        $armed->transactions()->create(SealedField::wrap([
+            'type' => 'cost',
+            'amount' => clientEncrypt($armed, $dek, 'amount', '9875000.00'),
+            'title' => clientEncrypt($armed, $dek, 'title', 'Taxi'),
+            'currency' => 'toman',
+            'category_id' => null,
+            'occurred_at' => '2026-07-30',
+        ], ['amount', 'title']));
+
+        $claim = app(ClaimDailyMiles::class);
+        $claim($plaintext);
+        $claim($armed);
+
+        $columns = ['claim_step', 'claim_miles', 'activity_miles'];
+
+        expect($armed->mileWallet()->value('balance'))
+            ->toBe($plaintext->mileWallet()->value('balance'))
+            // Guards the comparison above from passing on two empty wallets.
+            ->toBeGreaterThan(0)
+            ->and($armed->mileDays()->sole()->only($columns))
+            ->toBe($plaintext->mileDays()->sole()->only($columns))
+            ->and($armed->milestones()->pluck('key')->sort()->values()->all())
+            ->toBe($plaintext->milestones()->pluck('key')->sort()->values()->all());
     } finally {
         Carbon::setTestNow();
     }

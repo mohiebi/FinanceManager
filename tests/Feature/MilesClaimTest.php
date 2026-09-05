@@ -38,3 +38,23 @@ test('a qualifying activity awards two miles only once per local day', function 
 test('the claim schedule totals thirty miles', function () {
     expect(array_sum(config('miles.daily_claims')))->toBe(30);
 });
+
+test('moving the clock backwards through a timezone change cannot mint a second claim', function () {
+    // 00:30 UTC is already the 5th in Kiritimati (UTC+14) but still the 4th in
+    // Midway (UTC-11), so switching between them rewinds the user's local date.
+    Carbon::setTestNow('2026-09-05 00:30:00');
+    $user = User::factory()->create(['timezone' => 'Pacific/Kiritimati']);
+    $claim = app(ClaimDailyMiles::class);
+
+    $claim($user);
+    $balanceAfterFirstClaim = $user->mileWallet()->value('balance');
+
+    $user->forceFill(['timezone' => 'Pacific/Midway'])->save();
+    $claim($user->refresh());
+
+    expect($user->localToday()->toDateString())->toBe('2026-09-04')
+        ->and($user->mileWallet()->value('balance'))->toBe($balanceAfterFirstClaim)
+        ->and($user->mileDays()->whereNotNull('claimed_at')->count())->toBe(1);
+
+    Carbon::setTestNow();
+});

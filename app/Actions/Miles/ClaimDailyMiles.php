@@ -24,21 +24,32 @@ final readonly class ClaimDailyMiles
         return DB::transaction(function () use ($user): MileDay {
             $today = $user->localToday();
             $date = $today->toDateString();
+
+            $previous = MileDay::query()
+                ->where('user_id', $user->getKey())
+                ->whereNotNull('claimed_at')
+                ->latest('local_date')
+                ->first();
+
+            // A standing claim dated today or later spends the day. This is
+            // compared against the newest claim rather than only this date's
+            // row because a westward timezone change rewinds `localToday()`
+            // onto an earlier date that carries no row yet - which the unique
+            // key cannot catch, and which would otherwise mint a second reward
+            // for a day the user has already been paid past.
+            if ($previous instanceof MileDay && $previous->local_date->toDateString() >= $date) {
+                return $previous;
+            }
+
             $day = MileDay::query()->firstOrCreate(
                 ['user_id' => $user->getKey(), 'local_date' => $date],
                 ['timezone' => $user->timezone],
             );
 
+            // Losing the race to a concurrent claim on this same date.
             if ($day->claimed_at !== null) {
                 return $day;
             }
-
-            $previous = MileDay::query()
-                ->where('user_id', $user->getKey())
-                ->whereNotNull('claimed_at')
-                ->where('local_date', '<', $date)
-                ->latest('local_date')
-                ->first();
 
             $day->forceFill(['claimed_at' => now()])->save();
             ($this->applyStreakProtection)($user, $today);

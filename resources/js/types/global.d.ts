@@ -35,6 +35,7 @@ declare module '@inertiajs/core' {
             features: FeatureMap | null;
             /** Null for guests or while the Miles UI flag is disabled. */
             miles: MilesShared | null;
+            milesClaim: MilesClaimed | null;
             /** Null until a vault exists for this user; see Stage 6. */
             vault: VaultDescriptor | null;
             /** Null for guests. */

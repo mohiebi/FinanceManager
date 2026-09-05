@@ -87,9 +87,7 @@ final class BuildMilesAnalytics
             $eligible = $this->customers()
                 ->where('created_at', '>=', $rangeStart)
                 ->where('created_at', '<=', now()->subDays($day))
-                // timezone travels with the row: retainedPercentage compares
-                // signup against the user's own calendar date, and a restricted
-                // select would throw on the strict-attribute guard.
+                // timezone is read below, and a restricted select would throw.
                 ->get(['id', 'created_at', 'timezone']);
             $claimedUserIds = MileDay::query()
                 ->whereIn('user_id', $eligible->pluck('id'))
@@ -119,13 +117,8 @@ final class BuildMilesAnalytics
             ->get(['user_id', 'local_date'])
             ->mapWithKeys(fn (MileDay $mileDay): array => ["{$mileDay->user_id}:{$mileDay->local_date->toDateString()}" => true]);
         $retained = $users->filter(function (User $user) use ($coveredDates, $day): bool {
-            // Signup is stored in UTC while mile_days records the user's own
-            // calendar date, so the two have to be brought into the same clock
-            // before they are compared. Someone in Tehran signing up at 21:00
-            // UTC did so on the following day locally, and reading their D1
-            // against the UTC date looks for activity on a day they had not
-            // reached yet - counting them as churned on the strength of a
-            // timezone.
+            // Signup is UTC, mile_days is the user's own date. Comparing them
+            // raw marks anyone who signed up near midnight as churned.
             $target = $user->created_at
                 ->copy()
                 ->setTimezone($user->resolvedTimezone())
@@ -256,14 +249,8 @@ final class BuildMilesAnalytics
             ->whereIn('user_id', $customerIds)
             ->whereIn('reason', [MilesReason::AdvisorReservation, MilesReason::AdvisorRefund])
             ->get(['reason', 'amount', 'source_type', 'source_id']);
-        // These two gate turning real charging on, so both are counted per
-        // recommendation rather than per event. One recommendation can emit
-        // several events - the opening call, a clarification round, a repair
-        // attempt - so counting successful events overstates how many
-        // recommendations actually landed, and dividing failures by every
-        // advisor event at all, assessments and consultations included,
-        // understates how often they fail. Each error pushed the gate towards
-        // opening early.
+        // Per recommendation, not per event: these gate real charging, and
+        // counting events overstates successes and dilutes the failure rate.
         $outcomes = $this->terminalOutcomes($events);
         $terminalFailures = $outcomes->whereIn('outcome', ['failure', 'failed', 'expired'])->count();
 
@@ -285,10 +272,7 @@ final class BuildMilesAnalytics
     }
 
     /**
-     * The last event each recommendation produced, one row per recommendation.
-     *
-     * A recommendation is only finished once, however many provider calls it
-     * took to get there, so its final event is the one that says what happened.
+     * One row per recommendation: its last event, whatever it took to get there.
      *
      * @param  Collection<int, ServiceUsageEvent>  $events
      * @return Collection<int|string, ServiceUsageEvent>

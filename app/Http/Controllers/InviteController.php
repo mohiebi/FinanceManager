@@ -9,15 +9,9 @@ use Illuminate\Http\Request;
 /**
  * The front door of a shared invite link.
  *
- * A referral could ride on `?ref=` alone, and does elsewhere, but a query
- * string is the first thing chat apps and link shorteners drop - and a link
- * whose credit silently vanishes in transit is worse than no link. A path
- * segment survives being pasted around, which is the only thing an invite is
- * ever asked to do.
- *
- * The code is only remembered, never trusted: it buys a session note that a
- * real wallet must claim later, and an unknown or expired one simply lands the
- * visitor on the marketing page like any other arrival.
+ * A path segment survives being pasted around; a query string is the first
+ * thing chat apps drop. The code is remembered, never trusted - an unknown one
+ * just lands on the marketing page.
  */
 class InviteController extends Controller
 {

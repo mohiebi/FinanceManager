@@ -14,17 +14,9 @@ use Illuminate\Support\Facades\Log;
 /**
  * Proves every wallet still equals the ledger that produced it.
  *
- * The ledger is the record; `mile_wallets` is a cache kept beside it so a page
- * render does not have to sum a user's whole history. A cache can drift - a
- * partial write, a manual fix applied to one and not the other - and drift in
- * money-adjacent state is exactly the kind that goes unnoticed until someone
- * cannot explain their balance.
- *
- * Correction goes one way only. The totals are recomputed from the entries,
- * never the reverse: writing a ledger row to justify a wallet would be making
- * the record agree with the copy. Every correction is logged at error level,
- * because a wallet that needed one means something upstream is wrong and
- * silently repairing it would hide the bug rather than surface it.
+ * The ledger is the record; the wallet is a cache of it. Corrections run one
+ * way only, and each is logged at error level - needing one means something
+ * upstream is broken.
  */
 class ReconcileMileWalletsJob implements ShouldQueue
 {
@@ -86,12 +78,8 @@ class ReconcileMileWalletsJob implements ShouldQueue
      */
     private function reconcile(MileWallet $wallet, array $totals): bool
     {
-        // The sweep's own read is only a shortlist. Correcting from it directly
-        // would write a total computed before the lock, so a spend that
-        // committed in between would be erased and the wallet left ahead of the
-        // ledger - the sweep would become a source of the drift it exists to
-        // catch. Everything that decides the write is therefore re-read inside
-        // the transaction, against the same lock AdjustMiles takes.
+        // The sweep's read is only a shortlist. Writing from it would erase a
+        // spend that landed since, so the write re-reads under the lock.
         if ($this->corrections($wallet, $totals) === []) {
             return false;
         }

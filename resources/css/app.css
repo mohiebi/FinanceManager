@@ -261,18 +261,9 @@ html[dir='rtl'] body {
         padding-bottom: 0;
     }
 
-    /* The app's scrollbar for any panel that scrolls inside the page - the
-       sidebar nav, a capped list in a card, a dropdown of notifications.
-
-       A default scrollbar is sized and coloured by the operating system, so on
-       a dark surface it arrives as a bright grey slab that reads as chrome
-       bolted onto the card rather than part of it. This is the same thin,
-       translucent rail the sidebar has always used, lifted out of that
-       component's scoped block so every scrolling panel can share one answer
-       instead of each inventing its own or going without.
-
-       Firefox takes the two standard properties; the ::-webkit- rules cover
-       Chrome and Safari, which still ignore them. */
+    /* The app's scrollbar for any panel that scrolls inside the page. An OS
+       default arrives as a bright grey slab on a dark card. Firefox reads the
+       two standard properties; ::-webkit- covers Chrome and Safari. */
     .app-scroll-thin {
         scrollbar-color: rgb(255 255 255 / 22%) transparent;
         scrollbar-width: thin;

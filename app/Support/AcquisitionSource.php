@@ -4,12 +4,21 @@ namespace App\Support;
 
 use App\Models\MileWallet;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 
 class AcquisitionSource
 {
     public const SESSION_KEY = 'acquisition_source';
 
     public const REFERRAL_SESSION_KEY = 'miles_referral';
+
+    /**
+     * A referral is promised thirty days; SESSION_LIFETIME is two hours, so the
+     * session alone loses the touch. Encrypted like every other cookie here.
+     */
+    public const REFERRAL_COOKIE = 'miles_referral';
+
+    public const REFERRAL_DAYS = 30;
 
     private const MAX_LENGTH = 120;
 
@@ -38,18 +47,15 @@ class AcquisitionSource
     /**
      * Hold on to a referral code until the visitor creates an account.
      *
-     * Takes the code rather than reading it, because the same touch arrives two
-     * ways - as `?ref=` on any page, and as the path of a shared /invite link -
-     * and both must land in one place so first-touch really means first.
-     *
-     * Only a code matching a real wallet is kept, and only while the session
-     * holds none: a second link cannot overwrite the first.
+     * Takes the code rather than reading it: the same touch arrives as `?ref=`
+     * and as an /invite path, and a second link must not overwrite the first.
      */
     public static function rememberReferral(Request $request, string $code): void
     {
         if ($request->user() !== null
             || ! $request->hasSession()
-            || $request->session()->has(self::REFERRAL_SESSION_KEY)) {
+            || $request->session()->has(self::REFERRAL_SESSION_KEY)
+            || self::touchFromCookie($request) !== null) {
             return;
         }
 
@@ -59,12 +65,19 @@ class AcquisitionSource
             return;
         }
 
-        $request->session()->put(self::REFERRAL_SESSION_KEY, [
+        $touch = [
             'code' => $code,
             'captured_at' => now()->toIso8601String(),
             'ip_hash' => hash_hmac('sha256', (string) $request->ip(), (string) config('app.key')),
             'device_hash' => hash_hmac('sha256', (string) $request->userAgent(), (string) config('app.key')),
-        ]);
+        ];
+
+        $request->session()->put(self::REFERRAL_SESSION_KEY, $touch);
+        Cookie::queue(Cookie::make(
+            self::REFERRAL_COOKIE,
+            (string) json_encode($touch),
+            self::REFERRAL_DAYS * 24 * 60,
+        ));
     }
 
     /**
@@ -89,13 +102,35 @@ class AcquisitionSource
     public static function pullReferral(): ?array
     {
         $request = request();
+        $referral = $request->hasSession()
+            ? $request->session()->pull(self::REFERRAL_SESSION_KEY)
+            : null;
 
-        if (! $request->hasSession()) {
+        // Session first; the cookie is what survives until they sign up.
+        $referral = self::validTouch($referral) ?? self::touchFromCookie($request);
+
+        if ($referral !== null) {
+            Cookie::queue(Cookie::forget(self::REFERRAL_COOKIE));
+        }
+
+        return $referral;
+    }
+
+    /** @return array{code: string, captured_at: string, ip_hash?: string, device_hash?: string}|null */
+    private static function touchFromCookie(Request $request): ?array
+    {
+        $raw = $request->cookie(self::REFERRAL_COOKIE);
+
+        if (! is_string($raw) || $raw === '') {
             return null;
         }
 
-        $referral = $request->session()->pull(self::REFERRAL_SESSION_KEY);
+        return self::validTouch(json_decode($raw, true));
+    }
 
+    /** @return array{code: string, captured_at: string, ip_hash?: string, device_hash?: string}|null */
+    private static function validTouch(mixed $referral): ?array
+    {
         return is_array($referral)
             && isset($referral['code'], $referral['captured_at'])
             && is_string($referral['code'])

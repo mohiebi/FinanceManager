@@ -37,11 +37,8 @@ final class AwardDailyActivity
                 ['timezone' => $user->timezone],
             );
 
-            // Evaluated ahead of the daily-bonus guard below. A first bill is
-            // a first bill whatever else the day held, and awarding it after
-            // the guard tied it to being that day's opening action - so anyone
-            // who logged a transaction first thing lost the moment for good.
-            // The award is idempotent, so repeating it costs a no-op.
+            // Ahead of the daily-bonus guard: a first bill is a first bill
+            // whatever else the day held. Idempotent, so repeating is a no-op.
             $milestone = match ($source) {
                 'bill' => Milestone::FirstBill,
                 'budget' => Milestone::FirstBudget,

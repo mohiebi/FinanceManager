@@ -46,8 +46,8 @@ export type ModuleCard = {
      */
     manage_url: string | null;
     unlocked: boolean;
-    /** Whether this module costs Miles to unlock at all — free ones never do. */
-    paid: boolean;
+    /** Whether this user actually spent Miles unlocking it. */
+    purchased: boolean;
     activation_cost: number;
     unlock_features: string[];
     can_afford: boolean;

@@ -206,6 +206,8 @@ class HandleInertiaRequests extends Middleware
             'miles' => fn (): ?array => $request->user() !== null && config('miles.ui_enabled')
                 ? app(MilesOverview::class)($request->user())
                 : null,
+            // One-shot: what the last claim actually awarded, for the celebration.
+            'milesClaim' => fn (): ?array => $request->session()->get('milesClaim'),
             // Eager like the feature map: the unlock dialog is a layout-level gate,
             // and deferring it would flash unlocked-looking UI on every page load.
             'vault' => fn () => $request->user()?->vaultDescriptor(),

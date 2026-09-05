@@ -142,10 +142,13 @@ class ModuleController extends Controller
                 ? null
                 : route($feature->managedRoute()),
             'unlocked' => $quote['cost'] === 0,
-            // Whether Miles were ever spent here, which `unlocked` alone cannot
-            // say: a free module also quotes zero. Drives the warning shown
-            // before switching a paid module off.
-            'paid' => in_array($feature->value, (array) config('miles.paid_modules'), true),
+            // Whether this user actually spent Miles here, which neither
+            // `unlocked` nor catalogue membership can say: a free module also
+            // quotes zero, and a grandfathered unlock carries no ledger entry.
+            'purchased' => $user->featureUnlocks()
+                ->where('feature', $feature->value)
+                ->whereNotNull('mile_ledger_entry_id')
+                ->exists(),
             'activation_cost' => $quote['cost'],
             'unlock_features' => array_map(
                 fn (string $value): string => Feature::from($value)->label(),

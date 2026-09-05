@@ -14,12 +14,13 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { announceClaim } from '@/lib/miles';
 import { claim } from '@/routes/miles';
 import { store as buyCosmetic } from '@/routes/miles/cosmetics';
 import { store as buyFreeze } from '@/routes/miles/freezes';
 import { store as sendGift } from '@/routes/miles/gifts';
 import { store as repairStreak } from '@/routes/miles/repairs';
-import type { MilesClaimed, MilesOverview } from '@/types/miles';
+import type { MilesOverview } from '@/types/miles';
 
 type HistoryEntry = {
     id: string;
@@ -57,22 +58,14 @@ const currentOverview = computed(() =>
         : props.overview,
 );
 
-/**
- * Whether the current balance covers a priced action.
- *
- * The server refuses an unaffordable spend with a 402 regardless, but a button
- * that takes the click and then reports failure is a worse way to say "not
- * yet" than one that never offered.
- */
+/** Whether the balance covers a priced action. The server still enforces it. */
 function canAfford(cost: number): boolean {
     return currentOverview.value.balance >= cost;
 }
 
 /**
- * Cosmetic names and types come from config, which is authored in English.
- * Translate when a locale has the string and fall back to the configured
- * label otherwise, so adding a cosmetic without translating it yet shows its
- * name rather than a raw key.
+ * Config authors cosmetics in English. Fall back to the configured label so an
+ * untranslated addition shows its name rather than a raw key.
  */
 function cosmeticLabel(cosmetic: { key: string; label: string }): string {
     const key = `miles.cosmetic_labels.${cosmetic.key}`;
@@ -124,23 +117,7 @@ function post(
 }
 
 function collect(): void {
-    // Read before the request, since the shared props are replaced by the time
-    // it resolves and the celebration should report what was just collected.
-    const step = (currentOverview.value.claimStep % 7) + 1;
-    const reward = currentOverview.value.nextClaimReward;
-
-    post('claim', claim.url(), {}, () => {
-        window.dispatchEvent(
-            new CustomEvent<MilesClaimed>('miles:claimed', {
-                detail: {
-                    miles: reward,
-                    step,
-                    balance: currentOverview.value.balance,
-                    nextReward: currentOverview.value.nextClaimReward,
-                },
-            }),
-        );
-    });
+    post('claim', claim.url(), {}, () => announceClaim(page.props.milesClaim));
 }
 
 function purchaseFreeze(): void {

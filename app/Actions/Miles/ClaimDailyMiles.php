@@ -31,12 +31,9 @@ final readonly class ClaimDailyMiles
                 ->latest('local_date')
                 ->first();
 
-            // A standing claim dated today or later spends the day. This is
-            // compared against the newest claim rather than only this date's
-            // row because a westward timezone change rewinds `localToday()`
-            // onto an earlier date that carries no row yet - which the unique
-            // key cannot catch, and which would otherwise mint a second reward
-            // for a day the user has already been paid past.
+            // Compared against the newest claim, not just this date's row: a
+            // westward timezone change rewinds localToday() onto an earlier
+            // date the unique key cannot catch.
             if ($previous instanceof MileDay && $previous->local_date->toDateString() >= $date) {
                 return $previous;
             }

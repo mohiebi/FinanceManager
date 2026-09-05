@@ -192,3 +192,27 @@ it('never attributes an invite link to somebody already signed in', function () 
         ->assertRedirect(route('home'))
         ->assertSessionMissing(AcquisitionSource::REFERRAL_SESSION_KEY);
 });
+
+it('keeps a referral touch after the session that captured it has expired', function () {
+    $referrer = User::factory()->create();
+    $wallet = MileWallet::factory()->for($referrer)->create();
+
+    $response = $this->get(route('invite', ['code' => $wallet->referral_code]));
+    // Decrypted, because the request bag the action reads is post-middleware.
+    $cookie = $response->getCookie(AcquisitionSource::REFERRAL_COOKIE);
+
+    expect($cookie)->not->toBeNull()
+        // Thirty days, not the two-hour session that used to carry it alone.
+        ->and($cookie->getExpiresTime())
+        ->toBeGreaterThan(now()->addDays(29)->getTimestamp());
+
+    // A fresh session, as if they came back the next evening.
+    session()->flush();
+    request()->cookies->set(AcquisitionSource::REFERRAL_COOKIE, $cookie->getValue());
+
+    $friend = User::factory()->create();
+    $referral = app(AttributeReferral::class)($friend);
+
+    expect($referral)->not->toBeNull()
+        ->and($referral->referrer_id)->toBe($referrer->id);
+});

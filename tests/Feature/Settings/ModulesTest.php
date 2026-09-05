@@ -2,7 +2,10 @@
 
 use App\Actions\Features\FeatureToggleResult;
 use App\Actions\Features\UpdateUserFeature;
+use App\Actions\Miles\ActivateUserFeature;
+use App\Actions\Miles\AdjustMiles;
 use App\Enums\Feature;
+use App\Enums\MilesReason;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -345,21 +348,28 @@ test('the display group is written in every locale', function () {
     expect($missing)->toBe([]);
 });
 
-test('the modules page marks which cards cost Miles so the disable warning can be honest', function () {
+test('a grandfathered unlock is never described as Miles the user spent', function () {
     $user = User::factory()->create();
+    app(AdjustMiles::class)($user, 50, MilesReason::AdminAdjustment, 'seed');
+
+    // Bought with Miles.
+    app(ActivateUserFeature::class)($user, Feature::Bills, true);
+
+    // Granted at rollout, with no ledger entry behind it.
+    $user->featureUnlocks()->create([
+        'feature' => Feature::Budgets->value,
+        'unlocked_at' => now(),
+    ]);
 
     $this->actingAs($user)
         ->get(route('modules.edit'))
         ->assertInertia(function (Assert $page) {
             $cards = collect($page->toArray()['props']['modules']);
 
-            $paid = $cards->firstWhere('key', Feature::Bills->value);
-            // Free to enable, and free again after being switched off — which is
-            // the opposite of what a "you will have to pay again" warning would
-            // claim, so the flag exists to keep the copy truthful.
-            $free = $cards->firstWhere('key', Feature::Vault->value);
-
-            expect($paid['paid'])->toBeTrue()
-                ->and($free['paid'])->toBeFalse();
+            expect($cards->firstWhere('key', Feature::Bills->value)['purchased'])->toBeTrue()
+                // Telling this user their Miles are not refunded would be a
+                // claim about Miles they never spent.
+                ->and($cards->firstWhere('key', Feature::Budgets->value)['purchased'])->toBeFalse()
+                ->and($cards->firstWhere('key', Feature::Vault->value)['purchased'])->toBeFalse();
         });
 });

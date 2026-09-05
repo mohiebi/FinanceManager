@@ -1,4 +1,4 @@
-import type { MilesShortfall } from '@/types/miles';
+import type { MilesClaimed, MilesShortfall } from '@/types/miles';
 
 type HttpErrorResponse = {
     status?: unknown;
@@ -71,4 +71,15 @@ export function dispatchMilesShortfall(error: unknown): boolean {
     );
 
     return true;
+}
+
+/** Announce what a claim actually awarded, as the server reported it. */
+export function announceClaim(claimed: MilesClaimed | null | undefined): void {
+    if (!claimed || typeof window === 'undefined') {
+        return;
+    }
+
+    window.dispatchEvent(
+        new CustomEvent<MilesClaimed>('miles:claimed', { detail: claimed }),
+    );
 }

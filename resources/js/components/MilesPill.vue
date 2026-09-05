@@ -3,8 +3,8 @@ import { Link, router, usePage } from '@inertiajs/vue3';
 import { CircleGauge, Sparkles } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { announceClaim } from '@/lib/miles';
 import { claim } from '@/routes/miles';
-import type { MilesClaimed } from '@/types/miles';
 
 defineProps<{ compact?: boolean }>();
 
@@ -18,12 +18,6 @@ function collect(): void {
         return;
     }
 
-    // Captured before the request: these are the figures the button was
-    // showing when it was pressed, and the props are replaced by the time the
-    // response lands.
-    const step = (miles.value.claimStep % 7) + 1;
-    const reward = miles.value.nextClaimReward;
-
     processing.value = true;
     router.post(
         claim.url(),
@@ -33,16 +27,7 @@ function collect(): void {
             preserveState: true,
             only: ['miles', 'overview'],
             onSuccess: () => {
-                window.dispatchEvent(
-                    new CustomEvent<MilesClaimed>('miles:claimed', {
-                        detail: {
-                            miles: reward,
-                            step,
-                            balance: page.props.miles?.balance ?? 0,
-                            nextReward: page.props.miles?.nextClaimReward ?? 0,
-                        },
-                    }),
-                );
+                announceClaim(page.props.milesClaim);
             },
             onFinish: () => {
                 processing.value = false;

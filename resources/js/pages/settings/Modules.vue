@@ -113,10 +113,7 @@ function toggle(module: ModuleCard, next: boolean): void {
     // Switching a module off can cascade, and a module bought with Miles is
     // worth pausing over even when it cascades nowhere. Say either before it
     // happens rather than explaining it afterwards in a flash message.
-    if (
-        !next &&
-        (module.disables.length > 0 || (module.paid && module.unlocked))
-    ) {
+    if (!next && (module.disables.length > 0 || module.purchased)) {
         pendingDisable.value = module;
 
         return;
@@ -485,7 +482,7 @@ onKeyStroke('Escape', () => {
                         <template v-else>
                             {{ t('modules.confirm_disable_body_simple') }}
                         </template>
-                        <template v-if="pendingDisable.paid">
+                        <template v-if="pendingDisable.purchased">
                             {{ t('modules.confirm_disable_paid') }}
                         </template>
                     </p>

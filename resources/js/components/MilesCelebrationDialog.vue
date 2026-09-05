@@ -7,12 +7,8 @@ import type { MilesClaimed } from '@/types/miles';
 /**
  * The moment a daily reward lands.
  *
- * Mounted at the layout because a claim can be made from the header pill on
- * any page as well as from the hub itself, and both deserve the same moment.
- * It listens for an event rather than taking a prop for the same reason.
- *
- * The confetti is decorative and marked aria-hidden; the reward itself is
- * ordinary text, so a screen reader hears the number rather than the party.
+ * Listens for an event rather than taking a prop, because a claim can come
+ * from the header pill on any page. Confetti is decorative and aria-hidden.
  */
 const claimed = ref<MilesClaimed | null>(null);
 const { t } = useI18n();

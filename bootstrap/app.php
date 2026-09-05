@@ -7,6 +7,7 @@ use App\Http\Middleware\SetUserPreferences;
 use App\Http\Middleware\TrackUserActivity;
 use App\Jobs\BillReminderJob;
 use App\Jobs\CaptureDailyStatsJob;
+use App\Jobs\ReconcileMileWalletsJob;
 use App\Jobs\ReconcileSubscriptionsJob;
 use App\Jobs\RefreshAssetPricesJob;
 use App\Jobs\StreakReminderJob;
@@ -71,6 +72,15 @@ return Application::configure(basePath: dirname(__DIR__))
         // routes/console.php — Laravel merges both sources, so a second entry
         // would be a second independent schedule.
         $schedule->job(new ReconcileSubscriptionsJob)->hourly()->withoutOverlapping();
+
+        // Proves every Miles wallet still equals the ledger it was derived from.
+        // The wallet is only a cache of the entries beside it, so drift is a
+        // display bug at best and an unexplainable balance at worst; corrections
+        // run one way, from the ledger onto the wallet, and every one is logged
+        // because needing one means something upstream is wrong. Registered only
+        // here, not in routes/console.php - Laravel merges both sources, so a
+        // second entry would be a second independent schedule.
+        $schedule->job(new ReconcileMileWalletsJob)->dailyAt('03:20')->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

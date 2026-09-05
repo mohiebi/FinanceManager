@@ -5,7 +5,9 @@ use App\Actions\Miles\EnsureWelcomeMiles;
 use App\Enums\Feature;
 use App\Enums\MilesReason;
 use App\Exceptions\InsufficientMiles;
+use App\Jobs\ReconcileMileWalletsJob;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 test('the economy configuration buys all but one optional module', function () {
     expect(config('miles.welcome_grant'))
@@ -47,4 +49,42 @@ test('welcome miles require verified email and a completed profile', function ()
         ->and($eligible->mileLedgerEntries()->count())->toBe(1)
         ->and($unverified->mileWallet()->exists())->toBeFalse()
         ->and($incomplete->mileWallet()->exists())->toBeFalse();
+});
+
+test('reconciliation repairs a drifted wallet from the ledger and never the reverse', function () {
+    $user = User::factory()->create();
+    app(AdjustMiles::class)($user, 150, MilesReason::Welcome, 'welcome-drift');
+    app(AdjustMiles::class)($user, -25, MilesReason::ModuleUnlock, 'unlock-drift');
+
+    $wallet = $user->mileWallet()->sole();
+    $entriesBefore = $user->mileLedgerEntries()->count();
+
+    // However it happened, the cache no longer agrees with the entries.
+    $wallet->forceFill(['balance' => 999, 'lifetime_earned' => 1, 'lifetime_spent' => 0])->save();
+
+    Log::spy();
+    app(ReconcileMileWalletsJob::class)->handle();
+
+    expect($wallet->fresh()->balance)->toBe(125)
+        ->and($wallet->fresh()->lifetime_earned)->toBe(150)
+        ->and($wallet->fresh()->lifetime_spent)->toBe(25)
+        // Correcting the record to justify the cache would be backwards, so the
+        // ledger is left exactly as it was.
+        ->and($user->mileLedgerEntries()->count())->toBe($entriesBefore);
+
+    Log::shouldHaveReceived('error')->atLeast()->once();
+});
+
+test('reconciliation leaves a wallet that already agrees with its ledger alone', function () {
+    $user = User::factory()->create();
+    app(AdjustMiles::class)($user, 150, MilesReason::Welcome, 'welcome-clean');
+    $before = $user->mileWallet()->sole()->updated_at;
+
+    Log::spy();
+    app(ReconcileMileWalletsJob::class)->handle();
+
+    expect($user->mileWallet()->sole()->balance)->toBe(150)
+        ->and($user->mileWallet()->sole()->updated_at->eq($before))->toBeTrue();
+
+    Log::shouldNotHaveReceived('error');
 });

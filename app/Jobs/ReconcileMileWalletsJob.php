@@ -86,25 +86,55 @@ class ReconcileMileWalletsJob implements ShouldQueue
      */
     private function reconcile(MileWallet $wallet, array $totals): bool
     {
-        $corrections = array_filter([
+        // The sweep's own read is only a shortlist. Correcting from it directly
+        // would write a total computed before the lock, so a spend that
+        // committed in between would be erased and the wallet left ahead of the
+        // ledger - the sweep would become a source of the drift it exists to
+        // catch. Everything that decides the write is therefore re-read inside
+        // the transaction, against the same lock AdjustMiles takes.
+        if ($this->corrections($wallet, $totals) === []) {
+            return false;
+        }
+
+        return DB::transaction(function () use ($wallet): bool {
+            $fresh = MileWallet::query()->whereKey($wallet->getKey())->lockForUpdate()->first();
+
+            if (! $fresh instanceof MileWallet) {
+                return false;
+            }
+
+            $totals = $this->totalsFor([(int) $fresh->user_id])[(int) $fresh->user_id]
+                ?? ['balance' => 0, 'earned' => 0, 'spent' => 0];
+            $corrections = $this->corrections($fresh, $totals);
+
+            // The concurrent write may itself have settled the difference.
+            if ($corrections === []) {
+                return false;
+            }
+
+            Log::error('A Miles wallet did not match its ledger.', [
+                'user_id' => $fresh->user_id,
+                'balance_was' => $fresh->balance,
+                'balance_now' => $totals['balance'],
+                'corrections' => array_keys($corrections),
+            ]);
+
+            $fresh->forceFill($corrections)->save();
+
+            return true;
+        }, 3);
+    }
+
+    /**
+     * @param  array{balance: int, earned: int, spent: int}  $totals
+     * @return array<string, int>
+     */
+    private function corrections(MileWallet $wallet, array $totals): array
+    {
+        return array_filter([
             'balance' => $wallet->balance === $totals['balance'] ? null : $totals['balance'],
             'lifetime_earned' => $wallet->lifetime_earned === $totals['earned'] ? null : $totals['earned'],
             'lifetime_spent' => $wallet->lifetime_spent === $totals['spent'] ? null : $totals['spent'],
         ], fn (?int $value): bool => $value !== null);
-
-        if ($corrections === []) {
-            return false;
-        }
-
-        Log::error('A Miles wallet did not match its ledger.', [
-            'user_id' => $wallet->user_id,
-            'balance_was' => $wallet->balance,
-            'balance_now' => $totals['balance'],
-            'corrections' => array_keys($corrections),
-        ]);
-
-        $wallet->forceFill($corrections)->save();
-
-        return true;
     }
 }

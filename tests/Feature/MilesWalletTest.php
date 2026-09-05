@@ -6,7 +6,10 @@ use App\Enums\Feature;
 use App\Enums\MilesReason;
 use App\Exceptions\InsufficientMiles;
 use App\Jobs\ReconcileMileWalletsJob;
+use App\Models\MileLedgerEntry;
 use App\Models\User;
+use Illuminate\Database\Events\TransactionBeginning;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 
 test('the economy configuration buys all but one optional module', function () {
@@ -87,4 +90,37 @@ test('reconciliation leaves a wallet that already agrees with its ledger alone',
         ->and($user->mileWallet()->sole()->updated_at->eq($before))->toBeTrue();
 
     Log::shouldNotHaveReceived('error');
+});
+
+test('a spend landing before the lock is counted rather than erased', function () {
+    $user = User::factory()->create();
+    app(AdjustMiles::class)($user, 150, MilesReason::Welcome, 'welcome-race');
+
+    $wallet = $user->mileWallet()->sole();
+    $wallet->forceFill(['balance' => 999])->save();
+
+    // The sweep shortlists this wallet, then opens its transaction to correct
+    // it. A real spend committing in that window used to be overwritten by the
+    // total read before it, leaving the wallet ahead of its own ledger.
+    $spent = false;
+    Event::listen(TransactionBeginning::class, function () use ($user, &$spent): void {
+        if ($spent) {
+            return;
+        }
+
+        $spent = true;
+        MileLedgerEntry::query()->create([
+            'user_id' => $user->getKey(),
+            'amount' => -25,
+            'balance_after' => 125,
+            'reason' => MilesReason::ModuleUnlock,
+            'idempotency_key' => 'race-spend',
+        ]);
+    });
+
+    app(ReconcileMileWalletsJob::class)->handle();
+
+    expect($spent)->toBeTrue()
+        ->and($user->mileWallet()->sole()->balance)->toBe(125)
+        ->and($user->mileLedgerEntries()->sum('amount'))->toBe(125);
 });

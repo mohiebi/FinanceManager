@@ -127,6 +127,10 @@ test('it reports the Miles economy retention sinks referrals and advisor costs',
             'latency_ms' => 100,
             'shadow_miles' => 175,
             'charged_miles' => 0,
+            // A real advisor event always names the recommendation it belongs
+            // to; the gate counts one terminal outcome per distinct source.
+            'source_type' => 'advisor_recommendation',
+            'source_id' => 'rec-analytics-one',
             'created_at' => now()->subDays(2),
         ]);
         ServiceUsageEvent::factory()->create([
@@ -136,6 +140,8 @@ test('it reports the Miles economy retention sinks referrals and advisor costs',
             'outcome' => 'failure',
             'shadow_miles' => 250,
             'charged_miles' => 0,
+            'source_type' => 'advisor_recommendation',
+            'source_id' => 'rec-analytics-two',
             'created_at' => now()->subDay(),
         ]);
 
@@ -170,6 +176,7 @@ test('it reports the Miles economy retention sinks referrals and advisor costs',
             'gifts' => 1,
         ])->and($analytics['advisor'])->toMatchArray([
             'operations' => 2,
+            'recommendations' => 2,
             'successful_recommendations' => 1,
             'terminal_failures' => 1,
             'terminal_failure_rate' => 50.0,
@@ -181,6 +188,70 @@ test('it reports the Miles economy retention sinks referrals and advisor costs',
             'charged_miles' => 0,
             'reconciliation_mismatches' => 0,
         ]);
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('the advisor launch gate counts recommendations rather than provider calls', function () {
+    $user = User::factory()->create();
+
+    $event = function (?string $recommendationId, string $outcome, int $minute, string $operation = 'recommendation') use ($user): void {
+        ServiceUsageEvent::factory()->create([
+            'user_id' => $user,
+            'operation' => $operation,
+            'outcome' => $outcome,
+            'source_type' => $recommendationId === null ? null : 'advisor_recommendation',
+            'source_id' => $recommendationId,
+            'created_at' => now()->subDay()->addMinutes($minute),
+        ]);
+    };
+
+    // One recommendation, three provider calls: the opening one, a
+    // clarification, then the repair that produced a usable plan.
+    foreach ([0, 1, 2] as $minute) {
+        $event('rec-one', 'success', $minute);
+    }
+
+    // A second that ran, retried, and still failed. Its terminal event is the
+    // failure, not the successful call that preceded it.
+    $event('rec-two', 'success', 0);
+    $event('rec-two', 'failure', 1);
+
+    // Neither of these is a recommendation, so neither may dilute the rate.
+    $event(null, 'success', 0, 'assessment');
+    $event(null, 'success', 0, 'consultation');
+
+    $advisor = app(BuildMilesAnalytics::class)(now()->subDays(90))['advisor'];
+
+    expect($advisor['operations'])->toBe(7)
+        ->and($advisor['recommendations'])->toBe(2)
+        ->and($advisor['successful_recommendations'])->toBe(1)
+        ->and($advisor['terminal_failures'])->toBe(1)
+        ->and($advisor['terminal_failure_rate'])->toBe(50.0);
+});
+
+test('retention reads a signup date on the same clock as the activity it counts', function () {
+    Carbon::setTestNow('2026-07-15 12:00:00');
+
+    try {
+        // 21:00 UTC is already the 2nd in Tehran, so this account's own first
+        // day is the 2nd and its D1 is the 3rd. Reading the UTC date instead
+        // looks for activity on the 2nd and calls a retained user churned.
+        $user = User::factory()->create([
+            'timezone' => 'Asia/Tehran',
+            'created_at' => '2026-07-01 21:00:00',
+        ]);
+        MileDay::factory()->create([
+            'user_id' => $user,
+            'local_date' => '2026-07-03',
+            'claimed_at' => now()->subDays(10),
+            'activity_miles' => 2,
+        ]);
+
+        $retention = app(BuildMilesAnalytics::class)(now()->subDays(90))['retention'];
+
+        expect($retention['claimed'][0])->toBe(100.0);
     } finally {
         Carbon::setTestNow();
     }

@@ -87,7 +87,10 @@ final class BuildMilesAnalytics
             $eligible = $this->customers()
                 ->where('created_at', '>=', $rangeStart)
                 ->where('created_at', '<=', now()->subDays($day))
-                ->get(['id', 'created_at']);
+                // timezone travels with the row: retainedPercentage compares
+                // signup against the user's own calendar date, and a restricted
+                // select would throw on the strict-attribute guard.
+                ->get(['id', 'created_at', 'timezone']);
             $claimedUserIds = MileDay::query()
                 ->whereIn('user_id', $eligible->pluck('id'))
                 ->whereNotNull('claimed_at')
@@ -116,7 +119,18 @@ final class BuildMilesAnalytics
             ->get(['user_id', 'local_date'])
             ->mapWithKeys(fn (MileDay $mileDay): array => ["{$mileDay->user_id}:{$mileDay->local_date->toDateString()}" => true]);
         $retained = $users->filter(function (User $user) use ($coveredDates, $day): bool {
-            $target = $user->created_at->copy()->addDays($day)->toDateString();
+            // Signup is stored in UTC while mile_days records the user's own
+            // calendar date, so the two have to be brought into the same clock
+            // before they are compared. Someone in Tehran signing up at 21:00
+            // UTC did so on the following day locally, and reading their D1
+            // against the UTC date looks for activity on a day they had not
+            // reached yet - counting them as churned on the strength of a
+            // timezone.
+            $target = $user->created_at
+                ->copy()
+                ->setTimezone($user->resolvedTimezone())
+                ->addDays($day)
+                ->toDateString();
 
             return $coveredDates->has("{$user->id}:{$target}");
         })->count();
@@ -242,13 +256,23 @@ final class BuildMilesAnalytics
             ->whereIn('user_id', $customerIds)
             ->whereIn('reason', [MilesReason::AdvisorReservation, MilesReason::AdvisorRefund])
             ->get(['reason', 'amount', 'source_type', 'source_id']);
-        $terminalFailures = $events->whereIn('outcome', ['failure', 'failed', 'expired'])->count();
+        // These two gate turning real charging on, so both are counted per
+        // recommendation rather than per event. One recommendation can emit
+        // several events - the opening call, a clarification round, a repair
+        // attempt - so counting successful events overstates how many
+        // recommendations actually landed, and dividing failures by every
+        // advisor event at all, assessments and consultations included,
+        // understates how often they fail. Each error pushed the gate towards
+        // opening early.
+        $outcomes = $this->terminalOutcomes($events);
+        $terminalFailures = $outcomes->whereIn('outcome', ['failure', 'failed', 'expired'])->count();
 
         return [
             'operations' => $events->count(),
-            'successful_recommendations' => $events->where('operation', 'recommendation')->where('outcome', 'success')->count(),
+            'recommendations' => $outcomes->count(),
+            'successful_recommendations' => $outcomes->where('outcome', 'success')->count(),
             'terminal_failures' => $terminalFailures,
-            'terminal_failure_rate' => $events->isNotEmpty() ? round(($terminalFailures / $events->count()) * 100, 1) : 0,
+            'terminal_failure_rate' => $outcomes->isNotEmpty() ? round(($terminalFailures / $outcomes->count()) * 100, 1) : 0,
             'provider_cost_p50_usd' => $this->percentile($costs, 50),
             'provider_cost_p95_usd' => $this->percentile($costs, 95),
             'latency_p50_ms' => $this->percentile($latencies, 50),
@@ -258,6 +282,24 @@ final class BuildMilesAnalytics
             'refunded_miles' => (int) $ledger->where('reason', MilesReason::AdvisorRefund)->sum('amount'),
             'reconciliation_mismatches' => $this->advisorReconciliationMismatches($events, $advisorLedger),
         ];
+    }
+
+    /**
+     * The last event each recommendation produced, one row per recommendation.
+     *
+     * A recommendation is only finished once, however many provider calls it
+     * took to get there, so its final event is the one that says what happened.
+     *
+     * @param  Collection<int, ServiceUsageEvent>  $events
+     * @return Collection<int|string, ServiceUsageEvent>
+     */
+    private function terminalOutcomes(Collection $events): Collection
+    {
+        return $events
+            ->where('operation', 'recommendation')
+            ->whereNotNull('source_id')
+            ->groupBy('source_id')
+            ->map(fn (Collection $group): ServiceUsageEvent => $group->sortBy('created_at')->last());
     }
 
     /** @param Collection<int, ServiceUsageEvent> $events

@@ -64,6 +64,14 @@ test('the claim response flashes the collected and following rewards', function 
         ->assertSessionHas('milesClaim', fn (array $claim): bool => $claim['step'] === 2
             && $claim['nextReward'] === 3);
 
+    Carbon::setTestNow(now()->addDay());
+
+    $this->actingAs($user)
+        ->post(route('miles.claim'))
+        ->assertRedirect()
+        ->assertSessionHas('milesClaim', fn (array $claim): bool => $claim['step'] === 3
+            && $claim['nextReward'] === 4);
+
     Carbon::setTestNow();
 });
 

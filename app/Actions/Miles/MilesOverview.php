@@ -54,7 +54,7 @@ final readonly class MilesOverview
             'freezesMaximum' => (int) config('miles.streak_freeze_maximum'),
             'hubUrl' => route('miles.index'),
             'referralCode' => $wallet->referral_code,
-            'referralUrl' => route('home', ['ref' => $wallet->referral_code]),
+            'referralUrl' => route('invite', ['code' => $wallet->referral_code]),
             'streak' => $streak->toArray(),
             'completedCycles' => $completedCycles,
             'badgeTier' => $this->badgeTier($completedCycles),

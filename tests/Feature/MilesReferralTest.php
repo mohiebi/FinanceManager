@@ -160,3 +160,35 @@ it('stops paying the referrer at the rolling cap while the friend still earns', 
         ->and($activated->friend_ledger_entry_id)->not->toBeNull()
         ->and($friend->mileWallet()->first()->balance)->toBe(15);
 });
+
+it('remembers a referral from a shared invite link and keeps the first touch', function () {
+    $referrer = User::factory()->create();
+    $wallet = MileWallet::factory()->for($referrer)->create();
+    $other = MileWallet::factory()->for(User::factory()->create())->create();
+
+    $this->get(route('invite', ['code' => $wallet->referral_code]))
+        ->assertRedirect(route('home'))
+        ->assertSessionHas(AcquisitionSource::REFERRAL_SESSION_KEY);
+
+    // A second link cannot overwrite the first — first touch means first.
+    $this->get(route('invite', ['code' => $other->referral_code]))->assertRedirect(route('home'));
+
+    expect(session(AcquisitionSource::REFERRAL_SESSION_KEY)['code'])
+        ->toBe($wallet->referral_code);
+});
+
+it('lands an unknown invite code on the marketing page without remembering it', function () {
+    $this->get(route('invite', ['code' => 'NOTAREALCODE']))
+        ->assertRedirect(route('home'))
+        ->assertSessionMissing(AcquisitionSource::REFERRAL_SESSION_KEY);
+});
+
+it('never attributes an invite link to somebody already signed in', function () {
+    $referrer = User::factory()->create();
+    $wallet = MileWallet::factory()->for($referrer)->create();
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('invite', ['code' => $wallet->referral_code]))
+        ->assertRedirect(route('home'))
+        ->assertSessionMissing(AcquisitionSource::REFERRAL_SESSION_KEY);
+});

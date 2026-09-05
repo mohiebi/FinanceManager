@@ -22,6 +22,7 @@ use App\Http\Controllers\GoalController;
 use App\Http\Controllers\InvestmentAssetController;
 use App\Http\Controllers\InvestmentController;
 use App\Http\Controllers\InvestmentExportController;
+use App\Http\Controllers\InviteController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MilesClaimController;
 use App\Http\Controllers\MilesController;
@@ -56,6 +57,12 @@ Route::get('/', function (Request $request) {
 Route::get('sitemap.xml', fn () => response(SeoMetadata::sitemapXml(), 200, [
     'Content-Type' => 'application/xml; charset=UTF-8',
 ]))->name('sitemap');
+
+// Registered ahead of the {locale} catch-all so a shared invite is never read
+// as a language switch.
+Route::get('invite/{code}', InviteController::class)
+    ->middleware('throttle:30,1')
+    ->name('invite');
 
 Route::get('{locale}', function (Request $request, string $locale) {
     $locale = FrontendLocalization::normalizeLocale($locale);

@@ -24,18 +24,7 @@ class AcquisitionSource
             return;
         }
 
-        if (! $request->session()->has(self::REFERRAL_SESSION_KEY)) {
-            $code = mb_strtoupper(trim((string) $request->query('ref')));
-
-            if ($code !== '' && MileWallet::query()->where('referral_code', $code)->exists()) {
-                $request->session()->put(self::REFERRAL_SESSION_KEY, [
-                    'code' => $code,
-                    'captured_at' => now()->toIso8601String(),
-                    'ip_hash' => hash_hmac('sha256', (string) $request->ip(), (string) config('app.key')),
-                    'device_hash' => hash_hmac('sha256', (string) $request->userAgent(), (string) config('app.key')),
-                ]);
-            }
-        }
+        self::rememberReferral($request, (string) $request->query('ref'));
 
         if (! $request->session()->has(self::SESSION_KEY)) {
             $source = self::fromRequest($request);
@@ -44,6 +33,38 @@ class AcquisitionSource
                 $request->session()->put(self::SESSION_KEY, $source);
             }
         }
+    }
+
+    /**
+     * Hold on to a referral code until the visitor creates an account.
+     *
+     * Takes the code rather than reading it, because the same touch arrives two
+     * ways - as `?ref=` on any page, and as the path of a shared /invite link -
+     * and both must land in one place so first-touch really means first.
+     *
+     * Only a code matching a real wallet is kept, and only while the session
+     * holds none: a second link cannot overwrite the first.
+     */
+    public static function rememberReferral(Request $request, string $code): void
+    {
+        if ($request->user() !== null
+            || ! $request->hasSession()
+            || $request->session()->has(self::REFERRAL_SESSION_KEY)) {
+            return;
+        }
+
+        $code = mb_strtoupper(trim($code));
+
+        if ($code === '' || ! MileWallet::query()->where('referral_code', $code)->exists()) {
+            return;
+        }
+
+        $request->session()->put(self::REFERRAL_SESSION_KEY, [
+            'code' => $code,
+            'captured_at' => now()->toIso8601String(),
+            'ip_hash' => hash_hmac('sha256', (string) $request->ip(), (string) config('app.key')),
+            'device_hash' => hash_hmac('sha256', (string) $request->userAgent(), (string) config('app.key')),
+        ]);
     }
 
     /**

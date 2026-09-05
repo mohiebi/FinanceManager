@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Miles\MeterAdvisorConsultation;
+use App\Actions\Miles\RecordServiceUsage;
 use App\Ai\Agents\AdvisorConsultationAgent;
 use App\Enums\AdvisorRecommendationStatus;
 use App\Http\Requests\Advisor\ConsultAdvisorRequest;
@@ -13,6 +15,7 @@ use App\Support\Encryption\SealedField;
 use App\Support\FrontendLocalization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Throwable;
 
@@ -23,6 +26,8 @@ class AdvisorConsultationController extends Controller
         AdvisorRecommendation $recommendation,
         AdvisorCanonicalJson $canonicalJson,
         AdvisorExecutionTimeLimiter $executionTimeLimiter,
+        MeterAdvisorConsultation $meterAdvisorConsultation,
+        RecordServiceUsage $recordServiceUsage,
     ): JsonResponse {
         abort_unless($recommendation->status === AdvisorRecommendationStatus::Ready, 409);
         $recommendation->loadMissing('profile');
@@ -39,15 +44,17 @@ class AdvisorConsultationController extends Controller
         $userMessage = ['content' => $request->validated('message')];
         $recommendationPayload = $vaultArmed ? $validated['recommendation_context'] : $recommendation->recommendation_payload;
 
-        if ($vaultArmed) {
-            $recommendation->messages()->create([
+        [$message, $charged] = DB::transaction(function () use ($vaultArmed, $recommendation, $request, $validated, $userMessage, $meterAdvisorConsultation): array {
+            $message = $recommendation->messages()->create([
                 'user_id' => $request->user()->id,
                 'role' => 'user',
-                'payload' => new EncryptedValue($validated['sealed_message'], 'payload'),
+                'payload' => $vaultArmed
+                    ? new EncryptedValue($validated['sealed_message'], 'payload')
+                    : $userMessage,
             ]);
-        } else {
-            $recommendation->messages()->create(['user_id' => $request->user()->id, 'role' => 'user', 'payload' => $userMessage]);
-        }
+
+            return [$message, $meterAdvisorConsultation->reserve($message)];
+        }, 3);
 
         $context = [
             'investor_profile' => $recommendation->profile->profile_payload,
@@ -64,14 +71,39 @@ class AdvisorConsultationController extends Controller
         ];
 
         try {
+            $startedAt = hrtime(true);
             $executionTimeLimiter->extendForProviderCall();
-            $response = AdvisorConsultationAgent::make()->prompt(
+            $providerResponse = AdvisorConsultationAgent::make()->prompt(
                 $canonicalJson->encode($context),
                 provider: (string) config('advisor.provider'),
                 model: config('advisor.model'),
                 timeout: (int) config('advisor.timeout'),
-            )->toArray();
-        } catch (Throwable) {
+            );
+            $recordServiceUsage(
+                $request->user(),
+                'consultation',
+                'success',
+                $providerResponse,
+                $message,
+                $startedAt,
+                (int) config('miles.advisor.consultation'),
+                $charged,
+                ['provider_attempted' => true],
+            );
+            $response = $providerResponse->toArray();
+        } catch (Throwable $exception) {
+            $meterAdvisorConsultation->refund($message, $charged);
+            $recordServiceUsage(
+                $request->user(),
+                'consultation',
+                'failure',
+                null,
+                $message,
+                $startedAt ?? hrtime(true),
+                (int) config('miles.advisor.consultation'),
+                metadata: ['exception' => $exception::class, 'provider_attempted' => true],
+            );
+
             return response()->json(['message' => __('advisor.validation.provider_failure')], 502);
         }
 

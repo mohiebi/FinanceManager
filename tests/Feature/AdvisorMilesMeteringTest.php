@@ -1,12 +1,15 @@
 <?php
 
 use App\Actions\Miles\AdjustMiles;
+use App\Actions\Miles\ChargeAdvisorAssessment;
+use App\Actions\Miles\MeterAdvisorConsultation;
 use App\Actions\Miles\RecordServiceUsage;
 use App\Actions\Miles\ReserveAdvisorMiles;
 use App\Actions\Miles\SettleAdvisorMiles;
 use App\Enums\AdvisorRecommendationStatus;
 use App\Enums\MilesReason;
 use App\Models\AdvisorRecommendation;
+use App\Models\InvestorAssessment;
 use App\Models\ServiceUsageEvent;
 use App\Models\User;
 
@@ -85,4 +88,37 @@ it('records token usage with the configured rate snapshot', function () {
         ->and($event->completion_tokens)->toBe(500)
         ->and((float) $event->provider_cost_usd)->toBe(0.006)
         ->and($event->metadata['rate_snapshot'])->toBe(['prompt' => 2, 'completion' => 8]);
+});
+
+it('keeps one assessment completion free in each rolling thirty day window', function () {
+    config()->set('miles.advisor_charging', true);
+    $user = User::factory()->create();
+    app(AdjustMiles::class)($user, 50, MilesReason::AdminAdjustment, 'seed');
+    $first = InvestorAssessment::factory()->for($user)->create(['completed_at' => now()->subDays(10)]);
+    $second = InvestorAssessment::factory()->for($user)->create();
+
+    $firstMetering = app(ChargeAdvisorAssessment::class)($first);
+    $secondMetering = app(ChargeAdvisorAssessment::class)($second);
+
+    expect($firstMetering)->toBe(['quoted' => 0, 'charged' => 0])
+        ->and($secondMetering)->toBe(['quoted' => 25, 'charged' => 25])
+        ->and($user->mileWallet()->first()->balance)->toBe(25);
+});
+
+it('refunds a failed consultation reservation', function () {
+    config()->set('miles.advisor_charging', true);
+    $user = User::factory()->create();
+    app(AdjustMiles::class)($user, 30, MilesReason::AdminAdjustment, 'seed');
+    $recommendation = AdvisorRecommendation::factory()->for($user)->create();
+    $message = $recommendation->messages()->create([
+        'user_id' => $user->id,
+        'role' => 'user',
+        'payload' => ['content' => 'Question'],
+    ]);
+
+    $charged = app(MeterAdvisorConsultation::class)->reserve($message);
+    app(MeterAdvisorConsultation::class)->refund($message, $charged);
+
+    expect($charged)->toBe(15)
+        ->and($user->mileWallet()->first()->balance)->toBe(30);
 });

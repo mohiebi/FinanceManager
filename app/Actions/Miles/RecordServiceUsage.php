@@ -22,8 +22,9 @@ final class RecordServiceUsage
         int $chargedMiles = 0,
         array $metadata = [],
     ): ServiceUsageEvent {
-        $provider = $response?->meta?->provider ?? config('advisor.provider');
-        $model = $response?->meta?->model ?? config('advisor.model');
+        $providerAttempted = (bool) ($metadata['provider_attempted'] ?? false);
+        $provider = $response?->meta?->provider ?? ($providerAttempted ? config('advisor.provider') : null);
+        $model = $response?->meta?->model ?? ($providerAttempted ? config('advisor.model') : null);
         $promptTokens = (int) ($response?->usage?->promptTokens ?? 0);
         $completionTokens = (int) ($response?->usage?->completionTokens ?? 0);
         $rates = config("miles.advisor.provider_rates.{$provider}.{$model}");

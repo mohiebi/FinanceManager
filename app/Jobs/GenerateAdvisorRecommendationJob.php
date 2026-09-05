@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Actions\Miles\SettleAdvisorMiles;
 use App\Enums\AdvisorRecommendationStatus;
 use App\Models\AdvisorRecommendation;
 use App\Services\Advisor\AdvisorRecommendationService;
@@ -124,5 +125,6 @@ class GenerateAdvisorRecommendationJob implements ShouldBeEncrypted, ShouldQueue
             'failure_code' => 'provider_failure',
             'generated_at' => now(),
         ])->save();
+        app(SettleAdvisorMiles::class)($recommendation, 'failure');
     }
 }

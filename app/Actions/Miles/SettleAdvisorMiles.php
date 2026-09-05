@@ -4,6 +4,7 @@ namespace App\Actions\Miles;
 
 use App\Enums\MilesReason;
 use App\Models\AdvisorRecommendation;
+use App\Models\ServiceUsageEvent;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -46,6 +47,10 @@ final readonly class SettleAdvisorMiles
                 'miles_outcome' => $outcome,
                 'miles_settled_at' => now(),
             ])->save();
+            ServiceUsageEvent::query()
+                ->where('source_type', $recommendation->getMorphClass())
+                ->where('source_id', $recommendation->getKey())
+                ->update(['charged_miles' => $target]);
 
             return $recommendation->refresh();
         }, 3);

@@ -18,9 +18,17 @@ return [
     'cascade_disabled' => 'Also turned off: :features.',
     'confirm_disable_title' => 'Turn off {module}?',
     'confirm_disable_body' => 'This will also turn off {features}. Your data is kept and comes back if you turn it on again.',
+    'confirm_disable_body_simple' => 'Your data is kept and comes back if you turn it on again.',
+    'confirm_disable_paid' => 'The Miles you spent unlocking it are not refunded, but you own it for good — turning it back on later costs nothing.',
     'confirm_disable_action' => 'Turn off',
     'cancel' => 'Cancel',
     'requires' => 'Needs {features}',
+    'activation' => [
+        'title' => 'Activate {module}?',
+        'body' => 'This permanently unlocks {features} for {miles} Miles. Turning modules off later is free and keeps ownership.',
+        'shortfall' => 'You need {miles} more Miles.',
+        'confirm' => 'Activate for {miles}',
+    ],
 
     // Shown when someone without Pro reaches for a Pro module. Rendered by
     // vue-i18n, so the placeholder is {module} rather than :module.

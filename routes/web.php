@@ -22,7 +22,13 @@ use App\Http\Controllers\GoalController;
 use App\Http\Controllers\InvestmentAssetController;
 use App\Http\Controllers\InvestmentController;
 use App\Http\Controllers\InvestmentExportController;
+use App\Http\Controllers\InviteController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\MilesClaimController;
+use App\Http\Controllers\MilesController;
+use App\Http\Controllers\MilesCosmeticController;
+use App\Http\Controllers\MilesGiftController;
+use App\Http\Controllers\MilesProtectionController;
 use App\Http\Controllers\NoSpendDayController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\PortfolioExportController;
@@ -51,6 +57,12 @@ Route::get('/', function (Request $request) {
 Route::get('sitemap.xml', fn () => response(SeoMetadata::sitemapXml(), 200, [
     'Content-Type' => 'application/xml; charset=UTF-8',
 ]))->name('sitemap');
+
+// Registered ahead of the {locale} catch-all so a shared invite is never read
+// as a language switch.
+Route::get('invite/{code}', InviteController::class)
+    ->middleware('throttle:30,1')
+    ->name('invite');
 
 Route::get('{locale}', function (Request $request, string $locale) {
     $locale = FrontendLocalization::normalizeLocale($locale);
@@ -113,6 +125,22 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'verified', EnsureProfileIsComplete::class])->group(function () {
+    Route::get('miles', MilesController::class)->name('miles.index');
+    Route::post('miles/claim', MilesClaimController::class)
+        ->middleware('throttle:10,1')
+        ->name('miles.claim');
+    Route::post('miles/protections/freezes', [MilesProtectionController::class, 'storeFreeze'])
+        ->middleware('throttle:10,1')
+        ->name('miles.freezes.store');
+    Route::post('miles/protections/repairs', [MilesProtectionController::class, 'repair'])
+        ->middleware('throttle:10,1')
+        ->name('miles.repairs.store');
+    Route::post('miles/cosmetics/{cosmetic}', [MilesCosmeticController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('miles.cosmetics.store');
+    Route::post('miles/gifts', MilesGiftController::class)
+        ->middleware('throttle:10,1')
+        ->name('miles.gifts.store');
     Route::get('admin', AdminDashboardController::class)
         ->middleware(EnsureUserIsAdmin::class)
         ->name('admin.dashboard');

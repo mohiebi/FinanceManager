@@ -2,7 +2,10 @@
 
 use App\Actions\Features\FeatureToggleResult;
 use App\Actions\Features\UpdateUserFeature;
+use App\Actions\Miles\ActivateUserFeature;
+use App\Actions\Miles\AdjustMiles;
 use App\Enums\Feature;
+use App\Enums\MilesReason;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -45,9 +48,9 @@ test('the modules page lists every toggleable module at its default state', func
             ->where('modules.6.key', Feature::AiAssistant->value)
             ->where('modules.6.enabled', false)
             ->where('modules.7.key', Feature::Advisor->value)
-            ->where('modules.7.enabled', false)
-            ->where('modules.7.tier', 'pro')
-            ->where('modules.7.may_use', false)
+            ->where('modules.7.enabled', true)
+            ->where('modules.7.tier', 'free')
+            ->where('modules.7.may_use', true)
             ->where('modules.8.key', Feature::TelegramBot->value)
             ->where('modules.8.enabled', false)
             // Advertised on the page, but switched from its own — the card is a
@@ -58,20 +61,14 @@ test('the modules page lists every toggleable module at its default state', func
         );
 });
 
-/*
- * Advisor defaults to on so that buying Pro is enough to use it. That must not
- * leak into the page a free user sees: the card has to read as off, or the
- * switch says "on" for something that cannot be opened and the "hide from menu"
- * control — which only appears on an off card — disappears with it.
- */
-test('a paid module reads as off for a user whose plan does not cover it', function () {
+test('advisor is available without a pro entitlement', function () {
     $this->actingAs(User::factory()->create())
         ->get(route('modules.edit'))
         ->assertInertia(fn (Assert $page) => $page
             ->where('modules.7.key', Feature::Advisor->value)
-            ->where('modules.7.enabled', false)
-            ->where('modules.7.may_use', false)
-            ->where('modules.7.show_promo', true));
+            ->where('modules.7.enabled', true)
+            ->where('modules.7.may_use', true)
+            ->where('modules.7.show_promo', false));
 });
 
 test('a paid module reads as on for a subscriber who never touched the page', function () {
@@ -254,53 +251,33 @@ test('every module that claims a nav entry has one', function () {
  * costs. It stays operable now and opens a dialog instead; the server's
  * rejection is unchanged and still the thing that enforces entitlement.
  */
-test('a pro locked module opens the upgrade dialog instead of saving', function () {
+test('a locked module opens a Miles activation confirmation instead of saving immediately', function () {
     $page = file_get_contents(resource_path('js/pages/settings/Modules.vue'));
 
-    expect($page)->toContain('function isProLocked')
-        // The switch must stay operable for exactly this case, and no other.
-        ->and($page)->toContain('!module.may_use && !isProLocked(module)')
-        // Turning one on opens the dialog and sends nothing.
-        ->and($page)->toContain('if (next && isProLocked(module))')
-        ->and($page)->toContain('pendingUpgrade.value = module')
-        // Buying is the user's move from inside the dialog, never a redirect
-        // the toggle performs on their behalf.
-        ->and($page)->toContain('billingEdit().url')
-        ->and($page)->toContain("t('modules.upgrade.later')");
+    expect($page)->toContain('if (next && module.activation_cost > 0)')
+        ->and($page)->toContain('pendingActivation.value = module')
+        ->and($page)->toContain('pendingActivation.unlock_features.join')
+        ->and($page)->toContain('confirmActivation')
+        ->and($page)->toContain("t('modules.activation.confirm'");
 });
 
-test('the upgrade dialog offers no plans page while billing is switched off', function () {
-    // `billing.edit` 404s when the catalog is unavailable, so the button that
-    // leads there has to be gated on the same switch the settings nav reads.
+test('an unaffordable activation shows its exact shortfall and cannot submit', function () {
     $page = file_get_contents(resource_path('js/pages/settings/Modules.vue'));
 
-    expect($page)->toContain('subscription?.billing_enabled === true')
-        ->and($page)->toContain('v-if="billingEnabled"');
+    expect($page)->toContain('!pendingActivation.can_afford')
+        ->and($page)->toContain('pendingActivation.shortfall')
+        ->and($page)->toContain(':disabled="!pendingActivation.can_afford"');
 });
 
-test('the upgrade dialog leads somewhere a free user can actually open', function () {
-    // The full helper, not just the master switch. `billing.edit` is gated on
-    // three things — the switch, a priced plan and a chain with an address, an
-    // endpoint and a payable asset — and setting only the first left the other
-    // two to whatever the developer happened to have in their own .env. It
-    // passed on a machine configured for real payments and 404'd everywhere
-    // else, including against the committed defaults.
-    enableBilling();
-
-    $this->actingAs(User::factory()->create())
-        ->get(route('billing.edit'))
-        ->assertOk();
-});
-
-test('the upgrade dialog is written in every locale', function () {
+test('the activation dialog is written in every locale', function () {
     $missing = [];
 
     foreach (['en', 'fa', 'de'] as $locale) {
         $modules = require resource_path("lang/{$locale}/modules.php");
 
-        foreach (['title', 'body', 'note', 'unavailable', 'continue', 'later'] as $key) {
-            if (! isset($modules['upgrade'][$key])) {
-                $missing[] = "{$locale}.upgrade.{$key}";
+        foreach (['title', 'body', 'shortfall', 'confirm'] as $key) {
+            if (! isset($modules['activation'][$key])) {
+                $missing[] = "{$locale}.activation.{$key}";
             }
         }
     }
@@ -369,4 +346,30 @@ test('the display group is written in every locale', function () {
     }
 
     expect($missing)->toBe([]);
+});
+
+test('a grandfathered unlock is never described as Miles the user spent', function () {
+    $user = User::factory()->create();
+    app(AdjustMiles::class)($user, 50, MilesReason::AdminAdjustment, 'seed');
+
+    // Bought with Miles.
+    app(ActivateUserFeature::class)($user, Feature::Bills, true);
+
+    // Granted at rollout, with no ledger entry behind it.
+    $user->featureUnlocks()->create([
+        'feature' => Feature::Budgets->value,
+        'unlocked_at' => now(),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('modules.edit'))
+        ->assertInertia(function (Assert $page) {
+            $cards = collect($page->toArray()['props']['modules']);
+
+            expect($cards->firstWhere('key', Feature::Bills->value)['purchased'])->toBeTrue()
+                // Telling this user their Miles are not refunded would be a
+                // claim about Miles they never spent.
+                ->and($cards->firstWhere('key', Feature::Budgets->value)['purchased'])->toBeFalse()
+                ->and($cards->firstWhere('key', Feature::Vault->value)['purchased'])->toBeFalse();
+        });
 });

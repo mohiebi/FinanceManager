@@ -28,7 +28,7 @@ const subtitle = providePageSubtitle();
         </div>
         <AppContent
             variant="sidebar"
-            class="app-page-scroll h-svh min-h-0 overflow-x-hidden overflow-y-auto pb-4"
+            class="app-page-scroll app-scroll-thin h-svh min-h-0 overflow-x-hidden overflow-y-auto pb-4"
         >
             <AppSidebarHeader :breadcrumbs="breadcrumbs" :subtitle="subtitle" />
             <!-- Caps content width on wide monitors, same as the v3 design's

@@ -8,12 +8,15 @@ use App\Concerns\ScopedToOwner;
 use App\Contracts\HasEncryptionOwner;
 use App\Enums\BillRecurrenceLimitType;
 use App\Enums\BillRecurrenceType;
+use App\Observers\MilesActivityObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+#[ObservedBy([MilesActivityObserver::class])]
 #[Fillable([
     'user_id',
     'category_id',

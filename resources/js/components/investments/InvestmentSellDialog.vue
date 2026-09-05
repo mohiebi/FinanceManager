@@ -272,7 +272,7 @@ watch(
                 @submit.prevent="submit"
             >
                 <div
-                    class="flex-1 overflow-y-auto px-4 pt-10 pb-5 sm:px-[80px] sm:pt-[68px] sm:pb-6"
+                    class="app-scroll-thin flex-1 overflow-y-auto px-4 pt-10 pb-5 sm:px-[80px] sm:pt-[68px] sm:pb-6"
                 >
                     <DialogHeader class="mb-6 space-y-2 text-start">
                         <DialogTitle

@@ -31,7 +31,7 @@ test('it marks a single notification as read', function () {
     $occurrence = $bill->occurrences()->create(['due_date' => '2026-07-01']);
     $user->notify(new BillDueNotification($bill, $occurrence, 'due_day'));
 
-    $notification = $user->notifications()->sole();
+    $notification = $user->notifications()->where('type', BillDueNotification::class)->sole();
     expect($notification->read_at)->toBeNull();
 
     $this->actingAs($user)
@@ -53,7 +53,7 @@ test('it marks all notifications as read', function () {
         $user->notify(new BillDueNotification($bill, $occurrence, 'due_day'));
     }
 
-    expect($user->unreadNotifications()->count())->toBe(2);
+    expect($user->unreadNotifications()->where('type', BillDueNotification::class)->count())->toBe(2);
 
     $this->actingAs($user)
         ->patch(route('notifications.read-all'))
@@ -72,7 +72,7 @@ test('users cannot mark another users notification as read', function () {
     ]);
     $occurrence = $bill->occurrences()->create(['due_date' => '2026-07-01']);
     $owner->notify(new BillDueNotification($bill, $occurrence, 'due_day'));
-    $notification = $owner->notifications()->sole();
+    $notification = $owner->notifications()->where('type', BillDueNotification::class)->sole();
 
     $this->actingAs($intruder)
         ->patch(route('notifications.read', $notification->id))

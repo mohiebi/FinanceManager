@@ -24,6 +24,14 @@ return [
         'subtitle' => 'Overview',
         'in_progress' => 'Assessment in progress',
     ],
+    'miles' => [
+        'assessment_free' => 'One completion free every 30 days',
+        'assessment_price' => 'Completion: {miles} Miles',
+        'recommendation_price' => 'Up to {miles} Miles · guidance settles at {guidance}',
+        'consultation_price' => '{miles} Miles per message',
+        'shadow' => 'Preview only — no Miles deducted',
+        'shortfall' => 'Earn {miles} more Miles to continue',
+    ],
     'paywall' => [
         'subtitle' => 'Pro feature',
         'unlock' => 'Unlock Advisor with Pro',

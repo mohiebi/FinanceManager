@@ -14,6 +14,7 @@ import {
 } from '@/lib/advisor/http-errors';
 import { useAdvisorLabels } from '@/lib/advisor/labels';
 import { seriesColor } from '@/lib/advisor/series';
+import { dispatchMilesShortfall } from '@/lib/miles';
 import {
     claim as claimPayload,
     clarify,
@@ -64,6 +65,10 @@ const props = defineProps<{
         created_at: string;
     }[];
     vaultArmed: boolean;
+    consultationPricing: {
+        miles: number;
+        charging: boolean;
+    };
 }>();
 
 const { t } = useI18n();
@@ -87,6 +92,12 @@ const actionError = ref('');
 const integrityError = ref(false);
 const chatMessage = ref('');
 const isConsulting = ref(false);
+const milesBalance = computed(() => page.props.miles?.balance ?? 0);
+const canConsult = computed(
+    () =>
+        !props.consultationPricing.charging ||
+        milesBalance.value >= props.consultationPricing.miles,
+);
 const isGuidance = computed(
     () =>
         payload.value?.status === 'guidance_only' ||
@@ -744,7 +755,7 @@ function retryMessage(index: number): void {
 async function sendMessage(): Promise<void> {
     const text = chatMessage.value.trim();
 
-    if (!text || !payload.value || isConsulting.value) {
+    if (!text || !payload.value || isConsulting.value || !canConsult.value) {
         return;
     }
 
@@ -797,7 +808,10 @@ async function sendMessage(): Promise<void> {
                 sealedAssistant.payload as unknown as string;
             await messageSealer.post(sealMessage(props.recommendation.id).url);
         }
-    } catch {
+
+        router.reload({ only: ['miles'] });
+    } catch (error) {
+        dispatchMilesShortfall(error);
         // Marked rather than removed: the question stays on screen with a way to
         // send it again, instead of becoming a page-level error and lost text.
         pending.failed = true;
@@ -1348,7 +1362,7 @@ defineOptions({
                         :key="suggestion"
                         type="button"
                         class="cursor-pointer rounded-[10px] border border-white/11 px-[15px] py-2.5 text-start text-[12.5px] text-[#989898] transition-colors hover:border-[#d9c48f]/45 hover:text-white disabled:opacity-45"
-                        :disabled="isConsulting"
+                        :disabled="isConsulting || !canConsult"
                         @click="useSuggestion(suggestion)"
                     >
                         {{ suggestion }}
@@ -1377,7 +1391,9 @@ defineOptions({
                     <button
                         type="submit"
                         class="shrink-0 cursor-pointer rounded-[10px] bg-[#02cd86] px-5 py-2.5 text-[13.5px] font-semibold text-[#101010] transition-colors hover:bg-[#16e19a] disabled:cursor-not-allowed disabled:opacity-45"
-                        :disabled="isConsulting || !chatMessage.trim()"
+                        :disabled="
+                            isConsulting || !chatMessage.trim() || !canConsult
+                        "
                     >
                         <LoaderCircle
                             v-if="isConsulting"
@@ -1397,7 +1413,27 @@ defineOptions({
                 <div
                     class="advisor-mono mt-3 flex flex-wrap items-center justify-between gap-3.5 text-[9.5px] tracking-[0.1em] text-[#5a5a5a] uppercase"
                 >
-                    <span>{{ t('advisor.recommendation.send_hint') }}</span>
+                    <span>
+                        {{ t('advisor.recommendation.send_hint') }} ·
+                        {{
+                            t('advisor.miles.consultation_price', {
+                                miles: props.consultationPricing.miles,
+                            })
+                        }}
+                        <template v-if="!props.consultationPricing.charging">
+                            · {{ t('advisor.miles.shadow') }}
+                        </template>
+                        <template v-else-if="!canConsult">
+                            ·
+                            {{
+                                t('advisor.miles.shortfall', {
+                                    miles:
+                                        props.consultationPricing.miles -
+                                        milesBalance,
+                                })
+                            }}
+                        </template>
+                    </span>
                     <span
                         v-if="props.vaultArmed"
                         class="inline-flex items-center gap-[7px]"

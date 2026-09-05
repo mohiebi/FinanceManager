@@ -1,6 +1,7 @@
 import type { Auth } from '@/types/auth';
 import type { SubscriptionState } from '@/types/billing';
 import type { FeatureMap } from '@/types/features';
+import type { MilesClaimed, MilesShared } from '@/types/miles';
 import type { NotificationData } from '@/types/notifications';
 import type { VaultDescriptor } from '@/types/vault';
 
@@ -32,6 +33,9 @@ declare module '@inertiajs/core' {
             compactFiguresEnabled: boolean;
             translations: Record<string, unknown>;
             features: FeatureMap | null;
+            /** Null for guests or while the Miles UI flag is disabled. */
+            miles: MilesShared | null;
+            milesClaim: MilesClaimed | null;
             /** Null until a vault exists for this user; see Stage 6. */
             vault: VaultDescriptor | null;
             /** Null for guests. */

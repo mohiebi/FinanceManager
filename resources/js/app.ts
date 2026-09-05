@@ -9,6 +9,7 @@ import {
     installDiagnostics,
     reportInertiaEvent,
 } from '@/lib/diagnostics';
+import { dispatchMilesShortfall } from '@/lib/miles';
 
 const appName = import.meta.env.VITE_APP_NAME || 'CashPilot';
 
@@ -116,9 +117,17 @@ createInertiaApp({
 });
 
 router.on('httpException', (event) => {
-    reportInertiaEvent(
-        `httpException status=${(event.detail as { response?: { status?: number } }).response?.status ?? '?'}`,
-    );
+    const response = event.detail.response;
+
+    reportInertiaEvent(`httpException status=${response?.status ?? '?'}`);
+
+    // A shortfall is a priced action the user cannot afford yet, not a broken
+    // request. Handing it to Inertia's exception screen would show them a
+    // developer error about JSON where an offer to earn or top up belongs.
+    // Anything that is not a well-formed shortfall falls through untouched.
+    if (dispatchMilesShortfall({ response })) {
+        event.preventDefault();
+    }
 });
 
 router.on('networkError', () => {

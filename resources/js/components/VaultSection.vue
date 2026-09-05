@@ -350,7 +350,7 @@ async function finishDisable(): Promise<void> {
     <Teleport to="body">
         <div
             v-if="step !== 'idle'"
-            class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:items-center"
+            class="app-scroll-thin fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:items-center"
             @click.self="reset"
         >
             <!-- Wide enough for the consequences to be read rather than skimmed:

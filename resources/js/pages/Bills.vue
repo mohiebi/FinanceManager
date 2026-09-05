@@ -397,7 +397,7 @@
                     @submit.prevent="submitBill"
                 >
                     <div
-                        class="flex-1 overflow-y-auto px-6 pt-10 pb-5 sm:px-10 sm:pt-12 sm:pb-6"
+                        class="app-scroll-thin flex-1 overflow-y-auto px-6 pt-10 pb-5 sm:px-10 sm:pt-12 sm:pb-6"
                     >
                         <DialogHeader class="mb-6 space-y-2 text-start">
                             <DialogTitle

@@ -26,6 +26,14 @@ return [
         'subtitle' => 'Überblick',
         'in_progress' => 'Analyse läuft',
     ],
+    'miles' => [
+        'assessment_free' => 'Ein Abschluss alle 30 Tage kostenlos',
+        'assessment_price' => 'Abschluss: {miles} Miles',
+        'recommendation_price' => 'Bis zu {miles} Miles · Orientierung kostet {guidance}',
+        'consultation_price' => '{miles} Miles pro Nachricht',
+        'shadow' => 'Nur Vorschau — keine Miles werden abgezogen',
+        'shortfall' => 'Sammle noch {miles} Miles, um fortzufahren',
+    ],
     'paywall' => [
         'subtitle' => 'Pro-Funktion',
         'unlock' => 'Advisor mit Pro freischalten',

@@ -7,6 +7,7 @@ import { usePageSubtitle } from '@/composables/usePageSubtitle';
 import { documentNumber, sealDate } from '@/lib/advisor/format';
 import { advisorGenerationErrorKey } from '@/lib/advisor/http-errors';
 import { useAdvisorLabels } from '@/lib/advisor/labels';
+import { dispatchMilesShortfall } from '@/lib/miles';
 import { profile as advisorProfile } from '@/routes/advisor';
 import {
     show as showRecommendation,
@@ -47,6 +48,11 @@ const props = defineProps<{
         ai_enabled: boolean;
         completed_at: string | null;
     };
+    recommendationPricing: {
+        full_miles: number;
+        guidance_miles: number;
+        charging: boolean;
+    };
 }>();
 
 const { t } = useI18n();
@@ -54,6 +60,12 @@ const { label } = useAdvisorLabels();
 const page = usePage();
 const generationError = ref('');
 const generator = useHttp<Record<string, never>, RecommendationAccepted>({});
+const milesBalance = computed(() => page.props.miles?.balance ?? 0);
+const canGenerate = computed(
+    () =>
+        !props.recommendationPricing.charging ||
+        milesBalance.value >= props.recommendationPricing.full_miles,
+);
 
 usePageSubtitle(() => t('advisor.profile.subtitle'));
 
@@ -132,6 +144,10 @@ async function generateRecommendation(): Promise<void> {
 
         router.visit(showRecommendation(response.recommendation_id).url);
     } catch (error) {
+        if (dispatchMilesShortfall(error)) {
+            return;
+        }
+
         generationError.value = t(advisorGenerationErrorKey(error));
     }
 }
@@ -508,11 +524,29 @@ defineOptions({
                 <p class="mt-2.5 text-[13.5px] leading-[1.7] text-[#989898]">
                     {{ t('advisor.profile.ai_scope') }}
                 </p>
+                <p
+                    class="advisor-mono mt-3 text-[10px] tracking-[0.1em] text-[#d9c48f] uppercase"
+                >
+                    {{
+                        t('advisor.miles.recommendation_price', {
+                            miles: props.recommendationPricing.full_miles,
+                            guidance:
+                                props.recommendationPricing.guidance_miles,
+                        })
+                    }}
+                    <template v-if="!props.recommendationPricing.charging">
+                        · {{ t('advisor.miles.shadow') }}
+                    </template>
+                </p>
             </div>
             <button
                 type="button"
                 class="flex shrink-0 cursor-pointer items-center gap-2.5 rounded-[10px] bg-[#02cd86] px-[26px] py-3.5 text-sm font-semibold text-[#101010] transition-colors hover:bg-[#16e19a] disabled:cursor-not-allowed disabled:opacity-45"
-                :disabled="!props.profile.ai_enabled || generator.processing"
+                :disabled="
+                    !props.profile.ai_enabled ||
+                    generator.processing ||
+                    !canGenerate
+                "
                 @click="generateRecommendation"
             >
                 {{
@@ -536,6 +570,17 @@ defineOptions({
             class="mt-4 text-[13px] leading-[1.65] text-[#cfc4a6]"
         >
             {{ t('advisor.profile.ai_disabled') }}
+        </p>
+        <p
+            v-else-if="!canGenerate"
+            class="mt-4 text-[13px] leading-[1.65] text-[#cfc4a6]"
+        >
+            {{
+                t('advisor.miles.shortfall', {
+                    miles:
+                        props.recommendationPricing.full_miles - milesBalance,
+                })
+            }}
         </p>
         <p
             v-if="generationError"

@@ -2,6 +2,7 @@
 
 return [
     'flight_log' => 'Flugbuch',
+    'miles' => 'Miles',
     'dashboard' => 'Dashboard',
     'dashboard_subtitle' => 'Cockpit',
     'transactions' => 'Transaktionen',

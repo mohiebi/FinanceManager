@@ -226,7 +226,7 @@
         <!-- ── Editor ─────────────────────────────────────────────── -->
         <Dialog :open="isDialogOpen" @update:open="handleDialogOpenChange">
             <DialogContent
-                class="max-h-[90vh] overflow-y-auto border-white/10 bg-[#1a1a1a] text-white sm:max-w-3xl"
+                class="app-scroll-thin max-h-[90vh] overflow-y-auto border-white/10 bg-[#1a1a1a] text-white sm:max-w-3xl"
             >
                 <DialogHeader>
                     <DialogTitle>{{

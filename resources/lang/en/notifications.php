@@ -26,6 +26,46 @@ return [
     // Each body says what became true of the user's records, not "well done" —
     // a milestone that only congratulates is decoration.
     'milestones' => [
+        'verified_email' => [
+            'title' => 'Account verified',
+            'body' => 'Your address is confirmed, so resets and reports can reach you.',
+        ],
+        'first_bill' => [
+            'title' => 'First bill scheduled',
+            'body' => 'Due dates now appear on your calendar and in your reminders.',
+        ],
+        'first_budget' => [
+            'title' => 'First flight plan set',
+            'body' => 'Spending now has a limit to measure against, category by category.',
+        ],
+        'first_investment' => [
+            'title' => 'First holding recorded',
+            'body' => 'Your portfolio has something to value and track from here.',
+        ],
+        'first_savings_goal' => [
+            'title' => 'First goal set',
+            'body' => 'Progress now has a target, measured in the asset you save in.',
+        ],
+        'three_day_run' => [
+            'title' => 'Three days in a row',
+            'body' => 'Long enough to be a habit forming rather than one good day.',
+        ],
+        'first_flight_week' => [
+            'title' => 'A full reward cycle',
+            'body' => 'Seven claims collected. The cycle begins again at day one.',
+        ],
+        'fourteen_day_run' => [
+            'title' => 'Two weeks unbroken',
+            'body' => 'Half a month of records with nothing missing from the middle.',
+        ],
+        'pilot_rank' => [
+            'title' => 'Pilot',
+            'body' => 'Thirty days recorded. Enough history for month-on-month comparisons to mean something.',
+        ],
+        'captain_rank' => [
+            'title' => 'Captain',
+            'body' => 'A hundred and eighty days recorded. Your history now covers a full half-year.',
+        ],
         'first_transaction' => [
             'title' => 'First record kept',
             'body' => 'Your logbook has started. Everything else in CashPilot builds on this.',

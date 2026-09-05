@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Actions\Miles\EnsureWelcomeMiles;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -9,6 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class TrackUserActivity
 {
+    public function __construct(private readonly EnsureWelcomeMiles $ensureWelcomeMiles) {}
+
     /**
      * Handle an incoming request.
      *
@@ -31,6 +34,10 @@ class TrackUserActivity
                 ->update(['last_active_at' => $trackedAt]);
 
             $user->setAttribute('last_active_at', $trackedAt);
+        }
+
+        if ($user !== null) {
+            ($this->ensureWelcomeMiles)($user);
         }
 
         return $next($request);

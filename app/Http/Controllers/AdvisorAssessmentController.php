@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Miles\ChargeAdvisorAssessment;
+use App\Actions\Miles\RecordServiceUsage;
 use App\Enums\InvestorAssessmentStatus;
 use App\Http\Requests\Advisor\CompleteAssessmentRequest;
 use App\Http\Requests\Advisor\UpdateAssessmentSectionRequest;
@@ -21,7 +23,7 @@ use Inertia\Response;
 
 class AdvisorAssessmentController extends Controller
 {
-    public function show(Request $request, InvestorAssessment $assessment, AdvisorAssessmentDefinition $definition): Response
+    public function show(Request $request, InvestorAssessment $assessment, AdvisorAssessmentDefinition $definition, ChargeAdvisorAssessment $chargeAdvisorAssessment): Response
     {
         $section = max(1, min(8, (int) $request->integer('section', min(8, $assessment->last_completed_section + 1))));
 
@@ -43,6 +45,10 @@ class AdvisorAssessmentController extends Controller
                 ...$this->classifyAsset($asset->slug),
             ]),
             'vaultArmed' => $request->user()->vaultIsArmed(),
+            'completionPricing' => [
+                'miles' => $chargeAdvisorAssessment->quote($request->user(), $assessment),
+                'charging' => (bool) config('miles.advisor_charging'),
+            ],
         ]);
     }
 
@@ -92,8 +98,14 @@ class AdvisorAssessmentController extends Controller
         return redirect()->route('advisor.assessments.show', ['assessment' => $assessment, 'section' => $nextSection]);
     }
 
-    public function complete(CompleteAssessmentRequest $request, InvestorAssessment $assessment, AdvisorAssessmentDefinition $definition, AdvisorProfileBuilder $profileBuilder): RedirectResponse
-    {
+    public function complete(
+        CompleteAssessmentRequest $request,
+        InvestorAssessment $assessment,
+        AdvisorAssessmentDefinition $definition,
+        AdvisorProfileBuilder $profileBuilder,
+        ChargeAdvisorAssessment $chargeAdvisorAssessment,
+        RecordServiceUsage $recordServiceUsage,
+    ): RedirectResponse {
         abort_if($assessment->isCompleted(), 409, __('advisor.validation.completed_immutable'));
         $answers = $assessment->answers()->get()->mapWithKeys(fn ($answer): array => [$answer->question_key => $answer->answer])->all();
         if (array_diff($definition->requiredQuestionKeys(), array_keys($answers)) !== []) {
@@ -108,7 +120,8 @@ class AdvisorAssessmentController extends Controller
             )
             : $profileBuilder->build($answers, $request->user());
 
-        DB::transaction(function () use ($assessment, $request, $profilePayload, $vaultArmed): void {
+        $startedAt = hrtime(true);
+        $metering = DB::transaction(function () use ($assessment, $request, $profilePayload, $vaultArmed, $chargeAdvisorAssessment): array {
             $assessment->forceFill([
                 'status' => InvestorAssessmentStatus::Completed,
                 'last_completed_section' => 8,
@@ -121,7 +134,19 @@ class AdvisorAssessmentController extends Controller
                 'profile_payload' => $profilePayload,
                 'ai_consent_at' => $request->boolean('ai_consent') ? now() : null,
             ]);
+
+            return $chargeAdvisorAssessment($assessment);
         });
+        $recordServiceUsage(
+            $request->user(),
+            'assessment',
+            'completed',
+            null,
+            $assessment,
+            $startedAt,
+            $metering['quoted'],
+            $metering['charged'],
+        );
 
         return redirect()->route('advisor.profile');
     }

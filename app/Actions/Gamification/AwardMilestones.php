@@ -2,13 +2,16 @@
 
 namespace App\Actions\Gamification;
 
+use App\Actions\Miles\AdjustMiles;
 use App\Enums\Feature;
+use App\Enums\MilesReason;
 use App\Enums\Milestone;
 use App\Models\User;
 use App\Models\UserMilestone;
 use App\Notifications\MilestoneNotification;
 use App\Support\StreakSummary;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Marks the moments a user reaches, exactly once each.
@@ -18,6 +21,8 @@ use Illuminate\Database\UniqueConstraintViolationException;
  */
 class AwardMilestones
 {
+    public function __construct(private readonly AdjustMiles $adjustMiles) {}
+
     /**
      * Users with no count-based milestone left to earn, for this request.
      *
@@ -103,10 +108,23 @@ class AwardMilestones
     public function award(User $user, Milestone $milestone): ?UserMilestone
     {
         try {
-            $awarded = $user->milestones()->create([
-                'key' => $milestone->value,
-                'achieved_at' => now(),
-            ]);
+            $awarded = DB::transaction(function () use ($user, $milestone): UserMilestone {
+                $milestoneRecord = $user->milestones()->create([
+                    'key' => $milestone->value,
+                    'achieved_at' => now(),
+                ]);
+
+                ($this->adjustMiles)(
+                    $user,
+                    $milestone->miles(),
+                    $milestone === Milestone::VerifiedEmail ? MilesReason::Welcome : MilesReason::Milestone,
+                    'milestone:'.$milestone->value,
+                    $milestoneRecord,
+                    ['milestone' => $milestone->value],
+                );
+
+                return $milestoneRecord;
+            });
         } catch (UniqueConstraintViolationException) {
             // Already earned. The race is the normal case for the first
             // milestone, where two rows can land in the same request.

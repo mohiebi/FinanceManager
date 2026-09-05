@@ -77,10 +77,7 @@ enum Feature: string
      */
     public function tier(): FeatureTier
     {
-        return match ($this) {
-            self::Advisor => FeatureTier::Pro,
-            default => FeatureTier::Free,
-        };
+        return FeatureTier::Free;
     }
 
     /**

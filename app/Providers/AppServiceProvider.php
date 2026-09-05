@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\Gamification\AwardMilestones;
+use App\Actions\Miles\AwardDailyActivity;
 use App\Contracts\AdvisorKnowledgeProvider;
 use App\Services\Advisor\ModelOnlyAdvisorKnowledgeProvider;
 use App\Support\Encryption\UserKeyRing;
@@ -37,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
         // observer resolves this per model event, so without a shared instance
         // its per-user memo is rebuilt for every row the CSV importer writes.
         $this->app->scoped(AwardMilestones::class);
+        $this->app->scoped(AwardDailyActivity::class);
         $this->app->bind(AdvisorKnowledgeProvider::class, ModelOnlyAdvisorKnowledgeProvider::class);
     }
 

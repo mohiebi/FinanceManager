@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Miles\SettleAdvisorMiles;
 use App\Enums\AdvisorRecommendationStatus;
 use App\Http\Requests\Advisor\AnswerClarificationsRequest;
 use App\Http\Requests\Advisor\GenerateRecommendationRequest;
@@ -67,7 +68,7 @@ class AdvisorRecommendationController extends Controller
      * Only reachable while the recommendation is waiting to be sealed, and the
      * parked copy is dropped as soon as the sealed ciphertext lands in seal().
      */
-    public function claim(Request $request, AdvisorRecommendation $recommendation, AdvisorPendingPayloadStore $pendingPayloads): JsonResponse
+    public function claim(Request $request, AdvisorRecommendation $recommendation, AdvisorPendingPayloadStore $pendingPayloads, SettleAdvisorMiles $settleAdvisorMiles): JsonResponse
     {
         abort_unless($request->user()->vaultIsArmed(), 409);
         abort_unless($recommendation->status === AdvisorRecommendationStatus::AwaitingVaultSeal, 409);
@@ -85,6 +86,7 @@ class AdvisorRecommendationController extends Controller
                 'pending_status' => null,
                 'failure_code' => 'pending_payload_expired',
             ])->save();
+            $settleAdvisorMiles($recommendation, 'failure');
 
             return response()->json(['status' => 'failed', 'failure_code' => 'pending_payload_expired'], 410);
         }
@@ -154,6 +156,9 @@ class AdvisorRecommendationController extends Controller
                 'provider_calls' => $recommendation->provider_calls,
                 'repair_attempts' => $recommendation->repair_attempts,
                 'created_at' => $recommendation->created_at->toIso8601String(),
+                'quoted_miles' => $recommendation->quoted_miles,
+                'charged_miles' => $recommendation->charged_miles,
+                'miles_outcome' => $recommendation->miles_outcome,
             ],
             'profile' => $recommendation->profile->profile_payload,
             'messages' => $recommendation->messages->map(fn ($message): array => [
@@ -163,6 +168,10 @@ class AdvisorRecommendationController extends Controller
                 'created_at' => $message->created_at->toIso8601String(),
             ]),
             'vaultArmed' => $request->user()->vaultIsArmed(),
+            'consultationPricing' => [
+                'miles' => (int) config('miles.advisor.consultation'),
+                'charging' => (bool) config('miles.advisor_charging'),
+            ],
         ]);
     }
 }

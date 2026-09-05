@@ -22,9 +22,17 @@ return [
     'cascade_disabled' => 'این‌ها هم خاموش شدند: :features.',
     'confirm_disable_title' => 'ماژول {module} خاموش شود؟',
     'confirm_disable_body' => 'با این کار {features} هم خاموش می‌شود. داده‌هایتان حفظ می‌شود و با روشن کردن دوباره برمی‌گردد.',
+    'confirm_disable_body_simple' => 'داده‌های شما نگه داشته می‌شود و با روشن کردن دوباره برمی‌گردد.',
+    'confirm_disable_paid' => 'مایل‌هایی که برای باز کردن آن پرداخت کرده‌اید بازگردانده نمی‌شود، اما این ماژول برای همیشه مال شماست — روشن کردن دوباره آن هزینه‌ای ندارد.',
     'confirm_disable_action' => 'خاموش کن',
     'cancel' => 'انصراف',
     'requires' => 'نیازمند {features}',
+    'activation' => [
+        'title' => 'فعال‌سازی {module}؟',
+        'body' => '{features} با {miles} مایل برای همیشه باز می‌شود. خاموش‌کردن بعدی رایگان است و مالکیت باقی می‌ماند.',
+        'shortfall' => '{miles} مایل دیگر نیاز دارید.',
+        'confirm' => 'فعال‌سازی با {miles}',
+    ],
 
     'upgrade' => [
         'title' => '{module} یک ماژول Pro است',

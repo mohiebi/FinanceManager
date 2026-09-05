@@ -21,11 +21,11 @@ test('the Advisor consultation shows an accessible loading state', () => {
 test('the consultation form prevents duplicate submissions while loading', () => {
     assert.match(
         source,
-        /if \(!text \|\| !payload\.value \|\| isConsulting\.value\)/,
+        /if \(!text \|\| !payload\.value \|\| isConsulting\.value \|\| !canConsult\.value\)/,
     );
     assert.match(
         source,
-        /:disabled="isConsulting \|\| !chatMessage\.trim\(\)"/,
+        /isConsulting \|\| !chatMessage\.trim\(\) \|\| !canConsult/,
     );
     assert.match(source, /finally \{\s+isConsulting\.value = false;/);
 });

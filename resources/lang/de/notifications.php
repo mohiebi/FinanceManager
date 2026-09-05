@@ -17,6 +17,46 @@ return [
         'body_first' => 'Heute ist noch nichts erfasst. Erfasse vor Mitternacht etwas, um eine Serie zu starten.',
     ],
     'milestones' => [
+        'verified_email' => [
+            'title' => 'Konto bestätigt',
+            'body' => 'Deine Adresse ist bestätigt, damit Resets und Berichte dich erreichen.',
+        ],
+        'first_bill' => [
+            'title' => 'Erste Rechnung angelegt',
+            'body' => 'Fälligkeiten erscheinen jetzt im Kalender und in den Erinnerungen.',
+        ],
+        'first_budget' => [
+            'title' => 'Erster Flugplan steht',
+            'body' => 'Ausgaben haben jetzt eine Grenze, Kategorie für Kategorie.',
+        ],
+        'first_investment' => [
+            'title' => 'Erste Position erfasst',
+            'body' => 'Dein Portfolio hat jetzt etwas zu bewerten und zu verfolgen.',
+        ],
+        'first_savings_goal' => [
+            'title' => 'Erstes Ziel gesetzt',
+            'body' => 'Fortschritt hat jetzt eine Zielmarke in der Anlage, in der du sparst.',
+        ],
+        'three_day_run' => [
+            'title' => 'Drei Tage in Folge',
+            'body' => 'Lang genug, dass daraus eine Gewohnheit wird und nicht nur ein guter Tag.',
+        ],
+        'first_flight_week' => [
+            'title' => 'Ein voller Belohnungszyklus',
+            'body' => 'Sieben Belohnungen abgeholt. Der Zyklus beginnt wieder bei Tag eins.',
+        ],
+        'fourteen_day_run' => [
+            'title' => 'Zwei Wochen ohne Lücke',
+            'body' => 'Ein halber Monat mit Aufzeichnungen, denen in der Mitte nichts fehlt.',
+        ],
+        'pilot_rank' => [
+            'title' => 'Pilot',
+            'body' => 'Dreißig erfasste Tage. Genug Historie, damit Monatsvergleiche etwas aussagen.',
+        ],
+        'captain_rank' => [
+            'title' => 'Kapitän',
+            'body' => 'Einhundertachtzig erfasste Tage. Deine Historie deckt jetzt ein halbes Jahr ab.',
+        ],
         'first_transaction' => [
             'title' => 'Erster Eintrag',
             'body' => 'Dein Logbuch ist eroeffnet. Alles andere in CashPilot baut darauf auf.',

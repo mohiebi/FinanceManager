@@ -162,6 +162,9 @@ test('admin analytics expose growth adoption authentication and locale data as d
                         'Persian', 'Telegram linked', 'Free', 'No AI assistant',
                     ])
                     ->where('analytics.engagement_trend.labels', [])
+                    ->has('analytics.miles.overview')
+                    ->has('analytics.miles.retention')
+                    ->has('analytics.miles.advisor')
                 )
             );
     } finally {

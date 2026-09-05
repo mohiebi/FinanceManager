@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Actions\Miles\MilesOverview;
 use App\Support\FrontendLocalization;
 use App\Support\SeoMetadata;
 use Closure;
@@ -202,6 +203,11 @@ class HandleInertiaRequests extends Middleware
             // make menu items pop in after first paint. Costs one memoized query
             // that the feature middleware has usually already paid for.
             'features' => fn () => $request->user()?->featureSet()->toArray($request->user()->isPro()),
+            'miles' => fn (): ?array => $request->user() !== null && config('miles.ui_enabled')
+                ? app(MilesOverview::class)($request->user())
+                : null,
+            // One-shot: what the last claim actually awarded, for the celebration.
+            'milesClaim' => fn (): ?array => $request->session()->get('milesClaim'),
             // Eager like the feature map: the unlock dialog is a layout-level gate,
             // and deferring it would flash unlocked-looking UI on every page load.
             'vault' => fn () => $request->user()?->vaultDescriptor(),

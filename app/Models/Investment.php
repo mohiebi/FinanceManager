@@ -7,10 +7,13 @@ use App\Concerns\OwnsEncryptedAttributes;
 use App\Concerns\ScopedToOwner;
 use App\Contracts\HasEncryptionOwner;
 use App\Enums\InvestmentKind;
+use App\Observers\MilesActivityObserver;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[ObservedBy([MilesActivityObserver::class])]
 #[Fillable([
     'user_id',
     'investment_asset_id',

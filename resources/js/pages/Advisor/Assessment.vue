@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { Check, ChevronDown, LockKeyhole, Plus, Trash2 } from 'lucide-vue-next';
 import { computed, reactive, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -51,6 +51,10 @@ const props = defineProps<{
     answers: Record<string, Encrypted<unknown>>;
     supportedAssets: SupportedAsset[];
     vaultArmed: boolean;
+    completionPricing: {
+        miles: number;
+        charging: boolean;
+    };
 }>();
 
 const { t } = useI18n();
@@ -61,6 +65,13 @@ const hydrated = ref(false);
 const processing = ref(false);
 const clientError = ref('');
 const aiConsent = ref(true);
+const page = usePage();
+const milesBalance = computed(() => page.props.miles?.balance ?? 0);
+const canComplete = computed(
+    () =>
+        !props.completionPricing.charging ||
+        milesBalance.value >= props.completionPricing.miles,
+);
 /** Questions the last attempt found blank, marked in place rather than summarized. */
 const missingKeys = ref<string[]>([]);
 
@@ -1660,6 +1671,31 @@ defineOptions({
                 >
                     {{ clientError }}
                 </p>
+                <p
+                    v-if="props.currentSection === 8"
+                    class="advisor-mono mt-5 text-[10px] tracking-[0.1em] text-[#d9c48f] uppercase"
+                >
+                    {{
+                        props.completionPricing.miles === 0
+                            ? t('advisor.miles.assessment_free')
+                            : t('advisor.miles.assessment_price', {
+                                  miles: props.completionPricing.miles,
+                              })
+                    }}
+                    <template v-if="!props.completionPricing.charging">
+                        · {{ t('advisor.miles.shadow') }}
+                    </template>
+                    <template v-else-if="!canComplete">
+                        ·
+                        {{
+                            t('advisor.miles.shortfall', {
+                                miles:
+                                    props.completionPricing.miles -
+                                    milesBalance,
+                            })
+                        }}
+                    </template>
+                </p>
 
                 <footer
                     class="advisor-rule mt-10 flex flex-wrap items-center justify-between gap-4 pt-[26px]"
@@ -1684,7 +1720,11 @@ defineOptions({
                         <button
                             type="button"
                             class="flex cursor-pointer items-center gap-2.5 rounded-[10px] bg-[#02cd86] px-[26px] py-[13px] text-sm font-semibold text-[#101010] transition-colors hover:bg-[#16e19a] disabled:cursor-not-allowed disabled:opacity-45"
-                            :disabled="processing || !hydrated"
+                            :disabled="
+                                processing ||
+                                !hydrated ||
+                                (props.currentSection === 8 && !canComplete)
+                            "
                             @click="save"
                         >
                             {{

@@ -2,6 +2,9 @@
 
 namespace App\Services\Advisor;
 
+use App\Actions\Miles\RecordServiceUsage;
+use App\Actions\Miles\ReserveAdvisorMiles;
+use App\Actions\Miles\SettleAdvisorMiles;
 use App\Ai\Agents\AdvisorRecommendationAgent;
 use App\Enums\AdvisorRecommendationMode;
 use App\Enums\AdvisorRecommendationStatus;
@@ -9,6 +12,7 @@ use App\Jobs\GenerateAdvisorRecommendationJob;
 use App\Models\AdvisorProfile;
 use App\Models\AdvisorRecommendation;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -21,6 +25,9 @@ class AdvisorRecommendationService
         private readonly AdvisorCanonicalJson $canonicalJson,
         private readonly AdvisorExecutionTimeLimiter $executionTimeLimiter,
         private readonly AdvisorPendingPayloadStore $pendingPayloads,
+        private readonly ReserveAdvisorMiles $reserveAdvisorMiles,
+        private readonly SettleAdvisorMiles $settleAdvisorMiles,
+        private readonly RecordServiceUsage $recordServiceUsage,
     ) {}
 
     /**
@@ -33,20 +40,24 @@ class AdvisorRecommendationService
     public function open(User $user, AdvisorProfile $profile): AdvisorRecommendation
     {
         $context = $this->contextBuilder->build($user, $profile);
-        $recommendation = $user->advisorRecommendations()->create([
-            'advisor_profile_id' => $profile->id,
-            'status' => AdvisorRecommendationStatus::Generating,
-            'mode' => AdvisorRecommendationMode::from($context['recommendation_mode']),
-            'profile_version' => $profile->profile_version,
-            'scoring_version' => $profile->assessment->scoring_version,
-            'prompt_version' => config('advisor.prompt_version'),
-            'provider' => config('advisor.provider'),
-            'model' => config('advisor.model'),
-            'knowledge_version' => $context['knowledge_context']['version'],
-            'context_hash' => $this->hash($context),
-            'current_portfolio_included' => $context['current_portfolio'] !== null,
-            'current_portfolio_snapshot' => $context['current_portfolio'],
-        ]);
+        $recommendation = DB::transaction(function () use ($user, $profile, $context): AdvisorRecommendation {
+            $recommendation = $user->advisorRecommendations()->create([
+                'advisor_profile_id' => $profile->id,
+                'status' => AdvisorRecommendationStatus::Generating,
+                'mode' => AdvisorRecommendationMode::from($context['recommendation_mode']),
+                'profile_version' => $profile->profile_version,
+                'scoring_version' => $profile->assessment->scoring_version,
+                'prompt_version' => config('advisor.prompt_version'),
+                'provider' => config('advisor.provider'),
+                'model' => config('advisor.model'),
+                'knowledge_version' => $context['knowledge_context']['version'],
+                'context_hash' => $this->hash($context),
+                'current_portfolio_included' => $context['current_portfolio'] !== null,
+                'current_portfolio_snapshot' => $context['current_portfolio'],
+            ]);
+
+            return ($this->reserveAdvisorMiles)($recommendation);
+        }, 3);
 
         GenerateAdvisorRecommendationJob::dispatch($recommendation);
 
@@ -495,16 +506,38 @@ class AdvisorRecommendationService
             }
 
             try {
+                $startedAt = hrtime(true);
                 $recommendation->increment('provider_calls');
                 $this->executionTimeLimiter->extendForProviderCall();
 
-                return AdvisorRecommendationAgent::make()->prompt(
+                $response = AdvisorRecommendationAgent::make()->prompt(
                     $prompt,
                     provider: (string) config('advisor.provider'),
                     model: config('advisor.model'),
                     timeout: (int) config('advisor.timeout'),
-                )->toArray();
+                );
+                ($this->recordServiceUsage)(
+                    $recommendation->user,
+                    $stage,
+                    'success',
+                    $response,
+                    $recommendation,
+                    $startedAt,
+                    (int) $recommendation->quoted_miles,
+                );
+
+                return $response->toArray();
             } catch (Throwable $exception) {
+                ($this->recordServiceUsage)(
+                    $recommendation->user,
+                    $stage,
+                    'failure',
+                    null,
+                    $recommendation,
+                    $startedAt ?? hrtime(true),
+                    (int) $recommendation->quoted_miles,
+                    metadata: ['exception' => $exception::class, 'provider_attempted' => true],
+                );
                 $this->logProviderFailure($recommendation, $exception, $stage, $attempt);
             }
         }
@@ -539,6 +572,10 @@ class AdvisorRecommendationService
             'generated_at' => now(),
         ])->save();
 
+        if ($status === AdvisorRecommendationStatus::Ready) {
+            ($this->settleAdvisorMiles)($recommendation, $this->isGuidance($payload) ? 'guidance' : 'full');
+        }
+
         return [
             'recommendation_id' => $recommendation->id,
             'status' => $status->value,
@@ -559,6 +596,7 @@ class AdvisorRecommendationService
             'failure_code' => $failureCode,
             'generated_at' => now(),
         ])->save();
+        ($this->settleAdvisorMiles)($recommendation, 'failure');
 
         return [
             'recommendation_id' => $recommendation->id,

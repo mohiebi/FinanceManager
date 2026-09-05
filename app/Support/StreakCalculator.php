@@ -132,6 +132,13 @@ class StreakCalculator
      */
     private function coveredDays(User $user, CarbonImmutable $floor): array
     {
+        $mileDays = $user->mileDays()
+            ->where('local_date', '>=', $floor->toDateString())
+            ->where(function ($query): void {
+                $query->whereNotNull('claimed_at')->orWhere('activity_miles', '>', 0);
+            })
+            ->pluck('local_date');
+
         $transactions = $user->transactions()
             ->where('occurred_at', '>=', $floor->toDateString())
             ->distinct()
@@ -142,6 +149,10 @@ class StreakCalculator
             ->pluck('date');
 
         $covered = [];
+
+        foreach ($mileDays as $date) {
+            $covered[$date->toDateString()] = StreakDayState::Logged;
+        }
 
         // No-spend days are applied second so an explicit "nothing spent" never
         // masks a real transaction recorded on the same date.

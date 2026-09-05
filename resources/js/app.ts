@@ -9,7 +9,7 @@ import {
     installDiagnostics,
     reportInertiaEvent,
 } from '@/lib/diagnostics';
-import type { MilesShortfall } from '@/types/miles';
+import { dispatchMilesShortfall } from '@/lib/miles';
 
 const appName = import.meta.env.VITE_APP_NAME || 'CashPilot';
 
@@ -121,23 +121,12 @@ router.on('httpException', (event) => {
 
     reportInertiaEvent(`httpException status=${response?.status ?? '?'}`);
 
-    if (response.status !== 402) {
-        return;
-    }
-
-    try {
-        const payload = JSON.parse(response.data) as MilesShortfall;
-
-        if (payload.error === 'insufficient_miles') {
-            event.preventDefault();
-            window.dispatchEvent(
-                new CustomEvent<MilesShortfall>('miles:shortfall', {
-                    detail: payload,
-                }),
-            );
-        }
-    } catch {
-        // Let Inertia render its normal exception screen for malformed payloads.
+    // A shortfall is a priced action the user cannot afford yet, not a broken
+    // request. Handing it to Inertia's exception screen would show them a
+    // developer error about JSON where an offer to earn or top up belongs.
+    // Anything that is not a well-formed shortfall falls through untouched.
+    if (dispatchMilesShortfall({ response })) {
+        event.preventDefault();
     }
 });
 

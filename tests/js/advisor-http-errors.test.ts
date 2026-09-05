@@ -57,3 +57,33 @@ test('a structured 402 is recognized without treating other failures as Miles er
         null,
     );
 });
+
+test('a 402 body is recognized whether the client parsed it or left it a string', () => {
+    const payload = {
+        error: 'insufficient_miles',
+        available: 53,
+        cost: 75,
+        shortfall: 22,
+        action: 'cosmetic',
+    };
+
+    // Inertia's XHR client hands the body over already parsed; other paths
+    // deliver the same JSON as text. Reading only one shape is what let the
+    // generic "must receive a valid Inertia response" screen through.
+    assert.deepEqual(
+        milesShortfallFromError({ response: { status: 402, data: payload } }),
+        payload,
+    );
+    assert.deepEqual(
+        milesShortfallFromError({
+            response: { status: 402, data: JSON.stringify(payload) },
+        }),
+        payload,
+    );
+    assert.equal(
+        milesShortfallFromError({
+            response: { status: 402, data: 'not json' },
+        }),
+        null,
+    );
+});

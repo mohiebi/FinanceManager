@@ -3,6 +3,7 @@ import {
     Bot,
     BrainCircuit,
     ChartPie,
+    CircleGauge,
     LayoutGrid,
     Plane,
     Receipt,
@@ -23,6 +24,7 @@ import { edit as editAiConnections } from '@/routes/ai-connections';
 import { index as billsIndex } from '@/routes/bills';
 import { index as budgetsIndex } from '@/routes/budgets';
 import { index as investmentsIndex } from '@/routes/investments';
+import { index as milesIndex } from '@/routes/miles';
 import { edit as editModules } from '@/routes/modules';
 import { edit as editTelegram } from '@/routes/telegram';
 import { index as transactionsIndex } from '@/routes/transactions';
@@ -156,6 +158,14 @@ export function useModuleNav(): UseModuleNavReturn {
                 title: navigationName('navigation.flight_log'),
                 href: flightLog(),
                 icon: Plane,
+                group: 'plan',
+            },
+            {
+                key: 'miles',
+                feature: null,
+                title: navigationName('navigation.miles'),
+                href: milesIndex(),
+                icon: CircleGauge,
                 group: 'plan',
             },
             {

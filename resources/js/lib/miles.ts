@@ -5,13 +5,33 @@ type HttpErrorResponse = {
     data?: unknown;
 };
 
+/**
+ * The body as an object, whichever way the client handed it over.
+ *
+ * Inertia's XHR client parses a JSON response for us, but the same payload
+ * arrives as a raw string through other paths - so a reader that assumes
+ * either one silently misses half the cases and lets the generic error screen
+ * through instead of the shortfall dialog.
+ */
+function decodeBody(data: unknown): unknown {
+    if (typeof data !== 'string') {
+        return data;
+    }
+
+    try {
+        return JSON.parse(data);
+    } catch {
+        return null;
+    }
+}
+
 export function milesShortfallFromError(error: unknown): MilesShortfall | null {
     if (typeof error !== 'object' || error === null || !('response' in error)) {
         return null;
     }
 
     const response = error.response as HttpErrorResponse;
-    const payload = response.data;
+    const payload = decodeBody(response.data);
 
     if (
         response.status !== 402 ||

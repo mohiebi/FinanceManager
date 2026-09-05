@@ -57,6 +57,22 @@ const currentOverview = computed(() =>
         : props.overview,
 );
 
+/**
+ * Whether the current balance covers a priced action.
+ *
+ * The server refuses an unaffordable spend with a 402 regardless, but a button
+ * that takes the click and then reports failure is a worse way to say "not
+ * yet" than one that never offered.
+ */
+function canAfford(cost: number): boolean {
+    return currentOverview.value.balance >= cost;
+}
+
+/** How many more Miles a priced action needs, or zero when it is affordable. */
+function shortfallFor(cost: number): number {
+    return Math.max(0, cost - currentOverview.value.balance);
+}
+
 function paginationLabel(label: string): string {
     return label.replace('&laquo;', '‹').replace('&raquo;', '›');
 }
@@ -290,7 +306,10 @@ function formatDate(value: string): string {
                             :disabled="
                                 processing !== null ||
                                 currentOverview.freezesHeld >=
-                                    currentOverview.freezesMaximum
+                                    currentOverview.freezesMaximum ||
+                                !canAfford(
+                                    props.overview.protections.freezePrice,
+                                )
                             "
                             @click="purchaseFreeze"
                         >
@@ -301,6 +320,22 @@ function formatDate(value: string): string {
                                 })
                             }}
                         </button>
+                        <p
+                            v-if="
+                                shortfallFor(
+                                    props.overview.protections.freezePrice,
+                                ) > 0
+                            "
+                            class="mt-2 text-xs text-[#989898]"
+                        >
+                            {{
+                                t('miles.need_more', {
+                                    miles: shortfallFor(
+                                        props.overview.protections.freezePrice,
+                                    ),
+                                })
+                            }}
+                        </p>
                     </article>
 
                     <article
@@ -332,12 +367,34 @@ function formatDate(value: string): string {
                             <button
                                 type="button"
                                 class="min-h-11 cursor-pointer rounded-xl bg-white/8 px-3 text-sm font-semibold transition-colors hover:bg-white/12 focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45"
-                                :disabled="processing !== null || !repairDate"
+                                :disabled="
+                                    processing !== null ||
+                                    !repairDate ||
+                                    !canAfford(
+                                        props.overview.protections.repairPrice,
+                                    )
+                                "
                                 @click="repair"
                             >
                                 {{ props.overview.protections.repairPrice }}
                             </button>
                         </div>
+                        <p
+                            v-if="
+                                shortfallFor(
+                                    props.overview.protections.repairPrice,
+                                ) > 0
+                            "
+                            class="mt-2 text-xs text-[#989898]"
+                        >
+                            {{
+                                t('miles.need_more', {
+                                    miles: shortfallFor(
+                                        props.overview.protections.repairPrice,
+                                    ),
+                                })
+                            }}
+                        </p>
                     </article>
                 </section>
 
@@ -377,6 +434,19 @@ function formatDate(value: string): string {
                                 <p class="text-xs text-[#858585]">
                                     {{ humanize(cosmetic.type) }}
                                 </p>
+                                <p
+                                    v-if="
+                                        !cosmetic.owned &&
+                                        shortfallFor(cosmetic.price) > 0
+                                    "
+                                    class="mt-0.5 text-xs text-[#858585]"
+                                >
+                                    {{
+                                        t('miles.need_more', {
+                                            miles: shortfallFor(cosmetic.price),
+                                        })
+                                    }}
+                                </p>
                             </div>
                             <button
                                 type="button"
@@ -387,7 +457,10 @@ function formatDate(value: string): string {
                                         : 'bg-white/8 text-white hover:bg-white/12'
                                 "
                                 :disabled="
-                                    processing !== null || cosmetic.selected
+                                    processing !== null ||
+                                    cosmetic.selected ||
+                                    (!cosmetic.owned &&
+                                        !canAfford(cosmetic.price))
                                 "
                                 @click="purchaseCosmetic(cosmetic.key)"
                             >
@@ -571,7 +644,8 @@ function formatDate(value: string): string {
                                 class="grid min-h-11 min-w-11 cursor-pointer place-items-center rounded-xl bg-[#02cd86] px-4 text-[#07130e] focus-visible:ring-2 focus-visible:ring-[#5eeeb5] focus-visible:outline-none disabled:opacity-50"
                                 :disabled="
                                     processing !== null ||
-                                    giftRecipient === null
+                                    giftRecipient === null ||
+                                    !canAfford(giftAmount)
                                 "
                             >
                                 <Gift class="size-4" />

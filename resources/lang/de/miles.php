@@ -14,6 +14,7 @@ return [
     'freeze_title' => 'Serien-Schutz',
     'freeze_body' => 'Schützt automatisch einen verpassten Tag, nachdem die wöchentliche Kulanz verbraucht ist. Maximal zwei.',
     'buy_for' => 'Für {miles} Meilen kaufen',
+    'need_more' => 'Noch {miles} Miles nötig',
     'repair_title' => 'Serie reparieren',
     'repair_body' => 'Verbinde einen geeigneten verpassten Tag aus den letzten sieben Tagen.',
     'missed_date' => 'Verpasster Tag',

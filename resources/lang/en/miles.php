@@ -14,6 +14,7 @@ return [
     'freeze_title' => 'Streak Freeze',
     'freeze_body' => 'Automatically protects a missed day after your weekly grace is used. Hold up to two.',
     'buy_for' => 'Buy for {miles} Miles',
+    'need_more' => 'Need {miles} more Miles',
     'repair_title' => 'Streak Repair',
     'repair_body' => 'Reconnect an eligible missed date from the previous seven days.',
     'missed_date' => 'Missed date',

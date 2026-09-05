@@ -11,6 +11,7 @@ return [
     'portfolio' => 'Portfolio',
     'goals' => 'Goals',
     'flight_log' => 'Flight log',
+    'miles' => 'Miles',
     'goals_subtitle' => 'Flight path',
     'bills' => 'Bills',
     'budgets' => 'Budgets',

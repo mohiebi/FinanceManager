@@ -2,6 +2,7 @@
 
 return [
     'flight_log' => 'دفتر پرواز',
+    'miles' => 'مایل',
     'advisor' => 'مشاور',
     'advisor_subtitle' => 'کمک‌خلبان پرتفوی',
     'dashboard' => 'داشبورد',

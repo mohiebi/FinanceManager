@@ -44,6 +44,9 @@ it('uses weekly grace before a freeze and preserves the claim cycle', function (
         'claim_step' => 3,
         'claim_miles' => 3,
         'claimed_at' => now()->subDays(3),
+        // Recorded, not merely claimed: protection bridges a gap in the record,
+        // so there has to be a record on the far side of it to protect.
+        'activity_miles' => 2,
     ]);
 
     $day = app(ClaimDailyMiles::class)($user);

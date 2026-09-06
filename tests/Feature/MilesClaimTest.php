@@ -6,6 +6,7 @@ use App\Enums\Milestone;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Support\StreakCalculator;
 use Illuminate\Support\Carbon;
 
 test('daily claims follow the seven day schedule without a twenty hour cooldown', function () {
@@ -139,4 +140,47 @@ test('a first bill earns its milestone even when the day already paid its activi
         ->and($user->mileDays()->sole()->activity_miles)->toBe(2)
         ->and($user->mileWallet()->value('balance'))
         ->toBe(2 + Milestone::FirstTransaction->miles() + Milestone::FirstBill->miles());
+});
+
+test('collecting the daily reward does not mark the day as recorded', function () {
+    Carbon::setTestNow('2026-09-10 09:00:00');
+    $user = User::factory()->create(['timezone' => 'UTC']);
+
+    app(ClaimDailyMiles::class)($user);
+
+    $streak = app(StreakCalculator::class)->for($user);
+
+    // Tapping the pill costs nothing and writes nothing down, so the flight
+    // log must not read it as a day kept.
+    expect($streak->loggedToday)->toBeFalse()
+        ->and($streak->currentRun)->toBe(0);
+
+    Transaction::factory()->cost()->for($user)->for(Category::factory()->cost()->create())->create([
+        'occurred_at' => '2026-09-10',
+    ]);
+
+    expect(app(StreakCalculator::class)->for($user->refresh())->loggedToday)->toBeTrue();
+
+    Carbon::setTestNow();
+});
+
+test('a cycle survives forgetting to tap on a day that was recorded anyway', function () {
+    Carbon::setTestNow('2026-09-08 09:00:00');
+    $user = User::factory()->create(['timezone' => 'UTC', 'created_at' => now()->subMonth()]);
+    $category = Category::factory()->cost()->create();
+
+    $first = app(ClaimDailyMiles::class)($user);
+
+    // Active on the 9th, but never opened the app to collect.
+    foreach (['2026-09-08', '2026-09-09', '2026-09-10'] as $date) {
+        Transaction::factory()->cost()->for($user)->for($category)->create(['occurred_at' => $date]);
+    }
+
+    Carbon::setTestNow('2026-09-10 09:00:00');
+    $second = app(ClaimDailyMiles::class)($user->refresh());
+
+    expect($first->claim_step)->toBe(1)
+        ->and($second->claim_step)->toBe(2);
+
+    Carbon::setTestNow();
 });

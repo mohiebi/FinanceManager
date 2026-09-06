@@ -8,6 +8,8 @@ use App\Enums\Milestone;
 use App\Models\MileDay;
 use App\Models\User;
 use App\Support\StreakCalculator;
+use App\Support\StreakSummary;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 final readonly class ClaimDailyMiles
@@ -51,8 +53,7 @@ final readonly class ClaimDailyMiles
             $day->forceFill(['claimed_at' => now()])->save();
             ($this->applyStreakProtection)($user, $today);
             $streak = $this->streakCalculator->for($user, $today);
-            $continues = $previous instanceof MileDay
-                && $streak->currentRun >= abs($today->diffInDays($previous->local_date)) + 1;
+            $continues = $previous instanceof MileDay && $this->cycleContinues($streak, $previous, $today);
             $step = $continues ? (((int) $previous->claim_step % 7) + 1) : 1;
             $reward = (int) config('miles.daily_claims.'.($step - 1));
 
@@ -81,5 +82,34 @@ final readonly class ClaimDailyMiles
 
             return $day->refresh();
         }, 3);
+    }
+
+    /**
+     * Whether this claim carries on the previous one's cycle.
+     *
+     * Every day since the last claim has to have held something: a record, or
+     * the grace or freeze that stands in for one. Recorded days count so that
+     * forgetting to tap for a day or two never costs a cycle the user was
+     * plainly active through, and a day with neither breaks it.
+     */
+    private function cycleContinues(StreakSummary $streak, MileDay $previous, CarbonImmutable $today): bool
+    {
+        $sustained = [];
+
+        foreach ($streak->days as $day) {
+            $sustained[$day['date']] = $day['state']->sustainsRun();
+        }
+
+        $cursor = CarbonImmutable::parse($previous->local_date->toDateString())->addDay();
+
+        while ($cursor->lt($today)) {
+            if (($sustained[$cursor->toDateString()] ?? false) === false) {
+                return false;
+            }
+
+            $cursor = $cursor->addDay();
+        }
+
+        return true;
     }
 }

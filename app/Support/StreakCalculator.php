@@ -132,11 +132,13 @@ class StreakCalculator
      */
     private function coveredDays(User $user, CarbonImmutable $floor): array
     {
+        // Activity only, never a claim. Collecting a daily reward takes a tap
+        // and no record, so counting it here let the run grow on days the user
+        // logged in and wrote nothing - which is the one thing this number is
+        // supposed to mean.
         $mileDays = $user->mileDays()
             ->where('local_date', '>=', $floor->toDateString())
-            ->where(function ($query): void {
-                $query->whereNotNull('claimed_at')->orWhere('activity_miles', '>', 0);
-            })
+            ->where('activity_miles', '>', 0)
             ->pluck('local_date');
 
         $transactions = $user->transactions()

@@ -14,6 +14,7 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { announceClaim } from '@/lib/miles';
 import { claim } from '@/routes/miles';
 import { store as buyCosmetic } from '@/routes/miles/cosmetics';
@@ -46,6 +47,7 @@ defineOptions({
 });
 
 const { t, te, locale } = useI18n();
+const { flightTerminologyEnabled, navigationName } = useNavigationNaming();
 const page = usePage();
 const processing = ref<string | null>(null);
 const repairDate = ref('');
@@ -57,6 +59,16 @@ const currentOverview = computed(() =>
         ? { ...props.overview, ...page.props.miles }
         : props.overview,
 );
+
+/** The completed-cycles line, in whichever vocabulary the user chose. */
+function cyclesCompletedLabel(values: Record<string, number>): string {
+    return t(
+        flightTerminologyEnabled.value
+            ? 'miles.cycles_completed_flight'
+            : 'miles.cycles_completed',
+        values,
+    );
+}
 
 /** Whether the balance covers a priced action. The server still enforces it. */
 function canAfford(cost: number): boolean {
@@ -426,7 +438,12 @@ function formatDate(value: string): string {
                         />
                         <div>
                             <h2 class="font-semibold">
-                                {{ t('miles.cosmetics_title') }}
+                                {{
+                                    navigationName(
+                                        'miles.cosmetics_title',
+                                        'miles.cosmetics_title_flight',
+                                    )
+                                }}
                             </h2>
                             <p class="mt-1 text-sm text-[#989898]">
                                 {{ t('miles.cosmetics_body') }}
@@ -504,7 +521,12 @@ function formatDate(value: string): string {
                             aria-hidden="true"
                         />
                         <h2 class="font-semibold">
-                            {{ t('miles.streak_title') }}
+                            {{
+                                navigationName(
+                                    'miles.streak_title',
+                                    'miles.streak_title_flight',
+                                )
+                            }}
                         </h2>
                     </div>
                     <div class="mt-5 grid grid-cols-2 gap-3">
@@ -527,7 +549,7 @@ function formatDate(value: string): string {
                     </div>
                     <p class="mt-4 text-sm text-[#989898]">
                         {{
-                            t('miles.cycles_completed', {
+                            cyclesCompletedLabel({
                                 count: props.overview.completedCycles,
                             })
                         }}

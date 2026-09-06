@@ -1,7 +1,8 @@
 <?php
 
 return [
-    'flight_log' => 'Flugbuch',
+    'flight_log' => 'Aktivität',
+    'flight_log_subtitle' => 'Flugbuch',
     'miles' => 'Miles',
     'dashboard' => 'Dashboard',
     'dashboard_subtitle' => 'Cockpit',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { Crown, Lock, Plus, Settings, ShieldCheck } from 'lucide-vue-next';
+import { Lock, Plus, Settings, ShieldCheck } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
@@ -51,7 +51,6 @@ function isAdvisor(item: ModuleNavItem): boolean {
 
 const user = computed(() => page.props.auth.user);
 const isRtl = computed(() => page.props.dir === 'rtl');
-const isPro = computed(() => page.props.subscription?.is_pro ?? false);
 const initial = computed(
     () => user.value?.name?.trim()?.[0]?.toUpperCase() ?? '?',
 );
@@ -137,46 +136,20 @@ const initial = computed(
                             }}</span>
 
                             <span
-                                v-if="
-                                    item.tier === 'pro' ||
-                                    item.state !== 'enabled'
-                                "
-                                :class="[
-                                    'ml-auto inline-flex shrink-0 items-center gap-1',
-                                    isAdvisor(item)
-                                        ? 'advisor-mono rounded-[4px] border border-[#d9c48f]/35 px-[5px] py-[2px] text-[8.5px] tracking-[0.12em] text-[#d9c48f] uppercase'
-                                        : 'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
-                                    isAdvisor(item)
-                                        ? ''
-                                        : item.tier === 'pro'
-                                          ? 'bg-[#6c4ee9]/15 text-[#a89bf3]'
-                                          : 'bg-[#02cd86]/13 text-[#02cd86]',
-                                ]"
+                                v-if="item.state !== 'enabled'"
+                                class="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-[#02cd86]/13 px-1.5 py-0.5 text-[10px] font-medium text-[#02cd86]"
+                                :aria-label="t('modules.not_enabled')"
                             >
-                                <Crown
-                                    v-if="
-                                        item.tier === 'pro' && !isAdvisor(item)
-                                    "
-                                    class="size-2.5"
-                                    aria-hidden="true"
-                                />
                                 <Lock
-                                    v-else-if="
-                                        item.state === 'locked' &&
-                                        !isAdvisor(item)
-                                    "
+                                    v-if="item.state === 'locked'"
                                     class="size-2.5"
                                     aria-hidden="true"
                                 />
                                 <Plus
-                                    v-else-if="
-                                        item.state === 'promo' &&
-                                        !isAdvisor(item)
-                                    "
+                                    v-else
                                     class="size-2.5"
                                     aria-hidden="true"
                                 />
-                                {{ t(`modules.tiers.${item.tier}`) }}
                             </span>
                         </Link>
                     </div>
@@ -255,11 +228,7 @@ const initial = computed(
                                 <span
                                     class="block truncate text-xs text-[#686868]"
                                 >
-                                    {{
-                                        isPro
-                                            ? t('modules.tiers.pro')
-                                            : t('modules.tiers.free')
-                                    }}
+                                    {{ user?.email }}
                                 </span>
                             </span>
                         </button>

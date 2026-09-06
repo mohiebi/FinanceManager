@@ -4,6 +4,7 @@ return [
     'title' => 'Module',
     'description' => 'Schalte Teile von CashPilot ein und aus. Ein ausgeschaltetes Modul löscht nichts — deine Daten sind wieder da, sobald du es erneut einschaltest.',
     'locked' => 'Schalte das Modul :module ein, um diese Seite zu nutzen.',
+    'not_enabled' => 'Nicht aktiviert',
     'telegram_locked' => 'Das Modul :module ist ausgeschaltet. Schalte es unter Einstellungen > Module ein, um es hier zu nutzen.',
     'enabled' => 'Aktiv',
     'disabled' => 'Inaktiv',
@@ -44,7 +45,6 @@ return [
 
     'tiers' => [
         'free' => 'Kostenlos',
-        'pro' => 'Pro',
     ],
 
     'vault' => [

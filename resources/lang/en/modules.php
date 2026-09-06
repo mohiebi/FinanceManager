@@ -4,6 +4,7 @@ return [
     'title' => 'Modules',
     'description' => 'Switch parts of CashPilot on and off. Turning a module off never deletes anything — your data comes back when you turn it on again.',
     'locked' => 'Turn on the :module module to use that page.',
+    'not_enabled' => 'Not switched on',
     'telegram_locked' => 'The :module module is switched off. Turn it on in Settings > Modules to use this here.',
     'enabled' => 'Enabled',
     'disabled' => 'Disabled',
@@ -48,7 +49,6 @@ return [
 
     'tiers' => [
         'free' => 'Free',
-        'pro' => 'Pro',
     ],
 
     'vault' => [

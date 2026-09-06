@@ -16,27 +16,22 @@ const mobileSidebar = source(
 const modulesPage = source('../../resources/js/pages/settings/Modules.vue');
 
 test('module settings use Miles activation instead of Pro badges', () => {
-    assert.match(moduleNavigation, /tier: state\.tier/);
-    assert.match(sidebar, /modules\.tiers\.\$\{item\.tier\}/);
-    assert.match(mobileSidebar, /modules\.tiers\.\$\{item\.tier\}/);
-    assert.doesNotMatch(
-        sidebar,
-        /modules\.tiers\.\$\{item\.state === 'locked'/,
-    );
-    assert.doesNotMatch(
-        mobileSidebar,
-        /modules\.tiers\.\$\{item\.state === 'locked'/,
-    );
-    assert.match(sidebar, /item\.tier === 'pro' \|\|/);
-    assert.match(mobileSidebar, /item\.tier === 'pro' \|\|/);
-    assert.match(sidebar, /<Crown/);
-    assert.match(mobileSidebar, /<Crown/);
+    // The nav no longer knows what a paid tier is: no crown, no tier label, no
+    // branch on 'pro'. What is left says only whether a module is switched on.
+    for (const source of [sidebar, mobileSidebar]) {
+        assert.doesNotMatch(source, /item\.tier === 'pro'/);
+        assert.doesNotMatch(source, /<Crown/);
+        assert.doesNotMatch(source, /modules\.tiers\./);
+        assert.match(source, /v-if="item\.state !== 'enabled'"/);
+    }
+
+    // Unlocking is priced in Miles on the settings page, which is where the
+    // decision actually gets made.
     assert.match(modulesPage, /module\.activation_cost > 0/);
     assert.match(modulesPage, /pendingActivation\.unlock_features/);
     assert.match(modulesPage, /module\.can_afford/);
     assert.match(modulesPage, /pendingActivation\.shortfall/);
     assert.doesNotMatch(modulesPage, /modules\.tiers\.pro/);
-    assert.doesNotMatch(modulesPage, /<Crown/);
 });
 
 test('a locked module links to its own paywall, not to the modules page', () => {

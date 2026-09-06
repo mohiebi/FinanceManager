@@ -165,18 +165,21 @@ test('Advisor is the one gold item in the shared chrome', () => {
             source,
             /border-s-2 border-s-\[#d9c48f\] bg-\[#d9c48f\]\/10/,
         );
-        // A mono PRO badge rather than the purple crown every other tier uses.
-        assert.match(
-            source,
-            /advisor-mono rounded-\[4px\] border border-\[#d9c48f\]\/35/,
-        );
+        // The gold badge this used to check was the PRO badge. Advisor is not
+        // a paid tier any more, so the accent is the row itself and nothing
+        // claims a tier beside the name.
+        assert.doesNotMatch(source, /advisor-mono rounded-\[4px\]/);
+        assert.doesNotMatch(source, /modules\.tiers\./);
     }
 });
 
 test('the gold treatment does not swallow the locked and promo markers', () => {
-    // Advisor still has to say which of the three module states it is in.
-    assert.match(sidebar, /item\.state === 'locked' &&\s*!isAdvisor\(item\)/);
-    assert.match(sidebar, /item\.state === 'promo' &&\s*!isAdvisor\(item\)/);
+    // Advisor still has to say which state it is in. It used to need carving
+    // out of the badge because it had a gold one of its own; now there is a
+    // single badge and no isAdvisor exclusion left to get that wrong.
+    assert.match(sidebar, /v-if="item\.state !== 'enabled'"/);
+    assert.match(sidebar, /item\.state === 'locked'/);
+    assert.doesNotMatch(sidebar, /!isAdvisor\(item\)/);
 });
 
 /* ── Paywall ────────────────────────────────────────────────────────────── */

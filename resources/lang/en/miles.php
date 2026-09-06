@@ -1,6 +1,26 @@
 <?php
 
 return [
+    'balance_eyebrow' => 'Miles balance',
+    'hero_body' => 'Earned by using CashPilot — never by balance or net worth. Spend them on Advisor plans, streak protection, module unlocks, or gift them to a referral.',
+    'collect_today' => 'Collect +{miles} today',
+    'daily_claim' => 'Daily claim',
+    'day_of_seven' => 'Day {step} of 7',
+    'freeze_body_held' => 'Covers one missed day without breaking your run. {held} of {maximum} held.',
+    'repair_body_left' => 'Backfills a missed day from the last week. {remaining} repairs left this month.',
+    'invite_card_title' => 'Invite a friend',
+    'invite_card_body' => 'Earn Miles as a referral gets going and keeps at it, up to the yearly cap.',
+    'copy_invite' => 'Copy invite link',
+    'unlock_title' => 'Unlock with Miles',
+    'unlock_body' => 'One-time unlocks, {price} Miles each. Once a module is unlocked it stays yours, and switching it back on later is free.',
+    'unlocked' => 'Unlocked',
+    'unlock_price' => '{price} Miles',
+    'history_heading' => 'History',
+    'history_reason' => 'Reason',
+    'history_date' => 'Date',
+    'history_amount' => 'Amount',
+    'history_balance' => 'Balance',
+    'gift_body' => 'Send Miles to a referral who is already active. It moves them across rather than making new ones.',
     'unit' => 'Miles',
     'close' => 'Close',
     'pill' => [

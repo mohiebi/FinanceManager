@@ -1,6 +1,26 @@
 <?php
 
 return [
+    'balance_eyebrow' => 'Miles-Guthaben',
+    'hero_body' => 'Verdient durch die Nutzung von CashPilot — nie durch Guthaben oder Vermögen. Einsetzbar für Advisor-Pläne, Serienschutz, Modul-Freischaltungen oder als Geschenk an eine Empfehlung.',
+    'collect_today' => 'Heute +{miles} abholen',
+    'daily_claim' => 'Tägliche Belohnung',
+    'day_of_seven' => 'Tag {step} von 7',
+    'freeze_body_held' => 'Deckt einen verpassten Tag ab, ohne die Serie zu brechen. {held} von {maximum} vorrätig.',
+    'repair_body_left' => 'Holt einen verpassten Tag der letzten Woche nach. Noch {remaining} Reparaturen diesen Monat.',
+    'invite_card_title' => 'Freund einladen',
+    'invite_card_body' => 'Verdiene Miles, wenn eine Empfehlung startet und dranbleibt, bis zum Jahreslimit.',
+    'copy_invite' => 'Einladungslink kopieren',
+    'unlock_title' => 'Mit Miles freischalten',
+    'unlock_body' => 'Einmalige Freischaltung, je {price} Miles. Ein freigeschaltetes Modul bleibt deins, und späteres Wiedereinschalten kostet nichts.',
+    'unlocked' => 'Freigeschaltet',
+    'unlock_price' => '{price} Miles',
+    'history_heading' => 'Verlauf',
+    'history_reason' => 'Grund',
+    'history_date' => 'Datum',
+    'history_amount' => 'Betrag',
+    'history_balance' => 'Guthaben',
+    'gift_body' => 'Sende Miles an eine bereits aktive Empfehlung. Sie werden übertragen, nicht neu erzeugt.',
     'unit' => 'Miles',
     'close' => 'Schließen',
     'pill' => [

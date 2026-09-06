@@ -2,9 +2,12 @@
 
 namespace App\Actions\Miles;
 
+use App\Enums\Feature;
 use App\Enums\Milestone;
+use App\Enums\StreakProtectionType;
 use App\Models\MileDay;
 use App\Models\MileWallet;
+use App\Models\StreakProtection;
 use App\Models\User;
 use App\Support\StreakCalculator;
 
@@ -70,7 +73,9 @@ final readonly class MilesOverview
                 'freezePrice' => (int) config('miles.streak_freeze_price'),
                 'repairPrice' => (int) config('miles.streak_repair_price'),
                 'repairsPerMonth' => (int) config('miles.streak_repairs_per_month'),
+                'repairsRemaining' => $this->repairsRemaining($user),
             ],
+            'modules' => $this->modules($user),
             'milestones' => collect(Milestone::cases())->map(fn (Milestone $milestone): array => [
                 'key' => $milestone->value,
                 'miles' => $milestone->miles(),
@@ -112,6 +117,41 @@ final readonly class MilesOverview
         $requiredRun = $todayDay !== null && (int) $todayDay->activity_miles > 0 ? $distance + 1 : $distance;
 
         return $currentRun >= $requiredRun ? (((int) $previous->claim_step % 7) + 1) : 1;
+    }
+
+    /**
+     * The paid modules and whether this user has already unlocked each.
+     *
+     * @return array<int, array{key: string, label: string, price: int, unlocked: bool}>
+     */
+    private function modules(User $user): array
+    {
+        $unlocked = $user->featureUnlocks()
+            ->pluck('feature')
+            ->map(fn (mixed $value): string => $value instanceof Feature ? $value->value : (string) $value)
+            ->all();
+
+        return collect(config('miles.paid_modules'))
+            ->map(fn (string $key): array => [
+                'key' => $key,
+                'label' => Feature::from($key)->label(),
+                'price' => (int) config('miles.unlock_price'),
+                'unlocked' => in_array($key, $unlocked, true),
+            ])
+            ->all();
+    }
+
+    /** Repairs left in the user's own calendar month, which is what the cap counts. */
+    private function repairsRemaining(User $user): int
+    {
+        $today = $user->localToday();
+        $used = StreakProtection::query()
+            ->where('user_id', $user->getKey())
+            ->where('type', StreakProtectionType::Repair)
+            ->whereBetween('created_at', [$today->startOfMonth(), $today->endOfMonth()])
+            ->count();
+
+        return max(0, (int) config('miles.streak_repairs_per_month') - $used);
     }
 
     private function badgeTier(int $cycles): ?string

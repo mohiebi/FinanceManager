@@ -266,3 +266,28 @@ test('pay_bill does not let a user pay another users bill', function () {
     expect($occurrence->fresh()->isPaid())->toBeFalse()
         ->and(Transaction::query()->count())->toBe(0);
 });
+
+test('the add-bill wizard accepts an amount typed in persian digits', function () {
+    $user = User::factory()->withModules()->create(['telegram_chat_id' => '555119']);
+    $handler = telegramHandlerFor($user);
+
+    $handler->add_bill();
+    sendBillWizardText($handler, "\u{0642}\u{0628}\u{0636} \u{0628}\u{0631}\u{0642}");
+    // Five million, exactly as a Farsi keyboard produces it: eastern digits
+    // with the Arabic thousands separator between them.
+    sendBillWizardText($handler, "\u{06F5}\u{066C}\u{06F0}\u{06F0}\u{06F0}\u{066C}\u{06F0}\u{06F0}\u{06F0}");
+    $handler->bill_pick_currency('toman');
+    $handler->bill_pick_category('0');
+    $handler->bill_pick_recurrence('monthly');
+    // The due day too — it is just as much a number to type.
+    sendBillWizardText($handler, "\u{06F1}\u{06F5}");
+    $handler->bill_pick_limit('infinite');
+    $handler->confirm_bill();
+
+    $bill = Bill::query()->sole();
+
+    expect((float) $bill->amount)->toBe(5000000.0)
+        ->and($bill->due_day_of_month)->toBe(15)
+        // The title keeps its own script: only numeric fields are converted.
+        ->and($bill->title)->toBe("\u{0642}\u{0628}\u{0636} \u{0628}\u{0631}\u{0642}");
+});

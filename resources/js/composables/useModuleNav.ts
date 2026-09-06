@@ -155,7 +155,10 @@ export function useModuleNav(): UseModuleNavReturn {
             {
                 key: 'gamification',
                 feature: 'gamification',
-                title: navigationName('navigation.flight_log'),
+                title: navigationName(
+                    'navigation.flight_log',
+                    'navigation.flight_log_subtitle',
+                ),
                 href: flightLog(),
                 icon: Plane,
                 group: 'plan',

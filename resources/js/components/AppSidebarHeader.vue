@@ -110,6 +110,11 @@ const pageTitle = computed(() => {
                 'navigation.budgets_subtitle',
             ),
             Advisor: navigationName('navigation.advisor'),
+            FlightLog: navigationName(
+                'navigation.flight_log',
+                'navigation.flight_log_subtitle',
+            ),
+            Miles: navigationName('navigation.miles'),
             Preferences: t('settings.preferences.title'),
             Settings: navigationName(
                 'settings.title',

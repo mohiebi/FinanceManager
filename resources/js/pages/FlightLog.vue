@@ -3,6 +3,7 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Check, Plane } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useNavigationNaming } from '@/composables/useNavigationNaming';
 import { usePageSubtitle } from '@/composables/usePageSubtitle';
 import { formatAppDate } from '@/lib/date';
 import { flightLog } from '@/routes';
@@ -30,6 +31,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { navigationName } = useNavigationNaming();
 const page = usePage();
 const markingNoSpend = ref(false);
 
@@ -99,7 +101,11 @@ defineOptions({
 </script>
 
 <template>
-    <Head :title="t('gamification.title')" />
+    <Head
+        :title="
+            navigationName('gamification.title', 'gamification.title_flight')
+        "
+    />
 
     <div
         data-app-flush-bottom

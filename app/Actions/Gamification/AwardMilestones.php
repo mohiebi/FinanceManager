@@ -9,6 +9,7 @@ use App\Enums\Milestone;
 use App\Models\User;
 use App\Models\UserMilestone;
 use App\Notifications\MilestoneNotification;
+use App\Support\LogbookCompleteness;
 use App\Support\StreakSummary;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,10 @@ use Illuminate\Support\Facades\DB;
  */
 class AwardMilestones
 {
-    public function __construct(private readonly AdjustMiles $adjustMiles) {}
+    public function __construct(
+        private readonly AdjustMiles $adjustMiles,
+        private readonly LogbookCompleteness $logbook,
+    ) {}
 
     /**
      * Users with no count-based milestone left to earn, for this request.
@@ -125,6 +129,38 @@ class AwardMilestones
             }
 
             if ($user->{$milestone->recordRelation()}()->exists()) {
+                $this->award($user, $milestone);
+            }
+        }
+
+        $this->awardRanks($user, $earned);
+    }
+
+    /**
+     * Award a rank the user has already reached.
+     *
+     * Rank is derived from days recorded on every read, so nothing ever wrote
+     * the milestone that marks passing one - the ladder showed Captain while
+     * both rank moments sat unearned. Counted only when one is still missing,
+     * so a user holding both pays for no query at all.
+     *
+     * @param  array<int, string>  $earned
+     */
+    private function awardRanks(User $user, array $earned): void
+    {
+        $missing = array_filter(
+            Milestone::rankBased(),
+            fn (Milestone $milestone): bool => ! in_array($milestone->value, $earned, true),
+        );
+
+        if ($missing === []) {
+            return;
+        }
+
+        $daysLogged = $this->logbook->daysLogged($user);
+
+        foreach ($missing as $milestone) {
+            if ($daysLogged >= $milestone->rankThreshold()) {
                 $this->award($user, $milestone);
             }
         }

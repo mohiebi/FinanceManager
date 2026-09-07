@@ -8,10 +8,13 @@ use App\Actions\Miles\MilesOverview;
 use App\Enums\Feature;
 use App\Enums\MilesReason;
 use App\Enums\Milestone;
+use App\Enums\PilotRank;
 use App\Enums\StreakProtectionType;
 use App\Models\Bill;
 use App\Models\Budget;
+use App\Models\Category;
 use App\Models\StreakProtection;
+use App\Models\Transaction;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -141,4 +144,44 @@ it('does not re-award a first-record milestone the user already holds', function
 
     expect($user->milestones()->where('key', Milestone::FirstBill->value)->count())->toBe(1)
         ->and($user->mileWallet()->value('balance'))->toBe($balance);
+});
+
+it('awards a rank milestone the user passed before anything evaluated it', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->cost()->create();
+
+    // Well past Captain. Rank is derived on every read, so nothing ever wrote
+    // the milestone that marks passing one.
+    foreach (range(1, PilotRank::Captain->threshold() + 5) as $offset) {
+        Transaction::factory()->cost()->for($user)->for($category)->create([
+            'occurred_at' => now()->subDays($offset)->toDateString(),
+        ]);
+    }
+
+    expect($user->milestones()->whereIn('key', [
+        Milestone::PilotRank->value,
+        Milestone::CaptainRank->value,
+    ])->count())->toBe(0);
+
+    $this->actingAs($user)->get(route('miles.index'))->assertOk();
+
+    expect($user->milestones()->where('key', Milestone::PilotRank->value)->exists())->toBeTrue()
+        ->and($user->milestones()->where('key', Milestone::CaptainRank->value)->exists())->toBeTrue()
+        ->and((int) $user->mileLedgerEntries()->where('reason', MilesReason::Milestone)->sum('amount'))
+        ->toBeGreaterThanOrEqual(Milestone::PilotRank->miles() + Milestone::CaptainRank->miles());
+});
+
+it('does not award a rank the user has not reached', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->cost()->create();
+
+    foreach (range(1, 5) as $offset) {
+        Transaction::factory()->cost()->for($user)->for($category)->create([
+            'occurred_at' => now()->subDays($offset)->toDateString(),
+        ]);
+    }
+
+    $this->actingAs($user)->get(route('miles.index'))->assertOk();
+
+    expect($user->milestones()->where('key', Milestone::PilotRank->value)->exists())->toBeFalse();
 });

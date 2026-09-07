@@ -253,11 +253,9 @@ function formatDate(value: string): string {
         <ActivityDetails v-if="activity" v-bind="activity" section="overview" />
         <!-- Protections and growth. Spend actions stay neutral; inviting gets
              the green because it is the one that grows the app. -->
-        <section
-            class="grid items-start gap-[14px] md:grid-cols-2 xl:grid-cols-3"
-        >
+        <section class="grid gap-[14px] md:grid-cols-2 xl:grid-cols-3">
             <article
-                class="rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] py-5"
+                class="flex h-full flex-col rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] py-5"
             >
                 <h2 class="mb-[3px] text-[14.5px] font-medium">
                     {{ t('miles.freeze_title') }}
@@ -272,7 +270,7 @@ function formatDate(value: string): string {
                 </p>
                 <button
                     type="button"
-                    class="min-h-11 w-full cursor-pointer rounded-[10px] bg-white/6 px-[15px] py-[10px] text-[13.5px] text-white transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none"
+                    class="mt-auto min-h-11 w-full cursor-pointer rounded-[10px] bg-white/6 px-[15px] py-[10px] text-[13.5px] text-white transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none"
                     :disabled="
                         processing !== null ||
                         currentOverview.freezesHeld >=
@@ -304,7 +302,7 @@ function formatDate(value: string): string {
             </article>
 
             <article
-                class="rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] py-5"
+                class="flex h-full flex-col rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] py-5"
             >
                 <h2 class="mb-[3px] text-[14.5px] font-medium">
                     {{ t('miles.repair_title') }}
@@ -327,7 +325,7 @@ function formatDate(value: string): string {
                     v-if="repairableDates.length > 0"
                     id="miles-repair-date"
                     v-model="repairDate"
-                    class="mb-2 min-h-11 w-full rounded-[10px] border border-white/10 bg-[#212121] px-3 text-[13px] text-white focus:border-[#02cd86] focus:outline-none"
+                    class="mt-auto mb-2 min-h-11 w-full rounded-[10px] border border-white/10 bg-[#212121] px-3 text-[13px] text-white focus:border-[#02cd86] focus:outline-none"
                 >
                     <option value="">{{ t('miles.repair_choose_day') }}</option>
                     <option
@@ -338,7 +336,7 @@ function formatDate(value: string): string {
                         {{ repairDayLabel(day.daysAgo) }}
                     </option>
                 </select>
-                <p v-else class="mb-2 text-xs text-[#989898]">
+                <p v-else class="mt-auto mb-2 text-xs text-[#989898]">
                     {{
                         t('miles.repair_nothing_missed', {
                             days: props.overview.protections.repairWindowDays,
@@ -379,7 +377,7 @@ function formatDate(value: string): string {
             </article>
 
             <article
-                class="rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] py-5"
+                class="flex h-full flex-col rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] py-5"
             >
                 <h2 class="mb-[3px] text-[14.5px] font-medium">
                     {{ t('miles.invite_card_title') }}
@@ -387,9 +385,22 @@ function formatDate(value: string): string {
                 <p class="mb-[14px] text-[12.5px] text-[#989898]">
                     {{ t('miles.invite_card_body') }}
                 </p>
+                <!-- Readable before it is copied: a link you cannot see is one
+                     you cannot check before sending it to someone. -->
+                <label class="sr-only" for="miles-invite-link">{{
+                    t('miles.copy_invite')
+                }}</label>
+                <input
+                    id="miles-invite-link"
+                    dir="ltr"
+                    readonly
+                    class="mb-2 min-h-11 w-full truncate rounded-[10px] border border-white/10 bg-[#212121] px-3 text-[12.5px] text-[#989898] focus:border-[#02cd86] focus:outline-none"
+                    :value="props.overview.referralUrl"
+                    @focus="($event.target as HTMLInputElement).select()"
+                />
                 <button
                     type="button"
-                    class="min-h-11 w-full cursor-pointer rounded-[10px] bg-[#02cd86] px-[15px] py-[10px] text-[13.5px] font-medium text-[#101010] transition-colors hover:bg-[#14e096] focus-visible:ring-2 focus-visible:ring-[#5eeeb5] focus-visible:outline-none motion-reduce:transition-none"
+                    class="mt-auto min-h-11 w-full cursor-pointer rounded-[10px] bg-[#02cd86] px-[15px] py-[10px] text-[13.5px] font-medium text-[#101010] transition-colors hover:bg-[#14e096] focus-visible:ring-2 focus-visible:ring-[#5eeeb5] focus-visible:outline-none motion-reduce:transition-none"
                     @click="copyReferralLink"
                 >
                     {{ copied ? t('miles.copied') : t('miles.copy_invite') }}

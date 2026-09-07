@@ -65,6 +65,10 @@ it('awards each referral stage only once', function () {
 });
 
 it('moves gifted Miles without creating new supply', function () {
+    // The page offers no way in while there is no friend system, but the
+    // transfer itself still has to conserve supply for when there is.
+    config(['miles.gifting_enabled' => true]);
+
     $sender = User::factory()->create();
     $friend = User::factory()->create();
     $referral = Referral::query()->create([

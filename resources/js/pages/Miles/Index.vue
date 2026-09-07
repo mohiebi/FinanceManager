@@ -4,11 +4,13 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Check } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import ActivityDetails from '@/components/ActivityDetails.vue';
 import { announceClaim } from '@/lib/miles';
+import { edit as billingEdit } from '@/routes/billing';
 import { claim } from '@/routes/miles';
 import { store as buyFreeze } from '@/routes/miles/freezes';
-import { store as sendGift } from '@/routes/miles/gifts';
 import { store as repairStreak } from '@/routes/miles/repairs';
+import type { ActivitySummary } from '@/types/gamification';
 import type { MilesOverview } from '@/types/miles';
 
 type HistoryEntry = {
@@ -27,6 +29,7 @@ type PaginationLink = {
 
 const props = defineProps<{
     overview: MilesOverview;
+    activity: ActivitySummary | null;
     history: { data: HistoryEntry[]; links: PaginationLink[] };
 }>();
 
@@ -38,8 +41,6 @@ const { t, locale } = useI18n();
 const page = usePage();
 const processing = ref<string | null>(null);
 const repairDate = ref('');
-const giftRecipient = ref<number | null>(null);
-const giftAmount = ref(25);
 const copied = ref(false);
 const currentOverview = computed(() =>
     page.props.miles
@@ -96,7 +97,7 @@ function post(
     processing.value = key;
     router.post(url, data, {
         preserveScroll: true,
-        only: ['overview', 'miles', 'history', 'milesClaim'],
+        only: ['overview', 'miles', 'history', 'milesClaim', 'activity'],
         onSuccess,
         onFinish: () => {
             processing.value = null;
@@ -115,15 +116,6 @@ function purchaseFreeze(): void {
 function repair(): void {
     if (repairDate.value) {
         post('repair', repairStreak.url(), { date: repairDate.value });
-    }
-}
-
-function giftMiles(): void {
-    if (giftRecipient.value !== null) {
-        post('gift', sendGift.url(), {
-            recipient_id: giftRecipient.value,
-            amount: giftAmount.value,
-        });
     }
 }
 
@@ -149,15 +141,14 @@ function formatDate(value: string): string {
 </script>
 
 <template>
-    <Head :title="t('miles.title')" />
-
     <main
         class="flex flex-col gap-[14px] px-4 py-5 text-white sm:px-6 lg:px-8 lg:py-7"
     >
+        <Head :title="t('miles.activity_title')" />
         <!-- Balance. Gold is scoped to Miles: it marks the currency, and the
              debit rows in history are the only other place it appears. -->
         <section
-            class="rounded-[16px] border border-[#d9c48f]/22 bg-[linear-gradient(135deg,#1c1a12_0%,#131313_55%,#171717_100%)] px-6 py-[22px]"
+            class="rounded-[16px] border border-[#d9c48f]/22 bg-[linear-gradient(135deg,#1c1a12_0%,#131313_55%,#171717_100%)] px-4 py-5 sm:px-6 sm:py-[22px]"
         >
             <div class="flex flex-wrap items-end justify-between gap-4">
                 <div>
@@ -185,32 +176,40 @@ function formatDate(value: string): string {
                     </p>
                 </div>
 
-                <button
-                    v-if="currentOverview.claimable"
-                    type="button"
-                    class="min-h-11 shrink-0 cursor-pointer rounded-[10px] bg-[#02cd86] px-[18px] py-3 text-[13.5px] font-medium whitespace-nowrap text-[#101010] transition-colors hover:bg-[#14e096] focus-visible:ring-2 focus-visible:ring-[#5eeeb5] focus-visible:outline-none disabled:cursor-wait disabled:opacity-60 motion-reduce:transition-none"
-                    :disabled="processing !== null"
-                    @click="collect"
-                >
-                    {{
-                        t('miles.collect_today', {
-                            miles: currentOverview.nextClaimReward,
-                        })
-                    }}
-                </button>
-                <div
-                    v-else
-                    class="flex min-h-11 shrink-0 items-center gap-2 rounded-[10px] bg-white/5 px-[18px] text-[13.5px] text-[#5eeeb5] ring-1 ring-white/10"
-                >
-                    <Check class="size-4" aria-hidden="true" />
-                    {{ t('miles.claimed_today') }}
+                <div class="flex flex-wrap items-center gap-3">
+                    <Link
+                        v-if="page.props.subscription?.billing_enabled"
+                        :href="billingEdit()"
+                        class="inline-flex min-h-11 items-center rounded-[10px] border border-[#d9c48f]/30 px-4 text-sm text-[#d9c48f] transition-colors hover:bg-[#d9c48f]/10 focus-visible:ring-2 focus-visible:ring-[#d9c48f] focus-visible:outline-none"
+                        >{{ t('miles.buy_miles') }}</Link
+                    >
+                    <button
+                        v-if="currentOverview.claimable"
+                        type="button"
+                        class="min-h-11 shrink-0 cursor-pointer rounded-[10px] bg-[#02cd86] px-[18px] py-3 text-[13.5px] font-medium whitespace-nowrap text-[#101010] transition-colors hover:bg-[#14e096] focus-visible:ring-2 focus-visible:ring-[#5eeeb5] focus-visible:outline-none disabled:cursor-wait disabled:opacity-60 motion-reduce:transition-none"
+                        :disabled="processing !== null"
+                        @click="collect"
+                    >
+                        {{
+                            t('miles.collect_today', {
+                                miles: currentOverview.nextClaimReward,
+                            })
+                        }}
+                    </button>
+                    <div
+                        v-else
+                        class="flex min-h-11 shrink-0 items-center gap-2 rounded-[10px] bg-white/5 px-[18px] text-[13.5px] text-[#5eeeb5] ring-1 ring-white/10"
+                    >
+                        <Check class="size-4" aria-hidden="true" />
+                        {{ t('miles.claimed_today') }}
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Daily claim ladder -->
         <section
-            class="rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] py-5"
+            class="rounded-[16px] border border-white/8 bg-[#1a1a1a] px-3 py-5 sm:px-[22px]"
         >
             <div class="mb-4 flex items-baseline justify-between gap-3">
                 <h2 class="text-[14.5px] font-medium">
@@ -226,23 +225,24 @@ function formatDate(value: string): string {
                     }}
                 </span>
             </div>
-            <ol class="grid grid-cols-7 gap-2">
+            <ol class="grid grid-cols-7 gap-1 sm:gap-2">
                 <li
                     v-for="day in currentOverview.claimCycle"
                     :key="day.step"
                     class="rounded-[12px] border px-1 py-3 text-center"
                     :class="dayClasses(day)"
                 >
-                    <span class="block text-[10.5px] text-[#858585]">{{
-                        t('miles.day', { day: day.step })
-                    }}</span>
+                    <span
+                        class="block text-[10px] whitespace-nowrap text-[#989898] sm:text-[10.5px]"
+                        >{{ t('miles.day', { day: day.step }) }}</span
+                    >
                     <span
                         dir="ltr"
                         class="mt-0.5 block text-[15px] font-semibold"
                         :class="
                             day.collected || day.next
                                 ? 'text-[#5eeeb5]'
-                                : 'text-[#686868]'
+                                : 'text-[#989898]'
                         "
                         >+{{ day.reward }}</span
                     >
@@ -250,10 +250,11 @@ function formatDate(value: string): string {
             </ol>
         </section>
 
+        <ActivityDetails v-if="activity" v-bind="activity" section="overview" />
         <!-- Protections and growth. Spend actions stay neutral; inviting gets
              the green because it is the one that grows the app. -->
         <section
-            class="grid [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))] items-start gap-[14px]"
+            class="grid items-start gap-[14px] md:grid-cols-2 xl:grid-cols-3"
         >
             <article
                 class="rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] py-5"
@@ -290,7 +291,7 @@ function formatDate(value: string): string {
                     v-if="
                         shortfallFor(props.overview.protections.freezePrice) > 0
                     "
-                    class="mt-2 text-xs text-[#686868]"
+                    class="mt-2 text-xs text-[#989898]"
                 >
                     {{
                         t('miles.need_more', {
@@ -337,7 +338,7 @@ function formatDate(value: string): string {
                         {{ repairDayLabel(day.daysAgo) }}
                     </option>
                 </select>
-                <p v-else class="mb-2 text-xs text-[#686868]">
+                <p v-else class="mb-2 text-xs text-[#989898]">
                     {{
                         t('miles.repair_nothing_missed', {
                             days: props.overview.protections.repairWindowDays,
@@ -365,7 +366,7 @@ function formatDate(value: string): string {
                     v-if="
                         shortfallFor(props.overview.protections.repairPrice) > 0
                     "
-                    class="mt-2 text-xs text-[#686868]"
+                    class="mt-2 text-xs text-[#989898]"
                 >
                     {{
                         t('miles.need_more', {
@@ -396,6 +397,11 @@ function formatDate(value: string): string {
             </article>
         </section>
 
+        <ActivityDetails
+            v-if="activity"
+            v-bind="activity"
+            section="achievements"
+        />
         <!-- Unlock with Miles -->
         <section
             class="rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] py-5"
@@ -439,63 +445,6 @@ function formatDate(value: string): string {
             </ul>
         </section>
 
-        <!-- Gifting. Not in the reference, but this page is its only home and
-             the route is live, so it keeps the same card and row language. -->
-        <section
-            v-if="props.overview.giftingEnabled"
-            class="rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] py-5"
-        >
-            <h2 class="mb-[3px] text-[14.5px] font-medium">
-                {{ t('miles.gift_title') }}
-            </h2>
-            <p class="mb-[14px] text-[12.5px] text-[#989898]">
-                {{ t('miles.gift_body') }}
-            </p>
-            <form class="flex flex-wrap gap-2" @submit.prevent="giftMiles">
-                <label class="sr-only" for="miles-gift-recipient">{{
-                    t('miles.choose_friend')
-                }}</label>
-                <select
-                    id="miles-gift-recipient"
-                    v-model="giftRecipient"
-                    class="min-h-11 min-w-0 flex-1 rounded-[10px] border border-white/8 bg-[#0f0f0f] px-3 text-[13.5px] focus:border-[#02cd86] focus:outline-none"
-                >
-                    <option :value="null">
-                        {{ t('miles.choose_friend') }}
-                    </option>
-                    <option
-                        v-for="referral in props.overview.referrals"
-                        :key="referral.id"
-                        :value="referral.userId"
-                    >
-                        {{ referral.name }}
-                    </option>
-                </select>
-                <label class="sr-only" for="miles-gift-amount">{{
-                    t('miles.send_gift')
-                }}</label>
-                <select
-                    id="miles-gift-amount"
-                    v-model="giftAmount"
-                    class="min-h-11 rounded-[10px] border border-white/8 bg-[#0f0f0f] px-3 text-[13.5px] focus:border-[#02cd86] focus:outline-none"
-                >
-                    <option :value="25">25</option>
-                    <option :value="50">50</option>
-                </select>
-                <button
-                    type="submit"
-                    class="min-h-11 cursor-pointer rounded-[10px] bg-white/6 px-[15px] text-[13.5px] text-white transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none"
-                    :disabled="
-                        processing !== null ||
-                        giftRecipient === null ||
-                        !canAfford(giftAmount)
-                    "
-                >
-                    {{ t('miles.send_gift') }}
-                </button>
-            </form>
-        </section>
-
         <!-- History -->
         <section
             class="app-scroll-thin overflow-x-auto rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] pt-5 pb-[10px]"
@@ -510,7 +459,7 @@ function formatDate(value: string): string {
             </div>
 
             <div
-                class="grid min-w-[560px] grid-cols-[minmax(160px,1fr)_130px_90px_90px] items-center gap-3 pt-3.5 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase"
+                class="grid min-w-[560px] grid-cols-[minmax(160px,1fr)_130px_90px_90px] items-center gap-3 pt-3.5 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#989898] uppercase"
             >
                 <div>{{ t('miles.history_reason') }}</div>
                 <div class="text-end">{{ t('miles.history_date') }}</div>
@@ -524,7 +473,7 @@ function formatDate(value: string): string {
                 class="grid min-w-[560px] grid-cols-[minmax(160px,1fr)_130px_90px_90px] items-center gap-3 border-t border-white/6 py-[13px]"
             >
                 <span class="text-sm">{{ humanize(entry.reason) }}</span>
-                <span dir="ltr" class="text-end text-xs text-[#686868]">{{
+                <span dir="ltr" class="text-end text-xs text-[#989898]">{{
                     formatDate(entry.createdAt)
                 }}</span>
                 <!-- Gold, not red: spending Miles is the point of having them,
@@ -546,7 +495,7 @@ function formatDate(value: string): string {
 
             <p
                 v-if="props.history.data.length === 0"
-                class="border-t border-white/6 py-[13px] text-sm text-[#686868]"
+                class="border-t border-white/6 py-[13px] text-sm text-[#989898]"
             >
                 {{ t('miles.history_empty') }}
             </p>

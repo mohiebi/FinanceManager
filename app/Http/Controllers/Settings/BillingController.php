@@ -7,8 +7,8 @@ use App\Actions\Billing\ResolveCoupon;
 use App\Actions\Billing\SettleCouponRedemption;
 use App\Actions\Billing\StartSubscriptionPayment;
 use App\Actions\Billing\SubmitPaymentProof;
-use App\Enums\BillingPlan;
 use App\Enums\CouponRedemptionStatus;
+use App\Enums\MilesPack;
 use App\Enums\PaymentStatus;
 use App\Exceptions\CouponUnavailable;
 use App\Exceptions\QuoteUnavailable;
@@ -44,7 +44,8 @@ class BillingController extends Controller
         $user = $request->user();
 
         return Inertia::render('settings/Billing', [
-            'plans' => $this->catalog->plans(),
+            'plans' => $this->catalog->packs(),
+            'balance' => (int) ($user->mileWallet?->balance ?? 0),
             'networks' => $this->catalog->networks(),
             'pending' => $this->pendingFor($request),
             'preferred' => $this->preferredRail($request),
@@ -90,7 +91,7 @@ class BillingController extends Controller
                 // or read in another locale.
                 return back()->with('activated', [
                     'plan_label' => $plan->label(),
-                    'months' => $plan->months(),
+                    'miles' => $plan->miles(),
                     'coupon_code' => $resolution->coupon->code,
                 ]);
             }
@@ -135,7 +136,7 @@ class BillingController extends Controller
 
         $plans = [];
 
-        foreach (BillingPlan::available() as $plan) {
+        foreach (MilesPack::available() as $plan) {
             $resolution = ($this->resolveCoupon)($request->user(), $code, $plan);
 
             // A code is valid or not on its own terms, so the first refusal is
@@ -259,7 +260,7 @@ class BillingController extends Controller
             // payment is already represented by that payment's own row, and
             // listing it twice would read as two purchases.
             ->whereNull('subscription_payment_id')
-            ->whereNotNull('subscription_grant_id')
+            ->where(fn ($query) => $query->whereNotNull('subscription_grant_id')->orWhereNotNull('miles_pack'))
             ->where('status', CouponRedemptionStatus::Consumed)
             ->with(['coupon:id,code', 'grant'])
             ->latest('created_at')

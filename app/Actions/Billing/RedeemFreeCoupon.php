@@ -6,6 +6,7 @@ use App\Enums\BillingPlan;
 use App\Enums\CouponRedemptionStatus;
 use App\Enums\CouponRejection;
 use App\Enums\GrantReason;
+use App\Enums\MilesPack;
 use App\Models\Coupon;
 use App\Models\CouponRedemption;
 use App\Models\User;
@@ -35,7 +36,7 @@ final readonly class RedeemFreeCoupon
     /**
      * @return CouponRejection|null null when the months were granted
      */
-    public function __invoke(User $user, Coupon $coupon, BillingPlan $plan): ?CouponRejection
+    public function __invoke(User $user, Coupon $coupon, BillingPlan|MilesPack $plan): ?CouponRejection
     {
         return DB::transaction(function () use ($user, $coupon, $plan): ?CouponRejection {
             // Re-read under a lock. ResolveCoupon's answer was advisory — between
@@ -60,6 +61,19 @@ final readonly class RedeemFreeCoupon
                 throw new RuntimeException("Coupon {$locked->code} does not cover the {$plan->value} plan in full.");
             }
 
+            if ($plan instanceof MilesPack) {
+                $redemption = CouponRedemption::create([
+                    'coupon_id' => $locked->getKey(),
+                    'user_id' => $user->getKey(),
+                    'miles_pack' => $plan,
+                    'miles' => $plan->miles(),
+                    'status' => CouponRedemptionStatus::Consumed,
+                    'discount_usd' => CouponDiscount::amountOff($listPrice, $locked),
+                ]);
+                app(CreditPurchasedMiles::class)($redemption);
+
+                return null;
+            }
             $grant = ($this->grantProAccess)(
                 user: $user,
                 months: $plan->months(),

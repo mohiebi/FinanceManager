@@ -1,5 +1,6 @@
+export type MilesPackKey = 'starter' | 'everyday' | 'explorer' | 'reserve';
 export type BillingPlanKey = 'monthly' | 'quarterly' | 'yearly';
-export type PaymentNetworkKey = 'ethereum';
+export type PaymentNetworkKey = 'ethereum' | 'arbitrum';
 export type SettlementAssetKey = 'eth' | 'usdt' | 'usdc';
 
 export type PaymentStatusKey =
@@ -31,16 +32,14 @@ export type SubscriptionState = {
 };
 
 export type PlanCard = {
-    key: BillingPlanKey;
+    key: MilesPackKey;
     label: string;
-    description: string;
-    months: number;
-    /** Decimal strings throughout — never numbers. See App\Support\Billing\TokenAmount. */
+    miles: number;
     price_usd: string;
-    per_month_usd: string;
     highlighted: boolean;
-    /** Null on the plan that sets the baseline. */
+    best_value: boolean;
     savings_percent: number | null;
+    advisor_plans: number;
 };
 
 export type AssetOption = {
@@ -98,7 +97,7 @@ export type CouponPreview = {
  */
 export type ActivationReceipt = {
     plan_label: string;
-    months: number;
+    miles: number;
     coupon_code: string;
 };
 
@@ -141,6 +140,7 @@ export type AdminCoupon = {
 export type HistoryEntry = {
     id: string;
     kind: 'payment' | 'coupon';
+    network_label: string | null;
     /**
      * The plan's name — null on a coupon entry, which the grant records only as
      * a month count. The page titles those from `months` instead: doing it
@@ -149,6 +149,7 @@ export type HistoryEntry = {
      */
     plan_label: string | null;
     months: number;
+    miles: number | null;
     status_label: string;
     tone: PaymentTone;
     price_usd: string;
@@ -167,9 +168,10 @@ export type PaymentRecord = {
     status: PaymentStatusKey;
     status_label: string;
     tone: PaymentTone;
-    plan: BillingPlanKey;
+    plan: BillingPlanKey | MilesPackKey;
     plan_label: string;
     months: number;
+    miles: number | null;
     price_usd: string;
     /** Null on a payment an admin created by hand, where no chain was involved. */
     network: PaymentNetworkKey | null;

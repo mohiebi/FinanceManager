@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Admin\BuildBillingOverview;
 use App\Actions\Admin\BuildCouponOverview;
+use App\Actions\Billing\CreditPurchasedMiles;
 use App\Actions\Billing\GrantProAccess;
 use App\Actions\Billing\RevokeProAccess;
 use App\Actions\Billing\SettleCouponRedemption;
@@ -15,6 +16,7 @@ use App\Models\SubscriptionPayment;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -58,28 +60,29 @@ class AdminBillingController extends Controller
     {
         $note = $this->requireNote($request);
 
-        abort_if($payment->status === PaymentStatus::Confirmed, 409);
+        DB::transaction(function () use ($request, $payment, $note): void {
+            $payment = SubscriptionPayment::query()->whereKey($payment->getKey())->lockForUpdate()->firstOrFail();
+            abort_if($payment->status === PaymentStatus::Confirmed, 409);
+            $payment->forceFill([
+                'status' => PaymentStatus::Confirmed,
+                'approved_by_admin_id' => $request->user()->getKey(),
+                'admin_note' => $note,
+                'verified_at' => now(),
+                'failure_reason' => null,
+            ])->save();
+            if ($payment->miles_pack !== null) {
+                app(CreditPurchasedMiles::class)($payment);
+                $this->settleCouponRedemption->consume($payment);
 
-        $payment->forceFill([
-            'status' => PaymentStatus::Confirmed,
-            'approved_by_admin_id' => $request->user()->getKey(),
-            'admin_note' => $note,
-            'verified_at' => now(),
-            'failure_reason' => null,
-        ])->save();
-
-        $grant = ($this->grantProAccess)(
-            user: $payment->user,
-            months: (int) $payment->months,
-            reason: GrantReason::AdminApprovePayment,
-            paymentId: $payment->getKey(),
-            admin: $request->user(),
-            note: $note,
-        );
-
-        // An approved payment is a paid one, so any coupon it reserved is spent
-        // exactly as it would have been had the chain settled it.
-        $this->settleCouponRedemption->consume($payment, $grant);
+                return;
+            }
+            $grant = ($this->grantProAccess)(
+                user: $payment->user, months: (int) $payment->months,
+                reason: GrantReason::AdminApprovePayment, paymentId: $payment->getKey(),
+                admin: $request->user(), note: $note,
+            );
+            $this->settleCouponRedemption->consume($payment, $grant);
+        });
 
         return back()->with('status', __('billing.admin.approved'));
     }

@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'activity_title' => 'Aktivität & Miles',
+    'buy_miles' => 'Miles kaufen',
+    'days_recorded' => 'Erfasste Tage',
     'balance_eyebrow' => 'Miles-Guthaben',
     'hero_body' => 'Verdient durch die Nutzung von CashPilot — nie durch Guthaben oder Vermögen. Einsetzbar für Advisor-Pläne, Serienschutz, Modul-Freischaltungen oder als Geschenk an eine Empfehlung.',
     'collect_today' => 'Heute +{miles} abholen',
@@ -24,7 +27,6 @@ return [
     'history_date' => 'Datum',
     'history_amount' => 'Betrag',
     'history_balance' => 'Guthaben',
-    'gift_body' => 'Sende Miles an eine bereits aktive Empfehlung. Sie werden übertragen, nicht neu erzeugt.',
     'unit' => 'Miles',
     'close' => 'Schließen',
     'pill' => [
@@ -76,9 +78,6 @@ return [
     'equip' => 'Aktivieren',
     'copy' => 'Kopieren',
     'copied' => 'Kopiert',
-    'gift_title' => 'Meilen an eine aktive Empfehlung schenken',
-    'choose_friend' => 'Freund auswählen',
-    'send_gift' => 'Geschenk senden',
     'history_empty' => 'Dein erster Meileneintrag erscheint hier.',
     'no_expiry' => 'Meilen verfallen nie',
 ];

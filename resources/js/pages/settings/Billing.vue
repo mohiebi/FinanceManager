@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import { Head, router, useForm, useHttp, usePage } from '@inertiajs/vue3';
-import { onKeyStroke } from '@vueuse/core';
 import {
-    ArrowLeft,
     BadgeCheck,
     Check,
     Copy,
-    CreditCard,
     ExternalLink,
     PartyPopper,
     Receipt,
@@ -19,6 +16,12 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SettingsSection from '@/components/settings/SettingsSection.vue';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { formatAppDate } from '@/lib/date';
@@ -32,7 +35,7 @@ import {
 import type {
     ActivationReceipt,
     AssetOption,
-    BillingPlanKey,
+    MilesPackKey,
     CouponPreview,
     CouponPreviewResponse,
     HistoryEntry,
@@ -45,6 +48,7 @@ import type {
 
 const props = defineProps<{
     plans: PlanCard[];
+    balance: number;
     networks: NetworkOption[];
     pending: PaymentRecord | null;
     history: HistoryEntry[];
@@ -62,7 +66,7 @@ defineOptions({
     },
 });
 
-const subscription = computed(() => page.props.subscription);
+const balance = computed(() => page.props.miles?.balance ?? props.balance);
 const calendar = computed(() => page.props.calendar);
 
 /**
@@ -111,7 +115,12 @@ const startForm = useForm({ plan: '', network: '', asset: '', coupon: '' });
  * now opens a checkout step instead of firing the purchase, which puts the
  * code, the total and the confirm button in the order they are decided in.
  */
-const selectedPlanKey = ref<BillingPlanKey | null>(null);
+const selectedPlanKey = ref<MilesPackKey | null>(
+    props.plans.find((plan) => plan.key === props.pending?.plan)?.key ??
+        props.plans.find((plan) => plan.highlighted)?.key ??
+        props.plans[0]?.key ??
+        null,
+);
 
 const selectedPlan = computed<PlanCard | null>(
     () =>
@@ -121,10 +130,6 @@ const selectedPlan = computed<PlanCard | null>(
 function selectPlan(plan: PlanCard): void {
     selectedPlanKey.value = plan.key;
     startForm.clearErrors();
-}
-
-function backToPlans(): void {
-    selectedPlanKey.value = null;
 }
 
 /**
@@ -248,7 +253,13 @@ const proofForm = useForm({ tx_hash: '' });
 function confirmSelectedPlan(): void {
     const plan = selectedPlan.value;
 
-    if (plan === null || !network.value || !asset.value) {
+    if (
+        plan === null ||
+        !network.value ||
+        !asset.value ||
+        hasUncheckedCoupon.value ||
+        startForm.processing
+    ) {
         return;
     }
 
@@ -281,10 +292,40 @@ function cancel(): void {
 }
 
 const copied = ref<string | null>(null);
+const copyError = ref(false);
+const hasUncheckedCoupon = computed(
+    () =>
+        startForm.coupon.trim() !== '' &&
+        appliedCoupon.value?.code !== startForm.coupon.trim().toUpperCase(),
+);
+const settledPayment = ref<HistoryEntry | null>(null);
+watch(
+    () => [props.pending, props.history] as const,
+    ([pending, history], [previous]) => {
+        if (previous && !pending) {
+            settledPayment.value =
+                history.find(
+                    (entry) =>
+                        entry.id === previous.id &&
+                        entry.tone === 'positive' &&
+                        entry.miles !== null,
+                ) ?? null;
+        }
+    },
+);
 let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
 async function copy(value: string, key: string): Promise<void> {
-    await navigator.clipboard.writeText(value);
+    copyError.value = false;
+
+    try {
+        await navigator.clipboard.writeText(value);
+    } catch {
+        copyError.value = true;
+
+        return;
+    }
+
     copied.value = key;
 
     clearTimeout(copyTimer);
@@ -307,11 +348,7 @@ watch(
             poll = setInterval(
                 () =>
                     router.reload({
-                        // `subscription` has to be named too. It is a shared
-                        // prop, but a partial reload filters those the same as
-                        // any other — leaving it out is what would show a
-                        // settled payment beside a stale "Free" badge.
-                        only: ['pending', 'history', 'subscription'],
+                        only: ['pending', 'history', 'balance', 'miles'],
                     }),
                 10000,
             );
@@ -373,21 +410,9 @@ watch(
     renderQr,
 );
 
-const daysLeft = computed<number | null>(() => {
-    const until = subscription.value?.pro_until;
-
-    if (!until) {
-        return null;
-    }
-
-    const ms = new Date(until).getTime() - Date.now();
-
-    return ms <= 0 ? null : Math.ceil(ms / 86_400_000);
-});
-
 const toneClasses: Record<string, string> = {
     positive: 'bg-[#1f2e22] text-[#7BD88F] ring-[#7BD88F]/20',
-    pending: 'bg-[#2b2618] text-[#E0B341] ring-[#E0B341]/20',
+    pending: 'bg-[#2b2618] text-[#d9c48f] ring-[#d9c48f]/20',
     negative: 'bg-[#2c1b1b] text-[#E94E50] ring-[#E94E50]/20',
     neutral: 'bg-white/5 text-[#989898] ring-white/10',
 };
@@ -422,20 +447,11 @@ function dismissActivation(): void {
     // rather than on the same render with a dialog taken off the top.
     router.visit(billingEdit().url);
 }
-
-// Escape dismisses it too — a dialog only the mouse can close traps anyone
-// working from the keyboard.
-onKeyStroke('Escape', () => {
-    if (activation.value !== null) {
-        dismissActivation();
-    }
-});
 </script>
 
 <template>
-    <Head :title="t('billing.title')" />
-
-    <div class="flex flex-col gap-[18px]">
+    <div class="flex flex-col gap-[14px]">
+        <Head :title="t('billing.title')" />
         <p
             v-if="status"
             class="rounded-xl bg-[#1f2e22] px-4 py-3 text-sm text-[#7BD88F] ring-1 ring-[#7BD88F]/20"
@@ -443,156 +459,82 @@ onKeyStroke('Escape', () => {
             {{ status }}
         </p>
 
-        <!-- Current state -->
-        <SettingsSection
-            :icon="CreditCard"
-            :title="
-                subscription?.is_pro
-                    ? t('billing.state.pro_title')
-                    : subscription?.pro_until
-                      ? t('billing.state.expired_title')
-                      : t('billing.state.free_title')
-            "
+        <p
+            v-if="settledPayment"
+            role="status"
+            class="rounded-xl border border-[#02cd86]/20 bg-[#02cd86]/10 p-4 text-sm text-[#7BD88F]"
         >
-            <div class="flex flex-wrap items-center gap-3">
-                <span
-                    class="rounded-full px-3 py-1 text-xs font-medium ring-1"
-                    :class="
-                        subscription?.is_pro
-                            ? toneClasses.positive
-                            : toneClasses.neutral
-                    "
-                >
-                    {{
-                        subscription?.is_pro
-                            ? t('billing.state.pro_badge')
-                            : t('billing.state.free_badge')
-                    }}
-                </span>
-
-                <span
-                    v-if="subscription?.is_pro"
-                    class="text-sm text-[#989898]"
-                >
-                    {{
-                        t('billing.state.expires_on', {
-                            date: shortDate(subscription.pro_until),
-                        })
-                    }}
-                    <template v-if="daysLeft !== null">
-                        ·
-                        {{
-                            daysLeft === 1
-                                ? t('billing.state.day_left')
-                                : t('billing.state.days_left', {
-                                      days: daysLeft,
-                                  })
-                        }}
-                    </template>
-                </span>
-
-                <span
-                    v-else-if="subscription?.pro_until"
-                    class="text-sm text-[#989898]"
-                >
-                    {{
-                        t('billing.state.expired_on', {
-                            date: shortDate(subscription.pro_until),
-                        })
-                    }}
-                </span>
-
-                <span v-else class="text-sm text-[#989898]">
-                    {{ t('billing.state.free_body') }}
-                </span>
-            </div>
-
-            <!-- Load-bearing, not decorative: nothing renews itself, and a user
-                 expecting card-like renewal simply loses access. -->
-            <p class="mt-4 max-w-[68ch] text-sm text-[#989898]">
-                {{ t('billing.state.no_auto_renew') }}
-            </p>
-        </SettingsSection>
-
-        <!-- Step 1 — pick a plan.
-             Selecting one no longer fires the purchase. It opens the checkout
-             step below, which is where the coupon, the total and the confirm
-             button live: the order those things are actually decided in. -->
+            {{
+                t('billing.packs.credited', {
+                    miles: settledPayment.miles?.toLocaleString(),
+                })
+            }}
+        </p>
         <SettingsSection
-            v-if="!pending && !selectedPlan"
             :icon="Sparkles"
-            :title="t('billing.plans.heading')"
-            :description="t('billing.plans.gas_hint')"
+            :title="t('billing.packs.heading')"
+            :description="t('billing.packs.description')"
         >
-            <div class="grid gap-3 sm:grid-cols-3">
+            <template #actions
+                ><span class="text-sm text-[#d9c48f]">{{
+                    t('billing.packs.balance', {
+                        miles: balance.toLocaleString(),
+                    })
+                }}</span></template
+            >
+            <div
+                class="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4"
+                role="group"
+                :aria-label="t('billing.packs.heading')"
+            >
                 <button
                     v-for="plan in plans"
                     :key="plan.key"
                     type="button"
-                    class="flex cursor-pointer flex-col rounded-2xl p-4 text-start ring-1 transition-colors duration-200 hover:bg-white/[0.08] focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none"
+                    :disabled="!!pending || startForm.processing"
+                    :aria-pressed="plan.key === selectedPlanKey"
+                    class="flex min-w-0 cursor-pointer flex-col rounded-2xl border p-3 text-start transition-colors duration-200 hover:bg-[#d9c48f]/5 focus-visible:ring-2 focus-visible:ring-[#d9c48f] focus-visible:outline-none disabled:cursor-default sm:p-5"
                     :class="
-                        plan.highlighted
-                            ? 'bg-white/[0.06] ring-white/25'
-                            : 'bg-white/[0.02] ring-white/10'
+                        plan.key === selectedPlanKey
+                            ? 'border-[#d9c48f] bg-[#d9c48f]/8'
+                            : 'border-white/10 bg-[#1a1a1a]'
                     "
                     @click="selectPlan(plan)"
                 >
-                    <span class="flex w-full items-start justify-between gap-2">
-                        <span class="text-[15px] font-medium text-white">
-                            {{ plan.label }}
-                        </span>
+                    <span
+                        class="mb-2 flex min-h-6 items-center text-[10px] font-medium text-[#d9c48f] sm:text-[11px]"
+                    >
                         <span
-                            v-if="plan.savings_percent"
-                            class="rounded-full bg-[#1f2e22] px-2 py-0.5 text-[11px] text-[#7BD88F] ring-1 ring-[#7BD88F]/20"
+                            v-if="plan.highlighted || plan.best_value"
+                            class="rounded-full bg-[#d9c48f]/10 px-2 py-1"
+                            >{{
+                                t(
+                                    plan.best_value
+                                        ? 'billing.packs.best_value'
+                                        : 'billing.packs.recommended',
+                                )
+                            }}</span
                         >
-                            {{
-                                t('billing.plans.save', {
-                                    percent: plan.savings_percent,
-                                })
-                            }}
-                        </span>
                     </span>
-
-                    <span class="mt-1 text-xs text-[#989898]">
-                        {{ plan.description }}
-                    </span>
-
                     <span
-                        class="mt-3 text-2xl font-medium text-white"
                         dir="ltr"
+                        class="text-[22px] leading-tight font-semibold text-white tabular-nums"
+                        >{{ plan.miles.toLocaleString() }}</span
                     >
-                        ${{ plan.price_usd }}
-                    </span>
-                    <span class="text-xs text-[#6f6f6f]" dir="ltr">
-                        {{
-                            t('billing.plans.per_month', {
-                                amount: '$' + plan.per_month_usd,
-                            })
-                        }}
-                    </span>
-
-                    <span class="mt-3 text-xs text-[#989898]">
-                        {{
-                            subscription?.is_pro
-                                ? t('billing.plans.extends', {
-                                      months:
-                                          plan.months === 1
-                                              ? t('billing.plans.month')
-                                              : t('billing.plans.months', {
-                                                    count: plan.months,
-                                                }),
-                                  })
-                                : t('billing.plans.starts')
-                        }}
-                    </span>
-
-                    <span
-                        class="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#02CD86] px-4 text-sm font-medium text-[#101010]"
+                    <span class="mt-1 text-xs text-[#989898]">{{
+                        t('miles.unit')
+                    }}</span>
+                    <span dir="ltr" class="mt-3 text-sm text-white tabular-nums"
+                        >&#36;{{ plan.price_usd }}</span
                     >
-                        {{ t('billing.plans.choose') }}
-                    </span>
+                    <span class="mt-2 text-xs leading-relaxed text-[#989898]">{{
+                        t('billing.packs.usage', { count: plan.advisor_plans })
+                    }}</span>
                 </button>
             </div>
+            <p class="mt-4 text-xs text-[#989898]">
+                {{ t('billing.packs.no_expiry') }}
+            </p>
         </SettingsSection>
 
         <!-- Step 2 — review, code, confirm. -->
@@ -602,40 +544,15 @@ onKeyStroke('Escape', () => {
             :title="t('billing.checkout.heading')"
             :description="t('billing.checkout.description')"
         >
-            <template #actions>
-                <button
-                    type="button"
-                    class="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full bg-white/8 px-3.5 text-xs font-medium text-white ring-1 ring-white/15 transition-colors duration-200 hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none"
-                    @click="backToPlans"
-                >
-                    <ArrowLeft
-                        class="size-3.5 rtl:rotate-180"
-                        aria-hidden="true"
-                    />
-                    {{ t('billing.checkout.change_plan') }}
-                </button>
-            </template>
-
-            <!-- What is being bought -->
-            <div class="rounded-2xl bg-white/[0.04] p-4 ring-1 ring-white/10">
-                <p class="text-xs text-[#989898]">
-                    {{ t('billing.checkout.selected_plan') }}
-                </p>
-                <p class="mt-1 text-[15px] font-medium text-white">
-                    {{ selectedPlan.label }}
-                </p>
-                <p class="mt-1 text-xs text-[#989898]">
+            <div class="rounded-xl bg-white/4 p-4 text-sm text-[#989898]">
+                <p class="font-medium text-white">{{ selectedPlan.label }}</p>
+                <p class="mt-1">
                     {{
-                        subscription?.is_pro
-                            ? t('billing.plans.extends', {
-                                  months:
-                                      selectedPlan.months === 1
-                                          ? t('billing.plans.month')
-                                          : t('billing.plans.months', {
-                                                count: selectedPlan.months,
-                                            }),
-                              })
-                            : t('billing.plans.starts')
+                        t('billing.packs.balance_after', {
+                            miles: (
+                                balance + selectedPlan.miles
+                            ).toLocaleString(),
+                        })
                     }}
                 </p>
             </div>
@@ -703,6 +620,9 @@ onKeyStroke('Escape', () => {
                 </p>
             </div>
 
+            <p v-if="hasUncheckedCoupon" class="mt-3 text-xs text-[#989898]">
+                {{ t('billing.packs.coupon_check') }}
+            </p>
             <!-- The total, itemised. A discount whose arithmetic is invisible is
                  one the buyer has to take on trust. -->
             <dl
@@ -823,14 +743,14 @@ onKeyStroke('Escape', () => {
                             :class="
                                 option.key === asset
                                     ? 'text-[#02CD86]/60'
-                                    : 'text-[#6f6f6f]'
+                                    : 'text-[#989898]'
                             "
                             >{{ option.label }}</span
                         >
                     </button>
                 </div>
 
-                <p class="mt-2 text-xs text-[#6f6f6f]">
+                <p class="mt-2 text-xs text-[#989898]">
                     <template v-if="network">
                         {{ network.label }} ·
                         {{
@@ -855,7 +775,13 @@ onKeyStroke('Escape', () => {
             <template #footer>
                 <div class="flex flex-wrap items-center gap-3">
                     <Button
-                        :disabled="startForm.processing || !asset"
+                        class="min-h-11 w-full bg-[#d9c48f] text-[#101010] hover:bg-[#e5d4ab]"
+                        :disabled="
+                            startForm.processing ||
+                            checkingCoupon ||
+                            hasUncheckedCoupon ||
+                            !asset
+                        "
                         @click="confirmSelectedPlan"
                     >
                         <Spinner v-if="startForm.processing" class="size-4" />
@@ -865,13 +791,6 @@ onKeyStroke('Escape', () => {
                                 : t('billing.checkout.confirm_paid')
                         }}
                     </Button>
-                    <button
-                        type="button"
-                        class="inline-flex min-h-11 cursor-pointer items-center rounded-xl px-4 text-sm text-[#989898] transition-colors duration-200 hover:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none"
-                        @click="backToPlans"
-                    >
-                        {{ t('billing.checkout.back_to_plans') }}
-                    </button>
                 </div>
             </template>
         </SettingsSection>
@@ -883,7 +802,7 @@ onKeyStroke('Escape', () => {
             :title="t('billing.pay.heading')"
         >
             <p
-                class="rounded-xl bg-[#2b2618] px-4 py-3 text-sm text-[#E0B341] ring-1 ring-[#E0B341]/20"
+                class="rounded-xl bg-[#2b2618] px-4 py-3 text-sm text-[#d9c48f] ring-1 ring-[#d9c48f]/20"
             >
                 {{
                     t('billing.pay.network_warning', {
@@ -893,6 +812,13 @@ onKeyStroke('Escape', () => {
                 }}
             </p>
 
+            <p
+                v-if="copyError"
+                role="alert"
+                class="mt-3 text-sm text-[#E94E50]"
+            >
+                {{ t('billing.packs.copy_failed') }}
+            </p>
             <div class="mt-4 space-y-4">
                 <div>
                     <p class="text-xs text-[#989898]">
@@ -923,7 +849,7 @@ onKeyStroke('Escape', () => {
                             <Copy v-else class="size-4" />
                         </Button>
                     </div>
-                    <p class="mt-1 text-xs text-[#6f6f6f]">
+                    <p class="mt-1 text-xs text-[#989898]">
                         {{ t('billing.pay.exact_amount') }}
                     </p>
 
@@ -936,7 +862,7 @@ onKeyStroke('Escape', () => {
                                 code: pending.coupon_code,
                             })
                         }}
-                        <span class="text-[#6f6f6f] line-through" dir="ltr">
+                        <span class="text-[#989898] line-through" dir="ltr">
                             {{
                                 t('billing.coupon.was', {
                                     amount: `$${pending.list_price_usd}`,
@@ -987,7 +913,7 @@ onKeyStroke('Escape', () => {
                     />
 
                     <div class="space-y-2">
-                        <p class="text-xs text-[#6f6f6f]">
+                        <p class="text-xs text-[#989898]">
                             {{ t('billing.pay.scan_hint') }}
                         </p>
                         <a
@@ -1001,7 +927,7 @@ onKeyStroke('Escape', () => {
                     </div>
                 </div>
 
-                <p class="text-xs text-[#6f6f6f]">
+                <p class="text-xs text-[#989898]">
                     {{
                         t('billing.pay.window_closes', {
                             time: shortDate(pending.expires_at),
@@ -1019,7 +945,7 @@ onKeyStroke('Escape', () => {
 
                 <div
                     v-if="pending.status === 'submitted'"
-                    class="rounded-xl bg-[#2b2618] px-4 py-3 text-sm text-[#E0B341] ring-1 ring-[#E0B341]/20"
+                    class="rounded-xl bg-[#2b2618] px-4 py-3 text-sm text-[#d9c48f] ring-1 ring-[#d9c48f]/20"
                 >
                     {{ t('billing.pay.checking') }}
                     <template v-if="pending.confirmations !== null">
@@ -1044,7 +970,7 @@ onKeyStroke('Escape', () => {
                         class="font-mono [unicode-bidi:isolate]"
                         :placeholder="t('billing.pay.hash_placeholder')"
                     />
-                    <p class="text-xs text-[#6f6f6f]">
+                    <p class="text-xs text-[#989898]">
                         {{ t('billing.pay.hash_hint') }}
                     </p>
                     <p
@@ -1109,26 +1035,33 @@ onKeyStroke('Escape', () => {
                                      so it is titled by the count using the same
                                      keys the rest of the page counts months
                                      with. -->
-                                {{
+                                <span
+                                    v-if="entry.miles !== null"
+                                    class="text-[#d9c48f]"
+                                    >{{ entry.tone === 'positive' ? '+' : ''
+                                    }}{{ entry.miles.toLocaleString() }}
+                                    {{ t('miles.unit') }}</span
+                                >
+                                <span v-else>{{
                                     entry.plan_label ??
                                     (entry.months === 1
                                         ? t('billing.plans.month')
                                         : t('billing.plans.months', {
                                               count: entry.months,
                                           }))
-                                }}
-                                <span class="text-[#6f6f6f]" dir="ltr"
+                                }}</span>
+                                <span class="text-[#989898]" dir="ltr"
                                     >· ${{ entry.price_usd }}</span
                                 >
                                 <span
                                     v-if="entry.list_price_usd"
-                                    class="text-[#6f6f6f] line-through"
+                                    class="text-[#989898] line-through"
                                     dir="ltr"
                                 >
                                     ${{ entry.list_price_usd }}
                                 </span>
                             </p>
-                            <p class="mt-0.5 text-xs text-[#6f6f6f]">
+                            <p class="mt-0.5 text-xs text-[#989898]">
                                 {{
                                     entry.settled_at
                                         ? t('billing.history.paid_on', {
@@ -1138,6 +1071,12 @@ onKeyStroke('Escape', () => {
                                               date: shortDate(entry.created_at),
                                           })
                                 }}
+                            </p>
+                            <p
+                                v-if="entry.network_label"
+                                class="mt-1 text-xs text-[#989898]"
+                            >
+                                {{ entry.network_label }}
                             </p>
                             <p
                                 v-if="entry.coupon_code"
@@ -1190,68 +1129,35 @@ onKeyStroke('Escape', () => {
                 </li>
             </ul>
         </SettingsSection>
-    </div>
 
-    <!-- Redeeming a full-price coupon opens no payment and writes no history
-         row, so the page it returns to differs only by a badge that changed
-         colour. This is what confirms it, and it holds until the buyer
-         acknowledges rather than fading like a flash strip. -->
-    <Teleport to="body">
-        <Transition
-            enter-active-class="transition duration-150 motion-reduce:transition-none"
-            enter-from-class="opacity-0"
-            leave-active-class="transition duration-150 motion-reduce:transition-none"
-            leave-to-class="opacity-0"
+        <Dialog
+            :open="activation !== null"
+            @update:open="
+                (open) => {
+                    if (!open) dismissActivation();
+                }
+            "
         >
-            <div
-                v-if="activation"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="billing-activated-title"
-                @click.self="dismissActivation"
+            <DialogContent
+                class="max-w-sm rounded-2xl bg-[#1a1a1a] p-6 text-center"
             >
-                <div
-                    class="w-full max-w-sm rounded-[16px] bg-[#1a1a1a] p-6 text-center shadow-[0_18px_45px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
+                <PartyPopper
+                    class="mx-auto size-8 text-[#d9c48f]"
+                    aria-hidden="true"
+                />
+                <DialogTitle>{{ t('billing.activated.title') }}</DialogTitle>
+                <DialogDescription v-if="activation">{{
+                    t('billing.activated.body', {
+                        code: activation.coupon_code,
+                        miles: activation.miles.toLocaleString(),
+                    })
+                }}</DialogDescription>
+                <Button
+                    class="min-h-11 w-full bg-[#d9c48f] text-[#101010] hover:bg-[#e5d4ab]"
+                    @click="dismissActivation"
+                    >{{ t('billing.activated.continue') }}</Button
                 >
-                    <span
-                        class="mx-auto flex size-12 items-center justify-center rounded-2xl bg-[#02CD86]/12 text-[#02CD86]"
-                    >
-                        <PartyPopper class="size-6" aria-hidden="true" />
-                    </span>
-
-                    <p
-                        id="billing-activated-title"
-                        class="mt-4 text-[17px] font-medium text-white"
-                    >
-                        {{ t('billing.activated.title') }}
-                    </p>
-
-                    <p class="mt-2 text-sm leading-relaxed text-[#989898]">
-                        {{
-                            t('billing.activated.body', {
-                                code: activation.coupon_code,
-                                plan: activation.plan_label,
-                                months:
-                                    activation.months === 1
-                                        ? t('billing.plans.month')
-                                        : t('billing.plans.months', {
-                                              count: activation.months,
-                                          }),
-                            })
-                        }}
-                    </p>
-
-                    <button
-                        type="button"
-                        autofocus
-                        class="mt-6 inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-xl bg-[#02CD86] px-5 text-sm font-medium text-[#101010] transition-[filter] duration-200 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] focus-visible:outline-none"
-                        @click="dismissActivation"
-                    >
-                        {{ t('billing.activated.continue') }}
-                    </button>
-                </div>
-            </div>
-        </Transition>
-    </Teleport>
+            </DialogContent>
+        </Dialog>
+    </div>
 </template>

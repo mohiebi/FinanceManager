@@ -99,3 +99,19 @@ export type Streak = {
     /** The tail of the chain, oldest first, ending on today. */
     days: StreakDay[];
 };
+
+export type ActivitySummary = {
+    streak: Streak;
+    logbook: Logbook;
+    ranks: {
+        key: PilotRank;
+        threshold: number;
+        state: 'passed' | 'current' | 'upcoming';
+        days_away: number | null;
+    }[];
+    moments: {
+        key: string;
+        achieved_at: string | null;
+        missed: { month: string; days: number } | null;
+    }[];
+};

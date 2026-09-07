@@ -1,6 +1,21 @@
 <?php
 
 return [
+    'packs' => [
+        'heading' => 'Buy Miles',
+        'description' => 'Use Miles for Advisor plans, conversations, and module unlocks. Pay on Arbitrum or Ethereum.',
+        'balance' => 'Balance: {miles} Miles',
+        'balance_after' => 'Balance after confirmation: {miles} Miles',
+        'usage' => 'Enough for {count} Advisor plans',
+        'recommended' => 'Recommended',
+        'best_value' => 'Best value',
+        'no_expiry' => 'Miles never expire. One-time purchase, with no subscription. Network fees are paid separately.',
+        'credited' => '{miles} Miles added to your balance.',
+        'coupon_check' => 'Apply your code to check the total before continuing.',
+        'remaining' => 'Payment window: {time}',
+        'expired' => 'This quote has expired. If you already sent payment, submit its transaction hash for verification.',
+        'copy_failed' => 'Could not copy. Select and copy the value manually.',
+    ],
     'title' => 'Billing',
     'description' => 'Manage your Pro access and pay with crypto.',
     'nav' => 'Billing',
@@ -125,23 +140,23 @@ return [
     'checkout' => [
         'heading' => 'Review and pay',
         'description' => 'Check the total, add a code if you have one, then confirm.',
-        'selected_plan' => 'Selected plan',
-        'change_plan' => 'Change plan',
-        'subtotal' => 'Plan price',
+        'selected_plan' => 'Selected pack',
+        'change_plan' => 'Change pack',
+        'subtotal' => 'Pack price',
         'discount' => 'Coupon {code}',
         'total' => 'Total due',
         'nothing_to_pay_title' => 'Nothing to pay',
-        'nothing_to_pay_body' => 'This code covers the {plan} plan in full. Confirm below and your Pro access starts straight away — no wallet, no transaction, no network fee.',
+        'nothing_to_pay_body' => 'This code covers {plan} in full. Confirm below to add the Miles to your balance without a payment.',
         'pay_rail_hidden' => 'No chain is involved when there is nothing to transfer, so there is no wallet to pick.',
-        'confirm_paid' => 'Continue to payment',
-        'confirm_free' => 'Activate Pro for free',
-        'back_to_plans' => 'Back to plans',
+        'confirm_paid' => 'Generate payment',
+        'confirm_free' => 'Redeem Miles',
+        'back_to_plans' => 'Back to packs',
     ],
 
     'activated' => [
-        'title' => 'Your Pro access is active',
-        'body' => 'Coupon {code} covered the {plan} plan in full, so nothing was charged. {months} have been added to your account.',
-        'continue' => 'Go to billing',
+        'title' => 'Your Miles are ready',
+        'body' => 'Coupon {code} added {miles} Miles to your account. Nothing was charged.',
+        'continue' => 'Done',
     ],
 
     'coupon' => [

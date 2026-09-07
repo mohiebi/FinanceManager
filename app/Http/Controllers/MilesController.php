@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Gamification\ActivityOverview;
 use App\Actions\Gamification\AwardMilestones;
 use App\Actions\Miles\MilesOverview;
+use App\Enums\Feature;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,6 +34,7 @@ class MilesController extends Controller
 
         return Inertia::render('Miles/Index', [
             'overview' => $overview($request->user()),
+            'activity' => $request->user()->hasFeature(Feature::Gamification) ? app(ActivityOverview::class)($request->user()) : null,
             'history' => $history,
         ]);
     }

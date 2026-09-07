@@ -1,53 +1,27 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Actions\Gamification;
 
-use App\Actions\Gamification\AwardMilestones;
 use App\Enums\Milestone;
 use App\Enums\PilotRank;
 use App\Models\User;
 use App\Support\LogbookCompleteness;
 use App\Support\StreakCalculator;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
-/**
- * The flight log, on a page of its own.
- *
- * It used to be two cards on the dashboard and was dropped when that page was
- * rebuilt to the v3 mock, which left the module switchable but invisible: the
- * streak and completeness were still computed on every dashboard load and then
- * thrown away. This gives them somewhere to live, and the dashboard keeps only
- * the one-line strip that links here.
- *
- * Every figure on this page is about the record — days logged, months covered,
- * moments passed. None of it is about how much money moved, which is the whole
- * reason a rank here is safe to show.
- */
-class FlightLogController extends Controller
+final class ActivityOverview
 {
-    public function __invoke(
-        Request $request,
-        StreakCalculator $streakCalculator,
-        LogbookCompleteness $completeness,
-        AwardMilestones $awardMilestones,
-    ): Response|RedirectResponse {
-        if (config('miles.ui_enabled')) {
-            return to_route('miles.index');
-        }
-
-        $user = $request->user();
-        $awardMilestones->afterMilestoneScan($user);
+    /** @return array<string, mixed> */
+    public function __invoke(User $user): array
+    {
+        $completeness = app(LogbookCompleteness::class);
         $logbook = $completeness->for($user);
 
-        return Inertia::render('FlightLog', [
-            'streak' => $streakCalculator->for($user)->toArray(),
+        return [
+            'streak' => app(StreakCalculator::class)->for($user)->toArray(),
             'logbook' => $logbook,
             'ranks' => $this->ranks($logbook['days_logged']),
             'moments' => $this->moments($user, $completeness),
-        ]);
+        ];
     }
 
     /**

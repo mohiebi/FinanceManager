@@ -113,7 +113,7 @@ const pageTitle = computed(() => {
                 'navigation.flight_log',
                 'navigation.flight_log_subtitle',
             ),
-            Miles: navigationName('navigation.miles'),
+            Miles: t('miles.activity_title'),
             Preferences: t('settings.preferences.title'),
             Settings: navigationName(
                 'settings.title',

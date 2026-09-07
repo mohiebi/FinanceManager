@@ -4,6 +4,7 @@ namespace App\Actions\Billing;
 
 use App\Enums\BillingPlan;
 use App\Enums\CouponRejection;
+use App\Enums\MilesPack;
 use App\Models\Coupon;
 use App\Models\User;
 use App\Support\Billing\CouponDiscount;
@@ -22,7 +23,7 @@ use App\Support\Billing\CouponDiscount;
  */
 final readonly class ResolveCoupon
 {
-    public function __invoke(User $user, string $code, BillingPlan $plan): CouponResolution
+    public function __invoke(User $user, string $code, BillingPlan|MilesPack $plan): CouponResolution
     {
         $coupon = Coupon::query()
             ->where('code', Coupon::normalizeCode($code))

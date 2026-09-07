@@ -10,7 +10,9 @@ return [
     // renders a callsign, badge, palette or theme yet, so buying one would
     // change nothing the buyer can see.
     'cosmetics_enabled' => env('MILES_COSMETICS_ENABLED', false),
-    'gifting_enabled' => env('MILES_GIFTING_ENABLED', true),
+    // Off by default: there is no friend system to gift within, so the page
+    // offers no way in. The route and its tests stay for whenever there is.
+    'gifting_enabled' => env('MILES_GIFTING_ENABLED', false),
 
     'welcome_grant' => 150,
     'unlock_price' => 25,

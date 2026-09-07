@@ -166,7 +166,7 @@ export function useModuleNav(): UseModuleNavReturn {
             {
                 key: 'miles',
                 feature: null,
-                title: navigationName('navigation.miles'),
+                title: t('miles.activity_title'),
                 href: milesIndex(),
                 icon: CircleGauge,
                 group: 'plan',
@@ -212,6 +212,14 @@ export function useModuleNav(): UseModuleNavReturn {
         ];
 
         return entries.flatMap<ModuleNavItem>((entry) => {
+            if (entry.key === 'gamification' && page.props.miles) {
+                return [];
+            }
+
+            if (entry.key === 'miles' && !page.props.miles) {
+                return [];
+            }
+
             if (entry.feature === null) {
                 return [{ ...entry, state: 'enabled', tier: 'free' as const }];
             }

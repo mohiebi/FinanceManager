@@ -3,6 +3,7 @@
 namespace App\Support\Billing;
 
 use App\Enums\BillingPlan;
+use App\Enums\MilesPack;
 use App\Enums\PaymentNetwork;
 use App\Enums\SettlementAsset;
 use App\Models\CouponRedemption;
@@ -20,13 +21,36 @@ final readonly class BillingCatalog
     public function isAvailable(): bool
     {
         return (bool) config('billing.enabled', false)
-            && BillingPlan::available() !== []
+            && MilesPack::available() !== []
             && PaymentNetwork::available() !== [];
     }
 
     /**
      * @return array<int, array<string, mixed>>
      */
+    public function packs(): array
+    {
+        $baseline = MilesPack::Starter->miles() > 0 ? (float) MilesPack::Starter->priceUsd() / MilesPack::Starter->miles() : 0;
+        $packs = MilesPack::available();
+        $bestRate = $packs === [] ? 0 : min(array_map(fn (MilesPack $pack): float => (float) $pack->priceUsd() / $pack->miles(), $packs));
+
+        return array_map(function (MilesPack $pack) use ($baseline, $bestRate): array {
+            $unitPrice = (float) $pack->priceUsd() / $pack->miles();
+
+            return [
+                'key' => $pack->value,
+                'label' => $pack->label(),
+                'miles' => $pack->miles(),
+                'price_usd' => $pack->priceUsd(),
+                'highlighted' => (bool) config("billing.miles_packs.{$pack->value}.highlighted", false),
+                'best_value' => $baseline > $unitPrice && $unitPrice === $bestRate,
+                'savings_percent' => $baseline > $unitPrice ? (int) round((1 - $unitPrice / $baseline) * 100) : null,
+                'advisor_plans' => intdiv($pack->miles(), max(1, (int) config('miles.advisor.recommendation', 250))),
+            ];
+        }, $packs);
+    }
+
+    /** @return list<array<string, mixed>> */
     public function plans(): array
     {
         $monthlyRate = $this->monthlyRate();
@@ -84,8 +108,10 @@ final readonly class BillingCatalog
         return [
             'id' => $payment->id,
             'kind' => 'payment',
-            'plan_label' => $payment->plan->label(),
+            'plan_label' => $payment->miles_pack !== null ? number_format($payment->miles).' '.__('miles.unit') : $payment->plan?->label(),
             'months' => $payment->months,
+            'miles' => $payment->miles,
+            'network_label' => $payment->network?->label(),
             'status_label' => $payment->status->label(),
             'tone' => $payment->status->tone(),
             'price_usd' => $payment->price_usd,
@@ -128,6 +154,8 @@ final readonly class BillingCatalog
             'kind' => 'coupon',
             'plan_label' => null,
             'months' => $redemption->grant?->months ?? 0,
+            'miles' => $redemption->miles,
+            'network_label' => null,
             'status_label' => __('billing.history.coupon_status'),
             // Positive, because from the buyer's side this settled: they have the
             // months, and nothing is outstanding.
@@ -155,9 +183,10 @@ final readonly class BillingCatalog
             'status' => $payment->status->value,
             'status_label' => $payment->status->label(),
             'tone' => $payment->status->tone(),
-            'plan' => $payment->plan->value,
-            'plan_label' => $payment->plan->label(),
+            'plan' => $payment->miles_pack?->value ?? $payment->plan?->value,
+            'plan_label' => $payment->miles_pack !== null ? number_format($payment->miles).' '.__('miles.unit') : $payment->plan?->label(),
             'months' => $payment->months,
+            'miles' => $payment->miles,
             'price_usd' => $payment->price_usd,
             // Both null unless a coupon was applied, which is what the page uses
             // to decide whether to show a struck-through original price.

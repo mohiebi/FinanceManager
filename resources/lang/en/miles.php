@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'activity_title' => 'Activity & Miles',
+    'buy_miles' => 'Buy Miles',
+    'days_recorded' => 'Days recorded',
     'balance_eyebrow' => 'Miles balance',
     'hero_body' => 'Earned by using CashPilot — never by balance or net worth. Spend them on Advisor plans, streak protection, module unlocks, or gift them to a referral.',
     'collect_today' => 'Collect +{miles} today',
@@ -24,7 +27,6 @@ return [
     'history_date' => 'Date',
     'history_amount' => 'Amount',
     'history_balance' => 'Balance',
-    'gift_body' => 'Send Miles to a referral who is already active. It moves them across rather than making new ones.',
     'unit' => 'Miles',
     'close' => 'Close',
     'pill' => [
@@ -76,9 +78,6 @@ return [
     'equip' => 'Equip',
     'copy' => 'Copy',
     'copied' => 'Copied',
-    'gift_title' => 'Gift Miles to an activated referral',
-    'choose_friend' => 'Choose a friend',
-    'send_gift' => 'Send gift',
     'history_empty' => 'Your first Miles entry will appear here.',
     'no_expiry' => 'Miles never expire',
 ];

@@ -14,17 +14,17 @@ beforeEach(fn () => $this->withoutVite());
  * were still computed on every dashboard load and thrown away, and the module
  * stayed switchable while rendering nothing.
  */
-test('the flight log has a page of its own', function () {
+test('the flight log is included in the Activity and Miles page', function () {
     $user = User::factory()->withModules()->create();
 
-    $this->actingAs($user)->get(route('flight-log'))
+    $this->actingAs($user)->get(route('miles.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('FlightLog')
-            ->has('streak')
-            ->has('logbook')
-            ->has('ranks', 3)
-            ->has('moments', count(Milestone::cases())));
+            ->component('Miles/Index')
+            ->has('activity.streak')
+            ->has('activity.logbook')
+            ->has('activity.ranks', 3)
+            ->has('activity.moments', count(Milestone::cases())));
 });
 
 test('the module appears in the navigation now that it has somewhere to point', function () {
@@ -36,9 +36,9 @@ test('the module appears in the navigation now that it has somewhere to point', 
 test('the ladder shows every rank, not just the one reached', function () {
     // Knowing Captain is 180 days is what makes Pilot mean anything.
     $this->actingAs(User::factory()->withModules()->create())
-        ->get(route('flight-log'))
+        ->get(route('miles.index'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('ranks', function ($ranks): bool {
+            ->where('activity.ranks', function ($ranks): bool {
                 $keys = collect($ranks)->pluck('key')->all();
                 $current = collect($ranks)->firstWhere('state', 'current');
 
@@ -54,9 +54,9 @@ test('the ladder shows every rank, not just the one reached', function () {
 test('an unearned complete month says how close the last one came', function () {
     $user = User::factory()->withModules()->create();
 
-    $this->actingAs($user)->get(route('flight-log'))
+    $this->actingAs($user)->get(route('miles.index'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('moments', function ($moments): bool {
+            ->where('activity.moments', function ($moments): bool {
                 $month = collect($moments)->firstWhere('key', Milestone::FirstFullMonth->value);
 
                 // Nothing recorded at all is not a near miss, so no hint —

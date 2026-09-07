@@ -47,6 +47,17 @@ const currentOverview = computed(() =>
         : props.overview,
 );
 
+const repairableDates = computed(
+    () => currentOverview.value.protections.repairableDates,
+);
+
+/** "Yesterday" reads better than "1 days ago", and is the common case. */
+function repairDayLabel(daysAgo: number): string {
+    return daysAgo === 1
+        ? t('miles.repair_yesterday')
+        : t('miles.repair_days_ago', { count: daysAgo });
+}
+
 /** Whether the balance covers a priced action. The server still enforces it. */
 function canAfford(cost: number): boolean {
     return currentOverview.value.balance >= cost;
@@ -305,23 +316,41 @@ function formatDate(value: string): string {
                         })
                     }}
                 </p>
-                <!-- The date is the whole input to a repair, so it stays even
-                     though the reference shows the button alone. -->
+                <!-- The user's own missed days, not a generic last seven: a
+                     day that needs no mending would be refused after the click.
+                     -->
                 <label class="sr-only" for="miles-repair-date">{{
-                    t('miles.missed_date')
+                    t('miles.repair_choose_day')
                 }}</label>
-                <input
+                <select
+                    v-if="repairableDates.length > 0"
                     id="miles-repair-date"
                     v-model="repairDate"
-                    type="date"
-                    class="mb-2 min-h-11 w-full rounded-[10px] border border-white/8 bg-[#0f0f0f] px-3 text-[13.5px] text-white focus:border-[#02cd86] focus:ring-1 focus:ring-[#02cd86] focus:outline-none"
-                />
+                    class="mb-2 min-h-11 w-full rounded-[10px] border border-white/10 bg-[#212121] px-3 text-[13px] text-white focus:border-[#02cd86] focus:outline-none"
+                >
+                    <option value="">{{ t('miles.repair_choose_day') }}</option>
+                    <option
+                        v-for="day in repairableDates"
+                        :key="day.date"
+                        :value="day.date"
+                    >
+                        {{ repairDayLabel(day.daysAgo) }}
+                    </option>
+                </select>
+                <p v-else class="mb-2 text-xs text-[#686868]">
+                    {{
+                        t('miles.repair_nothing_missed', {
+                            days: props.overview.protections.repairWindowDays,
+                        })
+                    }}
+                </p>
                 <button
                     type="button"
                     class="min-h-11 w-full cursor-pointer rounded-[10px] bg-white/6 px-[15px] py-[10px] text-[13.5px] text-white transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none"
                     :disabled="
                         processing !== null ||
                         !repairDate ||
+                        repairableDates.length === 0 ||
                         !canAfford(props.overview.protections.repairPrice)
                     "
                     @click="repair"

@@ -42,6 +42,8 @@ export type MilesOverview = MilesShared & {
         repairPrice: number;
         repairsPerMonth: number;
         repairsRemaining: number;
+        repairWindowDays: number;
+        repairableDates: { date: string; daysAgo: number }[];
     };
     modules: {
         key: string;

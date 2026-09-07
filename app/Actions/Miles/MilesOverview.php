@@ -10,6 +10,7 @@ use App\Models\MileWallet;
 use App\Models\StreakProtection;
 use App\Models\User;
 use App\Support\StreakCalculator;
+use Carbon\CarbonImmutable;
 
 final readonly class MilesOverview
 {
@@ -74,6 +75,8 @@ final readonly class MilesOverview
                 'repairPrice' => (int) config('miles.streak_repair_price'),
                 'repairsPerMonth' => (int) config('miles.streak_repairs_per_month'),
                 'repairsRemaining' => $this->repairsRemaining($user),
+                'repairWindowDays' => (int) config('miles.streak_repair_days'),
+                'repairableDates' => $this->repairableDates($user),
             ],
             'modules' => $this->modules($user),
             'milestones' => collect(Milestone::cases())->map(fn (Milestone $milestone): array => [
@@ -139,6 +142,55 @@ final readonly class MilesOverview
                 'unlocked' => in_array($key, $unlocked, true),
             ])
             ->all();
+    }
+
+    /**
+     * The days a repair could actually mend, newest first.
+     *
+     * Built from the covered dates rather than the streak chain: the chain
+     * renders everything beyond a break as missed, records included, so it
+     * would offer days that need no mending and RepairStreak would refuse
+     * after taking the click.
+     *
+     * @return array<int, array{date: string, daysAgo: int}>
+     */
+    private function repairableDates(User $user): array
+    {
+        $today = $user->localToday();
+        $window = (int) config('miles.streak_repair_days');
+        $floor = $today->subDays($window);
+
+        $covered = $user->transactions()
+            ->where('occurred_at', '>=', $floor->toDateString())
+            ->distinct()
+            ->pluck('occurred_at')
+            ->concat($user->noSpendDays()->where('date', '>=', $floor->toDateString())->pluck('date'))
+            ->concat($user->mileDays()
+                ->where('local_date', '>=', $floor->toDateString())
+                ->where('activity_miles', '>', 0)
+                ->pluck('local_date'))
+            ->map(fn ($date): string => CarbonImmutable::parse($date)->toDateString())
+            ->flip();
+
+        $protected = StreakProtection::query()
+            ->where('user_id', $user->getKey())
+            ->where('protected_date', '>=', $floor->toDateString())
+            ->pluck('protected_date')
+            ->map(fn ($date): string => CarbonImmutable::parse($date)->toDateString())
+            ->flip();
+
+        $repairable = [];
+
+        // Today is never offered: it is still open, not yet missed.
+        for ($daysAgo = 1; $daysAgo <= $window; $daysAgo++) {
+            $date = $today->subDays($daysAgo)->toDateString();
+
+            if (! $covered->has($date) && ! $protected->has($date)) {
+                $repairable[] = ['date' => $date, 'daysAgo' => $daysAgo];
+            }
+        }
+
+        return $repairable;
     }
 
     /** Repairs left in the user's own calendar month, which is what the cap counts. */

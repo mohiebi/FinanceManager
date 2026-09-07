@@ -16,6 +16,7 @@ use App\Models\Category;
 use App\Models\StreakProtection;
 use App\Models\Transaction;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(fn () => $this->withoutVite());
@@ -184,4 +185,35 @@ it('does not award a rank the user has not reached', function () {
     $this->actingAs($user)->get(route('miles.index'))->assertOk();
 
     expect($user->milestones()->where('key', Milestone::PilotRank->value)->exists())->toBeFalse();
+});
+
+it('offers only the missed days a repair could actually mend', function () {
+    Carbon::setTestNow('2026-09-10 09:00:00');
+
+    try {
+        $user = User::factory()->create(['timezone' => 'UTC', 'created_at' => now()->subMonth()]);
+        $category = Category::factory()->cost()->create();
+
+        // Recorded on the 9th and the 4th; the 5th to the 8th are gaps.
+        foreach (['2026-09-09', '2026-09-04'] as $date) {
+            Transaction::factory()->cost()->for($user)->for($category)->create(['occurred_at' => $date]);
+        }
+
+        // The 7th is already covered, so it is not for sale.
+        StreakProtection::query()->create([
+            'user_id' => $user->id,
+            'protected_date' => '2026-09-07',
+            'type' => StreakProtectionType::Repair,
+            'timezone' => 'UTC',
+        ]);
+
+        $dates = collect(app(MilesOverview::class)($user)['protections']['repairableDates']);
+
+        expect($dates->pluck('date')->all())->toBe(['2026-09-08', '2026-09-06', '2026-09-05', '2026-09-03'])
+            // Newest first, and today is never offered - it is still open.
+            ->and($dates->first()['daysAgo'])->toBe(2)
+            ->and($dates->pluck('date'))->not->toContain('2026-09-10', '2026-09-09', '2026-09-07');
+    } finally {
+        Carbon::setTestNow();
+    }
 });

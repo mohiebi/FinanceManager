@@ -41,7 +41,16 @@ export type MilesOverview = MilesShared & {
         freezePrice: number;
         repairPrice: number;
         repairsPerMonth: number;
+        repairsRemaining: number;
+        repairWindowDays: number;
+        repairableDates: { date: string; daysAgo: number }[];
     };
+    modules: {
+        key: string;
+        label: string;
+        price: number;
+        unlocked: boolean;
+    }[];
     milestones: {
         key: string;
         miles: number;

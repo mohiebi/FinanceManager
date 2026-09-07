@@ -44,3 +44,37 @@ test('every cosmetic in the catalogue has a translated name and type', function 
 
     expect($missing)->toBe([]);
 });
+
+/**
+ * Keys are added and removed by hand across three files, so one locale keeping
+ * a key another dropped shows the reader a raw `miles.whatever` on that page.
+ */
+test('the miles catalogue holds the same keys in every locale', function () {
+    $flatten = function (array $messages, string $prefix = '') use (&$flatten): array {
+        $keys = [];
+
+        foreach ($messages as $key => $value) {
+            $path = $prefix === '' ? (string) $key : "{$prefix}.{$key}";
+            $keys = array_merge($keys, is_array($value) ? $flatten($value, $path) : [$path]);
+        }
+
+        return $keys;
+    };
+
+    $reference = null;
+
+    foreach (FrontendLocalization::locales() as $locale) {
+        $keys = $flatten(trans('miles', [], $locale));
+        sort($keys);
+
+        if ($reference === null) {
+            $reference = $keys;
+
+            continue;
+        }
+
+        expect($keys)->toBe($reference, "miles keys differ in {$locale}");
+    }
+
+    expect($reference)->not->toBeEmpty();
+});

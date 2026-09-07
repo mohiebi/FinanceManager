@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Settings;
 
-use App\Enums\BillingPlan;
+use App\Enums\MilesPack;
 use App\Enums\PaymentNetwork;
 use App\Enums\SettlementAsset;
 use App\Models\Coupon;
@@ -38,7 +38,7 @@ class StartPaymentRequest extends FormRequest
             // Only plans currently priced, and only chains that have an address,
             // an endpoint and a payable asset — the alternative is handing a
             // buyer an intent nobody can ever settle.
-            'plan' => ['required', 'string', Rule::in(array_column(BillingPlan::available(), 'value'))],
+            'plan' => ['required', 'string', Rule::in(array_column(MilesPack::available(), 'value'))],
             'network' => ['required', 'string', Rule::in(array_column(PaymentNetwork::available(), 'value'))],
             // Validated against the chosen network rather than a global list:
             // an asset is a property of a chain, and USDC existing somewhere is
@@ -59,9 +59,9 @@ class StartPaymentRequest extends FormRequest
         return is_string($code) && $code !== '' ? $code : null;
     }
 
-    public function plan(): BillingPlan
+    public function plan(): MilesPack
     {
-        return BillingPlan::from($this->validated('plan'));
+        return MilesPack::from($this->validated('plan'));
     }
 
     public function network(): PaymentNetwork

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CouponRedemptionStatus;
+use App\Enums\MilesPack;
 use Database\Factories\CouponRedemptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,6 +24,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'coupon_id',
     'user_id',
+    'miles_pack',
+    'miles',
     'subscription_payment_id',
     'subscription_grant_id',
     'status',
@@ -78,6 +81,8 @@ class CouponRedemption extends Model
     protected function casts(): array
     {
         return [
+            'miles_pack' => MilesPack::class,
+            'miles' => 'integer',
             'status' => CouponRedemptionStatus::class,
         ];
     }

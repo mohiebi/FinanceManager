@@ -1,6 +1,21 @@
 <?php
 
 return [
+    'packs' => [
+        'heading' => 'Miles kaufen',
+        'description' => 'Nutze Miles für Advisor-Pläne, Gespräche und Module. Bezahle auf Arbitrum oder Ethereum.',
+        'balance' => 'Guthaben: {miles} Miles',
+        'balance_after' => 'Guthaben nach Bestätigung: {miles} Miles',
+        'usage' => 'Genug für {count} Advisor-Pläne',
+        'recommended' => 'Empfohlen',
+        'best_value' => 'Bester Wert',
+        'no_expiry' => 'Miles verfallen nicht. Einmaliger Kauf ohne Abonnement. Netzwerkgebühren werden separat bezahlt.',
+        'credited' => '{miles} Miles wurden deinem Guthaben hinzugefügt.',
+        'coupon_check' => 'Wende deinen Code an, um den Gesamtbetrag vor dem Fortfahren zu prüfen.',
+        'remaining' => 'Zahlungsfrist: {time}',
+        'expired' => 'Dieser Kurs ist abgelaufen. Falls du bereits bezahlt hast, reiche den Transaktionshash zur Prüfung ein.',
+        'copy_failed' => 'Kopieren fehlgeschlagen. Wähle den Wert aus und kopiere ihn manuell.',
+    ],
     'title' => 'Abrechnung',
     'description' => 'Verwalte deinen Pro-Zugang und zahle mit Krypto.',
     'nav' => 'Abrechnung',
@@ -125,23 +140,23 @@ return [
     'checkout' => [
         'heading' => 'Prüfen und bezahlen',
         'description' => 'Prüfe die Summe, füge ggf. einen Code hinzu und bestätige.',
-        'selected_plan' => 'Gewählter Tarif',
-        'change_plan' => 'Tarif ändern',
-        'subtotal' => 'Tarifpreis',
+        'selected_plan' => 'Gewähltes Paket',
+        'change_plan' => 'Paket ändern',
+        'subtotal' => 'Paketpreis',
         'discount' => 'Gutschein {code}',
         'total' => 'Zu zahlen',
         'nothing_to_pay_title' => 'Nichts zu zahlen',
-        'nothing_to_pay_body' => 'Dieser Code deckt den Tarif {plan} vollständig ab. Bestätige unten, und dein Pro-Zugang startet sofort – keine Wallet, keine Transaktion, keine Netzwerkgebühr.',
+        'nothing_to_pay_body' => 'Dieser Code deckt {plan} vollständig ab. Bestätige, um die Miles ohne Zahlung gutzuschreiben.',
         'pay_rail_hidden' => 'Wenn nichts zu überweisen ist, ist keine Chain beteiligt – es gibt also keine Wallet zu wählen.',
-        'confirm_paid' => 'Weiter zur Zahlung',
-        'confirm_free' => 'Pro kostenlos aktivieren',
-        'back_to_plans' => 'Zurück zu den Tarifen',
+        'confirm_paid' => 'Zahlung erstellen',
+        'confirm_free' => 'Miles einlösen',
+        'back_to_plans' => 'Zurück zu den Paketen',
     ],
 
     'activated' => [
-        'title' => 'Dein Pro-Zugang ist aktiv',
-        'body' => 'Gutschein {code} hat den Tarif {plan} vollständig abgedeckt, es wurde nichts berechnet. {months} wurden deinem Konto gutgeschrieben.',
-        'continue' => 'Zur Abrechnung',
+        'title' => 'Deine Miles sind bereit',
+        'body' => 'Code {code} hat deinem Konto {miles} Miles hinzugefügt. Es wurde nichts berechnet.',
+        'continue' => 'Fertig',
     ],
 
     'coupon' => [

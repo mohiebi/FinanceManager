@@ -41,6 +41,25 @@ enum Milestone: string
         };
     }
 
+    /** Days recorded this milestone needs, when it marks a rank. */
+    public function rankThreshold(): ?int
+    {
+        return match ($this) {
+            self::PilotRank => PilotRank::Pilot->threshold(),
+            self::CaptainRank => PilotRank::Captain->threshold(),
+            default => null,
+        };
+    }
+
+    /** @return array<int, self> */
+    public static function rankBased(): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $milestone): bool => $milestone->rankThreshold() !== null,
+        ));
+    }
+
     /**
      * The user relation that proves this milestone, when it is about a record
      * simply existing.

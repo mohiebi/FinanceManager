@@ -349,7 +349,9 @@ const searchSummary = computed(() => {
                 <!-- The 2x2 grid of tab cards. Each links straight to the
                      group's first page; the active group's card gets the
                      green tint the v3 design uses for the selected tab. -->
-                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div
+                    class="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:gap-3 lg:grid-cols-4"
+                >
                     <Link
                         v-for="group in navGroups"
                         :key="group.id"
@@ -358,7 +360,7 @@ const searchSummary = computed(() => {
                             activeGroup?.id === group.id ? 'page' : undefined
                         "
                         :class="[
-                            'min-h-11 rounded-xl p-4 text-start transition-colors duration-200',
+                            'min-h-11 shrink-0 rounded-xl px-3 py-2 text-start transition-colors duration-200 sm:p-4',
                             'focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101010] focus-visible:outline-none',
                             activeGroup?.id === group.id
                                 ? 'bg-[#02CD86]/8 ring-1 ring-[#02CD86]/40'
@@ -379,7 +381,9 @@ const searchSummary = computed(() => {
                                 group.items.length
                             }}</span>
                         </span>
-                        <p class="mt-2 truncate text-xs text-[#989898]">
+                        <p
+                            class="mt-2 hidden truncate text-xs text-[#989898] sm:block"
+                        >
                             {{ group.summary }}
                         </p>
                     </Link>

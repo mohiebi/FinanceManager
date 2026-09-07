@@ -84,7 +84,7 @@ test('the shell is a v3 tab-card grid, not a sidebar', () => {
     // Four cards (Account/Money/Connections/App), one row count and one
     // summary line each, the active one tinted — replaces the old sidebar and
     // mobile pill rail with a single structure that works at every width.
-    assert.match(shell, /grid gap-3 sm:grid-cols-2 lg:grid-cols-4/);
+    assert.match(shell, /sm:grid sm:grid-cols-2 sm:gap-3 lg:grid-cols-4/);
     assert.match(shell, /group\.items\.length/);
     assert.match(shell, /group\.summary/);
     assert.match(shell, /activeGroup\?\.id === group\.id/);
@@ -162,14 +162,15 @@ test('the shared field style replaces the per-page utility strings', () => {
 test('billing decides the plan before it asks for a code', () => {
     const billing = settingsPages.billing;
 
-    // Plan cards used to fire the purchase on click, with the coupon box below
-    // them — so "Choose" was the first control you reached and the code was
+    // Packs used to fire the purchase on click, with the coupon box below them
+    // — so "Choose" was the first control you reached and the code was
     // something you found afterwards, if you scrolled.
     assert.match(billing, /@click="selectPlan\(plan\)"/);
     assert.doesNotMatch(billing, /@click="choosePlan\(plan\)"/);
 
-    // The plan grid and the checkout step are alternatives, never both at once.
-    assert.match(billing, /v-if="!pending && !selectedPlan"/);
+    // Selecting one no longer hides the others: the grid keeps its chosen card
+    // marked while the checkout opens underneath it.
+    assert.match(billing, /:aria-pressed="plan\.key === selectedPlanKey"/);
     assert.match(billing, /v-if="!pending && selectedPlan && checkout"/);
 
     // The code, the total and the confirm button all live in the second step.
@@ -198,7 +199,9 @@ test('an outright activation is confirmed in a dialog, not a flash strip', () =>
 
     // Its own prop, so the page never has to match on a translated sentence.
     assert.match(billing, /activated: ActivationReceipt \| null/);
-    assert.match(billing, /aria-labelledby="billing-activated-title"/);
+    // A real Dialog rather than a hand-rolled overlay: reka-ui wires the
+    // labelling, focus trap and escape key that the div never had.
+    assert.match(billing, /<DialogTitle>/);
     assert.match(billing, /billing\.activated\.title/);
     // Dismissing lands on a clean billing page rather than the same render.
     assert.match(billing, /router\.visit\(billingEdit\(\)\.url\)/);
@@ -216,7 +219,7 @@ test('the history lists coupon redemptions beside payments', () => {
     assert.match(billing, /v-for="entry in history"/);
     assert.match(billing, /entry\.kind === 'coupon'/);
     // The poll has to name the renamed prop or it reloads nothing.
-    assert.match(billing, /only: \['pending', 'history', 'subscription'\]/);
+    assert.match(billing, /only: \['pending', 'history', 'balance', 'miles'\]/);
 });
 
 test('notification preferences sit above the inbox', () => {

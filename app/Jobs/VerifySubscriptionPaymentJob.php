@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Actions\Billing\CreditPurchasedMiles;
 use App\Actions\Billing\GrantProAccess;
 use App\Actions\Billing\SettleCouponRedemption;
 use App\Actions\Billing\VerifyPaymentOnChain;
@@ -212,6 +213,12 @@ class VerifySubscriptionPaymentJob implements ShouldBeUnique, ShouldQueue
 
             // Same transaction as the status write, so there is no instant where
             // a payment reads as paid without the months behind it.
+            if ($locked->miles_pack !== null) {
+                app(CreditPurchasedMiles::class)($locked);
+                app(SettleCouponRedemption::class)->consume($locked);
+
+                return;
+            }
             $subscriptionGrant = $grant($locked->user, (int) $locked->months, GrantReason::Payment, $locked->getKey());
 
             // Inside the same locked transaction as the status write, so a

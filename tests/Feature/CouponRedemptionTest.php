@@ -9,6 +9,8 @@ use App\Enums\BillingPlan;
 use App\Enums\CouponRedemptionStatus;
 use App\Enums\CouponRejection;
 use App\Enums\GrantReason;
+use App\Enums\MilesPack;
+use App\Enums\MilesReason;
 use App\Enums\PaymentNetwork;
 use App\Enums\PaymentStatus;
 use App\Enums\SettlementAsset;
@@ -239,28 +241,29 @@ test('a buyer redeems a discount code through the billing page', function () {
     Coupon::factory()->percent(50)->create(['code' => 'HALF']);
 
     $this->actingAs($user)->post(route('billing.payments.store'), [
-        'plan' => 'yearly',
+        'plan' => 'reserve',
         'network' => 'ethereum',
         'asset' => 'usdt',
         // Lower case, as somebody would actually type it.
         'coupon' => 'half',
     ])->assertRedirect()->assertSessionHasNoErrors();
 
-    expect(SubscriptionPayment::query()->sole()->price_usd)->toBe('22.50');
+    expect(SubscriptionPayment::query()->sole()->price_usd)->toBe('25.00');
 });
 
-test('a buyer redeems a full-price code and is Pro without paying', function () {
+test('a buyer redeems a full-price code and receives Miles without paying', function () {
     $user = User::factory()->create();
     Coupon::factory()->free()->create(['code' => 'ONTHEHOUSE']);
 
     $this->actingAs($user)->post(route('billing.payments.store'), [
-        'plan' => 'monthly',
+        'plan' => 'starter',
         'network' => 'ethereum',
         'asset' => 'usdt',
         'coupon' => 'ONTHEHOUSE',
     ])->assertRedirect()->assertSessionHasNoErrors();
 
-    expect($user->fresh()->isPro())->toBeTrue()
+    expect($user->fresh()->isPro())->toBeFalse()
+        ->and($user->mileLedgerEntries()->where('reason', MilesReason::GiftCode)->sum('amount'))->toBeGreaterThan(0)
         ->and(SubscriptionPayment::query()->count())->toBe(0);
 });
 
@@ -268,7 +271,7 @@ test('a bad code is a field error and opens nothing', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)->post(route('billing.payments.store'), [
-        'plan' => 'monthly',
+        'plan' => 'starter',
         'network' => 'ethereum',
         'asset' => 'usdt',
         'coupon' => 'NOSUCHCODE',
@@ -312,13 +315,13 @@ test('checking a code prices every plan without claiming a use', function () {
             'accepted' => true,
             'code' => 'HALF',
             'plans' => [
-                'monthly' => [
+                'starter' => [
                     'list_price_usd' => '5.00',
                     'discount_usd' => '2.50',
                     'final_price_usd' => '2.50',
                     'covers_everything' => false,
                 ],
-                'yearly' => ['final_price_usd' => '22.50'],
+                'reserve' => ['final_price_usd' => '25.00'],
             ],
         ]);
 
@@ -367,7 +370,7 @@ test('checking a code that covers a plan outright says so', function () {
         ->assertJson([
             'accepted' => true,
             'plans' => [
-                'monthly' => [
+                'starter' => [
                     'final_price_usd' => '0.00',
                     'covers_everything' => true,
                 ],
@@ -387,7 +390,7 @@ test('redeeming a full-price code through the page flashes a receipt instead of 
     Coupon::factory()->percent(100)->create(['code' => 'FREE']);
 
     $response = $this->actingAs($user)->post(route('billing.payments.store'), [
-        'plan' => 'quarterly',
+        'plan' => 'everyday',
         // The rail still travels — StartPaymentRequest validates every field on
         // every request — but nothing on the free branch reads it.
         'network' => 'ethereum',
@@ -399,12 +402,13 @@ test('redeeming a full-price code through the page flashes a receipt instead of 
     // apart from every other green strip without matching on a translated
     // sentence that could be reworded or read in another locale.
     $response->assertRedirect()->assertSessionHas('activated', [
-        'plan_label' => BillingPlan::Quarterly->label(),
-        'months' => 3,
+        'plan_label' => MilesPack::Everyday->label(),
+        'miles' => 1200,
         'coupon_code' => 'FREE',
     ]);
 
-    expect($user->fresh()->isPro())->toBeTrue()
+    expect($user->fresh()->isPro())->toBeFalse()
+        ->and($user->mileLedgerEntries()->where('reason', MilesReason::GiftCode)->sum('amount'))->toBeGreaterThan(0)
         ->and(SubscriptionPayment::query()->count())->toBe(0);
 });
 
@@ -413,7 +417,7 @@ test('the billing page carries the activation receipt through exactly once', fun
     Coupon::factory()->percent(100)->create(['code' => 'FREE']);
 
     $this->actingAs($user)->post(route('billing.payments.store'), [
-        'plan' => 'monthly',
+        'plan' => 'starter',
         'network' => 'ethereum',
         'asset' => 'usdt',
         'coupon' => 'FREE',
@@ -422,7 +426,7 @@ test('the billing page carries the activation receipt through exactly once', fun
     $this->actingAs($user)->get(route('billing.edit'))
         ->assertInertia(fn ($page) => $page
             ->component('settings/Billing')
-            ->where('activated.months', 1)
+            ->where('activated.miles', 500)
             ->where('activated.coupon_code', 'FREE')
         );
 
@@ -432,12 +436,12 @@ test('the billing page carries the activation receipt through exactly once', fun
         ->assertInertia(fn ($page) => $page->where('activated', null));
 });
 
-test('a partial discount still opens a payment rather than granting months', function () {
+test('a partial discount still opens a payment rather than crediting Miles', function () {
     $user = User::factory()->create();
     Coupon::factory()->percent(50)->create(['code' => 'HALF']);
 
     $this->actingAs($user)->post(route('billing.payments.store'), [
-        'plan' => 'monthly',
+        'plan' => 'starter',
         'network' => 'ethereum',
         'asset' => 'usdt',
         'coupon' => 'HALF',
@@ -452,7 +456,7 @@ test('a full-price redemption shows in the history as a settled entry', function
     Coupon::factory()->percent(100)->create(['code' => 'FREE']);
 
     $this->actingAs($user)->post(route('billing.payments.store'), [
-        'plan' => 'quarterly',
+        'plan' => 'everyday',
         'network' => 'ethereum',
         'asset' => 'usdt',
         'coupon' => 'FREE',
@@ -469,7 +473,7 @@ test('a full-price redemption shows in the history as a settled entry', function
             ->where('history.0.price_usd', '0.00')
             ->where('history.0.coupon_code', 'FREE')
             // What the code was worth, so the row can strike it through.
-            ->where('history.0.list_price_usd', BillingPlan::Quarterly->priceUsd())
+            ->where('history.0.list_price_usd', MilesPack::Everyday->priceUsd())
             ->where('history.0.settled_at', fn (?string $at): bool => $at !== null)
         );
 });
@@ -494,7 +498,7 @@ test('a coupon spent on a real payment is listed once, not twice', function () {
     Coupon::factory()->percent(50)->create(['code' => 'HALF']);
 
     $this->actingAs($user)->post(route('billing.payments.store'), [
-        'plan' => 'monthly',
+        'plan' => 'starter',
         'network' => 'ethereum',
         'asset' => 'usdt',
         'coupon' => 'HALF',

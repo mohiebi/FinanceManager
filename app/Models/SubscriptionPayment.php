@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\UserEncrypted;
 use App\Enums\BillingPlan;
+use App\Enums\MilesPack;
 use App\Enums\PaymentFailureReason;
 use App\Enums\PaymentNetwork;
 use App\Enums\PaymentStatus;
@@ -38,6 +39,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 #[Fillable([
     'user_id',
+    'miles_pack',
+    'miles',
     'status',
     'plan',
     'months',
@@ -176,6 +179,8 @@ class SubscriptionPayment extends Model
     protected function casts(): array
     {
         return [
+            'miles_pack' => MilesPack::class,
+            'miles' => 'integer',
             'status' => PaymentStatus::class,
             'plan' => BillingPlan::class,
             'months' => 'integer',

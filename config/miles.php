@@ -6,8 +6,13 @@ return [
     'enabled' => env('MILES_ENABLED', true),
     'ui_enabled' => env('MILES_UI_ENABLED', true),
     'advisor_charging' => env('MILES_ADVISOR_CHARGING', false),
-    'cosmetics_enabled' => env('MILES_COSMETICS_ENABLED', true),
-    'gifting_enabled' => env('MILES_GIFTING_ENABLED', true),
+    // Off by default: the catalogue is priced and purchasable, but nothing
+    // renders a callsign, badge, palette or theme yet, so buying one would
+    // change nothing the buyer can see.
+    'cosmetics_enabled' => env('MILES_COSMETICS_ENABLED', false),
+    // Off by default: there is no friend system to gift within, so the page
+    // offers no way in. The route and its tests stay for whenever there is.
+    'gifting_enabled' => env('MILES_GIFTING_ENABLED', false),
 
     'welcome_grant' => 150,
     'unlock_price' => 25,

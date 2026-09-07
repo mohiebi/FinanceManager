@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
-    Crown,
     Eye,
     EyeOff,
     Lock,
@@ -114,7 +113,7 @@ const pageTitle = computed(() => {
                 'navigation.flight_log',
                 'navigation.flight_log_subtitle',
             ),
-            Miles: navigationName('navigation.miles'),
+            Miles: t('miles.activity_title'),
             Preferences: t('settings.preferences.title'),
             Settings: navigationName(
                 'settings.title',
@@ -265,49 +264,22 @@ function changeLocale(value: string) {
                                         }}</span>
 
                                         <span
-                                            v-if="
-                                                item.tier === 'pro' ||
-                                                item.state !== 'enabled'
+                                            v-if="item.state !== 'enabled'"
+                                            class="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-[#02cd86]/13 px-1.5 py-0.5 text-[10px] font-medium text-[#02cd86]"
+                                            :aria-label="
+                                                t('modules.not_enabled')
                                             "
-                                            :class="[
-                                                'ml-auto inline-flex shrink-0 items-center gap-1',
-                                                isAdvisor(item)
-                                                    ? 'advisor-mono rounded-[4px] border border-[#d9c48f]/35 px-[5px] py-[2px] text-[8.5px] tracking-[0.12em] text-[#d9c48f] uppercase'
-                                                    : 'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
-                                                isAdvisor(item)
-                                                    ? ''
-                                                    : item.tier === 'pro'
-                                                      ? 'bg-[#6c4ee9]/15 text-[#a89bf3]'
-                                                      : 'bg-[#02cd86]/13 text-[#02cd86]',
-                                            ]"
                                         >
-                                            <Crown
-                                                v-if="
-                                                    item.tier === 'pro' &&
-                                                    !isAdvisor(item)
-                                                "
-                                                class="size-2.5"
-                                                aria-hidden="true"
-                                            />
                                             <Lock
-                                                v-else-if="
-                                                    item.state === 'locked' &&
-                                                    !isAdvisor(item)
-                                                "
+                                                v-if="item.state === 'locked'"
                                                 class="size-2.5"
                                                 aria-hidden="true"
                                             />
                                             <Plus
-                                                v-else-if="
-                                                    item.state === 'promo' &&
-                                                    !isAdvisor(item)
-                                                "
+                                                v-else
                                                 class="size-2.5"
                                                 aria-hidden="true"
                                             />
-                                            {{
-                                                t(`modules.tiers.${item.tier}`)
-                                            }}
                                         </span>
                                     </Link>
                                 </nav>

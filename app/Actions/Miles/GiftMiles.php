@@ -16,7 +16,14 @@ final readonly class GiftMiles
 
     public function __invoke(User $sender, User $recipient, int $amount): void
     {
-        if (! config('miles.gifting_enabled') || ! in_array($amount, config('miles.referrals.gift_amounts'), true)) {
+        // Split from the amount check: telling someone to pick a valid amount
+        // when the feature is switched off sends them looking for a better
+        // number that does not exist.
+        if (! config('miles.gifting_enabled')) {
+            throw ValidationException::withMessages(['amount' => __('Gifting is not available yet.')]);
+        }
+
+        if (! in_array($amount, config('miles.referrals.gift_amounts'), true)) {
             throw ValidationException::withMessages(['amount' => __('Choose an available gift amount.')]);
         }
 

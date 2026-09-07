@@ -23,12 +23,12 @@ test('the billing page offers every configured plan and rail', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/Billing')
-            ->has('plans', 3)
-            ->where('plans.0.key', 'monthly')
+            ->has('plans', 4)
+            ->where('plans.0.key', 'starter')
             ->where('plans.0.price_usd', '5.00')
-            // The yearly plan is cheaper per month, so it advertises how much.
-            ->where('plans.2.key', 'yearly')
-            ->where('plans.2.savings_percent', 25)
+            // The largest pack has the lowest price per Mile.
+            ->where('plans.3.key', 'reserve')
+            ->where('plans.3.savings_percent', 29)
             ->has('networks', 1)
             ->where('networks.0.chain_id', 1)
             ->has('networks.0.assets', 3)
@@ -72,15 +72,15 @@ test('choosing a plan opens an intent and shows what to send', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)->post(route('billing.payments.store'), [
-        'plan' => 'yearly',
+        'plan' => 'reserve',
         'network' => 'ethereum',
         'asset' => 'usdc',
     ])->assertRedirect();
 
     $this->actingAs($user)->get(route('billing.edit'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('pending.plan', 'yearly')
-            ->where('pending.months', 12)
+            ->where('pending.plan', 'reserve')
+            ->where('pending.miles', 7000)
             ->where('pending.asset_symbol', 'USDC')
             ->where('pending.status', 'pending')
             ->where('pending.pay_to_address', mb_strtolower(TEST_RECEIVING_ADDRESS))
@@ -98,7 +98,7 @@ test('an asset the chosen chain does not offer is refused', function () {
 
     $this->actingAs(User::factory()->create())
         ->post(route('billing.payments.store'), [
-            'plan' => 'monthly',
+            'plan' => 'starter',
             'network' => 'ethereum',
             'asset' => 'usdc',
         ])
@@ -108,11 +108,11 @@ test('an asset the chosen chain does not offer is refused', function () {
 });
 
 test('an unpriced plan is refused', function () {
-    enableBilling(['billing.plans.quarterly.price_usd' => '0.00']);
+    enableBilling(['billing.miles_packs.everyday.price_usd' => '0.00']);
 
     $this->actingAs(User::factory()->create())
         ->post(route('billing.payments.store'), [
-            'plan' => 'quarterly',
+            'plan' => 'everyday',
             'network' => 'ethereum',
             'asset' => 'usdt',
         ])
@@ -232,7 +232,7 @@ test('a user with an armed vault can still buy and pay', function () {
     $this->actingAs($user)->get(route('billing.edit'))->assertOk();
 
     $this->actingAs($user)->post(route('billing.payments.store'), [
-        'plan' => 'monthly',
+        'plan' => 'starter',
         'network' => 'ethereum',
         'asset' => 'usdt',
     ])->assertSessionHasNoErrors();
@@ -251,4 +251,33 @@ test('the settings nav offers billing only while it is switched on', function ()
 
     $this->actingAs($user)->get(route('profile.edit'))
         ->assertInertia(fn (Assert $page) => $page->where('subscription.billing_enabled', false));
+});
+
+test('the nav only offers billing when the catalogue can actually sell', function () {
+    $user = User::factory()->create();
+
+    // The switch alone used to decide this, while the controller refused
+    // anything unsellable — so the sidebar linked to a 404.
+    config([
+        'billing.enabled' => true,
+        'billing.networks.ethereum.enabled' => false,
+        'billing.networks.arbitrum.enabled' => false,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page->where('subscription.billing_enabled', false));
+
+    $this->actingAs($user)->get(route('billing.edit'))->assertNotFound();
+});
+
+test('billing appears once a network can receive payment', function () {
+    $user = User::factory()->create();
+    enableBilling();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page->where('subscription.billing_enabled', true));
+
+    $this->actingAs($user)->get(route('billing.edit'))->assertOk();
 });

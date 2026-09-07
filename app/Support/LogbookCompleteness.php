@@ -77,12 +77,16 @@ class LogbookCompleteness
      *
      * @return array{rank: string, days_logged: int, days_to_next_rank: int|null}
      */
-    private function rank(User $user): array
+    /**
+     * Distinct days the user recorded something, over their whole history.
+     *
+     * Unioned, not added: a day can hold both a transaction and a no-spend
+     * marker, and counting it twice would promote on fewer real days than the
+     * rank claims.
+     */
+    public function daysLogged(User $user): int
     {
-        // Unioned, not added: a day can hold both a transaction and a no-spend
-        // marker (backdate an import row onto one, and it does), and counting it
-        // twice would promote a user on fewer real days than the rank claims.
-        $daysLogged = $user->transactions()
+        return $user->transactions()
             ->distinct()
             ->pluck('occurred_at')
             ->map(fn ($date): string => $date->toDateString())
@@ -91,7 +95,14 @@ class LogbookCompleteness
             ))
             ->unique()
             ->count();
+    }
 
+    private function rank(User $user): array
+    {
+        // Unioned, not added: a day can hold both a transaction and a no-spend
+        // marker (backdate an import row onto one, and it does), and counting it
+        // twice would promote a user on fewer real days than the rank claims.
+        $daysLogged = $this->daysLogged($user);
         $rank = PilotRank::forDaysLogged($daysLogged);
         $next = $rank->next();
 

@@ -29,7 +29,7 @@ class SubscriptionPaymentFailedNotification extends SubscriptionNotification
     protected function replacements(object $notifiable): array
     {
         return [
-            'plan' => $this->payment->plan->label(),
+            'plan' => $this->payment->miles_pack !== null ? number_format($this->payment->miles).' '.__('miles.unit') : $this->payment->plan->label(),
             'reason' => $this->payment->failure_reason?->label() ?? '',
         ];
     }

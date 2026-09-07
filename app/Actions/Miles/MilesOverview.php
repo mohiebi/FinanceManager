@@ -2,11 +2,15 @@
 
 namespace App\Actions\Miles;
 
+use App\Enums\Feature;
 use App\Enums\Milestone;
+use App\Enums\StreakProtectionType;
 use App\Models\MileDay;
 use App\Models\MileWallet;
+use App\Models\StreakProtection;
 use App\Models\User;
 use App\Support\StreakCalculator;
+use Carbon\CarbonImmutable;
 
 final readonly class MilesOverview
 {
@@ -70,7 +74,11 @@ final readonly class MilesOverview
                 'freezePrice' => (int) config('miles.streak_freeze_price'),
                 'repairPrice' => (int) config('miles.streak_repair_price'),
                 'repairsPerMonth' => (int) config('miles.streak_repairs_per_month'),
+                'repairsRemaining' => $this->repairsRemaining($user),
+                'repairWindowDays' => (int) config('miles.streak_repair_days'),
+                'repairableDates' => $this->repairableDates($user),
             ],
+            'modules' => $this->modules($user),
             'milestones' => collect(Milestone::cases())->map(fn (Milestone $milestone): array => [
                 'key' => $milestone->value,
                 'miles' => $milestone->miles(),
@@ -112,6 +120,90 @@ final readonly class MilesOverview
         $requiredRun = $todayDay !== null && (int) $todayDay->activity_miles > 0 ? $distance + 1 : $distance;
 
         return $currentRun >= $requiredRun ? (((int) $previous->claim_step % 7) + 1) : 1;
+    }
+
+    /**
+     * The paid modules and whether this user has already unlocked each.
+     *
+     * @return array<int, array{key: string, label: string, price: int, unlocked: bool}>
+     */
+    private function modules(User $user): array
+    {
+        $unlocked = $user->featureUnlocks()
+            ->pluck('feature')
+            ->map(fn (mixed $value): string => $value instanceof Feature ? $value->value : (string) $value)
+            ->all();
+
+        return collect(config('miles.paid_modules'))
+            ->map(fn (string $key): array => [
+                'key' => $key,
+                'label' => Feature::from($key)->label(),
+                'price' => (int) config('miles.unlock_price'),
+                'unlocked' => in_array($key, $unlocked, true),
+            ])
+            ->all();
+    }
+
+    /**
+     * The days a repair could actually mend, newest first.
+     *
+     * Built from the covered dates rather than the streak chain: the chain
+     * renders everything beyond a break as missed, records included, so it
+     * would offer days that need no mending and RepairStreak would refuse
+     * after taking the click.
+     *
+     * @return array<int, array{date: string, daysAgo: int}>
+     */
+    private function repairableDates(User $user): array
+    {
+        $today = $user->localToday();
+        $window = (int) config('miles.streak_repair_days');
+        $floor = $today->subDays($window);
+
+        $covered = $user->transactions()
+            ->where('occurred_at', '>=', $floor->toDateString())
+            ->distinct()
+            ->pluck('occurred_at')
+            ->concat($user->noSpendDays()->where('date', '>=', $floor->toDateString())->pluck('date'))
+            ->concat($user->mileDays()
+                ->where('local_date', '>=', $floor->toDateString())
+                ->where('activity_miles', '>', 0)
+                ->pluck('local_date'))
+            ->map(fn ($date): string => CarbonImmutable::parse($date)->toDateString())
+            ->flip();
+
+        $protected = StreakProtection::query()
+            ->where('user_id', $user->getKey())
+            ->where('protected_date', '>=', $floor->toDateString())
+            ->pluck('protected_date')
+            ->map(fn ($date): string => CarbonImmutable::parse($date)->toDateString())
+            ->flip();
+
+        $repairable = [];
+
+        // Today is never offered: it is still open, not yet missed.
+        for ($daysAgo = 1; $daysAgo <= $window; $daysAgo++) {
+            $date = $today->subDays($daysAgo)->toDateString();
+
+            if (! $covered->has($date) && ! $protected->has($date)) {
+                $repairable[] = ['date' => $date, 'daysAgo' => $daysAgo];
+            }
+        }
+
+        return $repairable;
+    }
+
+    /** Repairs left in the user's own calendar month, which is what the cap counts. */
+    private function repairsRemaining(User $user): int
+    {
+        $today = $user->localToday();
+        $used = StreakProtection::query()
+            ->where('user_id', $user->getKey())
+            ->where('type', StreakProtectionType::Repair)
+            ->whereBetween('created_at', [$today->startOfMonth(), $today->endOfMonth()])
+            ->count();
+
+        return max(0, (int) config('miles.streak_repairs_per_month') - $used);
     }
 
     private function badgeTier(int $cycles): ?string

@@ -5,6 +5,7 @@ namespace App\Actions\Billing;
 use App\Enums\BillingPlan;
 use App\Enums\CouponRedemptionStatus;
 use App\Enums\CouponRejection;
+use App\Enums\MilesPack;
 use App\Enums\PaymentNetwork;
 use App\Enums\PaymentStatus;
 use App\Enums\SettlementAsset;
@@ -57,7 +58,7 @@ final readonly class StartSubscriptionPayment
      */
     public function __invoke(
         User $user,
-        BillingPlan $plan,
+        BillingPlan|MilesPack $plan,
         PaymentNetwork $network,
         SettlementAsset $asset,
         ?Coupon $coupon = null,
@@ -134,7 +135,7 @@ final readonly class StartSubscriptionPayment
      */
     private function create(
         User $user,
-        BillingPlan $plan,
+        BillingPlan|MilesPack $plan,
         PaymentNetwork $network,
         SettlementAsset $asset,
         string $payableUsd,
@@ -149,8 +150,10 @@ final readonly class StartSubscriptionPayment
         return SubscriptionPayment::create([
             'user_id' => $user->getKey(),
             'status' => PaymentStatus::Pending,
-            'plan' => $plan,
-            'months' => $plan->months(),
+            'plan' => $plan instanceof BillingPlan ? $plan : null,
+            'miles_pack' => $plan instanceof MilesPack ? $plan : null,
+            'miles' => $plan instanceof MilesPack ? $plan->miles() : null,
+            'months' => $plan instanceof BillingPlan ? $plan->months() : 0,
             'price_usd' => $payableUsd,
             'coupon_id' => $coupon?->getKey(),
             'list_price_usd' => $listPriceUsd,
@@ -167,7 +170,7 @@ final readonly class StartSubscriptionPayment
         ]);
     }
 
-    private function assertPayable(BillingPlan $plan, PaymentNetwork $network, SettlementAsset $asset): void
+    private function assertPayable(BillingPlan|MilesPack $plan, PaymentNetwork $network, SettlementAsset $asset): void
     {
         // The controller has already refused all of this, and the form request
         // before it. Repeating it here is the same posture UpdateUserFeature
@@ -177,7 +180,7 @@ final readonly class StartSubscriptionPayment
             throw new RuntimeException('Billing is switched off.');
         }
 
-        if (! in_array($plan, BillingPlan::available(), true)) {
+        if (! in_array($plan, ($plan instanceof MilesPack ? MilesPack::available() : BillingPlan::available()), true)) {
             throw new RuntimeException("The {$plan->value} plan is not for sale.");
         }
 
@@ -198,7 +201,7 @@ final readonly class StartSubscriptionPayment
 
     private function openIntentFor(
         User $user,
-        BillingPlan $plan,
+        BillingPlan|MilesPack $plan,
         PaymentNetwork $network,
         SettlementAsset $asset,
         ?Coupon $coupon,
@@ -206,7 +209,7 @@ final readonly class StartSubscriptionPayment
         return SubscriptionPayment::query()
             ->open()
             ->where('user_id', $user->getKey())
-            ->where('plan', $plan->value)
+            ->where($plan instanceof MilesPack ? 'miles_pack' : 'plan', $plan->value)
             ->where('network', $network->value)
             ->where('asset', $asset->value)
             // The coupon is part of what makes two intents the same. Matching

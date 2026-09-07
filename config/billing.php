@@ -24,6 +24,12 @@ return [
     | there is anything to sell.
     */
     'enabled' => env('BILLING_ENABLED', false),
+    'miles_packs' => [
+        'starter' => ['miles' => 500, 'price_usd' => env('BILLING_MILES_STARTER_USD', '5.00')],
+        'everyday' => ['miles' => 1200, 'price_usd' => env('BILLING_MILES_EVERYDAY_USD', '10.00'), 'highlighted' => true],
+        'explorer' => ['miles' => 2600, 'price_usd' => env('BILLING_MILES_EXPLORER_USD', '20.00')],
+        'reserve' => ['miles' => 7000, 'price_usd' => env('BILLING_MILES_RESERVE_USD', '50.00')],
+    ],
 
     /*
     | Plans are priced in USD and settled in whichever asset the buyer picks.

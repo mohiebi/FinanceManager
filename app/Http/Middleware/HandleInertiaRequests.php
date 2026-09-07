@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Actions\Miles\MilesOverview;
+use App\Support\Billing\BillingCatalog;
 use App\Support\FrontendLocalization;
 use App\Support\SeoMetadata;
 use Closure;
@@ -211,13 +212,17 @@ class HandleInertiaRequests extends Middleware
             // Eager like the feature map: the unlock dialog is a layout-level gate,
             // and deferring it would flash unlocked-looking UI on every page load.
             'vault' => fn () => $request->user()?->vaultDescriptor(),
-            // Also eager, and also free: pro_until is a column on the already-loaded
-            // auth user, so isPro() costs no query. The settings nav is built from
-            // billing_enabled, which is the same reason `features` cannot be deferred.
+            // Eager, and free: pro_until is a column on the already-loaded auth
+            // user, so isPro() costs no query, and availability reads config.
+            //
+            // Availability, not the kill switch. The controller refuses anything
+            // the catalogue cannot actually sell - no packs, or no network with
+            // a receiving address - so gating the nav on the switch alone put a
+            // Billing link in the sidebar that answered 404.
             'subscription' => fn (): ?array => $request->user() === null ? null : [
                 'is_pro' => $request->user()->isPro(),
                 'pro_until' => $request->user()->pro_until?->toIso8601String(),
-                'billing_enabled' => (bool) config('billing.enabled'),
+                'billing_enabled' => app(BillingCatalog::class)->isAvailable(),
             ],
             'fallbackLocale' => FrontendLocalization::DEFAULT_LOCALE,
             'fallbackTranslations' => $locale === FrontendLocalization::DEFAULT_LOCALE

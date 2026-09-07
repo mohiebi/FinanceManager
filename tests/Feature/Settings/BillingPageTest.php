@@ -252,3 +252,32 @@ test('the settings nav offers billing only while it is switched on', function ()
     $this->actingAs($user)->get(route('profile.edit'))
         ->assertInertia(fn (Assert $page) => $page->where('subscription.billing_enabled', false));
 });
+
+test('the nav only offers billing when the catalogue can actually sell', function () {
+    $user = User::factory()->create();
+
+    // The switch alone used to decide this, while the controller refused
+    // anything unsellable — so the sidebar linked to a 404.
+    config([
+        'billing.enabled' => true,
+        'billing.networks.ethereum.enabled' => false,
+        'billing.networks.arbitrum.enabled' => false,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page->where('subscription.billing_enabled', false));
+
+    $this->actingAs($user)->get(route('billing.edit'))->assertNotFound();
+});
+
+test('billing appears once a network can receive payment', function () {
+    $user = User::factory()->create();
+    enableBilling();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page->where('subscription.billing_enabled', true));
+
+    $this->actingAs($user)->get(route('billing.edit'))->assertOk();
+});

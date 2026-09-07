@@ -176,19 +176,27 @@ test('the shared subscription prop reports entitlement without an extra query', 
         ->and($queries)->toBe($before);
 });
 
-test('the shared prop mirrors the billing kill switch', function () {
+test('the shared prop follows what billing can actually sell', function () {
     $user = User::factory()->create();
 
-    // Both directions asserted from config set here rather than inherited from
-    // .env — a developer testing against a live billing setup must not change
-    // what this proves.
-    config()->set('billing.enabled', false);
-    expect($this->actingAs($user)->get(route('dashboard'))
-        ->viewData('page')['props']['subscription']['billing_enabled'])->toBeFalse();
+    $sharedFlag = fn (): bool => $this->actingAs($user)->get(route('dashboard'))
+        ->viewData('page')['props']['subscription']['billing_enabled'];
 
+    // Set here rather than inherited from .env — a developer testing against a
+    // live billing setup must not change what this proves.
+    config()->set('billing.enabled', false);
+    expect($sharedFlag())->toBeFalse();
+
+    // The switch alone is not enough. It was, and the nav it feeds then linked
+    // to a page the controller answered 404 for. The networks are set here too,
+    // or a developer whose .env has a live rail proves the opposite of this.
     config()->set('billing.enabled', true);
-    expect($this->actingAs($user)->get(route('dashboard'))
-        ->viewData('page')['props']['subscription']['billing_enabled'])->toBeTrue();
+    config()->set('billing.networks.ethereum.enabled', false);
+    config()->set('billing.networks.arbitrum.enabled', false);
+    expect($sharedFlag())->toBeFalse();
+
+    enableBilling();
+    expect($sharedFlag())->toBeTrue();
 });
 
 test('guests get no subscription prop at all', function () {

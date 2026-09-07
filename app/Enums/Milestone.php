@@ -42,6 +42,31 @@ enum Milestone: string
     }
 
     /**
+     * The user relation that proves this milestone, when it is about a record
+     * simply existing.
+     */
+    public function recordRelation(): ?string
+    {
+        return match ($this) {
+            self::FirstTransaction => 'transactions',
+            self::FirstBill => 'bills',
+            self::FirstBudget => 'budgets',
+            self::FirstInvestment => 'investments',
+            self::FirstSavingsGoal => 'savingsGoals',
+            default => null,
+        };
+    }
+
+    /** @return array<int, self> */
+    public static function recordBased(): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $milestone): bool => $milestone->recordRelation() !== null,
+        ));
+    }
+
+    /**
      * The number of records this milestone needs, when it is count-based.
      */
     public function transactionThreshold(): ?int

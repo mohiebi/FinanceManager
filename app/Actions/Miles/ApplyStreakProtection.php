@@ -80,10 +80,12 @@ final class ApplyStreakProtection
 
     private function previousCoveredDate(User $user, CarbonImmutable $today): ?CarbonImmutable
     {
+        // Matches what the streak itself counts: a claim is not a covered day,
+        // so grace and freezes are never spent bridging a gap between two taps.
         $date = MileDay::query()
             ->where('user_id', $user->getKey())
             ->where('local_date', '<', $today->toDateString())
-            ->where(fn ($query) => $query->whereNotNull('claimed_at')->orWhere('activity_miles', '>', 0))
+            ->where('activity_miles', '>', 0)
             ->max('local_date');
 
         return is_string($date) ? CarbonImmutable::parse($date) : null;

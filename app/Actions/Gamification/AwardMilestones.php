@@ -103,6 +103,34 @@ class AwardMilestones
     }
 
     /**
+     * Award any first-record milestone whose record already exists.
+     *
+     * The create hook only fires for records written after Miles shipped, so
+     * anything logged before it would stay unearned however much the user has.
+     */
+    public function afterMilestoneScan(User $user): void
+    {
+        if (! $user->hasFeature(Feature::Gamification)) {
+            return;
+        }
+
+        $earned = $user->milestones()
+            ->pluck('key')
+            ->map(fn (mixed $key): string => $key instanceof Milestone ? $key->value : (string) $key)
+            ->all();
+
+        foreach (Milestone::recordBased() as $milestone) {
+            if (in_array($milestone->value, $earned, true)) {
+                continue;
+            }
+
+            if ($user->{$milestone->recordRelation()}()->exists()) {
+                $this->award($user, $milestone);
+            }
+        }
+    }
+
+    /**
      * Award a milestone, doing nothing if the user already has it.
      */
     public function award(User $user, Milestone $milestone): ?UserMilestone

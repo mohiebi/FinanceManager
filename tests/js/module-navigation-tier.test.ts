@@ -56,3 +56,38 @@ test('a promo module still points at the switch it needs', () => {
         );
     }
 });
+
+test('flight vocabulary only appears when the user asked for it', () => {
+    const nav = readFileSync(
+        new URL(
+            '../../resources/js/composables/useModuleNav.ts',
+            import.meta.url,
+        ),
+        'utf8',
+    );
+    const header = readFileSync(
+        new URL(
+            '../../resources/js/components/AppSidebarHeader.vue',
+            import.meta.url,
+        ),
+        'utf8',
+    );
+    const en = readFileSync(
+        new URL('../../resources/lang/en/navigation.php', import.meta.url),
+        'utf8',
+    );
+
+    // The standard key is what a user who never opted in sees, so it must not
+    // be the flight name; the variant beside it carries that.
+    assert.match(en, /'flight_log' => 'Activity'/);
+    assert.match(en, /'flight_log_subtitle' => 'Flight log'/);
+
+    // Both places that render the name have to pass the variant through, or the
+    // preference is silently ignored wherever one of them was missed.
+    for (const source of [nav, header]) {
+        assert.match(
+            source,
+            /'navigation\.flight_log',\s*'navigation\.flight_log_subtitle'/,
+        );
+    }
+});

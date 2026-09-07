@@ -7,7 +7,10 @@ use App\Actions\Miles\EnsureWelcomeMiles;
 use App\Actions\Miles\MilesOverview;
 use App\Enums\Feature;
 use App\Enums\MilesReason;
+use App\Enums\Milestone;
 use App\Enums\StreakProtectionType;
+use App\Models\Bill;
+use App\Models\Budget;
 use App\Models\StreakProtection;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -91,4 +94,51 @@ it('counts repairs left against the user own calendar month', function () {
 
     expect(app(MilesOverview::class)($user->refresh())['protections']['repairsRemaining'])
         ->toBe($cap - 1);
+});
+
+it('awards first-record milestones for data that predates Miles', function () {
+    $user = User::factory()->withModules(Feature::Bills, Feature::Budgets, Feature::Investments, Feature::Goals)->create();
+
+    // withoutEvents is the point: these rows stand for everything written
+    // before the Miles observer existed, so no create hook ever fired for them.
+    Bill::withoutEvents(fn () => $user->bills()->create([
+        'title' => 'Rent',
+        'amount' => 100,
+        'currency' => 'toman',
+        'recurrence_type' => 'monthly',
+        'due_day_of_month' => 15,
+    ]));
+    Budget::withoutEvents(fn () => Budget::factory()->for($user)->create());
+
+    expect($user->milestones()->count())->toBe(0);
+
+    $this->actingAs($user)->get(route('miles.index'))->assertOk();
+
+    $earned = $user->milestones()->pluck('key')->map->value;
+
+    expect($earned)->toContain(Milestone::FirstBill->value, Milestone::FirstBudget->value)
+        // Nothing was invented: no investment or goal exists, so neither is earned.
+        ->not->toContain(Milestone::FirstInvestment->value)
+        // Scoped to milestone entries: the welcome grant posts under its own
+        // reason and would otherwise swamp the two being tested.
+        ->and((int) $user->mileLedgerEntries()->where('reason', MilesReason::Milestone)->sum('amount'))
+        ->toBe(Milestone::FirstBill->miles() + Milestone::FirstBudget->miles());
+});
+
+it('does not re-award a first-record milestone the user already holds', function () {
+    $user = User::factory()->withModules(Feature::Bills)->create();
+    Bill::withoutEvents(fn () => $user->bills()->create([
+        'title' => 'Rent',
+        'amount' => 100,
+        'currency' => 'toman',
+        'recurrence_type' => 'monthly',
+        'due_day_of_month' => 15,
+    ]));
+
+    $this->actingAs($user)->get(route('miles.index'))->assertOk();
+    $balance = $user->mileWallet()->value('balance');
+    $this->actingAs($user)->get(route('miles.index'))->assertOk();
+
+    expect($user->milestones()->where('key', Milestone::FirstBill->value)->count())->toBe(1)
+        ->and($user->mileWallet()->value('balance'))->toBe($balance);
 });

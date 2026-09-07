@@ -1,7 +1,8 @@
 <?php
 
 return [
-    'flight_log' => 'دفتر پرواز',
+    'flight_log' => 'فعالیت',
+    'flight_log_subtitle' => 'دفتر پرواز',
     'miles' => 'مایل',
     'advisor' => 'مشاور',
     'advisor_subtitle' => 'کمک‌خلبان پرتفوی',

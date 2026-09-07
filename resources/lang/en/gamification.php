@@ -1,7 +1,8 @@
 <?php
 
 return [
-    'title' => 'Flight log',
+    'title' => 'Activity',
+    'title_flight' => 'Flight log',
     'run' => 'days logged in a row',
     'run_none' => 'No run yet — log anything to start one.',
     'best_run' => 'Best run · {days} days',

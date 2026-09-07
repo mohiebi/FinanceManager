@@ -1,7 +1,8 @@
 <?php
 
 return [
-    'title' => 'Flugbuch',
+    'title' => 'Aktivität',
+    'title_flight' => 'Flugbuch',
     'run' => 'Tage in Folge erfasst',
     'run_none' => 'Noch keine Serie — erfasse irgendetwas, um eine zu starten.',
     'best_run' => 'Beste Serie · {days} Tage',

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Gamification\AwardMilestones;
 use App\Actions\Miles\MilesOverview;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -9,8 +10,11 @@ use Inertia\Response;
 
 class MilesController extends Controller
 {
-    public function __invoke(Request $request, MilesOverview $overview): Response
-    {
+    public function __invoke(
+        Request $request,
+        MilesOverview $overview,
+        AwardMilestones $awardMilestones,
+    ): Response {
         abort_unless(config('miles.ui_enabled'), 404);
 
         $history = $request->user()->mileLedgerEntries()
@@ -23,6 +27,8 @@ class MilesController extends Controller
                 'reason' => $entry->reason->value,
                 'createdAt' => $entry->created_at->toIso8601String(),
             ]);
+
+        $awardMilestones->afterMilestoneScan($request->user());
 
         return Inertia::render('Miles/Index', [
             'overview' => $overview($request->user()),

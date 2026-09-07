@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Gamification\AwardMilestones;
 use App\Enums\Milestone;
 use App\Enums\PilotRank;
 use App\Models\User;
@@ -30,8 +31,10 @@ class FlightLogController extends Controller
         Request $request,
         StreakCalculator $streakCalculator,
         LogbookCompleteness $completeness,
+        AwardMilestones $awardMilestones,
     ): Response {
         $user = $request->user();
+        $awardMilestones->afterMilestoneScan($user);
         $logbook = $completeness->for($user);
 
         return Inertia::render('FlightLog', [

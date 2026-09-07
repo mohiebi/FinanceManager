@@ -22,6 +22,7 @@ use App\Models\User;
 use App\Services\TelegramReportService;
 use App\Support\DateFormatter;
 use App\Support\FrontendLocalization;
+use App\Support\Numerals;
 use App\Support\StreakCalculator;
 use Carbon\Carbon;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
@@ -756,7 +757,9 @@ class TelegramHandler extends WebhookHandler
     {
         switch ($wizard['step']) {
             case 'amount':
-                if (! is_numeric($text)) {
+                $amount = Numerals::parse($text);
+
+                if ($amount === null) {
                     $this->chat->message(__('telegram.shared.invalid_number'))
                         ->keyboard($this->cancelToMenuKeyboard())
                         ->send();
@@ -764,7 +767,7 @@ class TelegramHandler extends WebhookHandler
                     return;
                 }
 
-                $wizard['amount'] = (float) $text;
+                $wizard['amount'] = $amount;
                 $wizard['step'] = 'currency';
                 $this->chat->storage()->set('wizard', $wizard);
 
@@ -808,7 +811,9 @@ class TelegramHandler extends WebhookHandler
     private function handleInvestmentWizard(array $wizard, string $text, User $user): void
     {
         if ($wizard['step'] === 'quantity') {
-            if (! is_numeric($text) || (float) $text <= 0) {
+            $quantity = Numerals::parse($text);
+
+            if ($quantity === null || $quantity <= 0) {
                 $this->chat->message(__('telegram.shared.invalid_positive_number'))
                     ->keyboard($this->cancelToMenuKeyboard())
                     ->send();
@@ -816,7 +821,7 @@ class TelegramHandler extends WebhookHandler
                 return;
             }
 
-            $wizard['quantity'] = (float) $text;
+            $wizard['quantity'] = $quantity;
             $wizard['step'] = 'cost_basis';
             $this->chat->storage()->set('inv_wizard', $wizard);
 
@@ -828,7 +833,8 @@ class TelegramHandler extends WebhookHandler
         }
 
         if ($wizard['step'] === 'cost_basis') {
-            $costBasis = is_numeric($text) && (float) $text > 0 ? (float) $text : null;
+            $parsed = Numerals::parse($text);
+            $costBasis = $parsed !== null && $parsed > 0 ? $parsed : null;
 
             if ($costBasis !== null) {
                 $wizard['cost_basis'] = $costBasis;
@@ -883,7 +889,9 @@ class TelegramHandler extends WebhookHandler
                 break;
 
             case 'amount':
-                if (! is_numeric($text) || (float) $text <= 0) {
+                $amount = Numerals::parse($text);
+
+                if ($amount === null || $amount <= 0) {
                     $this->chat->message(__('telegram.shared.invalid_positive_number'))
                         ->keyboard($this->cancelToMenuKeyboard())
                         ->send();
@@ -891,7 +899,7 @@ class TelegramHandler extends WebhookHandler
                     return;
                 }
 
-                $wizard['amount'] = (float) $text;
+                $wizard['amount'] = $amount;
                 $wizard['step'] = 'currency';
                 $this->chat->storage()->set('bill_wizard', $wizard);
 
@@ -925,7 +933,7 @@ class TelegramHandler extends WebhookHandler
                 break;
 
             case 'due_day':
-                $trimmed = trim($text);
+                $trimmed = Numerals::toLatin(trim($text));
 
                 if (! ctype_digit($trimmed) || (int) $trimmed < 1 || (int) $trimmed > 31) {
                     $this->chat->message(__('telegram.bill.invalid_due_day'))
@@ -945,7 +953,7 @@ class TelegramHandler extends WebhookHandler
                 break;
 
             case 'recurrence_count':
-                $trimmed = trim($text);
+                $trimmed = Numerals::toLatin(trim($text));
 
                 if (! ctype_digit($trimmed) || (int) $trimmed < 1 || (int) $trimmed > 600) {
                     $this->chat->message(__('telegram.bill.invalid_recurrence_count'))
@@ -1031,7 +1039,7 @@ class TelegramHandler extends WebhookHandler
 
     private function parseBillDate(string $text): ?string
     {
-        $text = trim($text);
+        $text = Numerals::toLatin(trim($text));
 
         if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $text)) {
             return null;

@@ -21,7 +21,9 @@ class MilesController extends Controller
 
         $history = $request->user()->mileLedgerEntries()
             ->latest('created_at')
-            ->paginate(20)
+            // Ten fits the ledger card beside the unlock list it now shares a
+            // row with; twenty left one column running far past the other.
+            ->paginate(10)
             ->through(fn ($entry): array => [
                 'id' => $entry->id,
                 'amount' => $entry->amount,

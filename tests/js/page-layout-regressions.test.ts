@@ -16,6 +16,10 @@ const emailAuth = source('../../resources/js/pages/auth/EmailAuth.vue');
 const twoFactor = source(
     '../../resources/js/pages/auth/TwoFactorChallenge.vue',
 );
+const miles = source('../../resources/js/pages/Miles/Index.vue');
+const activityDetails = source(
+    '../../resources/js/components/ActivityDetails.vue',
+);
 
 test('advisor assessment owns its bottom spacing and uses the shell background', () => {
     assert.match(appLayout, /app-page-scroll/);
@@ -108,4 +112,19 @@ test('every panel that scrolls inside the page shares one scrollbar', () => {
     ]) {
         assert.match(source(path), /app-scroll-thin/, path);
     }
+});
+
+test('miles unlocks and the ledger pair up the way rank and moments do', () => {
+    // Rank and moments set the pattern for the hub's two-up rows; the last two
+    // cards follow it instead of ending the page on stacked full-width slabs.
+    assert.match(activityDetails, /xl:grid-cols-2/);
+    assert.match(
+        miles,
+        /<div class="grid min-w-0 items-start gap-\[14px\] xl:grid-cols-2">[\s\S]*?miles\.unlock_title[\s\S]*?miles\.history_heading/,
+    );
+
+    // Half a column is far narrower than the full-width table was, so the
+    // ledger columns have to fit it rather than force a horizontal scrollbar.
+    assert.doesNotMatch(miles, /min-w-\[560px\]/);
+    assert.match(miles, /formatTime\(entry\.createdAt\)/);
 });

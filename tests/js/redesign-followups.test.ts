@@ -21,6 +21,11 @@ const investments = source('../../resources/js/pages/Investments.vue');
 const preferences = source('../../resources/js/pages/settings/Preferences.vue');
 const report = source('../../resources/js/pages/Report.vue');
 const transactions = source('../../resources/js/pages/Transactions.vue');
+const milesHub = source('../../resources/js/pages/Miles/Index.vue');
+const milesIcon = source('../../resources/js/components/MilesIcon.vue');
+const celebration = source(
+    '../../resources/js/components/MilesCelebrationDialog.vue',
+);
 
 test('compact figures are limited to totals and preserve exact table values', () => {
     assert.doesNotMatch(cipheredMoney, /useCompactFigures/);
@@ -171,4 +176,40 @@ test('portfolio export sits with the completed detail and investment entries fit
     assert.match(investments, /grid-cols-\[20px_minmax\(0,1fr\)_max-content\]/);
     assert.match(investments, /grid-cols-\[minmax\(0,1fr\)_max-content\]/);
     assert.match(investments, /opacity-100 transition sm:opacity-0/);
+});
+
+test('the Miles mark is one winged-coin component, not a stock sparkle', () => {
+    // The wing path is the mark; both surfaces have to draw the same one, so
+    // it lives in a component rather than being pasted twice.
+    assert.match(milesIcon, /<circle cx="12" cy="12" r="8\.5" \/>/);
+    assert.match(milesIcon, /M6\.8 13\.4c2\.2 0 4\.3-1\.2 5\.3-5/);
+    assert.match(milesIcon, /stroke="currentColor"/);
+
+    for (const [name, file] of [
+        ['hub', milesHub],
+        ['celebration', celebration],
+    ] as const) {
+        assert.match(
+            file,
+            /import MilesIcon from '@\/components\/MilesIcon\.vue'/,
+            name,
+        );
+        assert.match(file, /<MilesIcon/, name);
+    }
+
+    assert.doesNotMatch(celebration, /Sparkles/);
+});
+
+test('the claim modal pays out in gold and shows the week it belongs to', () => {
+    // Gold marks the currency, green stays the action: the reward reads gold
+    // while the dismiss button keeps the action colour.
+    assert.match(celebration, /text-3xl font-bold text-\[#d9c48f\]/);
+    assert.match(celebration, /bg-\[#d9c48f\]\/12 text-\[#d9c48f\]/);
+    assert.match(celebration, /rounded-xl bg-\[#02cd86\]/);
+
+    // Seven dots: gold behind the claim, green on the day that opens next.
+    assert.match(celebration, /CLAIM_CYCLE_LENGTH = 7/);
+    assert.match(celebration, /index < step\s*\?\s*'bg-\[#d9c48f\]'/);
+    assert.match(celebration, /index === step\s*\?\s*'bg-\[#5eeeb5\]'/);
+    assert.match(celebration, /v-for="\(dot, day\) in cycleDots"/);
 });

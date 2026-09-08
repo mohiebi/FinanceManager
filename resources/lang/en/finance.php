@@ -242,7 +242,9 @@ return [
         'status' => 'Status',
         'notes' => 'Notes',
         'ready' => 'Ready',
-        'result' => 'Imported {imported} transaction(s). Skipped {skipped}.',
+        'result' => 'Imported {imported} transaction(s). Skipped {skipped}: {duplicates} duplicate(s), {invalid} invalid row(s).',
+        'failed' => 'The request could not be completed. Please try again.',
+        'expired' => 'This preview is unavailable or expired. Please upload the CSV again.',
         'statuses' => [
             'valid' => 'Valid',
             'invalid' => 'Invalid',

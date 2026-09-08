@@ -22,11 +22,11 @@ function duplicateCsv(string ...$rows): UploadedFile
 
 function previewDuplicateCount(User $user, UploadedFile $file): int
 {
-    test()->actingAs($user)
-        ->post(route('transactions.imports.preview'), ['file' => $file])
-        ->assertRedirect();
+    $response = test()->actingAs($user)
+        ->postJson(route('transactions.imports.preview'), ['file' => $file])
+        ->assertOk();
 
-    return session('transaction_import_preview')['summary']['duplicate'];
+    return $response->json('summary.duplicate');
 }
 
 function existingRent(User $user): Transaction

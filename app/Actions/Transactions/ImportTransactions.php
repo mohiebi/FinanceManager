@@ -4,13 +4,18 @@ namespace App\Actions\Transactions;
 
 use App\Enums\Currency;
 use App\Enums\TransactionType;
+use App\Exceptions\VaultLocked;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Support\Encryption\UserCrypto;
+use App\Support\Encryption\UserKeyRing;
 use App\Support\Numerals;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Morilog\Jalali\Jalalian;
 use Throwable;
 
@@ -29,7 +34,7 @@ class ImportTransactions
     ];
 
     /**
-     * @return array{preview: array<string, mixed>, importable: array<int, array<string, mixed>>}
+     * @return array{token: string, rows: array<int, array<string, mixed>>, summary: array<string, int>}
      */
     public function preview(User $user, UploadedFile $file): array
     {
@@ -58,20 +63,80 @@ class ImportTransactions
             $previewRows[] = $previewRow;
         }
 
-        return [
-            'preview' => [
-                'rows' => $previewRows,
-                'summary' => $this->summary($previewRows),
-            ],
-            'importable' => $importableRows,
-        ];
+        $token = (string) Str::uuid();
+        $summary = $this->summary($previewRows);
+        $key = app(UserKeyRing::class)->for($user->id) ?? throw new VaultLocked;
+
+        DB::table('transaction_imports')->insert([
+            'id' => $token,
+            'user_id' => $user->id,
+            'payload' => UserCrypto::encrypt(
+                json_encode(['rows' => $importableRows, 'summary' => $summary], JSON_THROW_ON_ERROR),
+                $key,
+                UserCrypto::aadFor('transaction_imports', 'payload'),
+            ),
+            'expires_at' => now()->addDay(),
+        ]);
+
+        return ['token' => $token, 'rows' => $previewRows, 'summary' => $summary];
+    }
+
+    /**
+     * The claim, imported rows, categories and receipt commit together. A second
+     * request waits on the conditional update and then reads the committed receipt.
+     * Rolling back also releases the claim so the same preview can be retried.
+     *
+     * @return array{imported: int, skipped: int, skipped_duplicates: int, skipped_invalid: int}
+     */
+    public function confirm(User $user, string $token, SaveTransaction $saveTransaction): array
+    {
+        return DB::transaction(function () use ($user, $token, $saveTransaction): array {
+            $query = DB::table('transaction_imports')
+                ->where('id', $token)
+                ->where('user_id', $user->id)
+                ->where('expires_at', '>', now());
+
+            $claimed = (clone $query)->where('claimed', false)->update(['claimed' => true]);
+            $preview = (clone $query)->lockForUpdate()->first();
+
+            if ($preview === null) {
+                throw ValidationException::withMessages(['token' => __('finance.import.expired')]);
+            }
+
+            if ($preview->result !== null) {
+                return json_decode($preview->result, true, flags: JSON_THROW_ON_ERROR);
+            }
+
+            if ($claimed !== 1) {
+                throw ValidationException::withMessages(['token' => __('finance.import.failed')]);
+            }
+
+            $key = app(UserKeyRing::class)->for($user->id) ?? throw new VaultLocked;
+            $payload = json_decode(UserCrypto::decrypt(
+                $preview->payload,
+                $key,
+                UserCrypto::aadFor('transaction_imports', 'payload'),
+            ), true, flags: JSON_THROW_ON_ERROR);
+
+            $result = $this->import($user, $payload['rows'], $saveTransaction);
+            $result['skipped'] = $payload['summary']['total'] - $result['imported'];
+            $result['skipped_duplicates'] += $payload['summary']['duplicate'];
+            $result['skipped_invalid'] = $payload['summary']['invalid'];
+
+            DB::table('transaction_imports')->where('id', $token)->update([
+                'payload' => null,
+                'result' => json_encode($result, JSON_THROW_ON_ERROR),
+            ]);
+
+            return $result;
+        }, 3);
     }
 
     /**
      * @param  array<int, array<string, mixed>>  $rows
      * @return array{imported: int, skipped: int, skipped_duplicates: int}
      */
-    public function import(User $user, array $rows, SaveTransaction $saveTransaction): array
+    private function import(User $user, array $rows, SaveTransaction $saveTransaction): array
     {
         $imported = 0;
         $skippedDuplicates = 0;

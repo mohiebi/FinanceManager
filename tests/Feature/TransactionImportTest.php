@@ -1,16 +1,32 @@
 <?php
 
+use App\Actions\Transactions\SaveTransaction;
 use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Support\Encryption\UserCrypto;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schedule;
+use Illuminate\Support\Str;
 use Morilog\Jalali\Jalalian;
 
 function transactionImportFile(string $csv): UploadedFile
 {
     return UploadedFile::fake()->createWithContent('transactions.csv', $csv);
+}
+
+/** @return array<string, mixed> */
+function prepareTransactionImport(User $user, string ...$rows): array
+{
+    return test()->actingAs($user)->postJson(route('transactions.imports.preview'), [
+        'file' => transactionImportFile(implode("\n", [
+            'occurred_at,type,category,amount,currency,title,description',
+            ...$rows,
+        ])),
+    ])->assertOk()->json();
 }
 
 test('users can preview and import valid english csv transactions', function () {
@@ -24,13 +40,11 @@ test('users can preview and import valid english csv transactions', function () 
         '2026-06-16,income,Salary,8500000,toman,Monthly salary,',
     ]);
 
-    $this->actingAs($user)
-        ->post(route('transactions.imports.preview'), [
+    $preview = $this->actingAs($user)
+        ->postJson(route('transactions.imports.preview'), [
             'file' => transactionImportFile($csv),
         ])
-        ->assertRedirect();
-
-    $preview = session('transaction_import_preview');
+        ->assertOk()->json();
 
     expect($preview['summary']['total'])->toBe(2)
         ->and($preview['summary']['importable'])->toBe(2)
@@ -38,8 +52,8 @@ test('users can preview and import valid english csv transactions', function () 
         ->and($preview['summary']['duplicate'])->toBe(0);
 
     $this->actingAs($user)
-        ->post(route('transactions.imports.store'))
-        ->assertRedirect(route('transactions.index'));
+        ->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertOk();
 
     assertTransactionExists([
         'user_id' => $user->id,
@@ -79,13 +93,11 @@ test('persian csv values normalize digits jalali dates aliases and rial amounts'
         "{$persianDate},{$deposit},{$salaryCategory},{$persianAmount},{$rial},{$salaryTitle},{$salaryDescription}",
     ]);
 
-    $this->actingAs($user)
-        ->post(route('transactions.imports.preview'), [
+    $preview = $this->actingAs($user)
+        ->postJson(route('transactions.imports.preview'), [
             'file' => transactionImportFile($csv),
         ])
-        ->assertRedirect();
-
-    $preview = session('transaction_import_preview');
+        ->assertOk()->json();
 
     expect($preview['summary']['importable'])->toBe(1)
         ->and($preview['rows'][0]['warnings'])->toContain('Rial amount was converted to toman.')
@@ -93,7 +105,7 @@ test('persian csv values normalize digits jalali dates aliases and rial amounts'
         ->and($preview['rows'][0]['data']['amount'])->toBe('8500000.00')
         ->and($preview['rows'][0]['data']['currency'])->toBe(Currency::Toman->value);
 
-    $this->actingAs($user)->post(route('transactions.imports.store'));
+    $this->actingAs($user)->postJson(route('transactions.imports.store'), ['token' => $preview['token']]);
 
     assertTransactionExists([
         'user_id' => $user->id,
@@ -117,13 +129,11 @@ test('unknown categories are imported as custom user categories', function () {
         '2026-06-15,cost,Secret,125000,toman,Hidden category,',
     ]);
 
-    $this->actingAs($user)
-        ->post(route('transactions.imports.preview'), [
+    $preview = $this->actingAs($user)
+        ->postJson(route('transactions.imports.preview'), [
             'file' => transactionImportFile($csv),
         ])
-        ->assertRedirect();
-
-    $preview = session('transaction_import_preview');
+        ->assertOk()->json();
 
     expect($preview['summary']['importable'])->toBe(1)
         ->and($preview['summary']['invalid'])->toBe(0)
@@ -131,8 +141,8 @@ test('unknown categories are imported as custom user categories', function () {
         ->and($preview['rows'][0]['warnings'])->toContain('A custom category will be created for this user.');
 
     $this->actingAs($user)
-        ->post(route('transactions.imports.store'))
-        ->assertRedirect(route('transactions.index'));
+        ->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertOk();
 
     $this->assertDatabaseHas('categories', [
         'user_id' => $user->id,
@@ -165,20 +175,18 @@ test('duplicate rows are shown in preview and skipped', function () {
         '2026-06-15,cost,Food,125000,toman,Lunch,Optional note',
     ]);
 
-    $this->actingAs($user)
-        ->post(route('transactions.imports.preview'), [
+    $preview = $this->actingAs($user)
+        ->postJson(route('transactions.imports.preview'), [
             'file' => transactionImportFile($csv),
         ])
-        ->assertRedirect();
-
-    $preview = session('transaction_import_preview');
+        ->assertOk()->json();
 
     expect($preview['summary']['duplicate'])->toBe(1)
         ->and($preview['summary']['importable'])->toBe(0);
 
     $this->actingAs($user)
-        ->post(route('transactions.imports.store'))
-        ->assertRedirect(route('transactions.index'));
+        ->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertOk();
 
     // Filtered after decryption — title is encrypted, so a SQL where would find nothing.
     expect(Transaction::query()->where('user_id', $user->id)->get()->where('title', 'Lunch')->count())->toBe(1);
@@ -193,11 +201,11 @@ test('final import rechecks duplicates before saving', function () {
         '2026-06-15,cost,Food,125000,toman,Lunch,Optional note',
     ]);
 
-    $this->actingAs($user)
-        ->post(route('transactions.imports.preview'), [
+    $preview = $this->actingAs($user)
+        ->postJson(route('transactions.imports.preview'), [
             'file' => transactionImportFile($csv),
         ])
-        ->assertRedirect();
+        ->assertOk()->json();
 
     Transaction::factory()
         ->cost()
@@ -210,15 +218,152 @@ test('final import rechecks duplicates before saving', function () {
             'occurred_at' => '2026-06-15',
         ]);
 
-    $this->actingAs($user)
-        ->post(route('transactions.imports.store'))
-        ->assertRedirect(route('transactions.index'));
-
-    $result = session('transaction_import_result');
+    $result = $this->actingAs($user)
+        ->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertOk()->json();
 
     expect($result['imported'])->toBe(0)
         ->and($result['skipped_duplicates'])->toBe(1);
 
     // Filtered after decryption — title is encrypted, so a SQL where would find nothing.
     expect(Transaction::query()->where('user_id', $user->id)->get()->where('title', 'Lunch')->count())->toBe(1);
+});
+
+test('confirming a preview again returns its receipt without saving again', function () {
+    $user = User::factory()->create();
+    $preview = prepareTransactionImport($user, '2026-06-15,cost,New category,125000,toman,Lunch,Private note');
+    $payload = DB::table('transaction_imports')->where('id', $preview['token'])->value('payload');
+
+    expect(UserCrypto::looksEncrypted($payload))->toBeTrue()
+        ->and($payload)->not->toContain('Lunch', 'Private note');
+
+    $result = $this->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertOk()->assertJsonPath('imported', 1)->json();
+    $transaction = $user->transactions()->firstOrFail();
+
+    foreach (['title', 'amount', 'description'] as $field) {
+        expect(UserCrypto::looksEncrypted($transaction->getRawOriginal($field)))->toBeTrue();
+    }
+
+    $this->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertOk()->assertExactJson($result);
+    expect($user->transactions()->count())->toBe(1);
+
+    $transaction->delete();
+    $this->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertOk()->assertExactJson($result);
+    expect($user->transactions()->count())->toBe(0)
+        ->and(DB::table('transaction_imports')->where('id', $preview['token'])->value('payload'))->toBeNull();
+});
+
+test('two tabs confirm their own previews in either order', function (bool $reverse) {
+    $user = User::factory()->create();
+    $first = prepareTransactionImport($user, '2026-06-15,cost,First category,100,toman,First tab,');
+    $second = prepareTransactionImport($user, '2026-06-16,cost,Second category,200,toman,Second tab,');
+
+    expect($first['token'])->not->toBe($second['token'])
+        ->and(session()->has('transaction_import_rows'))->toBeFalse()
+        ->and(session()->has('transaction_import_preview'))->toBeFalse();
+
+    foreach ($reverse ? [$second, $first] : [$first, $second] as $index => $preview) {
+        $this->postJson(route('transactions.imports.store'), [
+            'token' => $preview['token'],
+            'rows' => [['title' => 'Untrusted replacement']],
+        ])->assertOk()->assertJsonPath('imported', 1);
+
+        expect($user->transactions()->count())->toBe($index + 1);
+        assertTransactionExists(['user_id' => $user->id, 'title' => $preview['rows'][0]['data']['title']]);
+    }
+})->with([false, true]);
+
+test('a failed row rolls back transactions and new categories and the same preview can be retried', function () {
+    $user = User::factory()->create();
+    $existing = Category::factory()->cost()->forUser($user)->create(['name' => 'Existing']);
+    $preview = prepareTransactionImport($user,
+        '2026-06-15,cost,Existing,100,toman,First,',
+        '2026-06-16,cost,New category,200,toman,Second,',
+    );
+    $realSaver = new SaveTransaction;
+    $this->mock(SaveTransaction::class, function ($mock) use ($realSaver) {
+        $mock->shouldReceive('handle')->twice()->andReturnUsing(function (User $user, array $row) use ($realSaver) {
+            $transaction = $realSaver->handle($user, $row);
+
+            if ($row['title'] === 'Second') {
+                throw new RuntimeException('Simulated row failure');
+            }
+
+            return $transaction;
+        });
+    });
+    $this->withoutExceptionHandling();
+
+    expect(fn () => $this->postJson(route('transactions.imports.store'), ['token' => $preview['token']]))
+        ->toThrow(RuntimeException::class, 'Simulated row failure');
+
+    expect($user->transactions()->count())->toBe(0)
+        ->and(Category::query()->where('user_id', $user->id)->pluck('id')->all())->toBe([$existing->id]);
+    $pending = DB::table('transaction_imports')->where('id', $preview['token'])->first();
+    expect((bool) $pending->claimed)->toBeFalse()
+        ->and($pending->result)->toBeNull()
+        ->and($pending->payload)->not->toBeNull();
+
+    $this->app->instance(SaveTransaction::class, $realSaver);
+    $this->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertOk()->assertJsonPath('imported', 2)->assertJsonPath('skipped', 0);
+    expect($user->transactions()->count())->toBe(2)
+        ->and(Category::query()->where('user_id', $user->id)->count())->toBe(2);
+});
+
+test('confirmation accounts for invalid and repeated csv rows and duplicates created after preview', function () {
+    $user = User::factory()->create();
+    $preview = prepareTransactionImport($user,
+        '2026-06-15,cost,Food,100,toman,New duplicate,',
+        '2026-06-15,cost,Food,100,toman,New duplicate,',
+        '2026-06-16,cost,Food,200,toman,Fresh,',
+        '2026-06-16,cost,Food,invalid,toman,Bad amount,',
+    );
+    expect($preview['summary'])->toMatchArray(['total' => 4, 'importable' => 2, 'duplicate' => 1, 'invalid' => 1]);
+    Transaction::factory()->cost()->for($user)->create([
+        'amount' => 100, 'currency' => Currency::Toman, 'title' => 'New duplicate', 'occurred_at' => '2026-06-15',
+    ]);
+
+    $this->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertOk()->assertExactJson(['imported' => 1, 'skipped' => 3, 'skipped_duplicates' => 2, 'skipped_invalid' => 1]);
+    expect($user->transactions()->count())->toBe(2);
+});
+
+test('tokens are required scoped to their owner and expire without importing', function () {
+    $owner = User::factory()->create();
+    $preview = prepareTransactionImport($owner, '2026-06-15,cost,Food,100,toman,Private,');
+
+    foreach ([[], ['token' => 'invalid'], ['token' => (string) Str::uuid()]] as $data) {
+        $this->postJson(route('transactions.imports.store'), $data)->assertUnprocessable()->assertJsonValidationErrors('token');
+    }
+
+    $this->actingAs(User::factory()->create())
+        ->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertUnprocessable()->assertJsonValidationErrors('token');
+    expect((bool) DB::table('transaction_imports')->where('id', $preview['token'])->value('claimed'))->toBeFalse();
+
+    $this->travel(1)->days();
+    $this->actingAs($owner)->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertUnprocessable()->assertJsonValidationErrors('token');
+    expect($owner->transactions()->count())->toBe(0);
+});
+
+test('scheduled cleanup removes expired previews and receipts while retaining live previews', function () {
+    $user = User::factory()->create();
+    $expired = prepareTransactionImport($user, '2026-06-15,cost,Food,100,toman,Old,');
+    $receipt = prepareTransactionImport($user, '2026-06-16,cost,Food,100,toman,Imported,');
+    $this->postJson(route('transactions.imports.store'), ['token' => $receipt['token']])->assertOk();
+    $this->travel(1)->days();
+    $live = prepareTransactionImport($user, '2026-06-17,cost,Food,100,toman,Live,');
+
+    $event = collect(Schedule::events())->first(fn ($event) => $event->description === 'transactions:prune-imports');
+    expect($event)->not->toBeNull();
+    $event->run($this->app);
+
+    expect(DB::table('transaction_imports')->pluck('id')->all())->toBe([$live['token']])
+        ->and($user->transactions()->count())->toBe(1);
+    $this->postJson(route('transactions.imports.store'), ['token' => $expired['token']])->assertUnprocessable();
 });

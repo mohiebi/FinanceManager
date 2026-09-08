@@ -20,6 +20,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -219,6 +220,13 @@ test('spreadsheet import and export are gated while the vault is armed', functio
     $this->actingAs($user)->get(route('transactions.export'))->assertRedirect();
 
     expect(session('status'))->not->toBeNull();
+
+    $this->postJson(route('transactions.imports.preview'), [
+        'file' => UploadedFile::fake()->createWithContent('t.csv', "occurred_at\n2026-07-01\n"),
+    ])->assertForbidden();
+    $this->postJson(route('transactions.imports.store'), ['token' => (string) Str::uuid()])
+        ->assertForbidden();
+    expect(DB::table('transaction_imports')->count())->toBe(0);
 });
 
 test('import and export work normally without a vault', function () {

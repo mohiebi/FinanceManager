@@ -5,6 +5,7 @@ import { Check } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ActivityDetails from '@/components/ActivityDetails.vue';
+import MilesIcon from '@/components/MilesIcon.vue';
 import { announceClaim } from '@/lib/miles';
 import { edit as billingEdit } from '@/routes/billing';
 import { claim } from '@/routes/miles';
@@ -135,6 +136,11 @@ function humanize(value: string): string {
 function formatDate(value: string): string {
     return new Intl.DateTimeFormat(locale.value, {
         dateStyle: 'medium',
+    }).format(new Date(value));
+}
+
+function formatTime(value: string): string {
+    return new Intl.DateTimeFormat(locale.value, {
         timeStyle: 'short',
     }).format(new Date(value));
 }
@@ -152,10 +158,17 @@ function formatDate(value: string): string {
         >
             <div class="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                    <div
-                        class="text-[11px] font-medium tracking-[0.13em] text-[#d9c48f] uppercase"
-                    >
-                        {{ t('miles.balance_eyebrow') }}
+                    <div class="flex items-center gap-[9px]">
+                        <span
+                            class="grid size-[26px] shrink-0 place-items-center rounded-lg bg-[#d9c48f]/12 text-[#d9c48f]"
+                        >
+                            <MilesIcon class="size-[15px]" />
+                        </span>
+                        <div
+                            class="text-[11px] font-medium tracking-[0.13em] text-[#d9c48f] uppercase"
+                        >
+                            {{ t('miles.balance_eyebrow') }}
+                        </div>
                     </div>
                     <div class="mt-2 flex items-baseline gap-[9px]">
                         <span
@@ -413,125 +426,135 @@ function formatDate(value: string): string {
             v-bind="activity"
             section="achievements"
         />
-        <!-- Unlock with Miles -->
-        <section
-            class="rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] py-5"
-        >
-            <h2 class="mb-[3px] text-[14.5px] font-medium">
-                {{ t('miles.unlock_title') }}
-            </h2>
-            <p class="mb-4 text-[12.5px] text-[#989898]">
-                {{
-                    t('miles.unlock_body', {
-                        price: props.overview.modules[0]?.price ?? 25,
-                    })
-                }}
-            </p>
-            <ul class="flex flex-col">
-                <li
-                    v-for="module in props.overview.modules"
-                    :key="module.key"
-                    class="flex items-center gap-3 border-t border-white/6 py-3"
+        <!-- Spending and the record of it, paired the way rank and
+             moments are: one column to act in, one to read back. -->
+        <div class="grid min-w-0 items-start gap-[14px] xl:grid-cols-2">
+            <!-- Unlock with Miles -->
+            <section
+                class="rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] py-5"
+            >
+                <h2 class="mb-[3px] text-[14.5px] font-medium">
+                    {{ t('miles.unlock_title') }}
+                </h2>
+                <p class="mb-4 text-[12.5px] text-[#989898]">
+                    {{
+                        t('miles.unlock_body', {
+                            price: props.overview.modules[0]?.price ?? 25,
+                        })
+                    }}
+                </p>
+                <ul class="flex flex-col">
+                    <li
+                        v-for="module in props.overview.modules"
+                        :key="module.key"
+                        class="flex items-center gap-3 border-t border-white/6 py-3"
+                    >
+                        <span class="min-w-0 flex-1 text-sm">{{
+                            module.label
+                        }}</span>
+                        <span
+                            class="rounded-full px-[11px] py-1 text-xs"
+                            :class="
+                                module.unlocked
+                                    ? 'bg-[#02cd86]/13 text-[#5eeeb5]'
+                                    : 'bg-white/5 text-[#989898]'
+                            "
+                        >
+                            {{
+                                module.unlocked
+                                    ? t('miles.unlocked')
+                                    : t('miles.unlock_price', {
+                                          price: module.price,
+                                      })
+                            }}
+                        </span>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- History -->
+            <section
+                class="app-scroll-thin overflow-x-auto rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] pt-5 pb-[10px]"
+            >
+                <div class="mb-1.5 min-w-[400px]">
+                    <h2 class="mb-[3px] text-[14.5px] font-medium">
+                        {{ t('miles.history_heading') }}
+                    </h2>
+                    <p class="text-[12.5px] text-[#989898]">
+                        {{ t('miles.no_expiry') }}
+                    </p>
+                </div>
+
+                <div
+                    class="grid min-w-[400px] grid-cols-[minmax(120px,1fr)_100px_72px_72px] items-center gap-3 pt-3.5 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#989898] uppercase"
                 >
-                    <span class="min-w-0 flex-1 text-sm">{{
-                        module.label
-                    }}</span>
+                    <div>{{ t('miles.history_reason') }}</div>
+                    <div class="text-end">{{ t('miles.history_date') }}</div>
+                    <div class="text-end">{{ t('miles.history_amount') }}</div>
+                    <div class="text-end">{{ t('miles.history_balance') }}</div>
+                </div>
+
+                <div
+                    v-for="entry in props.history.data"
+                    :key="entry.id"
+                    class="grid min-w-[400px] grid-cols-[minmax(120px,1fr)_100px_72px_72px] items-center gap-3 border-t border-white/6 py-[13px]"
+                >
+                    <span class="text-sm">{{ humanize(entry.reason) }}</span>
+                    <span dir="ltr" class="text-end text-xs text-[#989898]">
+                        {{ formatDate(entry.createdAt) }}
+                        <span class="block text-[11px] text-[#787878]">{{
+                            formatTime(entry.createdAt)
+                        }}</span>
+                    </span>
+                    <!-- Gold, not red: spending Miles is the point of having them,
+                         not an error. -->
                     <span
-                        class="rounded-full px-[11px] py-1 text-xs"
+                        dir="ltr"
+                        class="text-end text-[13px] font-medium tabular-nums"
                         :class="
-                            module.unlocked
-                                ? 'bg-[#02cd86]/13 text-[#5eeeb5]'
-                                : 'bg-white/5 text-[#989898]'
+                            entry.amount > 0
+                                ? 'text-[#5eeeb5]'
+                                : 'text-[#d9c48f]'
+                        "
+                        >{{ entry.amount > 0 ? '+' : ''
+                        }}{{ entry.amount }}</span
+                    >
+                    <span
+                        dir="ltr"
+                        class="text-end text-[13px] text-[#989898] tabular-nums"
+                        >{{ entry.balanceAfter }}</span
+                    >
+                </div>
+
+                <p
+                    v-if="props.history.data.length === 0"
+                    class="border-t border-white/6 py-[13px] text-sm text-[#989898]"
+                >
+                    {{ t('miles.history_empty') }}
+                </p>
+
+                <nav
+                    v-if="props.history.links.length > 3"
+                    class="flex flex-wrap gap-1 border-t border-white/6 py-3"
+                >
+                    <component
+                        :is="link.url ? Link : 'span'"
+                        v-for="link in props.history.links"
+                        :key="link.label"
+                        :href="link.url ?? undefined"
+                        class="grid min-h-9 min-w-9 place-items-center rounded-lg px-2 text-xs"
+                        :class="
+                            link.active
+                                ? 'bg-[#02cd86] text-[#101010]'
+                                : link.url
+                                  ? 'cursor-pointer text-[#989898] hover:bg-white/5'
+                                  : 'text-[#4d4d4d]'
                         "
                     >
-                        {{
-                            module.unlocked
-                                ? t('miles.unlocked')
-                                : t('miles.unlock_price', {
-                                      price: module.price,
-                                  })
-                        }}
-                    </span>
-                </li>
-            </ul>
-        </section>
-
-        <!-- History -->
-        <section
-            class="app-scroll-thin overflow-x-auto rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] pt-5 pb-[10px]"
-        >
-            <div class="mb-1.5 min-w-[560px]">
-                <h2 class="mb-[3px] text-[14.5px] font-medium">
-                    {{ t('miles.history_heading') }}
-                </h2>
-                <p class="text-[12.5px] text-[#989898]">
-                    {{ t('miles.no_expiry') }}
-                </p>
-            </div>
-
-            <div
-                class="grid min-w-[560px] grid-cols-[minmax(160px,1fr)_130px_90px_90px] items-center gap-3 pt-3.5 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#989898] uppercase"
-            >
-                <div>{{ t('miles.history_reason') }}</div>
-                <div class="text-end">{{ t('miles.history_date') }}</div>
-                <div class="text-end">{{ t('miles.history_amount') }}</div>
-                <div class="text-end">{{ t('miles.history_balance') }}</div>
-            </div>
-
-            <div
-                v-for="entry in props.history.data"
-                :key="entry.id"
-                class="grid min-w-[560px] grid-cols-[minmax(160px,1fr)_130px_90px_90px] items-center gap-3 border-t border-white/6 py-[13px]"
-            >
-                <span class="text-sm">{{ humanize(entry.reason) }}</span>
-                <span dir="ltr" class="text-end text-xs text-[#989898]">{{
-                    formatDate(entry.createdAt)
-                }}</span>
-                <!-- Gold, not red: spending Miles is the point of having them,
-                     not an error. -->
-                <span
-                    dir="ltr"
-                    class="text-end text-[13px] font-medium tabular-nums"
-                    :class="
-                        entry.amount > 0 ? 'text-[#5eeeb5]' : 'text-[#d9c48f]'
-                    "
-                    >{{ entry.amount > 0 ? '+' : '' }}{{ entry.amount }}</span
-                >
-                <span
-                    dir="ltr"
-                    class="text-end text-[13px] text-[#989898] tabular-nums"
-                    >{{ entry.balanceAfter }}</span
-                >
-            </div>
-
-            <p
-                v-if="props.history.data.length === 0"
-                class="border-t border-white/6 py-[13px] text-sm text-[#989898]"
-            >
-                {{ t('miles.history_empty') }}
-            </p>
-
-            <nav
-                v-if="props.history.links.length > 3"
-                class="flex flex-wrap gap-1 border-t border-white/6 py-3"
-            >
-                <component
-                    :is="link.url ? Link : 'span'"
-                    v-for="link in props.history.links"
-                    :key="link.label"
-                    :href="link.url ?? undefined"
-                    class="grid min-h-9 min-w-9 place-items-center rounded-lg px-2 text-xs"
-                    :class="
-                        link.active
-                            ? 'bg-[#02cd86] text-[#101010]'
-                            : link.url
-                              ? 'cursor-pointer text-[#989898] hover:bg-white/5'
-                              : 'text-[#4d4d4d]'
-                    "
-                >
-                    {{ paginationLabel(link.label) }}
-                </component>
-            </nav>
-        </section>
+                        {{ paginationLabel(link.label) }}
+                    </component>
+                </nav>
+            </section>
+        </div>
     </main>
 </template>

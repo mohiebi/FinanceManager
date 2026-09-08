@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Sparkles } from 'lucide-vue-next';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import MilesIcon from '@/components/MilesIcon.vue';
 import type { MilesClaimed } from '@/types/miles';
 
 /**
@@ -22,6 +22,25 @@ const confetti = [
     { left: '76%', delay: '20ms', color: '#02cd86' },
     { left: '90%', delay: '110ms', color: '#a89bf3' },
 ];
+
+/** The ladder resets every seventh day, in the claim action and here. */
+const CLAIM_CYCLE_LENGTH = 7;
+
+/**
+ * One square per day of the cycle: gold for what this claim has banked, green
+ * for the day it opens next, and unlit for the rest of the week.
+ */
+const cycleDots = computed(() => {
+    const step = claimed.value?.step ?? 0;
+
+    return Array.from({ length: CLAIM_CYCLE_LENGTH }, (_, index) =>
+        index < step
+            ? 'bg-[#d9c48f]'
+            : index === step
+              ? 'bg-[#5eeeb5]'
+              : 'bg-white/14',
+    );
+});
 
 function receive(event: Event): void {
     claimed.value = (event as CustomEvent<MilesClaimed>).detail;
@@ -71,12 +90,14 @@ onBeforeUnmount(() => window.removeEventListener('miles:claimed', receive));
                     </div>
 
                     <span
-                        class="miles-celebration-badge mx-auto grid size-14 place-items-center rounded-2xl bg-[#02cd86]/12 text-[#02cd86]"
+                        class="miles-celebration-badge mx-auto grid size-14 place-items-center rounded-2xl bg-[#d9c48f]/12 text-[#d9c48f]"
                     >
-                        <Sparkles class="size-7" aria-hidden="true" />
+                        <MilesIcon class="size-7" />
                     </span>
 
-                    <p class="mt-4 text-3xl font-bold text-[#5eeeb5]">
+                    <!-- Gold is the currency, green is the action: the number
+                         earned is gold, the button below it stays green. -->
+                    <p class="mt-4 text-3xl font-bold text-[#d9c48f]">
                         {{
                             t('miles.celebration.reward', {
                                 miles: claimed.miles,
@@ -91,7 +112,21 @@ onBeforeUnmount(() => window.removeEventListener('miles:claimed', receive));
                             t('miles.celebration.title', { step: claimed.step })
                         }}
                     </h2>
-                    <p class="mt-2 text-sm leading-6 text-[#a3a3a3]">
+
+                    <ol
+                        class="mt-3.5 flex justify-center gap-[5px]"
+                        dir="ltr"
+                        aria-hidden="true"
+                    >
+                        <li
+                            v-for="(dot, day) in cycleDots"
+                            :key="day"
+                            class="size-[7px] rounded-[2px]"
+                            :class="dot"
+                        />
+                    </ol>
+
+                    <p class="mt-2.5 text-sm leading-6 text-[#a3a3a3]">
                         {{
                             t('miles.celebration.body', {
                                 balance: claimed.balance,

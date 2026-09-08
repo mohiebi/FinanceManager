@@ -13,6 +13,7 @@ use App\Enums\StreakProtectionType;
 use App\Models\Bill;
 use App\Models\Budget;
 use App\Models\Category;
+use App\Models\MileLedgerEntry;
 use App\Models\StreakProtection;
 use App\Models\Transaction;
 use App\Models\User;
@@ -52,6 +53,24 @@ it('renders the Miles hub with its cycle milestones referrals cosmetics and hist
             ->has('overview.referralCode')
             ->where('overview.todayClaimed', true)
             ->has('history.data'));
+});
+
+it('pages the ledger ten at a time so it sits level with the unlock card', function () {
+    $user = User::factory()->create();
+    MileLedgerEntry::factory()->count(12)->for($user)->create();
+
+    // Twelve of ours plus the welcome grant the first visit lays down.
+    $this->actingAs($user)
+        ->get(route('miles.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('history.data', 10)
+            ->where('history.total', 13));
+
+    $this->actingAs($user)
+        ->get(route('miles.index', ['page' => 2]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('history.data', 3));
 });
 
 it('can disable every Miles surface without changing balances', function () {

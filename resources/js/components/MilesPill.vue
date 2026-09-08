@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { CircleGauge, Sparkles } from 'lucide-vue-next';
+import { Sparkles } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import MilesIcon from '@/components/MilesIcon.vue';
 import { announceClaim } from '@/lib/miles';
 import { claim } from '@/routes/miles';
 
@@ -61,7 +62,9 @@ function collect(): void {
             class="flex min-w-11 cursor-pointer items-center gap-1.5 px-3 font-semibold text-white transition-colors duration-200 hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-[#02cd86] focus-visible:outline-none focus-visible:ring-inset motion-reduce:transition-none"
             :aria-label="t('miles.pill.hub_aria')"
         >
-            <CircleGauge class="size-3.5 text-[#02cd86]" aria-hidden="true" />
+            <!-- Gold, matching the hub hero: the balance side of the pill is
+                 the currency, while the claim side stays an action. -->
+            <MilesIcon class="size-3.5 text-[#d9c48f]" />
             <span>{{ miles.balance }}</span>
             <span v-if="!compact" class="font-medium text-[#989898]">{{
                 t('miles.unit')

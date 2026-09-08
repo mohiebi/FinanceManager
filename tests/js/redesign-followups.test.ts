@@ -26,6 +26,7 @@ const milesIcon = source('../../resources/js/components/MilesIcon.vue');
 const celebration = source(
     '../../resources/js/components/MilesCelebrationDialog.vue',
 );
+const milesPill = source('../../resources/js/components/MilesPill.vue');
 
 test('compact figures are limited to totals and preserve exact table values', () => {
     assert.doesNotMatch(cipheredMoney, /useCompactFigures/);
@@ -179,8 +180,8 @@ test('portfolio export sits with the completed detail and investment entries fit
 });
 
 test('the Miles mark is one winged-coin component, not a stock sparkle', () => {
-    // The wing path is the mark; both surfaces have to draw the same one, so
-    // it lives in a component rather than being pasted twice.
+    // The wing path is the mark; every surface has to draw the same one, so
+    // it lives in a component rather than being pasted three times.
     assert.match(milesIcon, /<circle cx="12" cy="12" r="8\.5" \/>/);
     assert.match(milesIcon, /M6\.8 13\.4c2\.2 0 4\.3-1\.2 5\.3-5/);
     assert.match(milesIcon, /stroke="currentColor"/);
@@ -188,6 +189,7 @@ test('the Miles mark is one winged-coin component, not a stock sparkle', () => {
     for (const [name, file] of [
         ['hub', milesHub],
         ['celebration', celebration],
+        ['pill', milesPill],
     ] as const) {
         assert.match(
             file,
@@ -198,6 +200,14 @@ test('the Miles mark is one winged-coin component, not a stock sparkle', () => {
     }
 
     assert.doesNotMatch(celebration, /Sparkles/);
+
+    // The pill's balance side carries the currency in gold; its claim button
+    // keeps a separate action icon rather than repeating the same mark twice.
+    assert.match(
+        milesPill,
+        /<MilesIcon class="size-3\.5 text-\[#d9c48f\]" \/>/,
+    );
+    assert.doesNotMatch(milesPill, /CircleGauge/);
 });
 
 test('the claim modal pays out in gold and shows the week it belongs to', () => {

@@ -363,8 +363,8 @@ const searchSummary = computed(() => {
                             'min-h-11 shrink-0 rounded-xl px-3 py-2 text-start transition-colors duration-200 sm:p-4',
                             'focus-visible:ring-2 focus-visible:ring-[#02CD86] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101010] focus-visible:outline-none',
                             activeGroup?.id === group.id
-                                ? 'bg-[#02CD86]/8 ring-1 ring-[#02CD86]/40'
-                                : 'bg-[#1a1a1a] ring-1 ring-white/10 hover:bg-white/[0.06]',
+                                ? 'bg-[#02CD86]/8 inset-ring-1 inset-ring-[#02CD86]/40'
+                                : 'bg-[#1a1a1a] inset-ring-1 inset-ring-white/10 hover:bg-white/[0.06]',
                         ]"
                     >
                         <span class="flex items-center justify-between gap-2">

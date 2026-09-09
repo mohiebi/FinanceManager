@@ -92,6 +92,19 @@ test('the shell is a v3 tab-card grid, not a sidebar', () => {
     assert.doesNotMatch(shell, /<aside/);
 });
 
+test('the tab cards draw their border inside the card', () => {
+    // The card row is a scroll container, so an outward ring is clipped along
+    // its edges — the selected card lost the top of its green outline, and the
+    // first and last card lost a side of theirs.
+    assert.match(shell, /inset-ring-1 inset-ring-\[#02CD86\]\/40/);
+    assert.match(shell, /inset-ring-1 inset-ring-white\/10/);
+
+    const cards = shell.slice(shell.indexOf('lg:grid-cols-4'));
+    const cardMarkup = cards.slice(0, cards.indexOf('</Link>'));
+
+    assert.doesNotMatch(cardMarkup, /(?<!focus-visible:)ring-1 ring-/);
+});
+
 test('the shell searches the page index and offers a scrollable pill row for the active tab', () => {
     assert.match(shell, /type="search"/);
     assert.match(shell, /searchResults/);

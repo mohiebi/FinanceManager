@@ -4,13 +4,12 @@ namespace App\Actions\Transactions;
 
 use App\Enums\Currency;
 use App\Enums\TransactionType;
-use App\Exceptions\VaultLocked;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Models\TransactionImport;
 use App\Models\User;
-use App\Support\Encryption\UserCrypto;
-use App\Support\Encryption\UserKeyRing;
 use App\Support\Numerals;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -63,22 +62,18 @@ class ImportTransactions
             $previewRows[] = $previewRow;
         }
 
-        $token = (string) Str::uuid();
         $summary = $this->summary($previewRows);
-        $key = app(UserKeyRing::class)->for($user->id) ?? throw new VaultLocked;
 
-        DB::table('transaction_imports')->insert([
-            'id' => $token,
+        // The cast encrypts `rows` under the user's own key at save time, so the
+        // rows the user approved never rest in readable form.
+        $import = TransactionImport::query()->create([
             'user_id' => $user->id,
-            'payload' => UserCrypto::encrypt(
-                json_encode(['rows' => $importableRows, 'summary' => $summary], JSON_THROW_ON_ERROR),
-                $key,
-                UserCrypto::aadFor('transaction_imports', 'payload'),
-            ),
+            'rows' => $importableRows,
+            'summary' => $summary,
             'expires_at' => now()->addDay(),
         ]);
 
-        return ['token' => $token, 'rows' => $previewRows, 'summary' => $summary];
+        return ['token' => $import->id, 'rows' => $previewRows, 'summary' => $summary];
     }
 
     /**
@@ -91,42 +86,33 @@ class ImportTransactions
     public function confirm(User $user, string $token, SaveTransaction $saveTransaction): array
     {
         return DB::transaction(function () use ($user, $token, $saveTransaction): array {
-            $query = DB::table('transaction_imports')
-                ->where('id', $token)
+            /** @var callable(): Builder<TransactionImport> $pending */
+            $pending = fn (): Builder => TransactionImport::query()
+                ->whereKey($token)
                 ->where('user_id', $user->id)
                 ->where('expires_at', '>', now());
 
-            $claimed = (clone $query)->where('claimed', false)->update(['claimed' => true]);
-            $preview = (clone $query)->lockForUpdate()->first();
+            $claimed = $pending()->where('claimed', false)->update(['claimed' => true]);
+            $preview = $pending()->lockForUpdate()->first();
 
-            if ($preview === null) {
+            if (! $preview instanceof TransactionImport) {
                 throw ValidationException::withMessages(['token' => __('finance.import.expired')]);
             }
 
             if ($preview->result !== null) {
-                return json_decode($preview->result, true, flags: JSON_THROW_ON_ERROR);
+                return $preview->result;
             }
 
             if ($claimed !== 1) {
                 throw ValidationException::withMessages(['token' => __('finance.import.failed')]);
             }
 
-            $key = app(UserKeyRing::class)->for($user->id) ?? throw new VaultLocked;
-            $payload = json_decode(UserCrypto::decrypt(
-                $preview->payload,
-                $key,
-                UserCrypto::aadFor('transaction_imports', 'payload'),
-            ), true, flags: JSON_THROW_ON_ERROR);
+            $result = $this->import($user, $preview->rows ?? [], $saveTransaction);
+            $result['skipped'] = $preview->summary['total'] - $result['imported'];
+            $result['skipped_duplicates'] += $preview->summary['duplicate'];
+            $result['skipped_invalid'] = $preview->summary['invalid'];
 
-            $result = $this->import($user, $payload['rows'], $saveTransaction);
-            $result['skipped'] = $payload['summary']['total'] - $result['imported'];
-            $result['skipped_duplicates'] += $payload['summary']['duplicate'];
-            $result['skipped_invalid'] = $payload['summary']['invalid'];
-
-            DB::table('transaction_imports')->where('id', $token)->update([
-                'payload' => null,
-                'result' => json_encode($result, JSON_THROW_ON_ERROR),
-            ]);
+            $preview->update(['rows' => null, 'result' => $result]);
 
             return $result;
         }, 3);

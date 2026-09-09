@@ -45,7 +45,7 @@ class TransactionImportController extends Controller
         ImportTransactions $importTransactions,
         SaveTransaction $saveTransaction,
     ): JsonResponse {
-        $validated = $request->validate(['token' => ['required', 'uuid']]);
+        $validated = $request->validate(['token' => ['required', 'ulid']]);
 
         return response()->json($importTransactions->confirm($request->user(), $validated['token'], $saveTransaction));
     }

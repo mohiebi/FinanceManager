@@ -224,7 +224,7 @@ test('spreadsheet import and export are gated while the vault is armed', functio
     $this->postJson(route('transactions.imports.preview'), [
         'file' => UploadedFile::fake()->createWithContent('t.csv', "occurred_at\n2026-07-01\n"),
     ])->assertForbidden();
-    $this->postJson(route('transactions.imports.store'), ['token' => (string) Str::uuid()])
+    $this->postJson(route('transactions.imports.store'), ['token' => (string) Str::ulid()])
         ->assertForbidden();
     expect(DB::table('transaction_imports')->count())->toBe(0);
 });

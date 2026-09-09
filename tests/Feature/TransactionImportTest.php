@@ -5,10 +5,10 @@ use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Models\TransactionImport;
 use App\Models\User;
 use App\Support\Encryption\UserCrypto;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Str;
 use Morilog\Jalali\Jalalian;
@@ -232,10 +232,10 @@ test('final import rechecks duplicates before saving', function () {
 test('confirming a preview again returns its receipt without saving again', function () {
     $user = User::factory()->create();
     $preview = prepareTransactionImport($user, '2026-06-15,cost,New category,125000,toman,Lunch,Private note');
-    $payload = DB::table('transaction_imports')->where('id', $preview['token'])->value('payload');
+    $rows = TransactionImport::findOrFail($preview['token'])->getRawOriginal('rows');
 
-    expect(UserCrypto::looksEncrypted($payload))->toBeTrue()
-        ->and($payload)->not->toContain('Lunch', 'Private note');
+    expect(UserCrypto::looksEncrypted($rows))->toBeTrue()
+        ->and($rows)->not->toContain('Lunch', 'Private note');
 
     $result = $this->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
         ->assertOk()->assertJsonPath('imported', 1)->json();
@@ -253,7 +253,7 @@ test('confirming a preview again returns its receipt without saving again', func
     $this->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
         ->assertOk()->assertExactJson($result);
     expect($user->transactions()->count())->toBe(0)
-        ->and(DB::table('transaction_imports')->where('id', $preview['token'])->value('payload'))->toBeNull();
+        ->and(TransactionImport::findOrFail($preview['token'])->rows)->toBeNull();
 });
 
 test('two tabs confirm their own previews in either order', function (bool $reverse) {
@@ -302,10 +302,10 @@ test('a failed row rolls back transactions and new categories and the same previ
 
     expect($user->transactions()->count())->toBe(0)
         ->and(Category::query()->where('user_id', $user->id)->pluck('id')->all())->toBe([$existing->id]);
-    $pending = DB::table('transaction_imports')->where('id', $preview['token'])->first();
-    expect((bool) $pending->claimed)->toBeFalse()
+    $pending = TransactionImport::findOrFail($preview['token']);
+    expect($pending->claimed)->toBeFalse()
         ->and($pending->result)->toBeNull()
-        ->and($pending->payload)->not->toBeNull();
+        ->and($pending->rows)->not->toBeNull();
 
     $this->app->instance(SaveTransaction::class, $realSaver);
     $this->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
@@ -336,14 +336,14 @@ test('tokens are required scoped to their owner and expire without importing', f
     $owner = User::factory()->create();
     $preview = prepareTransactionImport($owner, '2026-06-15,cost,Food,100,toman,Private,');
 
-    foreach ([[], ['token' => 'invalid'], ['token' => (string) Str::uuid()]] as $data) {
+    foreach ([[], ['token' => 'invalid'], ['token' => (string) Str::ulid()]] as $data) {
         $this->postJson(route('transactions.imports.store'), $data)->assertUnprocessable()->assertJsonValidationErrors('token');
     }
 
     $this->actingAs(User::factory()->create())
         ->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
         ->assertUnprocessable()->assertJsonValidationErrors('token');
-    expect((bool) DB::table('transaction_imports')->where('id', $preview['token'])->value('claimed'))->toBeFalse();
+    expect(TransactionImport::findOrFail($preview['token'])->claimed)->toBeFalse();
 
     $this->travel(1)->days();
     $this->actingAs($owner)->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
@@ -363,7 +363,7 @@ test('scheduled cleanup removes expired previews and receipts while retaining li
     expect($event)->not->toBeNull();
     $event->run($this->app);
 
-    expect(DB::table('transaction_imports')->pluck('id')->all())->toBe([$live['token']])
+    expect(TransactionImport::query()->pluck('id')->all())->toBe([$live['token']])
         ->and($user->transactions()->count())->toBe(1);
     $this->postJson(route('transactions.imports.store'), ['token' => $expired['token']])->assertUnprocessable();
 });

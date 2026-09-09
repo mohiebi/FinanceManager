@@ -12,12 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('transaction_imports', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
+            $table->ulid('id')->primary();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->longText('payload')->nullable();
+            $table->longText('rows')->nullable();
+            $table->json('summary');
             $table->boolean('claimed')->default(false);
             $table->json('result')->nullable();
             $table->timestamp('expires_at')->index();
+            $table->timestamps();
         });
     }
 

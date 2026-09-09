@@ -5,10 +5,10 @@ use App\Actions\Billing\RevokeProAccess;
 use App\Enums\GrantReason;
 use App\Jobs\BillReminderJob;
 use App\Jobs\RefreshAssetPricesJob;
+use App\Models\TransactionImport;
 use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -77,5 +77,5 @@ Schedule::job(new RefreshAssetPricesJob)->everyFiveMinutes();
 Schedule::job(new BillReminderJob)->everyFifteenMinutes();
 
 Schedule::call(function (): void {
-    DB::table('transaction_imports')->where('expires_at', '<=', now())->delete();
+    TransactionImport::query()->where('expires_at', '<=', now())->delete();
 })->name('transactions:prune-imports')->daily();

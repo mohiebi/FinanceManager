@@ -575,7 +575,7 @@
                         <div class="space-y-4">
                             <a
                                 class="inline-flex h-10 items-center gap-2 rounded-md bg-white/10 px-4 text-sm text-white ring-1 ring-white/15 hover:bg-white/15"
-                                href="/transactions/import-template"
+                                :href="transactionImportTemplate.url()"
                             >
                                 <FileDown class="size-4" />
                                 {{ t('finance.import.download_template') }}
@@ -827,6 +827,11 @@ import {
 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import {
+    preview as previewTransactionImport,
+    store as storeTransactionImport,
+    template as transactionImportTemplate,
+} from '@/actions/App/Http/Controllers/TransactionImportController';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import Ciphered from '@/components/Ciphered.vue';
 import CipheredMoney from '@/components/CipheredMoney.vue';
@@ -925,6 +930,7 @@ type ImportPreviewRow = {
 };
 
 type ImportPreview = {
+    id: string;
     rows: ImportPreviewRow[];
     summary: {
         total: number;
@@ -1309,7 +1315,7 @@ function selectImportFile(event: Event): void {
 }
 
 function submitImportPreview(): void {
-    importForm.post('/transactions/imports/preview', {
+    importForm.post(previewTransactionImport.url(), {
         forceFormData: true,
         preserveScroll: true,
         onSuccess: () => {
@@ -1323,11 +1329,16 @@ function submitImportPreview(): void {
 }
 
 function confirmImport(): void {
+    if (importProcessing.value || !importPreview.value) {
+        return;
+    }
+
+    const previewId = importPreview.value.id;
     importProcessing.value = true;
 
     router.post(
-        '/transactions/imports',
-        {},
+        storeTransactionImport.url(),
+        { preview_id: previewId },
         {
             preserveScroll: true,
             onFinish: () => {

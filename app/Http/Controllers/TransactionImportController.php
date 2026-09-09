@@ -4,14 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Actions\Transactions\ImportTransactions;
 use App\Actions\Transactions\SaveTransaction;
+use App\Models\TransactionImport;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TransactionImportController extends Controller
 {
-    private const SESSION_IMPORT_ROWS = 'transaction_import_rows';
-
     public function template(): StreamedResponse
     {
         $rows = [
@@ -40,10 +40,16 @@ class TransactionImportController extends Controller
         ]);
 
         $result = $importTransactions->preview($request->user(), $validated['file']);
+        $transactionImport = TransactionImport::query()->create([
+            'user_id' => $request->user()->id,
+            'rows' => $result['importable'],
+            'summary' => $result['preview']['summary'],
+        ]);
 
-        $request->session()->put(self::SESSION_IMPORT_ROWS, $result['importable']);
-
-        return back()->with('transaction_import_preview', $result['preview']);
+        return back()->with('transaction_import_preview', [
+            'id' => $transactionImport->id,
+            ...$result['preview'],
+        ]);
     }
 
     public function store(
@@ -51,11 +57,38 @@ class TransactionImportController extends Controller
         ImportTransactions $importTransactions,
         SaveTransaction $saveTransaction,
     ): RedirectResponse {
-        $rows = $request->session()->get(self::SESSION_IMPORT_ROWS, []);
+        $validated = $request->validate([
+            'preview_id' => ['required', 'string', 'size:26'],
+        ]);
 
-        $result = $importTransactions->import($request->user(), is_array($rows) ? $rows : [], $saveTransaction);
+        $result = DB::transaction(function () use ($request, $validated, $importTransactions, $saveTransaction): array {
+            $transactionImport = TransactionImport::query()
+                ->whereKey($validated['preview_id'])
+                ->where('user_id', $request->user()->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $request->session()->forget(self::SESSION_IMPORT_ROWS);
+            if (is_array($transactionImport->result)) {
+                return $transactionImport->result;
+            }
+
+            $rows = is_array($transactionImport->rows) ? $transactionImport->rows : [];
+            $summary = is_array($transactionImport->summary) ? $transactionImport->summary : [];
+            $importResult = $importTransactions->import($request->user(), $rows, $saveTransaction);
+            $result = [
+                'imported' => $importResult['imported'],
+                'skipped' => max(0, (int) ($summary['total'] ?? count($rows)) - $importResult['imported']),
+                'skipped_duplicates' => (int) ($summary['duplicate'] ?? 0) + $importResult['skipped_duplicates'],
+            ];
+
+            $transactionImport->update([
+                'rows' => [],
+                'result' => $result,
+                'consumed_at' => now(),
+            ]);
+
+            return $result;
+        });
 
         return redirect()
             ->route('transactions.index')

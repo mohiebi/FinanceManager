@@ -536,9 +536,13 @@
                             t('finance.import.result', {
                                 imported: importResult.imported,
                                 skipped: importResult.skipped,
+                                duplicates: importResult.skipped_duplicates,
+                                invalid: importResult.skipped_invalid,
                             })
                         }}
                     </div>
+
+                    <InputError :message="importError" />
 
                     <div class="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
                         <div class="space-y-3">
@@ -602,6 +606,7 @@
                                     class="h-10 rounded-md bg-[#111111] px-4 text-sm text-white shadow-none ring-1 ring-white/10 hover:bg-[#1f1f1f]"
                                     :disabled="
                                         importForm.processing ||
+                                        importProcessing ||
                                         importForm.file === null
                                     "
                                 >
@@ -798,6 +803,7 @@
                             class="h-10 rounded-md bg-[#111111] px-4 text-sm text-white shadow-none ring-1 ring-white/10 hover:bg-[#1f1f1f]"
                             :disabled="
                                 importProcessing ||
+                                importForm.processing ||
                                 !importPreview ||
                                 importPreview.summary.importable === 0
                             "
@@ -815,7 +821,7 @@
 </template>
 
 <script setup lang="ts">
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { Head, router, useForm, useHttp, usePage } from '@inertiajs/vue3';
 import {
     Check,
     Clipboard,
@@ -869,6 +875,10 @@ import {
     destroy as destroyTransaction,
     index as transactionsIndex,
 } from '@/routes/transactions';
+import {
+    preview as previewImport,
+    store as storeImport,
+} from '@/routes/transactions/imports';
 import type { Encrypted } from '@/types/vault';
 
 type TransactionType = 'cost' | 'income';
@@ -925,6 +935,7 @@ type ImportPreviewRow = {
 };
 
 type ImportPreview = {
+    token: string;
     rows: ImportPreviewRow[];
     summary: {
         total: number;
@@ -939,6 +950,7 @@ type ImportResult = {
     imported: number;
     skipped: number;
     skipped_duplicates: number;
+    skipped_invalid: number;
 };
 
 const props = defineProps<{
@@ -1241,12 +1253,19 @@ const importFileInput = ref<HTMLInputElement | null>(null);
 const importPreview = ref<ImportPreview | null>(null);
 const importResult = ref<ImportResult | null>(null);
 const importProcessing = ref(false);
+const importError = ref<string>();
 const promptCopied = ref(false);
 
-const importForm = useForm<{
-    file: File | null;
-}>({
+const importForm = useHttp<
+    {
+        file: File | null;
+    },
+    ImportPreview
+>({
     file: null,
+});
+const confirmationForm = useHttp<{ token: string }, ImportResult>({
+    token: '',
 });
 
 const importPrompt = `Convert the attached bank statement/report into a CSV for my finance app.
@@ -1284,6 +1303,7 @@ function resetImportDialog(): void {
 }
 
 function openImportDialog(): void {
+    importError.value = undefined;
     resetImportDialog();
     isImportDialogOpen.value = true;
 }
@@ -1308,33 +1328,51 @@ function selectImportFile(event: Event): void {
     importForm.file = input.files?.[0] ?? null;
 }
 
-function submitImportPreview(): void {
-    importForm.post('/transactions/imports/preview', {
-        forceFormData: true,
-        preserveScroll: true,
-        onSuccess: () => {
-            importForm.reset('file');
+async function submitImportPreview(): Promise<void> {
+    if (importForm.processing || importProcessing.value) {
+        return;
+    }
 
-            if (importFileInput.value) {
-                importFileInput.value.value = '';
-            }
-        },
-    });
+    importError.value = undefined;
+    importPreview.value = null;
+    importResult.value = null;
+
+    try {
+        importPreview.value = await importForm.post(previewImport.url());
+        importForm.reset('file');
+
+        if (importFileInput.value) {
+            importFileInput.value.value = '';
+        }
+    } catch {
+        importError.value =
+            importForm.errors.file ?? t('finance.import.failed');
+    }
 }
 
-function confirmImport(): void {
-    importProcessing.value = true;
+async function confirmImport(): Promise<void> {
+    if (
+        importProcessing.value ||
+        importForm.processing ||
+        !importPreview.value
+    ) {
+        return;
+    }
 
-    router.post(
-        '/transactions/imports',
-        {},
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                importProcessing.value = false;
-            },
-        },
-    );
+    importProcessing.value = true;
+    importError.value = undefined;
+    confirmationForm.token = importPreview.value.token;
+
+    try {
+        importResult.value = await confirmationForm.post(storeImport.url());
+        importPreview.value = null;
+        router.reload();
+    } catch {
+        importError.value =
+            confirmationForm.errors.token ?? t('finance.import.failed');
+    } finally {
+        importProcessing.value = false;
+    }
 }
 
 async function copyImportPrompt(): Promise<void> {
@@ -1361,28 +1399,4 @@ function importStatusClass(status: ImportStatus): string {
 
     return 'bg-[#2f1717] text-[#ffb4b4]';
 }
-
-watch(
-    () => page.props.transactionImportPreview,
-    (value) => {
-        if (value) {
-            importPreview.value = value as ImportPreview;
-            importResult.value = null;
-            isImportDialogOpen.value = true;
-        }
-    },
-    { immediate: true },
-);
-
-watch(
-    () => page.props.transactionImportResult,
-    (value) => {
-        if (value) {
-            importResult.value = value as ImportResult;
-            importPreview.value = null;
-            isImportDialogOpen.value = true;
-        }
-    },
-    { immediate: true },
-);
 </script>

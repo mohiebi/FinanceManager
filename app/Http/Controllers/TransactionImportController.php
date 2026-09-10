@@ -4,14 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Actions\Transactions\ImportTransactions;
 use App\Actions\Transactions\SaveTransaction;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TransactionImportController extends Controller
 {
-    private const SESSION_IMPORT_ROWS = 'transaction_import_rows';
-
     public function template(): StreamedResponse
     {
         $rows = [
@@ -33,32 +31,22 @@ class TransactionImportController extends Controller
         ]);
     }
 
-    public function preview(Request $request, ImportTransactions $importTransactions): RedirectResponse
+    public function preview(Request $request, ImportTransactions $importTransactions): JsonResponse
     {
         $validated = $request->validate([
             'file' => ['required', 'file', 'max:2048'],
         ]);
 
-        $result = $importTransactions->preview($request->user(), $validated['file']);
-
-        $request->session()->put(self::SESSION_IMPORT_ROWS, $result['importable']);
-
-        return back()->with('transaction_import_preview', $result['preview']);
+        return response()->json($importTransactions->preview($request->user(), $validated['file']));
     }
 
     public function store(
         Request $request,
         ImportTransactions $importTransactions,
         SaveTransaction $saveTransaction,
-    ): RedirectResponse {
-        $rows = $request->session()->get(self::SESSION_IMPORT_ROWS, []);
+    ): JsonResponse {
+        $validated = $request->validate(['token' => ['required', 'ulid']]);
 
-        $result = $importTransactions->import($request->user(), is_array($rows) ? $rows : [], $saveTransaction);
-
-        $request->session()->forget(self::SESSION_IMPORT_ROWS);
-
-        return redirect()
-            ->route('transactions.index')
-            ->with('transaction_import_result', $result);
+        return response()->json($importTransactions->confirm($request->user(), $validated['token'], $saveTransaction));
     }
 }

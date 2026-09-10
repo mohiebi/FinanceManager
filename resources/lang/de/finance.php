@@ -242,7 +242,9 @@ return [
         'status' => 'Status',
         'notes' => 'Notizen',
         'ready' => 'Bereit',
-        'result' => '{imported} Transaktion(en) importiert. {skipped} übersprungen.',
+        'result' => '{imported} Transaktion(en) importiert. {skipped} übersprungen: {duplicates} Duplikat(e), {invalid} ungültige Zeile(n).',
+        'failed' => 'Die Anfrage konnte nicht abgeschlossen werden. Bitte erneut versuchen.',
+        'expired' => 'Diese Vorschau ist nicht verfügbar oder abgelaufen. Bitte die CSV erneut hochladen.',
         'statuses' => [
             'valid' => 'Gültig',
             'invalid' => 'Ungültig',

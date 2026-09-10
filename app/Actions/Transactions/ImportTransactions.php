@@ -6,11 +6,15 @@ use App\Enums\Currency;
 use App\Enums\TransactionType;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Models\TransactionImport;
 use App\Models\User;
 use App\Support\Numerals;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Morilog\Jalali\Jalalian;
 use Throwable;
 
@@ -29,7 +33,7 @@ class ImportTransactions
     ];
 
     /**
-     * @return array{preview: array<string, mixed>, importable: array<int, array<string, mixed>>}
+     * @return array{token: string, rows: array<int, array<string, mixed>>, summary: array<string, int>}
      */
     public function preview(User $user, UploadedFile $file): array
     {
@@ -58,20 +62,67 @@ class ImportTransactions
             $previewRows[] = $previewRow;
         }
 
-        return [
-            'preview' => [
-                'rows' => $previewRows,
-                'summary' => $this->summary($previewRows),
-            ],
-            'importable' => $importableRows,
-        ];
+        $summary = $this->summary($previewRows);
+
+        // The cast encrypts `rows` under the user's own key at save time, so the
+        // rows the user approved never rest in readable form.
+        $import = TransactionImport::query()->create([
+            'user_id' => $user->id,
+            'rows' => $importableRows,
+            'summary' => $summary,
+            'expires_at' => now()->addDay(),
+        ]);
+
+        return ['token' => $import->id, 'rows' => $previewRows, 'summary' => $summary];
+    }
+
+    /**
+     * The claim, imported rows, categories and receipt commit together. A second
+     * request waits on the conditional update and then reads the committed receipt.
+     * Rolling back also releases the claim so the same preview can be retried.
+     *
+     * @return array{imported: int, skipped: int, skipped_duplicates: int, skipped_invalid: int}
+     */
+    public function confirm(User $user, string $token, SaveTransaction $saveTransaction): array
+    {
+        return DB::transaction(function () use ($user, $token, $saveTransaction): array {
+            /** @var callable(): Builder<TransactionImport> $pending */
+            $pending = fn (): Builder => TransactionImport::query()
+                ->whereKey($token)
+                ->where('user_id', $user->id)
+                ->where('expires_at', '>', now());
+
+            $claimed = $pending()->where('claimed', false)->update(['claimed' => true]);
+            $preview = $pending()->lockForUpdate()->first();
+
+            if (! $preview instanceof TransactionImport) {
+                throw ValidationException::withMessages(['token' => __('finance.import.expired')]);
+            }
+
+            if ($preview->result !== null) {
+                return $preview->result;
+            }
+
+            if ($claimed !== 1) {
+                throw ValidationException::withMessages(['token' => __('finance.import.failed')]);
+            }
+
+            $result = $this->import($user, $preview->rows ?? [], $saveTransaction);
+            $result['skipped'] = $preview->summary['total'] - $result['imported'];
+            $result['skipped_duplicates'] += $preview->summary['duplicate'];
+            $result['skipped_invalid'] = $preview->summary['invalid'];
+
+            $preview->update(['rows' => null, 'result' => $result]);
+
+            return $result;
+        }, 3);
     }
 
     /**
      * @param  array<int, array<string, mixed>>  $rows
      * @return array{imported: int, skipped: int, skipped_duplicates: int}
      */
-    public function import(User $user, array $rows, SaveTransaction $saveTransaction): array
+    private function import(User $user, array $rows, SaveTransaction $saveTransaction): array
     {
         $imported = 0;
         $skippedDuplicates = 0;

@@ -5,6 +5,7 @@ use App\Actions\Billing\RevokeProAccess;
 use App\Enums\GrantReason;
 use App\Jobs\BillReminderJob;
 use App\Jobs\RefreshAssetPricesJob;
+use App\Models\TransactionImport;
 use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -74,3 +75,7 @@ Artisan::command('billing:revoke {email} {--note=}', function (RevokeProAccess $
 
 Schedule::job(new RefreshAssetPricesJob)->everyFiveMinutes();
 Schedule::job(new BillReminderJob)->everyFifteenMinutes();
+
+Schedule::call(function (): void {
+    TransactionImport::query()->where('expires_at', '<=', now())->delete();
+})->name('transactions:prune-imports')->daily();

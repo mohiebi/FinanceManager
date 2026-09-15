@@ -123,24 +123,27 @@ final readonly class MilesOverview
     }
 
     /**
-     * The paid modules and whether this user has already unlocked each.
+     * The paid modules and whether each one is currently switched on.
      *
-     * @return array<int, array{key: string, label: string, price: int, unlocked: bool}>
+     * Read from the live feature state rather than the unlock ledger: a module
+     * grandfathered in before Miles existed carries no unlock row, so the ledger
+     * would offer to sell someone a module they are already using.
+     *
+     * @return array<int, array{key: string, label: string, price: int, enabled: bool}>
      */
     private function modules(User $user): array
     {
-        $unlocked = $user->featureUnlocks()
-            ->pluck('feature')
-            ->map(fn (mixed $value): string => $value instanceof Feature ? $value->value : (string) $value)
-            ->all();
-
         return collect(config('miles.paid_modules'))
-            ->map(fn (string $key): array => [
-                'key' => $key,
-                'label' => Feature::from($key)->label(),
-                'price' => (int) config('miles.unlock_price'),
-                'unlocked' => in_array($key, $unlocked, true),
-            ])
+            ->map(function (string $key) use ($user): array {
+                $feature = Feature::from($key);
+
+                return [
+                    'key' => $key,
+                    'label' => $feature->label(),
+                    'price' => (int) config('miles.unlock_price'),
+                    'enabled' => $user->hasFeature($feature),
+                ];
+            })
             ->all();
     }
 

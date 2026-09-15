@@ -429,16 +429,16 @@ function formatTime(value: string): string {
         <!-- Spending and the record of it, paired the way rank and
              moments are: one column to act in, one to read back. -->
         <div class="grid min-w-0 items-start gap-[14px] xl:grid-cols-2">
-            <!-- Unlock with Miles -->
+            <!-- Features unlocked using Miles -->
             <section
                 class="rounded-[16px] border border-white/8 bg-[#1a1a1a] px-[22px] py-5"
             >
                 <h2 class="mb-[3px] text-[14.5px] font-medium">
-                    {{ t('miles.unlock_title') }}
+                    {{ t('miles.modules_title') }}
                 </h2>
                 <p class="mb-4 text-[12.5px] text-[#989898]">
                     {{
-                        t('miles.unlock_body', {
+                        t('miles.modules_body', {
                             price: props.overview.modules[0]?.price ?? 25,
                         })
                     }}
@@ -455,17 +455,15 @@ function formatTime(value: string): string {
                         <span
                             class="rounded-full px-[11px] py-1 text-xs"
                             :class="
-                                module.unlocked
+                                module.enabled
                                     ? 'bg-[#02cd86]/13 text-[#5eeeb5]'
                                     : 'bg-white/5 text-[#989898]'
                             "
                         >
                             {{
-                                module.unlocked
-                                    ? t('miles.unlocked')
-                                    : t('miles.unlock_price', {
-                                          price: module.price,
-                                      })
+                                module.enabled
+                                    ? t('miles.module_on')
+                                    : t('miles.module_off')
                             }}
                         </span>
                     </li>

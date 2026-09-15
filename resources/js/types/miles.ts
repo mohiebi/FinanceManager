@@ -49,7 +49,8 @@ export type MilesOverview = MilesShared & {
         key: string;
         label: string;
         price: number;
-        unlocked: boolean;
+        /** Whether the module is live for this user right now, not whether it was ever bought. */
+        enabled: boolean;
     }[];
     milestones: {
         key: string;

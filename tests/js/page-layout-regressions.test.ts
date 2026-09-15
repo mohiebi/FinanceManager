@@ -120,7 +120,7 @@ test('miles unlocks and the ledger pair up the way rank and moments do', () => {
     assert.match(activityDetails, /xl:grid-cols-2/);
     assert.match(
         miles,
-        /<div class="grid min-w-0 items-start gap-\[14px\] xl:grid-cols-2">[\s\S]*?miles\.unlock_title[\s\S]*?miles\.history_heading/,
+        /<div class="grid min-w-0 items-start gap-\[14px\] xl:grid-cols-2">[\s\S]*?miles\.modules_title[\s\S]*?miles\.history_heading/,
     );
 
     // Half a column is far narrower than the full-width table was, so the

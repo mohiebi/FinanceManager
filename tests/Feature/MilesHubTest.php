@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Features\UpdateUserFeature;
 use App\Actions\Miles\ActivateUserFeature;
 use App\Actions\Miles\AdjustMiles;
 use App\Actions\Miles\ClaimDailyMiles;
@@ -85,17 +86,21 @@ it('can disable every Miles surface without changing balances', function () {
     expect($user->mileWallet()->first()->balance)->toBe($balance);
 });
 
-it('tells the unlock list which modules are already paid for', function () {
+it('tells the module list which paid modules are switched on', function () {
     $user = User::factory()->create();
     app(AdjustMiles::class)($user, 50, MilesReason::AdminAdjustment, 'seed');
     app(ActivateUserFeature::class)($user, Feature::Bills, true);
+    // Grandfathered: on before Miles existed, so it carries no unlock row at all.
+    app(UpdateUserFeature::class)->force($user, Feature::Investments, true);
 
-    $overview = app(MilesOverview::class)($user->refresh());
+    $overview = app(MilesOverview::class)($user->fresh());
     $modules = collect($overview['modules'])->keyBy('key');
 
     expect($modules)->toHaveCount(count(config('miles.paid_modules')))
-        ->and($modules[Feature::Bills->value]['unlocked'])->toBeTrue()
-        ->and($modules[Feature::Budgets->value]['unlocked'])->toBeFalse()
+        ->and($modules[Feature::Bills->value]['enabled'])->toBeTrue()
+        ->and($modules[Feature::Investments->value]['enabled'])->toBeTrue()
+        ->and($user->featureUnlocks()->where('feature', Feature::Investments->value)->exists())->toBeFalse()
+        ->and($modules[Feature::Budgets->value]['enabled'])->toBeFalse()
         ->and($modules[Feature::Budgets->value]['price'])->toBe(config('miles.unlock_price'))
         // Never the free ones: they would read as something still to buy.
         ->and($modules->has(Feature::Vault->value))->toBeFalse()

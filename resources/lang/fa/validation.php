@@ -17,7 +17,7 @@ return [
         'array' => ':attribute باید بین :min و :max مورد داشته باشد.',
     ],
     'boolean' => ':attribute باید درست یا نادرست باشد.',
-    'confirmed' => 'تایید :attribute مطابقت ندارد.',
+    'confirmed' => 'تأیید :attribute با آن مطابقت ندارد.',
     'current_password' => 'رمز عبور نادرست است.',
     'custom' => [
         'attribute-name' => [

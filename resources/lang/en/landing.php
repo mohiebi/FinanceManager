@@ -3,7 +3,7 @@
 return [
     'meta' => [
         'title' => 'Your money, on Autopilot',
-        'description' => 'Track transactions, manage investments, get bill reminders on Telegram, and see clear financial reports — free, private, encrypted.',
+        'description' => 'Track money, build plans, follow investments, and earn Miles to unlock the tools you need. Private by default, with an optional zero-knowledge vault.',
     ],
 
     'a11y' => [
@@ -27,13 +27,12 @@ return [
     ],
 
     'hero' => [
-        'badge' => 'Personal finance platform — free for personal use',
+        'badge' => 'Core finance tracking is free',
         'title_top' => 'Your money,',
         'title_highlight' => 'on Autopilot.',
-        'subtitle' => 'Track every transaction, watch your investments grow, and never miss a bill — with reminders right in Telegram. All in one private, encrypted dashboard.',
-        'cta_primary' => "Get started — it's free",
+        'subtitle' => 'Track daily money, build plans, and earn Miles to unlock the tools you need, without giving up privacy.',
+        'cta_primary' => "Get started, it's free",
         'cta_secondary' => 'See all features',
-        'microcopy' => 'No credit card required · Sign in with email or Google',
         'mock' => [
             'dashboard' => 'Dashboard',
             'currency' => 'Currency: Toman',
@@ -49,8 +48,8 @@ return [
 
     'trust' => [
         'encrypted' => [
-            'title' => 'Encrypted at rest',
-            'text' => 'Amounts are encrypted before they reach the database',
+            'title' => 'Encrypted by default',
+            'text' => 'Per-account encryption, with an optional private vault',
         ],
         'calendars' => [
             'title' => 'Two calendars',
@@ -69,23 +68,23 @@ return [
     'privacy' => [
         'kicker' => 'Privacy first',
         'title' => 'Your money is nobody else’s business.',
-        'subtitle' => 'Every amount, title and note is encrypted before it is written to disk — and if that is not enough for you, you can take the key away from us entirely.',
+        'subtitle' => 'Every amount, title, and note is encrypted before storage. For stronger privacy, move the key entirely into your browser.',
 
         'levels' => [
             'standard' => [
-                'badge' => 'Level 1 — default',
+                'badge' => 'Level 1, default',
                 'title' => 'Encrypted at rest',
                 'text' => 'On by default, for every account, with nothing to configure. Your amounts, titles and notes are encrypted with a key that belongs to your account alone, so a stolen database is a pile of noise.',
                 'points' => [
                     'encrypted' => 'AES-256-GCM on every amount, title and note before it reaches the database.',
-                    'per_user' => 'A separate data key per account — one leaked record does not unlock anyone else’s.',
+                    'per_user' => 'A separate data key per account means one leaked record does not unlock anyone else’s.',
                     'readable' => 'We can still decrypt it, which is what lets the Telegram bot, reminders and the AI assistant work.',
                 ],
             ],
             'vault' => [
-                'badge' => 'Level 2 — optional',
+                'badge' => 'Level 2, optional',
                 'title' => 'Private vault (zero-knowledge)',
-                'text' => 'Switch it on and the key moves into your browser. We keep storing your data and we stop being able to read it — not our staff, not our servers, not under a court order.',
+                'text' => 'Switch it on and the key moves into your browser. We keep storing your data, but our staff and servers can no longer read it.',
                 'points' => [
                     'zero_knowledge' => 'We hold ciphertext and nothing else. There is no copy of your key on our side to hand over.',
                     'browser_key' => 'Your passphrase never leaves your device; the key is derived and used in your browser.',
@@ -96,7 +95,7 @@ return [
 
         'how' => [
             'title' => 'How the vault actually works',
-            'text' => 'Your data is encrypted with a single data key. Turning the vault on wraps that key under a passphrase only you know and a recovery key only you hold, then deletes our copy. Nothing is re-encrypted, so it is instant — and irreversible without one of your two secrets. Everything else keeps working, because your browser does the decrypting and the arithmetic.',
+            'text' => 'Your data is encrypted with a single data key. Turning the vault on protects that key with a passphrase only you know and a recovery key only you hold, then deletes our copy. The switch is instant because your data does not need to be encrypted again. Your browser handles decryption and calculations.',
         ],
 
         'pledges' => [
@@ -120,12 +119,12 @@ return [
     ],
 
     'features' => [
-        'kicker' => 'Everything you need',
-        'title' => 'One dashboard. Total financial clarity.',
-        'subtitle' => 'No spreadsheets. No guessing. Just clear, real-time visibility over every toman you earn and spend.',
+        'kicker' => 'Your financial cockpit',
+        'title' => 'Start simple. Add what matters.',
+        'subtitle' => 'Transactions and reports form the free core. Earn Miles and permanently unlock the optional modules that fit your life.',
         'transactions' => [
             'title' => 'Transaction Tracking',
-            'text' => 'Log costs and income in seconds. Categorise, search, filter by date or type — and see your money story at a glance.',
+            'text' => 'Log costs and income in seconds. Categorise, search, and filter by date or type to see your money story clearly.',
             'points' => [
                 'Costs & incomes in one view',
                 'Custom categories & descriptions',
@@ -134,16 +133,16 @@ return [
         ],
         'investments' => [
             'title' => 'Investment Portfolio',
-            'text' => 'Track gold, silver, USD, EUR, and Bitcoin — or add your own custom assets. Prices sync automatically from live market data every hour.',
+            'text' => 'Track gold, silver, USD, EUR, and Bitcoin, or add custom assets. Sync current market prices or value assets yourself.',
             'points' => [
-                'Live price sync (tgju)',
+                'Current market price sync (tgju)',
                 'Net worth & allocation breakdown',
                 'Custom assets with your own pricing',
             ],
         ],
         'bills' => [
             'title' => 'Bills & Reminders',
-            'text' => 'Monthly or one-time bills with due dates on your calendar — Jalali or Gregorian. Get reminded the day before and on the due day, then mark paid with one tap.',
+            'text' => 'Plan monthly or one-time bills in Jalali or Gregorian. Get reminders before and on the due date, then mark paid with one tap.',
             'points' => [
                 'Telegram & in-app reminders',
                 'Paying a bill logs the expense automatically',
@@ -155,18 +154,35 @@ return [
         ],
         'multi_currency' => [
             'title' => 'Multi-Currency',
-            'text' => 'Switch between Toman, USD, and EUR on the fly. Every amount converts using live market rates — not stale numbers.',
+            'text' => 'Switch between Toman, USD, and EUR. Amounts convert using current market rates.',
+        ],
+        'miles' => [
+            'title' => 'Progress that unlocks more',
+            'text' => 'Earn Miles for consistent use and milestones, never for how much money you have. Spend them on permanent module unlocks and streak protection.',
+            'points' => [
+                '150 welcome Miles',
+                'Daily claims and activity rewards',
+                'Optional modules stay unlocked',
+            ],
+        ],
+        'planning' => [
+            'title' => 'Flight plans and savings goals',
+            'text' => 'Give every category a plan, track what remains, and set savings targets in cash, gold, currency, or your own asset.',
+        ],
+        'advisor' => [
+            'title' => 'AI Portfolio Advisor',
+            'text' => 'Turn a risk assessment into a constrained investor profile and educational allocation guidance that stays inside your limits.',
         ],
         'security' => [
             'title' => 'Private by Design',
-            'text' => 'Your amounts are encrypted before they touch the database — we could not read them if we wanted to. Email code sign-in, two-factor auth, and Google sign-in included.',
+            'text' => 'Data is encrypted at rest with a separate key for each account. Choose the private vault when you want the key to stay only in your browser. Email codes, two-factor authentication, and Google sign-in are supported.',
         ],
     ],
 
     'telegram' => [
         'kicker' => 'Your finance bot',
         'title' => 'Run it all from Telegram',
-        'subtitle' => 'Add expenses, create bills, and mark them paid — without opening the app. Reminders land right in your chat.',
+        'subtitle' => 'Unlock the Telegram module once, then add expenses, create bills, and mark them paid without opening the app.',
         'points' => [
             'add' => [
                 'title' => 'Add transactions in chat',
@@ -184,12 +200,12 @@ return [
         'chat' => [
             'bot_name' => 'CashPilot Bot',
             'status' => 'online',
-            'reminder' => '🔔 Reminder: “Internet bill” is due tomorrow — 450,000 Toman',
+            'reminder' => '🔔 Reminder: “Internet bill” is due tomorrow. 450,000 Toman',
             'mark_paid' => 'Mark paid ✓',
             'confirmation' => "✅ Paid! I've logged a 450,000 Toman expense under Utilities.",
             'user_add' => 'Add expense',
             'wizard' => '💸 What did you spend on?',
-            'user_reply' => 'Groceries — 850,000',
+            'user_reply' => 'Groceries, 850,000',
             'done' => '✅ Saved: 850,000 Toman · Groceries',
         ],
     ],
@@ -200,15 +216,15 @@ return [
         'steps' => [
             'account' => [
                 'title' => 'Create your account',
-                'text' => 'Sign up with email or Google in seconds — a 6-digit code confirms your email. No credit card.',
+                'text' => 'Sign up with email or Google in seconds. Your account starts with 150 Miles and needs no credit card.',
             ],
             'log' => [
-                'title' => 'Log your money',
-                'text' => 'Add costs, income, investments, and bills as they happen. Or import your history from Excel.',
+                'title' => 'Choose your modules',
+                'text' => 'Start with transactions and reports, then use Miles to permanently unlock the planning, investment, and automation tools you want.',
             ],
             'insights' => [
                 'title' => 'Watch insights appear',
-                'text' => 'Your dashboard, reports, and portfolio update instantly — and reminders reach you on Telegram.',
+                'text' => 'Your dashboard and reports update as you log activity, while plans, goals, and your portfolio show what comes next.',
             ],
         ],
     ],
@@ -219,37 +235,45 @@ return [
         'items' => [
             'private' => [
                 'q' => 'Is my financial data private?',
-                'a' => 'Yes. Transaction, investment, and bill amounts are encrypted before they are stored — they are unreadable in the database. Your account is protected by email code sign-in and optional two-factor authentication.',
+                'a' => 'Yes. Amounts, titles, and notes are encrypted before storage with a separate key for each account. The optional private vault moves that key into your browser so the server can no longer decrypt your financial data.',
+            ],
+            'miles' => [
+                'q' => 'What are Miles?',
+                'a' => 'Miles reward consistent use and milestones, never account balances or net worth. Claim them daily and earn more through activity, then use them for permanent module unlocks and streak protection.',
+            ],
+            'advisor' => [
+                'q' => 'What does the AI Portfolio Advisor do?',
+                'a' => 'It turns your risk assessment into a constrained investor profile, then suggests an educational target allocation within those limits. It does not place trades or replace professional financial advice.',
             ],
             'calendar' => [
                 'q' => 'Does it support the Jalali calendar?',
-                'a' => 'Fully. Dates, reports, and bill due dates all work in Jalali or Gregorian — pick your calendar in preferences and switch anytime.',
+                'a' => 'Fully. Dates, reports, and bill due dates work in Jalali or Gregorian. Pick your calendar in preferences and switch anytime.',
             ],
             'telegram' => [
                 'q' => 'What can the Telegram bot do?',
-                'a' => 'Connect your account once in settings, then add transactions and bills, list what is due, mark bills paid, and receive reminders — all from chat.',
+                'a' => 'Unlock the module and connect your account once in settings. Then add transactions and bills, list what is due, mark bills paid, and receive reminders from chat.',
             ],
             'free' => [
                 'q' => 'Is it really free?',
-                'a' => 'CashPilot is free for personal use — unlimited transactions, investments, bills, and reports. No hidden fees, no credit card.',
+                'a' => 'Transactions and reports are free. New accounts receive 150 Miles, and you can earn more in the app to permanently unlock optional modules. No subscription is required to keep a module you unlock.',
             ],
             'currencies' => [
                 'q' => 'Which currencies are supported?',
-                'a' => 'Toman, US Dollar, and Euro. Conversions use live market rates that refresh automatically every hour.',
+                'a' => 'Toman, US Dollar, and Euro. Conversions use current market rates, and you can refresh them from the app.',
             ],
         ],
     ],
 
     'pricing' => [
-        'title' => 'Free for personal use',
-        'text' => 'Unlimited transactions, investments, bills, and reports. No hidden fees.',
+        'title' => 'Start with the core for free',
+        'text' => 'Earn Miles in the app and unlock optional modules once. Modules you unlock stay yours.',
         'cta' => 'Start for free today',
     ],
 
     'cta' => [
         'title_top' => 'Take control of your',
         'title_highlight' => 'financial future',
-        'subtitle' => 'Join CashPilot and start making sense of your money — for free, today, in minutes.',
+        'subtitle' => 'Start with the free core, earn your first Miles, and shape CashPilot around the way you manage money.',
         'button' => 'Get started free',
     ],
 

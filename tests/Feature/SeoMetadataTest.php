@@ -1,7 +1,27 @@
 <?php
 
+use Illuminate\Support\Facades\Lang;
+
 beforeEach(function () {
     config(['app.url' => 'https://cashpilot.mohiebi.com']);
+});
+
+test('landing copy describes the current product in every locale', function () {
+    foreach (['en', 'de', 'fa'] as $locale) {
+        expect(Lang::get('landing.features.miles.title', [], $locale))->not->toBeEmpty()
+            ->and(Lang::get('landing.features.planning.title', [], $locale))->not->toBeEmpty()
+            ->and(Lang::get('landing.features.advisor.title', [], $locale))->not->toBeEmpty()
+            ->and(Lang::get('landing.faq.items.miles.a', [], $locale))->not->toBeEmpty()
+            ->and(Lang::get('landing.faq.items.advisor.a', [], $locale))->not->toBeEmpty();
+    }
+
+    expect(Lang::get('landing.faq.items.free.a', [], 'en'))
+        ->toContain('150 Miles')
+        ->not->toContain('unlimited')
+        ->and(Lang::get('landing.faq.items.free.a', [], 'fa'))
+        ->toContain('۱۵۰ مایل')
+        ->and(Lang::get('landing.features.security.text', [], 'en'))
+        ->not->toContain('could not read');
 });
 
 test('the landing page exposes fallback seo metadata', function () {

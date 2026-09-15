@@ -3,7 +3,7 @@
 return [
     'meta' => [
         'title' => 'Dein Geld, auf Autopilot',
-        'description' => 'Transaktionen erfassen, Investments verwalten, Rechnungs-Erinnerungen per Telegram erhalten und klare Finanzberichte sehen — kostenlos, privat, verschlüsselt.',
+        'description' => 'Geld im Blick behalten, Pläne erstellen, Investments verfolgen und Miles für die passenden Werkzeuge verdienen. Privat als Standard, mit optionalem Zero-Knowledge-Tresor.',
     ],
 
     'a11y' => [
@@ -27,13 +27,12 @@ return [
     ],
 
     'hero' => [
-        'badge' => 'Persönliche Finanzplattform — für den Privatgebrauch kostenlos',
+        'badge' => 'Die wichtigsten Finanzfunktionen sind kostenlos',
         'title_top' => 'Dein Geld,',
         'title_highlight' => 'auf Autopilot.',
-        'subtitle' => 'Erfasse jede Transaktion, beobachte deine Investments und verpasse keine Rechnung mehr — mit Erinnerungen direkt in Telegram. Alles in einem privaten, verschlüsselten Dashboard.',
-        'cta_primary' => 'Jetzt starten — kostenlos',
+        'subtitle' => 'Behalte dein Geld im Blick, plane voraus und verdiene Miles für genau die Werkzeuge, die du brauchst.',
+        'cta_primary' => 'Jetzt kostenlos starten',
         'cta_secondary' => 'Alle Funktionen ansehen',
-        'microcopy' => 'Keine Kreditkarte nötig · Anmeldung per E-Mail oder Google',
         'mock' => [
             'dashboard' => 'Dashboard',
             'currency' => 'Währung: Toman',
@@ -49,8 +48,8 @@ return [
 
     'trust' => [
         'encrypted' => [
-            'title' => 'Verschlüsselt gespeichert',
-            'text' => 'Beträge werden vor dem Speichern verschlüsselt',
+            'title' => 'Standardmäßig verschlüsselt',
+            'text' => 'Eigener Schlüssel pro Konto, optional mit privatem Tresor',
         ],
         'calendars' => [
             'title' => 'Zwei Kalender',
@@ -69,23 +68,23 @@ return [
     'privacy' => [
         'kicker' => 'Datenschutz zuerst',
         'title' => 'Dein Geld geht niemanden sonst etwas an.',
-        'subtitle' => 'Jeder Betrag, Titel und jede Notiz wird verschlüsselt, bevor sie auf die Festplatte geschrieben wird — und wenn dir das nicht reicht, kannst du uns den Schlüssel ganz entziehen.',
+        'subtitle' => 'Jeder Betrag, Titel und jede Notiz wird vor dem Speichern verschlüsselt. Für noch mehr Privatsphäre kann der Schlüssel vollständig in deinen Browser wechseln.',
 
         'levels' => [
             'standard' => [
-                'badge' => 'Stufe 1 — Standard',
+                'badge' => 'Stufe 1, Standard',
                 'title' => 'Verschlüsselt gespeichert',
-                'text' => 'Standardmäßig aktiv, für jedes Konto, ohne etwas einzustellen. Deine Beträge, Titel und Notizen werden mit einem Schlüssel verschlüsselt, der allein zu deinem Konto gehört — eine gestohlene Datenbank ist nur Rauschen.',
+                'text' => 'Für jedes Konto ohne Einrichtung aktiv. Deine Beträge, Titel und Notizen werden mit einem eigenen Kontoschlüssel verschlüsselt. Eine gestohlene Datenbank bleibt dadurch unlesbar.',
                 'points' => [
                     'encrypted' => 'AES-256-GCM für jeden Betrag, Titel und jede Notiz, bevor sie die Datenbank erreichen.',
-                    'per_user' => 'Ein eigener Datenschlüssel pro Konto — ein geleakter Datensatz öffnet niemand anderen.',
+                    'per_user' => 'Ein eigener Datenschlüssel pro Konto verhindert, dass ein geleakter Datensatz andere Konten öffnet.',
                     'readable' => 'Wir können sie weiterhin entschlüsseln, und genau das lässt Telegram-Bot, Erinnerungen und KI-Assistent funktionieren.',
                 ],
             ],
             'vault' => [
-                'badge' => 'Stufe 2 — optional',
+                'badge' => 'Stufe 2, optional',
                 'title' => 'Privater Tresor (Zero-Knowledge)',
-                'text' => 'Schalte ihn ein und der Schlüssel wandert in deinen Browser. Wir speichern deine Daten weiter und können sie nicht mehr lesen — weder unsere Mitarbeitenden noch unsere Server, auch nicht auf gerichtliche Anordnung.',
+                'text' => 'Beim Einschalten wandert der Schlüssel in deinen Browser. Wir speichern deine Daten weiter, aber weder unsere Mitarbeitenden noch unsere Server können sie dann lesen.',
                 'points' => [
                     'zero_knowledge' => 'Bei uns liegt nur Chiffretext. Es gibt keine Kopie deines Schlüssels, die wir herausgeben könnten.',
                     'browser_key' => 'Deine Passphrase verlässt nie dein Gerät; der Schlüssel entsteht und arbeitet im Browser.',
@@ -96,7 +95,7 @@ return [
 
         'how' => [
             'title' => 'Wie der Tresor wirklich funktioniert',
-            'text' => 'Deine Daten sind mit einem einzigen Datenschlüssel verschlüsselt. Beim Einschalten wird dieser Schlüssel unter einer Passphrase, die nur du kennst, und einem Wiederherstellungsschlüssel, den nur du hast, verpackt — danach löschen wir unsere Kopie. Nichts wird neu verschlüsselt, es geht also sofort und ist ohne eines deiner beiden Geheimnisse unumkehrbar. Alles andere läuft weiter, weil dein Browser Entschlüsselung und Rechnerei übernimmt.',
+            'text' => 'Deine Daten sind mit einem einzigen Datenschlüssel verschlüsselt. Beim Einschalten wird dieser Schlüssel durch eine Passphrase, die nur du kennst, und einen Wiederherstellungsschlüssel, den nur du hast, geschützt. Danach löschen wir unsere Kopie. Der Wechsel ist sofort möglich, weil die Daten nicht neu verschlüsselt werden müssen. Dein Browser übernimmt Entschlüsselung und Berechnungen.',
         ],
 
         'pledges' => [
@@ -120,12 +119,12 @@ return [
     ],
 
     'features' => [
-        'kicker' => 'Alles, was du brauchst',
-        'title' => 'Ein Dashboard. Volle finanzielle Klarheit.',
-        'subtitle' => 'Keine Tabellen. Kein Raten. Nur klare Echtzeit-Übersicht über alles, was du verdienst und ausgibst.',
+        'kicker' => 'Dein Finanz-Cockpit',
+        'title' => 'Einfach starten. Passend erweitern.',
+        'subtitle' => 'Transaktionen und Berichte bilden den kostenlosen Kern. Verdiene Miles und schalte passende Zusatzmodule dauerhaft frei.',
         'transactions' => [
             'title' => 'Transaktionen erfassen',
-            'text' => 'Ausgaben und Einnahmen in Sekunden erfassen. Kategorisieren, suchen, nach Datum oder Typ filtern — und dein Geld auf einen Blick verstehen.',
+            'text' => 'Ausgaben und Einnahmen in Sekunden erfassen, kategorisieren, durchsuchen und nach Datum oder Typ filtern. So wird dein Geld auf einen Blick verständlich.',
             'points' => [
                 'Ausgaben & Einnahmen in einer Ansicht',
                 'Eigene Kategorien & Beschreibungen',
@@ -134,16 +133,16 @@ return [
         ],
         'investments' => [
             'title' => 'Investment-Portfolio',
-            'text' => 'Gold, Silber, USD, EUR und Bitcoin verfolgen — oder eigene Assets anlegen. Kurse aktualisieren sich stündlich automatisch mit Live-Marktdaten.',
+            'text' => 'Gold, Silber, USD, EUR und Bitcoin verfolgen oder eigene Assets anlegen. Aktuelle Marktpreise synchronisieren oder Werte selbst festlegen.',
             'points' => [
-                'Automatische Kurs-Updates (tgju)',
+                'Aktuelle Marktkurse synchronisieren (tgju)',
                 'Nettovermögen & Portfolio-Aufteilung',
                 'Eigene Assets mit eigener Bewertung',
             ],
         ],
         'bills' => [
             'title' => 'Rechnungen & Erinnerungen',
-            'text' => 'Monatliche oder einmalige Rechnungen mit Fälligkeit in deinem Kalender — Jalali oder Gregorianisch. Erinnerung am Vortag und am Fälligkeitstag, dann mit einem Tippen als bezahlt markieren.',
+            'text' => 'Monatliche oder einmalige Rechnungen im Jalali- oder gregorianischen Kalender planen. Am Vortag und am Fälligkeitstag erinnern lassen und mit einem Tippen als bezahlt markieren.',
             'points' => [
                 'Telegram- & In-App-Erinnerungen',
                 'Bezahlte Rechnung wird automatisch als Ausgabe erfasst',
@@ -155,18 +154,35 @@ return [
         ],
         'multi_currency' => [
             'title' => 'Mehrere Währungen',
-            'text' => 'Wechsle jederzeit zwischen Toman, USD und EUR. Jeder Betrag wird mit Live-Marktkursen umgerechnet — nicht mit veralteten Zahlen.',
+            'text' => 'Wechsle zwischen Toman, USD und EUR. Beträge werden mit aktuellen Marktkursen umgerechnet.',
+        ],
+        'miles' => [
+            'title' => 'Fortschritt, der mehr freischaltet',
+            'text' => 'Verdiene Miles für regelmäßige Nutzung und Meilensteine, niemals für die Höhe deines Vermögens. Nutze sie für dauerhafte Modulfreischaltungen und den Schutz deiner Serie.',
+            'points' => [
+                '150 Miles zum Start',
+                'Tägliche Abholung und Aktivitätsprämien',
+                'Freigeschaltete Module bleiben erhalten',
+            ],
+        ],
+        'planning' => [
+            'title' => 'Flugpläne und Sparziele',
+            'text' => 'Plane jede Kategorie, verfolge den verbleibenden Betrag und setze Sparziele in Geld, Gold, Währungen oder eigenen Assets.',
+        ],
+        'advisor' => [
+            'title' => 'KI-Portfolio-Berater',
+            'text' => 'Eine Risikoeinschätzung wird zu einem klar begrenzten Anlegerprofil und zu Lernempfehlungen für eine passende Zielallokation.',
         ],
         'security' => [
             'title' => 'Privat von Grund auf',
-            'text' => 'Deine Beträge werden verschlüsselt, bevor sie die Datenbank erreichen — wir könnten sie nicht lesen, selbst wenn wir wollten. Anmeldung per E-Mail-Code, Zwei-Faktor-Authentifizierung und Google-Login inklusive.',
+            'text' => 'Daten werden mit einem eigenen Schlüssel pro Konto verschlüsselt gespeichert. Im privaten Tresor bleibt der Schlüssel ausschließlich in deinem Browser. E-Mail-Codes, Zwei-Faktor-Authentifizierung und Google-Anmeldung werden unterstützt.',
         ],
     ],
 
     'telegram' => [
         'kicker' => 'Dein Finanz-Bot',
         'title' => 'Alles direkt aus Telegram',
-        'subtitle' => 'Ausgaben erfassen, Rechnungen anlegen und als bezahlt markieren — ohne die App zu öffnen. Erinnerungen landen direkt in deinem Chat.',
+        'subtitle' => 'Schalte das Telegram-Modul einmal frei und erfasse Ausgaben, erstelle Rechnungen und markiere sie als bezahlt, ohne die App zu öffnen.',
         'points' => [
             'add' => [
                 'title' => 'Transaktionen im Chat erfassen',
@@ -178,18 +194,18 @@ return [
             ],
             'paid' => [
                 'title' => 'Bezahlt markieren, sofort erfasst',
-                'text' => 'Auf „Bezahlt“ tippen — die Ausgabe wird automatisch verbucht.',
+                'text' => 'Auf „Bezahlt“ tippen und die Ausgabe wird automatisch verbucht.',
             ],
         ],
         'chat' => [
             'bot_name' => 'CashPilot Bot',
             'status' => 'online',
-            'reminder' => '🔔 Erinnerung: „Internetrechnung“ ist morgen fällig — 450.000 Toman',
+            'reminder' => '🔔 Erinnerung: „Internetrechnung“ ist morgen fällig. 450.000 Toman',
             'mark_paid' => 'Bezahlt ✓',
             'confirmation' => '✅ Bezahlt! Ich habe eine Ausgabe von 450.000 Toman unter „Nebenkosten“ erfasst.',
             'user_add' => 'Ausgabe hinzufügen',
             'wizard' => '💸 Wofür hast du Geld ausgegeben?',
-            'user_reply' => 'Lebensmittel — 850.000',
+            'user_reply' => 'Lebensmittel, 850.000',
             'done' => '✅ Gespeichert: 850.000 Toman · Lebensmittel',
         ],
     ],
@@ -200,15 +216,15 @@ return [
         'steps' => [
             'account' => [
                 'title' => 'Konto erstellen',
-                'text' => 'In Sekunden mit E-Mail oder Google registrieren — ein 6-stelliger Code bestätigt deine E-Mail. Keine Kreditkarte.',
+                'text' => 'In Sekunden mit E-Mail oder Google registrieren. Dein Konto startet mit 150 Miles und braucht keine Kreditkarte.',
             ],
             'log' => [
-                'title' => 'Dein Geld erfassen',
-                'text' => 'Ausgaben, Einnahmen, Investments und Rechnungen direkt eintragen. Oder deine Historie aus Excel importieren.',
+                'title' => 'Module auswählen',
+                'text' => 'Starte mit Transaktionen und Berichten. Mit Miles schaltest du die gewünschten Planungs-, Investment- und Automationsmodule dauerhaft frei.',
             ],
             'insights' => [
                 'title' => 'Einblicke erhalten',
-                'text' => 'Dashboard, Berichte und Portfolio aktualisieren sich sofort — und Erinnerungen erreichen dich per Telegram.',
+                'text' => 'Dashboard und Berichte wachsen mit deinen Einträgen. Pläne, Ziele und Portfolio zeigen dir, was als Nächstes wichtig ist.',
             ],
         ],
     ],
@@ -219,37 +235,45 @@ return [
         'items' => [
             'private' => [
                 'q' => 'Sind meine Finanzdaten privat?',
-                'a' => 'Ja. Beträge von Transaktionen, Investments und Rechnungen werden vor dem Speichern verschlüsselt — in der Datenbank sind sie unlesbar. Dein Konto ist durch E-Mail-Code-Anmeldung und optionale Zwei-Faktor-Authentifizierung geschützt.',
+                'a' => 'Ja. Beträge, Titel und Notizen werden vor dem Speichern mit einem eigenen Schlüssel pro Konto verschlüsselt. Der optionale private Tresor verschiebt diesen Schlüssel in deinen Browser, sodass der Server deine Finanzdaten nicht mehr entschlüsseln kann.',
+            ],
+            'miles' => [
+                'q' => 'Was sind Miles?',
+                'a' => 'Miles belohnen regelmäßige Nutzung und Meilensteine, niemals Kontostände oder Nettovermögen. Du kannst sie täglich abholen und durch Aktivität verdienen. Anschließend nutzt du sie für dauerhafte Modulfreischaltungen und Serienschutz.',
+            ],
+            'advisor' => [
+                'q' => 'Was macht der KI-Portfolio-Berater?',
+                'a' => 'Er überführt deine Risikoeinschätzung in ein klar begrenztes Anlegerprofil und schlägt innerhalb dieser Grenzen eine Zielallokation zu Lernzwecken vor. Er führt keine Trades aus und ersetzt keine professionelle Finanzberatung.',
             ],
             'calendar' => [
                 'q' => 'Wird der Jalali-Kalender unterstützt?',
-                'a' => 'Vollständig. Datumsangaben, Berichte und Fälligkeiten funktionieren in Jalali oder Gregorianisch — wähle deinen Kalender in den Einstellungen und wechsle jederzeit.',
+                'a' => 'Vollständig. Datumsangaben, Berichte und Fälligkeiten funktionieren in Jalali oder Gregorianisch. Wähle deinen Kalender in den Einstellungen und wechsle jederzeit.',
             ],
             'telegram' => [
                 'q' => 'Was kann der Telegram-Bot?',
-                'a' => 'Verbinde dein Konto einmal in den Einstellungen — danach kannst du direkt im Chat Transaktionen und Rechnungen anlegen, Fälligkeiten ansehen, Zahlungen markieren und Erinnerungen erhalten.',
+                'a' => 'Schalte das Modul frei und verbinde dein Konto einmal in den Einstellungen. Danach kannst du im Chat Transaktionen und Rechnungen anlegen, Fälligkeiten ansehen, Zahlungen markieren und Erinnerungen erhalten.',
             ],
             'free' => [
                 'q' => 'Ist es wirklich kostenlos?',
-                'a' => 'CashPilot ist für den Privatgebrauch kostenlos — unbegrenzte Transaktionen, Investments, Rechnungen und Berichte. Keine versteckten Kosten, keine Kreditkarte.',
+                'a' => 'Transaktionen und Berichte sind kostenlos. Neue Konten erhalten 150 Miles und können weitere Miles in der App verdienen, um Zusatzmodule dauerhaft freizuschalten. Für bereits freigeschaltete Module ist kein Abo nötig.',
             ],
             'currencies' => [
                 'q' => 'Welche Währungen werden unterstützt?',
-                'a' => 'Toman, US-Dollar und Euro. Umrechnungen nutzen Live-Marktkurse, die sich stündlich automatisch aktualisieren.',
+                'a' => 'Toman, US-Dollar und Euro. Umrechnungen nutzen aktuelle Marktkurse, die du in der App aktualisieren kannst.',
             ],
         ],
     ],
 
     'pricing' => [
-        'title' => 'Für den Privatgebrauch kostenlos',
-        'text' => 'Unbegrenzte Transaktionen, Investments, Rechnungen und Berichte. Keine versteckten Kosten.',
+        'title' => 'Mit dem kostenlosen Kern starten',
+        'text' => 'Verdiene Miles in der App und schalte Zusatzmodule einmalig frei. Freigeschaltete Module bleiben dir erhalten.',
         'cta' => 'Noch heute kostenlos starten',
     ],
 
     'cta' => [
         'title_top' => 'Übernimm die Kontrolle über deine',
         'title_highlight' => 'finanzielle Zukunft',
-        'subtitle' => 'Werde Teil von CashPilot und verstehe dein Geld — kostenlos, heute, in Minuten.',
+        'subtitle' => 'Starte mit dem kostenlosen Kern, verdiene deine ersten Miles und passe CashPilot an deinen Umgang mit Geld an.',
         'button' => 'Kostenlos starten',
     ],
 

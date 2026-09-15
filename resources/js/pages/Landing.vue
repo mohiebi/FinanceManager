@@ -5,6 +5,7 @@ import {
     Ban,
     BarChart3,
     Bell,
+    BrainCircuit,
     CalendarDays,
     ChartPie,
     Check,
@@ -19,10 +20,12 @@ import {
     LayoutDashboard,
     Lock,
     Menu,
+    Plane,
     ReceiptText,
     RefreshCw,
     Send,
     ShieldCheck,
+    Target,
     TrendingUp,
     Wallet,
     X,
@@ -156,6 +159,8 @@ const howSteps = [
 
 const faqKeys = [
     'private',
+    'miles',
+    'advisor',
     'calendar',
     'telegram',
     'free',
@@ -171,8 +176,8 @@ let structuredDataEl: HTMLScriptElement | null = null;
 /*
  * Inside onMounted, because this reaches for `document`.
  *
- * A bare watchEffect runs synchronously during setup — including on the server,
- * where there is no document — so this threw `ReferenceError: document is not
+ * A bare watchEffect runs synchronously during setup, including on the server,
+ * where there is no document, so this threw `ReferenceError: document is not
  * defined` on every server render of this page. Inertia caught it and fell back
  * to client rendering, which is silent from the outside but means the page is
  * never actually server-rendered.
@@ -547,11 +552,6 @@ onUnmounted(() => {
                         {{ t('landing.hero.cta_secondary') }}
                     </a>
                 </div>
-
-                <!-- Social proof micro-copy -->
-                <p class="mt-4 text-[13px] text-[#686868]">
-                    {{ t('landing.hero.microcopy') }}
-                </p>
             </div>
 
             <!-- Mock dashboard preview -->
@@ -932,9 +932,75 @@ onUnmounted(() => {
                         </p>
                     </div>
 
+                    <!-- Wide card: Miles -->
+                    <div
+                        class="group relative overflow-hidden rounded-3xl border border-[#F59E0B]/20 bg-[#F59E0B]/[0.04] p-7 transition-all duration-300 hover:border-[#F59E0B]/40 hover:bg-[#F59E0B]/[0.07] md:col-span-2"
+                    >
+                        <div
+                            class="pointer-events-none absolute top-0 right-0 h-40 w-40 rounded-full bg-[#F59E0B]/[0.08] blur-2xl"
+                        />
+                        <div
+                            class="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F59E0B]/10"
+                        >
+                            <Plane class="size-6 text-[#F59E0B]" />
+                        </div>
+                        <h3 class="mb-2 text-xl font-bold text-white">
+                            {{ t('landing.features.miles.title') }}
+                        </h3>
+                        <p class="mb-5 max-w-2xl leading-relaxed text-white/50">
+                            {{ t('landing.features.miles.text') }}
+                        </p>
+                        <ul class="grid gap-2 sm:grid-cols-3">
+                            <li
+                                v-for="i in 3"
+                                :key="i"
+                                class="flex items-center gap-2 text-sm text-white/60"
+                            >
+                                <Check class="size-4 shrink-0 text-[#F59E0B]" />
+                                {{
+                                    t(`landing.features.miles.points.${i - 1}`)
+                                }}
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Card: Planning -->
+                    <div
+                        class="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-7 transition-all duration-300 hover:border-[#3B82F6]/30 hover:bg-white/[0.07]"
+                    >
+                        <div
+                            class="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#3B82F6]/10"
+                        >
+                            <Target class="size-6 text-[#3B82F6]" />
+                        </div>
+                        <h3 class="mb-2 text-xl font-bold text-white">
+                            {{ t('landing.features.planning.title') }}
+                        </h3>
+                        <p class="leading-relaxed text-white/50">
+                            {{ t('landing.features.planning.text') }}
+                        </p>
+                    </div>
+
+                    <!-- Card: AI advisor -->
+                    <div
+                        class="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-7 transition-all duration-300 hover:border-[#6C4EE9]/30 hover:bg-white/[0.07] md:col-span-2"
+                    >
+                        <div
+                            class="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#6C4EE9]/10"
+                        >
+                            <BrainCircuit class="size-6 text-[#9478FF]" />
+                        </div>
+                        <h3 class="mb-2 text-xl font-bold text-white">
+                            {{ t('landing.features.advisor.title') }}
+                        </h3>
+                        <p class="leading-relaxed text-white/50">
+                            {{ t('landing.features.advisor.text') }}
+                        </p>
+                    </div>
+
                     <!-- Wide card: Security / encryption -->
                     <div
-                        class="group relative overflow-hidden rounded-3xl border border-[#02CD86]/20 bg-[#02CD86]/[0.04] p-7 transition-all duration-300 hover:border-[#02CD86]/40 hover:bg-[#02CD86]/[0.07] md:col-span-2"
+                        class="group relative overflow-hidden rounded-3xl border border-[#02CD86]/20 bg-[#02CD86]/[0.04] p-7 transition-all duration-300 hover:border-[#02CD86]/40 hover:bg-[#02CD86]/[0.07] md:col-span-3"
                     >
                         <div
                             class="pointer-events-none absolute top-0 right-0 h-40 w-40 rounded-full bg-[#02CD86]/[0.08] blur-2xl"
@@ -984,7 +1050,7 @@ onUnmounted(() => {
                 </div>
 
                 <!-- The two levels, side by side. Level one is stated plainly
-                     rather than dressed up — the honesty is the selling point. -->
+                     because the honesty is the selling point. -->
                 <div class="grid gap-6 lg:grid-cols-2">
                     <div
                         v-for="level in privacyLevels"
@@ -1405,7 +1471,7 @@ onUnmounted(() => {
                     <span class="font-bold text-[#02CD86]">{{
                         t('landing.pricing.title')
                     }}</span>
-                    <span class="hidden text-white/20 sm:inline">—</span>
+                    <span class="hidden text-white/20 sm:inline">·</span>
                     <span class="text-sm text-white/50">{{
                         t('landing.pricing.text')
                     }}</span>

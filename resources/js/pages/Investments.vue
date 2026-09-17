@@ -342,6 +342,7 @@
 
         <InvestmentSellDialog
             v-model:open="isSellDialogOpen"
+            :loading="props.assets === undefined"
             :assets="sellableAssets"
             :currencies="props.currencies"
             :selected-currency="props.selectedCurrency"

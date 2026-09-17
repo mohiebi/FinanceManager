@@ -50,6 +50,8 @@ type SellableAsset = {
 
 const props = defineProps<{
     open: boolean;
+    /** Holdings are reloading, e.g. after a refused sale redirects back. */
+    loading?: boolean;
     assets: SellableAsset[];
     currencies: { label: string; value: string }[];
     selectedCurrency: string;
@@ -287,8 +289,16 @@ watch(
                         </DialogDescription>
                     </DialogHeader>
 
+                    <div
+                        v-if="props.loading"
+                        class="flex items-center gap-2 text-sm text-[#989898]"
+                    >
+                        <Spinner class="size-4" />
+                        {{ t('finance.calculating') }}
+                    </div>
+
                     <p
-                        v-if="sellable.length === 0"
+                        v-else-if="sellable.length === 0"
                         class="text-sm text-[#989898]"
                     >
                         {{ t('finance.investments.nothing_to_sell') }}

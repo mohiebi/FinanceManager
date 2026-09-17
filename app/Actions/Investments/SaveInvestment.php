@@ -195,13 +195,18 @@ class SaveInvestment
         return $validated;
     }
 
-    /** Net units currently held of one asset. */
+    /**
+     * Net units currently held of one asset.
+     *
+     * Rounded like the breakdown the dialog shows, so float drift in the sum
+     * (0.2 + 0.7 + 0.1 is just under 1) cannot refuse selling the whole holding.
+     */
     private static function heldUnits(User $user, InvestmentAsset $asset): float
     {
-        return (float) $user->investments()
+        return round($user->investments()
             ->where('investment_asset_id', $asset->id)
             ->get()
-            ->sum(fn (Investment $entry): float => (float) $entry->quantity);
+            ->sum(fn (Investment $entry): float => (float) $entry->quantity), 8);
     }
 
     /**

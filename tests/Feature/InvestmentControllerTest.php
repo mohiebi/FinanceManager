@@ -440,6 +440,37 @@ test('you cannot sell more than you hold', function () {
     expect(Investment::query()->where('kind', 'sell')->count())->toBe(0);
 });
 
+test('you can sell the whole holding when its float sum drifts just below it', function () {
+    $user = User::factory()->withModules()->create();
+    $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();
+
+    // 0.2 + 0.7 + 0.1 sums to 0.9999999999999999 in floating point.
+    foreach (['0.2', '0.7', '0.1'] as $quantity) {
+        Investment::query()->create([
+            'user_id' => $user->id,
+            'investment_asset_id' => $asset->id,
+            'asset_type' => $asset->slug,
+            'kind' => 'buy',
+            'quantity' => $quantity,
+            'cost_basis' => 4000000,
+            'cost_basis_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-01',
+        ]);
+    }
+
+    $this->actingAs($user)
+        ->post(route('investments.sell'), [
+            'investment_asset_id' => $asset->id,
+            'quantity' => '1',
+            'total_sale' => '18000000',
+            'sale_price_currency' => Currency::Toman->value,
+            'occurred_at' => '2026-07-10',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect((float) Investment::query()->where('kind', 'sell')->sole()->quantity)->toBe(-1.0);
+});
+
 test('buying can mirror itself into a cost transaction', function () {
     $user = User::factory()->withModules()->create();
     $asset = InvestmentAsset::query()->where('slug', AssetType::Gold->value)->firstOrFail();

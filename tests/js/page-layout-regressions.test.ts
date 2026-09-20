@@ -128,3 +128,31 @@ test('miles unlocks and the ledger pair up the way rank and moments do', () => {
     assert.doesNotMatch(miles, /min-w-\[560px\]/);
     assert.match(miles, /formatTime\(entry\.createdAt\)/);
 });
+
+test('the transaction note grows only once its content wraps', () => {
+    const dialog = source(
+        '../../resources/js/components/transactions/TransactionDialog.vue',
+    );
+
+    // A fixed floor would leave an empty note looking like a text area; the
+    // height is measured from the content instead, so one line keeps the
+    // shared 2.25rem field height.
+    assert.doesNotMatch(dialog, /min-h-\[54px\]/);
+    assert.match(dialog, /const WRAPPED_NOTE_MIN_HEIGHT = 54;/);
+    assert.match(
+        dialog,
+        /content > field\.offsetHeight[\s\S]*?Math\.max\(content, WRAPPED_NOTE_MIN_HEIGHT\)/,
+    );
+
+    // `.finance-dialog-field` pins the height with !important, so an inline
+    // height would be ignored — the growth has to go through min-height.
+    assert.match(dialog, /field\.style\.minHeight = '0px';/);
+    assert.doesNotMatch(dialog, /field\.style\.height =/);
+
+    // Reopening on an unchanged note still remounts the textarea, so `open`
+    // has to re-run the measurement alongside the value itself.
+    assert.match(
+        dialog,
+        /watch\(\[\(\) => props\.open, \(\) => form\.description\], autosizeNote, \{\s*flush: 'post',/,
+    );
+});

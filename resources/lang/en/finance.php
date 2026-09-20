@@ -208,6 +208,8 @@ return [
         'select_asset' => 'Select asset',
         'select_currency' => 'Select currency',
         'title_or_note' => 'Title or note',
+        'rows_per_page' => 'Rows per page',
+        'per_page_option' => '{count} per page',
     ],
     'form' => [
         'add_cost' => 'Add cost',

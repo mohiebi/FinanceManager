@@ -19,6 +19,27 @@ final class TransactionListing
     public const PER_PAGE = 15;
 
     /**
+     * Page sizes the Transactions filter bar offers.
+     *
+     * Capped at 100 because selecting every row of both tables has to stay
+     * inside the 200-id limit the bulk endpoints validate.
+     *
+     * @var array<int, int>
+     */
+    public const PER_PAGE_OPTIONS = [10, 15, 25, 50, 100];
+
+    /**
+     * An arbitrary `per_page` would let a request page the whole table into one
+     * response, so anything off the offered list falls back to the default.
+     */
+    public static function resolvePerPage(mixed $perPage): int
+    {
+        $value = (int) $perPage;
+
+        return in_array($value, self::PER_PAGE_OPTIONS, true) ? $value : self::PER_PAGE;
+    }
+
+    /**
      * @param  Collection<int, Transaction>  $transactions
      * @return Collection<int, Transaction>
      */

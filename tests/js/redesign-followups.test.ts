@@ -235,6 +235,16 @@ test('transactions can be batch-selected for group edit and delete', () => {
     );
     assert.equal(gridTracks?.length, 4);
 
+    // The hover/selected highlight is pulled out past the content box so the
+    // checkbox is not flush against its left edge; the matching px-2 keeps the
+    // columns lined up with the header row, which has no highlight to inset.
+    const insetRows = transactions.match(/-mx-2 grid grid-cols-\[22px_/g);
+    assert.equal(insetRows?.length, 2);
+    assert.doesNotMatch(
+        transactions,
+        /-mx-2[^"]*pb-2\.5 text-\[10px\] font-medium/,
+    );
+
     assert.match(transactions, /:checked="costsSelectionState"/);
     assert.match(transactions, /:checked="incomesSelectionState"/);
     assert.match(transactions, /@update:checked="toggleAllCosts"/);
@@ -268,5 +278,19 @@ test('a transaction selection never outlives the rows it was made on', () => {
     assert.match(
         transactions,
         /watch\(selectionType, \(\) => \{\s*bulkCategoryId\.value = '';/,
+    );
+});
+
+test('the transactions page size is a filter, and changing it returns to page one', () => {
+    // The options come from the server rather than being duplicated here, so
+    // the control can never offer a size the request would reject.
+    assert.match(transactions, /v-for="option in props\.perPageOptions"/);
+    assert.match(transactions, /per_page: filterPerPage\.value/);
+
+    // applyFilters() with no page argument is what resets both tables: a page 4
+    // that no longer exists at 100 rows a page would render empty.
+    assert.match(
+        transactions,
+        /watch\(\[filterCategory, filterFrom, filterTo, filterPerPage\], \(\) =>\s*applyFilters\(\),/,
     );
 });

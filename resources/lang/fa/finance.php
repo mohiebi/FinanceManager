@@ -208,6 +208,8 @@ return [
         'select_asset' => 'انتخاب دارایی',
         'select_currency' => 'انتخاب ارز',
         'title_or_note' => 'عنوان یا یادداشت',
+        'rows_per_page' => 'تعداد ردیف در هر صفحه',
+        'per_page_option' => '{count} در هر صفحه',
     ],
     'form' => [
         'add_cost' => 'افزودن هزینه',

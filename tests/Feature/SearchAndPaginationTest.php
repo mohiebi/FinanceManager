@@ -105,6 +105,55 @@ test('search ignores case', function () {
         ->assertInertia(fn (Assert $page) => $page->where('transactions.meta.costs.total', 2));
 });
 
+test('the page size follows the per_page the user picked', function () {
+    $user = User::factory()->create();
+    seedSearchableTransactions($user, matching: 18, other: 7);
+
+    $this->actingAs($user)
+        ->get(route('transactions.index', ['per_page' => 10]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('transactions.meta.per_page', 10)
+            ->where('filters.per_page', 10)
+            // 25 rows at 10 a page.
+            ->where('transactions.meta.costs.last_page', 3)
+            ->has('transactions.costs', 10)
+        );
+});
+
+test('a per_page off the offered list falls back to the default', function () {
+    $user = User::factory()->create();
+    seedSearchableTransactions($user, matching: 18, other: 7);
+
+    // 5000 would page the whole table into one response, and a bulk action on
+    // that many rows would be refused by the 200-id cap anyway.
+    $this->actingAs($user)
+        ->get(route('transactions.index', ['per_page' => 5000]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('transactions.meta.per_page', TransactionListing::PER_PAGE)
+            ->has('transactions.costs', TransactionListing::PER_PAGE)
+        );
+});
+
+test('the offered page sizes stay within the bulk action id cap', function () {
+    // Both tables can be select-all'd at once, so the largest page size has to
+    // leave that under the 200 ids destroyBulk/updateBulkCategory validate.
+    expect(max(TransactionListing::PER_PAGE_OPTIONS) * 2)->toBeLessThanOrEqual(200)
+        ->and(TransactionListing::PER_PAGE_OPTIONS)->toContain(TransactionListing::PER_PAGE);
+});
+
+test('the transactions page offers the page sizes it accepts', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('transactions.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('perPageOptions', TransactionListing::PER_PAGE_OPTIONS)
+        );
+});
+
 test('a page past the end reports the true last page and no rows', function () {
     $items = collect(range(1, 20));
 

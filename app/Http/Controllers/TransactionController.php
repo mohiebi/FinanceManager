@@ -194,6 +194,7 @@ class TransactionController extends Controller
         // logbook's uncategorised count has somewhere to send the user.
         $uncategorisedOnly = $withFilters && $request->query('category') === 'none';
         $search = $withFilters ? trim((string) $request->query('search')) : '';
+        $perPage = TransactionListing::resolvePerPage($request->query('per_page'));
         $fromDate = $withFilters ? $this->parseDate((string) $request->query('from')) : null;
         $toDate = $withFilters ? $this->parseDate((string) $request->query('to')) : null;
 
@@ -261,13 +262,14 @@ class TransactionController extends Controller
             // Paged from the already-filtered collection, not the builder: once the
             // search runs in PHP, a database paginator would be paging a different
             // (unfiltered) result set.
-            $costPaginator = TransactionListing::paginate($costs, $costPage);
-            $incomePaginator = TransactionListing::paginate($incomes, $incomePage);
+            $costPaginator = TransactionListing::paginate($costs, $costPage, $perPage);
+            $incomePaginator = TransactionListing::paginate($incomes, $incomePage, $perPage);
 
             $displayCosts = collect($costPaginator->items());
             $displayIncomes = collect($incomePaginator->items());
 
             $paginationMeta = [
+                'per_page' => $perPage,
                 'costs' => [
                     'current_page' => $costPaginator->currentPage(),
                     'last_page' => $costPaginator->lastPage(),
@@ -288,6 +290,7 @@ class TransactionController extends Controller
                 'category' => $uncategorisedOnly ? 'none' : $selectedCategoryId,
                 'from' => $fromDate?->toDateString() ?? '',
                 'to' => $toDate?->toDateString() ?? '',
+                'per_page' => $perPage,
             ],
             'transactions' => [
                 'costs' => $displayCosts->map(
@@ -314,6 +317,7 @@ class TransactionController extends Controller
                     'value' => $currency->value,
                 ]),
             'selectedCurrency' => $selectedCurrency->value,
+            'perPageOptions' => TransactionListing::PER_PAGE_OPTIONS,
             // Rates rather than totals when the server cannot read the amounts.
             // These are public market prices, not user data, so shipping them
             // costs nothing — and a wrong total is worse than no total.

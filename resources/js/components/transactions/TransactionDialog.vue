@@ -179,9 +179,10 @@
                             </Label>
                             <textarea
                                 id="transaction-description"
+                                ref="descriptionField"
                                 v-model="form.description"
                                 rows="1"
-                                class="finance-dialog-field min-h-9 resize-none"
+                                class="finance-dialog-field resize-none"
                                 :class="fieldControlClass"
                                 :placeholder="
                                     t('finance.form.note_placeholder')
@@ -479,4 +480,43 @@ watch(
 );
 
 watch(() => form.currency, renormalizeAmount);
+
+const descriptionField = ref<HTMLTextAreaElement | null>(null);
+
+/** The floor for a note that wraps, so its second line is readable. */
+const WRAPPED_NOTE_MIN_HEIGHT = 54;
+
+/**
+ * Grows the note field to fit a wrapped description, leaving a single-line one
+ * at the shared field height.
+ *
+ * Driven through `min-height` rather than `height` because
+ * `.finance-dialog-field` pins a 2.25rem height with `!important`, which an
+ * inline height cannot beat — a min-height clamps above it either way.
+ */
+function autosizeNote(): void {
+    const field = descriptionField.value;
+
+    if (!field) {
+        return;
+    }
+
+    // Measured with the previous growth released, or a shrinking edit would
+    // keep the height the longest draft ever needed.
+    field.style.minHeight = '0px';
+
+    const borders = field.offsetHeight - field.clientHeight;
+    const content = field.scrollHeight + borders;
+
+    field.style.minHeight =
+        content > field.offsetHeight
+            ? `${Math.max(content, WRAPPED_NOTE_MIN_HEIGHT)}px`
+            : '';
+}
+
+// `open` covers a dialog reopened on a note it already holds, where the value
+// never changes and the element is a fresh one with no inline height.
+watch([() => props.open, () => form.description], autosizeNote, {
+    flush: 'post',
+});
 </script>

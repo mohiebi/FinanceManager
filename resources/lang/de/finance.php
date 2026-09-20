@@ -208,6 +208,8 @@ return [
         'select_asset' => 'Asset auswählen',
         'select_currency' => 'Währung auswählen',
         'title_or_note' => 'Titel oder Notiz',
+        'rows_per_page' => 'Zeilen pro Seite',
+        'per_page_option' => '{count} pro Seite',
     ],
     'form' => [
         'add_cost' => 'Ausgabe hinzufügen',

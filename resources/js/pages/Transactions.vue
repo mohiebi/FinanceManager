@@ -72,6 +72,32 @@
                     </SelectItem>
                 </SelectContent>
             </Select>
+
+            <Select v-model="filterPerPage">
+                <SelectTrigger
+                    id="transaction_per_page"
+                    :class="[
+                        filterFieldClass,
+                        '!w-full shrink-0 sm:!w-[150px]',
+                    ]"
+                    :aria-label="t('finance.filters.rows_per_page')"
+                >
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem
+                        v-for="option in props.perPageOptions"
+                        :key="option"
+                        :value="option.toString()"
+                    >
+                        {{
+                            t('finance.filters.per_page_option', {
+                                count: option,
+                            })
+                        }}
+                    </SelectItem>
+                </SelectContent>
+            </Select>
         </div>
 
         <div
@@ -159,7 +185,7 @@
                 <div
                     v-for="transaction in props.transactions.costs"
                     :key="transaction.id"
-                    class="group grid grid-cols-[22px_minmax(0,1fr)_max-content_68px] items-center gap-2.5 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[22px_minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
+                    class="group -mx-2 grid grid-cols-[22px_minmax(0,1fr)_max-content_68px] items-center gap-2.5 rounded-[8px] border-t border-white/[0.06] px-2 py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[22px_minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
                     :class="
                         selectedCostIds.has(transaction.id)
                             ? 'bg-white/[0.04]'
@@ -380,7 +406,7 @@
                 <div
                     v-for="transaction in props.transactions.incomes"
                     :key="transaction.id"
-                    class="group grid grid-cols-[22px_minmax(0,1fr)_max-content_68px] items-center gap-2.5 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[22px_minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
+                    class="group -mx-2 grid grid-cols-[22px_minmax(0,1fr)_max-content_68px] items-center gap-2.5 rounded-[8px] border-t border-white/[0.06] px-2 py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[22px_minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
                     :class="
                         selectedIncomeIds.has(transaction.id)
                             ? 'bg-white/[0.04]'
@@ -1119,11 +1145,13 @@ const props = defineProps<{
         category: number | 'none' | null;
         from: string;
         to: string;
+        per_page: number;
     };
     transactions: {
         costs: Transaction[];
         incomes: Transaction[];
         meta?: {
+            per_page: number;
             costs: {
                 current_page: number;
                 last_page: number;
@@ -1138,6 +1166,7 @@ const props = defineProps<{
     };
     categories: Record<TransactionType, Category[]>;
     currencies: CurrencyOption[];
+    perPageOptions: number[];
     selectedCurrency: Currency;
     rates: Rates | null;
     summary: {
@@ -1192,6 +1221,7 @@ const filterSearch = ref(props.filters.search);
 const filterCategory = ref(props.filters.category?.toString() ?? 'all');
 const filterFrom = ref(props.filters.from);
 const filterTo = ref(props.filters.to);
+const filterPerPage = ref(props.filters.per_page.toString());
 const filterFieldClass =
     'h-9 w-full rounded-[10px] !border-white/[0.08] !bg-[#252525] px-3 text-[13px] font-normal !text-[#e5e5e5] shadow-none [color-scheme:dark] placeholder:!text-[#686868] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 [&_svg]:!text-[#989898]';
 
@@ -1536,13 +1566,19 @@ watch(
         filterCategory.value = filters.category?.toString() ?? 'all';
         filterFrom.value = filters.from;
         filterTo.value = filters.to;
+        filterPerPage.value = filters.per_page.toString();
     },
     { deep: true },
 );
 
-// No explicit "Filter" button in the design — category and date changes
-// apply immediately; the search field applies on Enter.
-watch([filterCategory, filterFrom, filterTo], () => applyFilters());
+// No explicit "Filter" button in the design — category, date and page-size
+// changes apply immediately; the search field applies on Enter. All of them
+// go through applyFilters() with no page argument, which is what sends the
+// user back to page one: a page 4 that no longer exists at 100 rows a page
+// would otherwise render empty.
+watch([filterCategory, filterFrom, filterTo, filterPerPage], () =>
+    applyFilters(),
+);
 
 function applyFilters(
     currency: Currency = selectedCurrency.value,
@@ -1557,6 +1593,7 @@ function applyFilters(
                 filterCategory.value === 'all' ? null : filterCategory.value,
             from: filterFrom.value || null,
             to: filterTo.value || null,
+            per_page: filterPerPage.value,
             currency,
             cost_page: costPage && costPage > 1 ? costPage : null,
             income_page: incomePage && incomePage > 1 ? incomePage : null,

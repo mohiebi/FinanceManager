@@ -362,5 +362,9 @@ return [
     'transactions' => [
         'title' => 'Transaktionen',
         'subtitle' => '{count} Einträge in diesem Zeitraum',
+        'select_row' => 'Transaktion auswählen',
+        'select_all' => 'Alle auf dieser Seite auswählen',
+        'selected_count' => '{count} ausgewählt',
+        'bulk_type_mixed' => 'Wähle jeweils nur eine Tabelle, um eine Kategorie zuzuweisen.',
     ],
 ];

@@ -233,6 +233,71 @@ test('users can bulk delete their own selected transactions only', function () {
         ->and($otherTransaction->fresh())->not->toBeNull();
 });
 
+test('users can bulk reassign a category on their own transactions of one type', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $from = Category::factory()->cost()->forUser($user)->create();
+    $to = Category::factory()->cost()->forUser($user)->create();
+
+    $costs = Transaction::factory()
+        ->count(2)
+        ->cost()
+        ->for($user)
+        ->for($from)
+        ->create();
+    $income = Transaction::factory()
+        ->income()
+        ->for($user)
+        ->for(Category::factory()->income()->forUser($user)->create())
+        ->create();
+    $otherTransaction = Transaction::factory()
+        ->cost()
+        ->for($otherUser)
+        ->create();
+
+    $this->actingAs($user)
+        ->patch(route('transactions.update-bulk-category'), [
+            'ids' => [
+                $costs[0]->id,
+                $costs[1]->id,
+                $income->id,
+                $otherTransaction->id,
+            ],
+            'type' => TransactionType::Cost->value,
+            'category_id' => $to->id,
+        ])
+        ->assertRedirect();
+
+    expect($costs[0]->fresh()->category_id)->toBe($to->id)
+        ->and($costs[1]->fresh()->category_id)->toBe($to->id)
+        // The income row was in the id list but is the wrong type, and the
+        // other user's row is not theirs to touch.
+        ->and($income->fresh()->category_id)->not->toBe($to->id)
+        ->and($otherTransaction->fresh()->category_id)->not->toBe($to->id);
+});
+
+test('bulk category reassignment rejects a category of the other type', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->cost()->forUser($user)->create();
+    $incomeCategory = Category::factory()->income()->forUser($user)->create();
+
+    $transaction = Transaction::factory()
+        ->cost()
+        ->for($user)
+        ->for($category)
+        ->create();
+
+    $this->actingAs($user)
+        ->patch(route('transactions.update-bulk-category'), [
+            'ids' => [$transaction->id],
+            'type' => TransactionType::Cost->value,
+            'category_id' => $incomeCategory->id,
+        ])
+        ->assertStatus(422);
+
+    expect($transaction->fresh()->category_id)->toBe($category->id);
+});
+
 test('transactions reject categories for another transaction type', function () {
     $user = User::factory()->create();
     $category = Category::factory()->income()->forUser($user)->create();

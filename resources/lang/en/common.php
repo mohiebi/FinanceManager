@@ -8,6 +8,7 @@ return [
     'delete' => 'Delete',
     'actions' => 'Actions',
     'select' => 'Select',
+    'apply' => 'Apply',
     'clear' => 'Clear',
     'more' => 'More',
     'saved' => 'Saved.',

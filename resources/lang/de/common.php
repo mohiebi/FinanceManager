@@ -8,6 +8,7 @@ return [
     'delete' => 'Löschen',
     'actions' => 'Aktionen',
     'select' => 'Auswählen',
+    'apply' => 'Anwenden',
     'clear' => 'Leeren',
     'more' => 'Mehr',
     'saved' => 'Gespeichert.',

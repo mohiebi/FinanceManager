@@ -150,9 +150,12 @@ test('transaction filters and rows fit compact screens without hiding amounts', 
         transactions,
         /container-class="w-full grid-cols-\[1\.2fr_1fr_1fr\] sm:w-auto"/,
     );
+    // The leading 22px track is the batch-select checkbox; the point of the
+    // assertion is that subject, amount and actions still each get a track on
+    // a narrow screen rather than the amount being hidden.
     assert.match(
         transactions,
-        /grid-cols-\[minmax\(0,1fr\)_max-content_68px\]/,
+        /grid-cols-\[22px_minmax\(0,1fr\)_max-content_68px\]/,
     );
     assert.match(
         transactions,
@@ -222,4 +225,48 @@ test('the claim modal pays out in gold and shows the week it belongs to', () => 
     assert.match(celebration, /index < step\s*\?\s*'bg-\[#d9c48f\]'/);
     assert.match(celebration, /index === step\s*\?\s*'bg-\[#5eeeb5\]'/);
     assert.match(celebration, /v-for="\(dot, day\) in cycleDots"/);
+});
+
+test('transactions can be batch-selected for group edit and delete', () => {
+    // Both tables gained a leading checkbox column, so header and rows have to
+    // keep the same track count or the columns drift apart.
+    const gridTracks = transactions.match(
+        /grid-cols-\[22px_minmax\(0,1fr\)_max-content_68px\][^"]*sm:grid-cols-\[22px_minmax\(120px,1fr\)_112px_92px_118px_68px\]/g,
+    );
+    assert.equal(gridTracks?.length, 4);
+
+    assert.match(transactions, /:checked="costsSelectionState"/);
+    assert.match(transactions, /:checked="incomesSelectionState"/);
+    assert.match(transactions, /@update:checked="toggleAllCosts"/);
+    assert.match(transactions, /@update:checked="toggleAllIncomes"/);
+
+    // The toolbar only exists while something is ticked, and routes through
+    // Wayfinder rather than hard-coded bulk URLs.
+    assert.match(transactions, /v-if="totalSelected > 0"/);
+    assert.match(transactions, /router\.delete\(destroyBulk\.url\(\)/);
+    assert.match(transactions, /router\.patch\(\s*updateBulkCategory\.url\(\)/);
+    assert.doesNotMatch(transactions, /'\/transactions\/bulk/);
+
+    // A mixed cost+income selection has no single type to send, so the
+    // category control is replaced by an explanation instead of submitting.
+    assert.match(transactions, /v-if="selectionType !== null"/);
+    assert.match(transactions, /t\('finance\.transactions\.bulk_type_mixed'\)/);
+});
+
+test('a transaction selection never outlives the rows it was made on', () => {
+    // Paging preserves component state, so the sets are re-intersected with
+    // whatever rows arrived rather than accumulating ids across pages.
+    assert.match(
+        transactions,
+        /watch\(\s*\(\) => props\.transactions,[\s\S]*?intersect\(\s*selectedCostIds\.value,/,
+    );
+    assert.match(
+        transactions,
+        /intersect\(\s*selectedIncomeIds\.value,\s*transactions\.incomes,/,
+    );
+    // A category belongs to one type, so switching tables drops the choice.
+    assert.match(
+        transactions,
+        /watch\(selectionType, \(\) => \{\s*bulkCategoryId\.value = '';/,
+    );
 });

@@ -124,8 +124,22 @@
                 </div>
 
                 <div
-                    class="grid grid-cols-[minmax(0,1fr)_max-content_68px] items-center gap-2.5 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase sm:grid-cols-[minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
+                    class="grid grid-cols-[22px_minmax(0,1fr)_max-content_68px] items-center gap-2.5 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase sm:grid-cols-[22px_minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
                 >
+                    <Checkbox
+                        :checked="costsSelectionState"
+                        :aria-label="t('finance.transactions.select_all')"
+                        :class="checkboxAccentCost"
+                        @update:checked="toggleAllCosts"
+                    >
+                        <template #default="{ state }">
+                            <Minus
+                                v-if="state === 'indeterminate'"
+                                class="size-3"
+                            />
+                            <Check v-else class="size-3" />
+                        </template>
+                    </Checkbox>
                     <div>{{ t('finance.fields.subject') }}</div>
                     <div class="hidden sm:block">
                         {{ t('finance.fields.category') }}
@@ -145,8 +159,22 @@
                 <div
                     v-for="transaction in props.transactions.costs"
                     :key="transaction.id"
-                    class="group grid grid-cols-[minmax(0,1fr)_max-content_68px] items-center gap-2.5 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
+                    class="group grid grid-cols-[22px_minmax(0,1fr)_max-content_68px] items-center gap-2.5 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[22px_minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
+                    :class="
+                        selectedCostIds.has(transaction.id)
+                            ? 'bg-white/[0.04]'
+                            : ''
+                    "
                 >
+                    <Checkbox
+                        :checked="selectedCostIds.has(transaction.id)"
+                        :aria-label="t('finance.transactions.select_row')"
+                        :class="checkboxAccentCost"
+                        @update:checked="
+                            (v: boolean | 'indeterminate') =>
+                                toggleCost(transaction.id, v === true)
+                        "
+                    />
                     <div class="min-w-0">
                         <p class="truncate text-sm text-white">
                             <Ciphered
@@ -317,8 +345,22 @@
                 </div>
 
                 <div
-                    class="grid grid-cols-[minmax(0,1fr)_max-content_68px] items-center gap-2.5 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase sm:grid-cols-[minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
+                    class="grid grid-cols-[22px_minmax(0,1fr)_max-content_68px] items-center gap-2.5 pb-2.5 text-[10px] font-medium tracking-[0.1em] text-[#686868] uppercase sm:grid-cols-[22px_minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
                 >
+                    <Checkbox
+                        :checked="incomesSelectionState"
+                        :aria-label="t('finance.transactions.select_all')"
+                        :class="checkboxAccentIncome"
+                        @update:checked="toggleAllIncomes"
+                    >
+                        <template #default="{ state }">
+                            <Minus
+                                v-if="state === 'indeterminate'"
+                                class="size-3"
+                            />
+                            <Check v-else class="size-3" />
+                        </template>
+                    </Checkbox>
                     <div>{{ t('finance.fields.subject') }}</div>
                     <div class="hidden sm:block">
                         {{ t('finance.fields.category') }}
@@ -338,8 +380,22 @@
                 <div
                     v-for="transaction in props.transactions.incomes"
                     :key="transaction.id"
-                    class="group grid grid-cols-[minmax(0,1fr)_max-content_68px] items-center gap-2.5 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
+                    class="group grid grid-cols-[22px_minmax(0,1fr)_max-content_68px] items-center gap-2.5 border-t border-white/[0.06] py-2.5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[22px_minmax(120px,1fr)_112px_92px_118px_68px] sm:gap-3"
+                    :class="
+                        selectedIncomeIds.has(transaction.id)
+                            ? 'bg-white/[0.04]'
+                            : ''
+                    "
                 >
+                    <Checkbox
+                        :checked="selectedIncomeIds.has(transaction.id)"
+                        :aria-label="t('finance.transactions.select_row')"
+                        :class="checkboxAccentIncome"
+                        @update:checked="
+                            (v: boolean | 'indeterminate') =>
+                                toggleIncome(transaction.id, v === true)
+                        "
+                    />
                     <div class="min-w-0">
                         <p class="truncate text-sm text-white">
                             <Ciphered
@@ -466,6 +522,90 @@
             </section>
         </div>
 
+        <!-- ── Batch actions — floats over the tables while anything is
+             ticked, so the row checkboxes stay the only added chrome. ─── -->
+        <Transition
+            enter-active-class="transition-all duration-200 ease-out"
+            enter-from-class="translate-y-4 opacity-0"
+            enter-to-class="translate-y-0 opacity-100"
+            leave-active-class="transition-all duration-150 ease-in"
+            leave-from-class="translate-y-0 opacity-100"
+            leave-to-class="translate-y-4 opacity-0"
+        >
+            <div
+                v-if="totalSelected > 0"
+                class="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
+            >
+                <div
+                    class="pointer-events-auto flex flex-wrap items-center justify-center gap-2.5 rounded-[16px] bg-[#1a1a1a] px-[18px] py-3 shadow-[0_18px_45px_rgba(0,0,0,0.55)] ring-1 ring-white/10"
+                >
+                    <span class="text-[13px] font-medium text-white">
+                        {{
+                            t('finance.transactions.selected_count', {
+                                count: totalSelected,
+                            })
+                        }}
+                    </span>
+
+                    <span class="h-5 w-px bg-white/10" aria-hidden="true" />
+
+                    <div
+                        v-if="selectionType !== null"
+                        class="flex items-center gap-2"
+                    >
+                        <Select v-model="bulkCategoryId">
+                            <SelectTrigger
+                                :class="[filterFieldClass, '!h-8 !w-[190px]']"
+                                :aria-label="t('finance.actions.bulk_assign')"
+                            >
+                                <SelectValue
+                                    :placeholder="
+                                        t('finance.actions.bulk_assign')
+                                    "
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="category in bulkCategories"
+                                    :key="category.id"
+                                    :value="category.id.toString()"
+                                >
+                                    {{ category.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <button
+                            type="button"
+                            :disabled="!bulkCategoryId || bulkProcessing"
+                            class="h-8 cursor-pointer rounded-[10px] bg-[#6C4EE9] px-3.5 text-[13px] font-medium text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                            @click="applyBulkCategory"
+                        >
+                            {{ t('common.apply') }}
+                        </button>
+                    </div>
+                    <p v-else class="text-[12px] text-[#686868]">
+                        {{ t('finance.transactions.bulk_type_mixed') }}
+                    </p>
+
+                    <button
+                        type="button"
+                        :disabled="bulkProcessing"
+                        class="h-8 cursor-pointer rounded-[10px] bg-[#E94E50]/15 px-3.5 text-[13px] font-medium text-[#E94E50] ring-1 ring-[#E94E50]/25 transition hover:bg-[#E94E50]/25 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="isBulkDeleteDialogOpen = true"
+                    >
+                        {{ t('finance.actions.bulk_delete') }}
+                    </button>
+                    <button
+                        type="button"
+                        class="h-8 cursor-pointer rounded-[10px] bg-white/5 px-3.5 text-[13px] font-medium text-[#989898] ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white"
+                        @click="clearSelection"
+                    >
+                        {{ t('common.clear') }}
+                    </button>
+                </div>
+            </div>
+        </Transition>
+
         <!-- ── Import / export — a new bar below the tables, matching the
              mock's Report-screen footer treatment. ────────────────────── -->
         <div
@@ -504,6 +644,19 @@
             :processing="deleteForm.processing"
             @update:open="(open) => !open && (deleteTarget = null)"
             @confirm="confirmDelete"
+        />
+
+        <ConfirmDeleteModal
+            :open="isBulkDeleteDialogOpen"
+            :title="
+                t('finance.delete.bulk_transactions_title', {
+                    count: totalSelected,
+                })
+            "
+            :description="t('finance.delete.bulk_transactions_description')"
+            :processing="bulkProcessing"
+            @update:open="(open) => !open && (isBulkDeleteDialogOpen = false)"
+            @confirm="confirmBulkDelete"
         />
 
         <!-- ── Import ─────────────────────────────────────────────── -->
@@ -827,11 +980,13 @@ import {
     Clipboard,
     ClipboardCheck,
     FileDown,
+    Minus,
     Pencil,
     Trash2,
     Upload,
 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import type { Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BirthdatePicker from '@/components/BirthdatePicker.vue';
 import Ciphered from '@/components/Ciphered.vue';
@@ -842,6 +997,7 @@ import InputError from '@/components/InputError.vue';
 import CategoryChip from '@/components/transactions/CategoryChip.vue';
 import TransactionDialog from '@/components/transactions/TransactionDialog.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -872,8 +1028,10 @@ import {
 import type { Rates } from '@/lib/money';
 import { dashboard } from '@/routes';
 import {
+    destroyBulk,
     destroy as destroyTransaction,
     index as transactionsIndex,
+    updateBulkCategory,
 } from '@/routes/transactions';
 import {
     preview as previewImport,
@@ -1176,6 +1334,184 @@ function confirmDelete(): void {
             deleteTargetTitle.value = '';
         },
     });
+}
+
+// ── Batch selection ───────────────────────────────────────────────────
+// Kept as two sets because the bulk category endpoint takes a single
+// transaction type, so a mixed selection can only be deleted, not recategorised.
+const selectedCostIds = ref<Set<number>>(new Set());
+const selectedIncomeIds = ref<Set<number>>(new Set());
+const bulkCategoryId = ref<string>('');
+const isBulkDeleteDialogOpen = ref(false);
+const bulkProcessing = ref(false);
+
+const checkboxAccentCost =
+    'size-[15px] cursor-pointer !border-white/20 data-[state=checked]:!border-[#6C4EE9] data-[state=checked]:!bg-[#6C4EE9] data-[state=indeterminate]:!border-[#6C4EE9] data-[state=indeterminate]:!bg-[#6C4EE9] data-[state=indeterminate]:!text-white';
+const checkboxAccentIncome =
+    'size-[15px] cursor-pointer !border-white/20 data-[state=checked]:!border-[#02CD86] data-[state=checked]:!bg-[#02CD86] data-[state=checked]:!text-[#101010] data-[state=indeterminate]:!border-[#02CD86] data-[state=indeterminate]:!bg-[#02CD86] data-[state=indeterminate]:!text-[#101010]';
+
+const totalSelected = computed(
+    () => selectedCostIds.value.size + selectedIncomeIds.value.size,
+);
+
+const selectionType = computed<TransactionType | null>(() => {
+    if (selectedCostIds.value.size > 0 && selectedIncomeIds.value.size === 0) {
+        return 'cost';
+    }
+
+    if (selectedIncomeIds.value.size > 0 && selectedCostIds.value.size === 0) {
+        return 'income';
+    }
+
+    return null;
+});
+
+const bulkCategories = computed(() =>
+    selectionType.value === null ? [] : props.categories[selectionType.value],
+);
+
+const costsSelectionState = computed(() =>
+    selectionState(props.transactions.costs, selectedCostIds.value),
+);
+const incomesSelectionState = computed(() =>
+    selectionState(props.transactions.incomes, selectedIncomeIds.value),
+);
+
+function selectionState(
+    transactions: Transaction[],
+    selected: Set<number>,
+): boolean | 'indeterminate' {
+    if (transactions.length === 0 || selected.size === 0) {
+        return false;
+    }
+
+    return transactions.every((transaction) => selected.has(transaction.id))
+        ? true
+        : 'indeterminate';
+}
+
+function toggle(
+    target: Ref<Set<number>>,
+    id: number,
+    isSelected: boolean,
+): void {
+    const next = new Set(target.value);
+
+    if (isSelected) {
+        next.add(id);
+    } else {
+        next.delete(id);
+    }
+
+    target.value = next;
+}
+
+function toggleCost(id: number, isSelected: boolean): void {
+    toggle(selectedCostIds, id, isSelected);
+}
+
+function toggleIncome(id: number, isSelected: boolean): void {
+    toggle(selectedIncomeIds, id, isSelected);
+}
+
+function toggleAllCosts(checked: boolean | 'indeterminate'): void {
+    selectedCostIds.value =
+        checked === false
+            ? new Set()
+            : new Set(props.transactions.costs.map(({ id }) => id));
+}
+
+function toggleAllIncomes(checked: boolean | 'indeterminate'): void {
+    selectedIncomeIds.value =
+        checked === false
+            ? new Set()
+            : new Set(props.transactions.incomes.map(({ id }) => id));
+}
+
+// A category picked for one table would be rejected by the other, so the
+// choice does not survive a change of which table is selected.
+watch(selectionType, () => {
+    bulkCategoryId.value = '';
+});
+
+function clearSelection(): void {
+    selectedCostIds.value = new Set();
+    selectedIncomeIds.value = new Set();
+    bulkCategoryId.value = '';
+}
+
+function confirmBulkDelete(): void {
+    const ids = [...selectedCostIds.value, ...selectedIncomeIds.value];
+
+    if (ids.length === 0) {
+        return;
+    }
+
+    bulkProcessing.value = true;
+    router.delete(destroyBulk.url(), {
+        data: { ids },
+        preserveScroll: true,
+        onSuccess: () => {
+            clearSelection();
+            isBulkDeleteDialogOpen.value = false;
+        },
+        onFinish: () => {
+            bulkProcessing.value = false;
+        },
+    });
+}
+
+function applyBulkCategory(): void {
+    const type = selectionType.value;
+
+    if (type === null || !bulkCategoryId.value) {
+        return;
+    }
+
+    const ids = [
+        ...(type === 'cost' ? selectedCostIds.value : selectedIncomeIds.value),
+    ];
+
+    bulkProcessing.value = true;
+    router.patch(
+        updateBulkCategory.url(),
+        { ids, type, category_id: Number(bulkCategoryId.value) },
+        {
+            preserveScroll: true,
+            onSuccess: () => clearSelection(),
+            onFinish: () => {
+                bulkProcessing.value = false;
+            },
+        },
+    );
+}
+
+// Paging and filtering both preserve component state, so without this a
+// selection made on one page would silently travel to the next and be acted
+// on there while invisible.
+watch(
+    () => props.transactions,
+    (transactions) => {
+        selectedCostIds.value = intersect(
+            selectedCostIds.value,
+            transactions.costs,
+        );
+        selectedIncomeIds.value = intersect(
+            selectedIncomeIds.value,
+            transactions.incomes,
+        );
+    },
+);
+
+function intersect(
+    selected: Set<number>,
+    transactions: Transaction[],
+): Set<number> {
+    return new Set(
+        transactions
+            .map(({ id }) => id)
+            .filter((id: number) => selected.has(id)),
+    );
 }
 
 watch(

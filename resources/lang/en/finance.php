@@ -362,5 +362,9 @@ return [
     'transactions' => [
         'title' => 'Transactions',
         'subtitle' => '{count} entries this period',
+        'select_row' => 'Select transaction',
+        'select_all' => 'Select all on this page',
+        'selected_count' => '{count} selected',
+        'bulk_type_mixed' => 'Select one table at a time to reassign a category.',
     ],
 ];

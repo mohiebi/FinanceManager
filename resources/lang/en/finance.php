@@ -354,6 +354,7 @@ return [
         'top_spending' => 'Top Spending Categories',
         'net_savings' => 'Net Savings',
         'by_category' => 'by category',
+        'break_down' => 'Break down:',
         'by_day' => 'by day',
         'by_month' => 'by month',
         'read_eyebrow' => 'The read',

@@ -579,7 +579,7 @@
                     <span class="h-5 w-px bg-white/10" aria-hidden="true" />
 
                     <div
-                        v-if="selectionType !== null"
+                        v-if="bulkCategories.length > 0"
                         class="flex items-center gap-2"
                     >
                         <Select v-model="bulkCategoryId">
@@ -1408,9 +1408,14 @@ const selectionType = computed<TransactionType | null>(() => {
     return null;
 });
 
+// Both tables ticked at once can only take a category shared across types;
+// with none of those, the toolbar explains why there is nothing to pick.
 const bulkCategories = computed(() =>
     selectionType.value === null
-        ? []
+        ? orderByParent([
+              ...props.categories.cost,
+              ...props.categories.income,
+          ]).filter((category) => category.for_both_types)
         : orderByParent(props.categories[selectionType.value]),
 );
 
@@ -1508,13 +1513,20 @@ function confirmBulkDelete(): void {
 function applyBulkCategory(): void {
     const type = selectionType.value;
 
-    if (type === null || !bulkCategoryId.value) {
+    if (!bulkCategoryId.value) {
         return;
     }
 
-    const ids = [
-        ...(type === 'cost' ? selectedCostIds.value : selectedIncomeIds.value),
-    ];
+    // A mixed selection goes as one request with no type, which the server
+    // only accepts for a shared category — the only kind offered for it.
+    const ids =
+        type === null
+            ? [...selectedCostIds.value, ...selectedIncomeIds.value]
+            : [
+                  ...(type === 'cost'
+                      ? selectedCostIds.value
+                      : selectedIncomeIds.value),
+              ];
 
     bulkProcessing.value = true;
     router.patch(
@@ -1655,7 +1667,50 @@ const confirmationForm = useHttp<{ token: string }, ImportResult>({
     token: '',
 });
 
-const importPrompt = `Convert the attached bank statement/report into a CSV for my finance app.
+// The user's own categories join the built-in list, a subcategory written
+// "Parent › Child" — the form the importer resolves back to it.
+const customCategoryLabels = computed(() => {
+    const all = [...props.categories.cost, ...props.categories.income];
+
+    return orderByParent(all)
+        .filter((category) => !category.is_default)
+        .map((category) => {
+            const parent = all.find(({ id }) => id === category.parent_id);
+
+            return parent === undefined
+                ? category.name
+                : `${parent.name} › ${category.name}`;
+        });
+});
+
+const importCategoryRules = computed(() => {
+    const allowed = [
+        'Food',
+        'Transport',
+        'Housing',
+        'Health',
+        'Shopping',
+        'Bills',
+        'Other',
+        'Salary',
+        'Freelance',
+        'Gift',
+        'Investment',
+        ...customCategoryLabels.value,
+    ];
+    const rules = [`- category must be one of: ${allowed.join(', ')}.`];
+
+    if (customCategoryLabels.value.some((label) => label.includes(' › '))) {
+        rules.push(
+            '- Write a subcategory exactly as listed, as Parent › Subcategory.',
+        );
+    }
+
+    return rules.join('\n');
+});
+
+const importPrompt = computed(
+    () => `Convert the attached bank statement/report into a CSV for my finance app.
 
 The bank report may be Persian or English. Analyze Persian descriptions, Persian dates, Persian digits, deposits, withdrawals, and Rial/Toman amounts correctly.
 
@@ -1667,13 +1722,14 @@ occurred_at,type,category,amount,currency,title,description
 Rules:
 - occurred_at may be converted to Gregorian YYYY-MM-DD if possible. If the report uses Jalali dates, convert them to Gregorian.
 - type must be cost for money leaving the account and income for money entering the account.
-- category must be one of: Food, Transport, Housing, Health, Shopping, Bills, Other, Salary, Freelance, Gift, Investment.
+${importCategoryRules.value}
 - amount must be positive, with no thousands separators.
 - If the report amount is in Rial, convert it to Toman by dividing by 10 and set currency to toman.
 - currency must be one of: toman, usd, eur.
 - title can be Persian or English, but keep it short and human-readable.
 - description can include the original bank description.
-- Ignore balance-only rows, headers, footers, failed transactions, and duplicate summary lines.`;
+- Ignore balance-only rows, headers, footers, failed transactions, and duplicate summary lines.`,
+);
 
 const previewRows = computed(() => importPreview.value?.rows ?? []);
 
@@ -1767,7 +1823,7 @@ async function copyImportPrompt(): Promise<void> {
         return;
     }
 
-    await navigator.clipboard.writeText(importPrompt);
+    await navigator.clipboard.writeText(importPrompt.value);
     promptCopied.value = true;
 
     window.setTimeout(() => {

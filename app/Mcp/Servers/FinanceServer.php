@@ -41,6 +41,10 @@ calendar months.
 
 Currencies: toman (Iranian toman, the default), usd, eur.
 
+Categories can have one level of subcategories, written "Food › Restaurant".
+A parent's totals, filters and budget lines include its subcategories. A
+category with `for_both_types` can be used for costs and income alike.
+
 Reading data (transactions, categories, bills, investments, portfolio,
 spending summaries, budgets, savings goals) is direct.
 

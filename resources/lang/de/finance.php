@@ -354,6 +354,7 @@ return [
         'top_spending' => 'Top-Ausgabenkategorien',
         'net_savings' => 'Nettoersparnis',
         'by_category' => 'nach Kategorie',
+        'break_down' => 'Aufschlüsseln:',
         'by_day' => 'nach Tag',
         'by_month' => 'nach Monat',
         'read_eyebrow' => 'Die Auswertung',

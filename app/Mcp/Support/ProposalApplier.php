@@ -4,11 +4,11 @@ namespace App\Mcp\Support;
 
 use App\Actions\Bills\MarkBillOccurrencePaid;
 use App\Actions\Bills\SaveBill;
+use App\Actions\Categories\CreateCategory;
 use App\Actions\Investments\SaveInvestment;
 use App\Actions\Transactions\SaveTransaction;
 use App\Enums\Feature;
 use App\Exceptions\FeatureDisabledException;
-use App\Models\Category;
 use App\Models\InvestmentAsset;
 use App\Models\McpProposal;
 use App\Models\User;
@@ -27,6 +27,7 @@ class ProposalApplier
         private readonly SaveBill $saveBill,
         private readonly SaveInvestment $saveInvestment,
         private readonly MarkBillOccurrencePaid $markBillOccurrencePaid,
+        private readonly CreateCategory $createCategory,
     ) {}
 
     /**
@@ -52,11 +53,7 @@ class ProposalApplier
             ],
             'transaction.delete' => $this->deleteTransaction($user, $proposal),
             'category.create' => [
-                'category_id' => Category::query()->create([
-                    'user_id' => $user->id,
-                    'type' => $payload['type'],
-                    'name' => $payload['name'],
-                ])->id,
+                'category_id' => $this->createCategory->handle($user, $payload)->id,
             ],
             'bill.create' => [
                 'bill_id' => $this->saveBill->create($user, $payload, $this->calendarFor($user))->id,

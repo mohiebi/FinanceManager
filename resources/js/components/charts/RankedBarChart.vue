@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type ApexCharts from 'apexcharts';
+import type { ApexChartEventOpts } from 'apexcharts';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = withDefaults(
@@ -13,12 +14,19 @@ const props = withDefaults(
         // The values themselves are already percentages (0-100); format
         // labels, axis, and tooltip accordingly instead of as counts.
         percentValues?: boolean;
+        // Bars report clicks through `select`, and show that they can.
+        selectable?: boolean;
     }>(),
     {
         percentageLabels: true,
         percentValues: false,
+        selectable: false,
     },
 );
+
+const emit = defineEmits<{
+    select: [index: number];
+}>();
 
 const chartRef = ref<HTMLElement | null>(null);
 let chart: ApexCharts | null = null;
@@ -54,6 +62,17 @@ const buildOptions = () => {
                 easing: 'easeinout' as const,
             },
             fontFamily: 'inherit',
+            events: {
+                dataPointSelection: (
+                    _event: MouseEvent,
+                    _chart?: ApexCharts,
+                    options?: ApexChartEventOpts,
+                ) => {
+                    if (props.selectable && options !== undefined) {
+                        emit('select', options.dataPointIndex);
+                    }
+                },
+            },
         },
         series: [{ name: props.seriesName, data: props.values }],
         colors: props.colors,
@@ -119,6 +138,9 @@ const buildOptions = () => {
         },
         states: {
             hover: { filter: { type: 'lighten' as const, value: 0.08 } },
+            // A click swaps the data rather than marking a bar, so ApexCharts'
+            // sticky "selected" shading would only linger on the wrong bar.
+            active: { filter: { type: 'none' as const } },
         },
     };
 };
@@ -148,5 +170,10 @@ onUnmounted(() => chart?.destroy());
 </script>
 
 <template>
-    <div ref="chartRef" />
+    <div
+        ref="chartRef"
+        :class="
+            props.selectable ? '[&_.apexcharts-bar-area]:cursor-pointer' : ''
+        "
+    />
 </template>

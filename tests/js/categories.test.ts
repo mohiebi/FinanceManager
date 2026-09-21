@@ -6,6 +6,7 @@ import {
     optionLabel,
     orderByParent,
     SUBCATEGORY_ITEM_CLASS,
+    topLevelOf,
 } from '../../resources/js/lib/categories.ts';
 
 function source(path: string): string {
@@ -156,4 +157,66 @@ test('the category settings page edits the parent and the sharing', () => {
 
     // Dragging only reorders siblings.
     assert.match(settings, /source\.parent_id !== targetCategory\.parent_id/);
+});
+
+test('spending rolls up to the parent, and a category without one stands alone', () => {
+    const food = category(1, 'Food');
+    const restaurant = category(3, 'Restaurant', 1);
+    const byId = new Map([food, restaurant].map((c) => [c.id, c]));
+
+    assert.equal(topLevelOf(restaurant, byId), food);
+    assert.equal(topLevelOf(food, byId), food);
+    // A parent missing from the lookup must not lose the spending.
+    assert.equal(topLevelOf(category(9, 'Orphan', 404), byId).name, 'Orphan');
+});
+
+test('the report ranks top-level categories and drills into one parent', () => {
+    const report = source('../../resources/js/pages/Report.vue');
+
+    assert.match(report, /topLevelOf\(own, categoriesById\.value\)/);
+    assert.match(report, /drilledSpending\.value \?\? rolledUpSpending\.value/);
+
+    // A bar click drills in, and so do buttons: a chart bar is neither
+    // discoverable nor reachable by keyboard on its own.
+    assert.match(report, /:selectable="drilledCategoryId === null"/);
+    assert.match(report, /@select="drillIntoBar"/);
+    assert.match(report, /v-for="target in drillTargets"/);
+
+    // The narrative keeps naming the biggest top-level driver while drilled.
+    assert.match(report, /rolledUpSpending\.value\.labels\[0\]/);
+    assert.doesNotMatch(report, /const topLabel = topSpending/);
+});
+
+test('the ranked bar chart reports clicks only when asked to', () => {
+    const chart = source(
+        '../../resources/js/components/charts/RankedBarChart.vue',
+    );
+
+    assert.match(chart, /selectable\?: boolean/);
+    assert.match(chart, /dataPointSelection:/);
+    assert.match(chart, /if \(props\.selectable && options !== undefined\)/);
+});
+
+test('the dashboard breakdown counts a subcategory toward its parent', () => {
+    const dashboard = source('../../resources/js/pages/Dashboard.vue');
+
+    assert.match(dashboard, /topLevelOf\(own, categoriesById\.value\)/);
+    assert.match(
+        dashboard,
+        /color: existing\?\.color \?\? top\?\.color \?\? null/,
+    );
+});
+
+test("the import prompt lists the user's own categories as paths", () => {
+    const transactions = source('../../resources/js/pages/Transactions.vue');
+
+    assert.match(
+        transactions,
+        /\.filter\(\(category\) => !category\.is_default\)/,
+    );
+    assert.match(transactions, /`\$\{parent\.name\} › \$\{category\.name\}`/);
+    assert.match(transactions, /\.\.\.customCategoryLabels\.value,/);
+    assert.match(transactions, /\$\{importCategoryRules\.value\}/);
+    // The copy button copies the computed prompt, not a stale constant.
+    assert.match(transactions, /writeText\(importPrompt\.value\)/);
 });

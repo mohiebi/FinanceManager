@@ -4,8 +4,8 @@ namespace App\Mcp\Tools\Transactions;
 
 use App\Enums\TransactionType;
 use App\Mcp\Support\ProposalService;
-use App\Models\Category;
 use App\Models\User;
+use App\Support\CategoryRules;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Validation\Rule;
 use Laravel\Mcp\Request;
@@ -29,21 +29,34 @@ class ProposeCategoryTool extends Tool
         $validated = $request->validate([
             'type' => ['required', Rule::enum(TransactionType::class)],
             'name' => ['required', 'string', 'max:100'],
+            'parent_id' => ['nullable', 'integer'],
+            'for_both_types' => ['nullable', 'boolean'],
         ]);
 
         $name = trim($validated['name']);
+        $parentId = isset($validated['parent_id']) ? (int) $validated['parent_id'] : null;
+        $forBothTypes = (bool) ($validated['for_both_types'] ?? false);
 
-        $exists = Category::query()
-            ->availableFor($user)
-            ->forType(TransactionType::from($validated['type']))
-            ->where('slug', Category::slugForName($name))
-            ->exists();
+        // The same rules the settings page enforces, so a proposal the user
+        // approves cannot then fail on the parent or the name.
+        $errors = CategoryRules::errors(
+            $user,
+            TransactionType::from($validated['type']),
+            $forBothTypes,
+            $parentId,
+            $name,
+        );
 
-        if ($exists) {
-            return Response::error('A category with this name already exists for this type.');
+        if ($errors !== []) {
+            return Response::error(implode(' ', $errors));
         }
 
-        $payload = ['type' => $validated['type'], 'name' => $name];
+        $payload = [
+            'type' => $validated['type'],
+            'name' => $name,
+            'parent_id' => $parentId,
+            'for_both_types' => $forBothTypes,
+        ];
 
         $proposal = $this->proposals->propose(
             $user,
@@ -65,6 +78,8 @@ class ProposeCategoryTool extends Tool
         return [
             'type' => $schema->string()->enum(['cost', 'income'])->description('Whether the category applies to costs or income.')->required(),
             'name' => $schema->string()->description('Name of the new category.')->required(),
+            'parent_id' => $schema->integer()->description('Optional parent category id (see list-categories) to create this as a subcategory. One level only: the parent must itself be top-level, and must allow this category\'s type.'),
+            'for_both_types' => $schema->boolean()->description('Optional. Make the category usable for both costs and income. A shared subcategory needs a shared parent.'),
         ];
     }
 }

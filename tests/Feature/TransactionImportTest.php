@@ -367,3 +367,55 @@ test('scheduled cleanup removes expired previews and receipts while retaining li
         ->and($user->transactions()->count())->toBe(1);
     $this->postJson(route('transactions.imports.store'), ['token' => $expired['token']])->assertUnprocessable();
 });
+
+test('a "Parent › Child" cell files the row under the existing subcategory', function () {
+    $user = User::factory()->create();
+    $food = Category::factory()->cost()->create(['name' => 'Food']);
+    $restaurant = Category::factory()->forUser($user)->childOf($food)->create(['name' => 'Restaurant']);
+
+    $preview = prepareTransactionImport($user, '2026-06-15,cost,Food › Restaurant,125000,toman,Dinner,');
+
+    expect($preview['rows'][0]['data']['category'])->toBe('Food › Restaurant')
+        ->and($preview['rows'][0]['data']['category_is_new'])->toBeFalse();
+
+    $this->actingAs($user)
+        ->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertOk();
+
+    expect($user->transactions()->sole()->category_id)->toBe($restaurant->id);
+});
+
+test('a "Parent › Child" cell for a new subcategory creates it under the parent', function () {
+    $user = User::factory()->create();
+    $food = Category::factory()->cost()->create(['name' => 'Food']);
+
+    $preview = prepareTransactionImport($user, '2026-06-15,cost,Food > Coffee,90000,toman,Latte,');
+
+    expect($preview['rows'][0]['warnings'])->toContain('A custom subcategory will be created under Food.')
+        ->and($preview['rows'][0]['data']['category'])->toBe('Food › Coffee');
+
+    $this->actingAs($user)
+        ->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertOk();
+
+    $coffee = Category::query()->where('user_id', $user->id)->sole();
+
+    expect($coffee->name)->toBe('Coffee')
+        ->and($coffee->parent_id)->toBe($food->id)
+        ->and($user->transactions()->sole()->category_id)->toBe($coffee->id);
+});
+
+test('a user\'s own category name beats the alias that would file it under a default', function () {
+    $user = User::factory()->create();
+    $food = Category::factory()->cost()->create(['name' => 'Food']);
+    // One of Food's import aliases — matched first, it sent these rows to Food.
+    $restaurant = Category::factory()->forUser($user)->childOf($food)->create(['name' => 'رستوران']);
+
+    $preview = prepareTransactionImport($user, '2026-06-15,cost,رستوران,125000,toman,Dinner,');
+
+    $this->actingAs($user)
+        ->postJson(route('transactions.imports.store'), ['token' => $preview['token']])
+        ->assertOk();
+
+    expect($user->transactions()->sole()->category_id)->toBe($restaurant->id);
+});

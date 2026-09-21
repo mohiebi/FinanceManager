@@ -300,11 +300,24 @@
             <section
                 class="overflow-hidden rounded-[16px] bg-[#1a1a1a] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] ring-1 ring-white/10"
             >
-                <div class="mb-4 flex items-center justify-between">
-                    <h2 class="text-[18px] leading-none font-normal text-white">
-                        {{ t('finance.reports.top_spending') }}
+                <div class="mb-4 flex items-center justify-between gap-3">
+                    <h2
+                        class="min-w-0 truncate text-[18px] leading-none font-normal text-white"
+                    >
+                        {{
+                            drilledCategoryName ??
+                            t('finance.reports.top_spending')
+                        }}
                     </h2>
-                    <span class="text-xs text-[#989898]">{{
+                    <button
+                        v-if="drilledCategoryId !== null"
+                        type="button"
+                        class="shrink-0 cursor-pointer text-xs text-[#947BFF] transition-colors hover:text-white"
+                        @click="drilledCategoryId = null"
+                    >
+                        ‹ {{ t('finance.filters.all_categories') }}
+                    </button>
+                    <span v-else class="shrink-0 text-xs text-[#989898]">{{
                         t('finance.reports.by_category')
                     }}</span>
                 </div>
@@ -315,7 +328,26 @@
                     :colors="topSpending.colors"
                     :series-name="t('finance.metrics.costs')"
                     :height="280"
+                    :selectable="drilledCategoryId === null"
+                    @select="drillIntoBar"
                 />
+                <div
+                    v-if="drilledCategoryId === null && drillTargets.length > 0"
+                    class="mt-3 flex flex-wrap items-center gap-2"
+                >
+                    <span class="text-xs text-[#686868]">{{
+                        t('finance.reports.break_down')
+                    }}</span>
+                    <button
+                        v-for="target in drillTargets"
+                        :key="target.categoryId"
+                        type="button"
+                        class="cursor-pointer rounded-full bg-[#252525] px-2.5 py-1 text-xs text-[#e5e5e5] ring-1 ring-white/10 transition-colors hover:bg-[#2e2e2e]"
+                        @click="drilledCategoryId = target.categoryId"
+                    >
+                        {{ target.label }} ›
+                    </button>
+                </div>
                 <p v-else class="mt-8 text-center text-sm text-[#989898]">
                     {{ t('finance.dashboard.no_costs') }}
                 </p>
@@ -675,7 +707,11 @@ import {
 } from '@/components/ui/select';
 import { useAmountMask } from '@/composables/useAmountMask';
 import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
-import { orderByParent, SUBCATEGORY_ITEM_CLASS } from '@/lib/categories';
+import {
+    orderByParent,
+    SUBCATEGORY_ITEM_CLASS,
+    topLevelOf,
+} from '@/lib/categories';
 import {
     dayBucketsBetween,
     formatAppDate,
@@ -983,27 +1019,149 @@ const netSavings = computed(() =>
 );
 
 // ── Top spending categories, ranked ──
+// Rolled up to top-level categories, so Restaurant counts as Food; one parent
+// can then be opened to see its own breakdown.
 
-const topSpending = computed(() => {
-    const totals = new Map<string, number>();
+type SpendingTotal = {
+    label: string;
+    value: number;
+    categoryId: number | null;
+    /** Spending that came from a subcategory — only then is a drill worth it. */
+    fromChildren: number;
+};
 
-    for (const transaction of props.analyticsTransactions.costs) {
-        const name =
-            transaction.category?.name ?? t('finance.categories.uncategorized');
-        totals.set(name, (totals.get(name) ?? 0) + amountOf(transaction));
-    }
+const drilledCategoryId = ref<number | null>(null);
 
-    const entries = [...totals.entries()]
-        .sort((a, b) => b[1] - a[1])
+const categoriesById = computed(
+    () =>
+        new Map(
+            [...props.categories.cost, ...props.categories.income].map(
+                (category) => [category.id, category],
+            ),
+        ),
+);
+
+function ranked(totals: Map<string, SpendingTotal>) {
+    const entries = [...totals.values()]
+        .sort((a, b) => b.value - a.value)
         .slice(0, 6);
 
     return {
-        labels: entries.map(([name]) => name),
-        values: entries.map(([, total]) => Math.round(total * 100) / 100),
+        labels: entries.map(({ label }) => label),
+        values: entries.map(({ value }) => Math.round(value * 100) / 100),
         colors: entries.map(
             (_, index) => chartPalette[index % chartPalette.length],
         ),
+        categoryIds: entries.map(({ categoryId }) => categoryId),
+        drillable: entries.map(({ fromChildren }) => fromChildren > 0),
     };
+}
+
+const rolledUpSpending = computed(() => {
+    const totals = new Map<string, SpendingTotal>();
+
+    for (const transaction of props.analyticsTransactions.costs) {
+        const own = transaction.category;
+        const top = own === null ? null : topLevelOf(own, categoriesById.value);
+        const key = top === null ? 'none' : String(top.id);
+        const entry = totals.get(key) ?? {
+            label: top?.name ?? t('finance.categories.uncategorized'),
+            value: 0,
+            categoryId: top?.id ?? null,
+            fromChildren: 0,
+        };
+        const amount = amountOf(transaction);
+
+        entry.value += amount;
+
+        if (own !== null && top !== null && own.id !== top.id) {
+            entry.fromChildren += amount;
+        }
+
+        totals.set(key, entry);
+    }
+
+    return ranked(totals);
+});
+
+/** One parent's family, each subcategory on its own bar and the parent's
+ *  own rows on another. */
+const drilledSpending = computed(() => {
+    const parentId = drilledCategoryId.value;
+
+    if (parentId === null) {
+        return null;
+    }
+
+    const totals = new Map<string, SpendingTotal>();
+
+    for (const transaction of props.analyticsTransactions.costs) {
+        const own = transaction.category;
+
+        if (
+            own === null ||
+            (own.id !== parentId && own.parent_id !== parentId)
+        ) {
+            continue;
+        }
+
+        const entry = totals.get(String(own.id)) ?? {
+            label: own.name,
+            value: 0,
+            categoryId: own.id,
+            fromChildren: 0,
+        };
+
+        entry.value += amountOf(transaction);
+        totals.set(String(own.id), entry);
+    }
+
+    return ranked(totals);
+});
+
+const topSpending = computed(
+    () => drilledSpending.value ?? rolledUpSpending.value,
+);
+
+const drilledCategoryName = computed(() =>
+    drilledCategoryId.value === null
+        ? null
+        : (categoriesById.value.get(drilledCategoryId.value)?.name ?? null),
+);
+
+/** Parents whose spending partly came from subcategories, offered as buttons
+ *  as well as bar clicks — a chart bar is neither discoverable nor reachable
+ *  by keyboard on its own. */
+const drillTargets = computed(() =>
+    rolledUpSpending.value.categoryIds.flatMap((categoryId, index) =>
+        categoryId !== null && rolledUpSpending.value.drillable[index]
+            ? [{ categoryId, label: rolledUpSpending.value.labels[index] }]
+            : [],
+    ),
+);
+
+function drillIntoBar(index: number): void {
+    if (drilledCategoryId.value !== null) {
+        return;
+    }
+
+    const categoryId = rolledUpSpending.value.categoryIds[index] ?? null;
+
+    if (categoryId !== null && rolledUpSpending.value.drillable[index]) {
+        drilledCategoryId.value = categoryId;
+    }
+}
+
+// A new range or filter can leave the open parent with nothing inside it.
+watch(drillTargets, (targets) => {
+    if (
+        drilledCategoryId.value !== null &&
+        !targets.some(
+            ({ categoryId }) => categoryId === drilledCategoryId.value,
+        )
+    ) {
+        drilledCategoryId.value = null;
+    }
 });
 
 /** True once both totals have a real number behind them, so the narrative
@@ -1032,12 +1190,12 @@ const reportHeadline = computed(() => {
  *  spending category and its share — rather than a generic restatement of
  *  the totals already on screen above it. */
 const reportBody = computed(() => {
-    if (topSpending.value.labels.length === 0) {
+    if (rolledUpSpending.value.labels.length === 0) {
         return t('finance.reports.read_body_no_spending');
     }
 
-    const topLabel = topSpending.value.labels[0];
-    const topValue = topSpending.value.values[0] ?? 0;
+    const topLabel = rolledUpSpending.value.labels[0];
+    const topValue = rolledUpSpending.value.values[0] ?? 0;
     const totalCost = costTotal.value ?? 0;
     const percent =
         totalCost > 0 ? Math.round((topValue / totalCost) * 100) : 0;

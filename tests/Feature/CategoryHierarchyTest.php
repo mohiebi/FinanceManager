@@ -330,3 +330,49 @@ test('the vault payload hands each line the ids it owns', function () {
         ->and($payload['lines'][1]['category_ids'])->toBe([$restaurant->id])
         ->and($payload['lines'][2]['category_ids'])->toEqualCanonicalizing([$food->id, $cafe->id, $restaurant->id]);
 });
+
+// ── Bulk assign across both tables ─────────────────────────────────────
+
+test('a mixed cost and income selection takes a shared category in one go', function () {
+    $user = User::factory()->create();
+    $gift = Category::factory()->cost()->forUser($user)->forBothTypes()->create(['name' => 'Gift']);
+    $cost = spend($user, defaultFood(), 100);
+    $income = spend($user, Category::factory()->income()->create(['name' => 'Salary']), 500, TransactionType::Income);
+
+    $this->actingAs($user)
+        ->patch(route('transactions.update-bulk-category'), [
+            'ids' => [$cost->id, $income->id],
+            'category_id' => $gift->id,
+        ])
+        ->assertRedirect();
+
+    expect($cost->fresh()->category_id)->toBe($gift->id)
+        ->and($income->fresh()->category_id)->toBe($gift->id);
+});
+
+test('a mixed selection refuses a category that fits only one type', function () {
+    $user = User::factory()->create();
+    $food = defaultFood();
+    $cost = spend($user, $food, 100);
+    $income = spend($user, Category::factory()->income()->create(['name' => 'Salary']), 500, TransactionType::Income);
+
+    $this->actingAs($user)
+        ->patch(route('transactions.update-bulk-category'), [
+            'ids' => [$cost->id, $income->id],
+            'category_id' => Category::factory()->cost()->create(['name' => 'Transport'])->id,
+        ])
+        ->assertStatus(422);
+
+    expect($cost->fresh()->category_id)->toBe($food->id);
+});
+
+test('a mixed selection has to name a category', function () {
+    $user = User::factory()->create();
+    $cost = spend($user, defaultFood(), 100);
+
+    // No type and no category would otherwise clear the category off every
+    // row in the selection, whatever table it came from.
+    $this->actingAs($user)
+        ->patch(route('transactions.update-bulk-category'), ['ids' => [$cost->id]])
+        ->assertSessionHasErrors('category_id');
+});

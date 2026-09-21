@@ -669,7 +669,8 @@ class TransactionController extends Controller
     }
 
     /**
-     * Bulk-reassign a category on transactions of a single type.
+     * Bulk-reassign a category on transactions of one type — or of both, when
+     * the category is shared across types.
      */
     public function updateBulkCategory(Request $request): RedirectResponse
     {
@@ -678,17 +679,23 @@ class TransactionController extends Controller
         $validated = $request->validate([
             'ids' => ['required', 'array', 'min:1', 'max:200'],
             'ids.*' => ['integer'],
-            'type' => ['required', 'string', Rule::in($typeValues)],
-            'category_id' => ['nullable', 'integer'],
+            // Absent for a selection that spans both tables. Only a shared
+            // category fits both, so one has to be named for that case.
+            'type' => ['nullable', 'string', Rule::in($typeValues)],
+            'category_id' => ['nullable', 'integer', Rule::requiredIf(blank($request->input('type')))],
         ]);
 
+        $type = TransactionType::tryFrom((string) ($validated['type'] ?? ''));
         $categoryId = $validated['category_id'] ?? null;
 
         if ($categoryId !== null) {
-            $type = TransactionType::tryFrom($validated['type']);
             $exists = Category::query()
                 ->availableFor($request->user())
-                ->when($type !== null, fn (Builder $q) => $q->forType($type))
+                ->when(
+                    $type instanceof TransactionType,
+                    fn (Builder $q) => $q->forType($type),
+                    fn (Builder $q) => $q->where('for_both_types', true),
+                )
                 ->whereKey($categoryId)
                 ->exists();
 
@@ -699,7 +706,7 @@ class TransactionController extends Controller
 
         $request->user()->transactions()
             ->whereIn('id', $validated['ids'])
-            ->where('type', $validated['type'])
+            ->when($type instanceof TransactionType, fn (Builder $q) => $q->where('type', $type))
             ->update(['category_id' => $categoryId]);
 
         return back();

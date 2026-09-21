@@ -316,3 +316,22 @@ test('list-pending-proposals shows only the user\'s unexpired pending proposals'
             ->where('proposals.0.proposal_id', $pending->id)
             ->etc());
 });
+
+test('a category proposal can place the new category under a parent', function () {
+    $user = User::factory()->withModules()->create();
+    $food = Category::factory()->cost()->create(['name' => 'Food']);
+
+    FinanceServer::actingAs($user)
+        ->tool(ProposeCategoryTool::class, [
+            'type' => 'cost',
+            'name' => 'Coffee',
+            'parent_id' => $food->id,
+        ])
+        ->assertOk();
+
+    FinanceServer::actingAs($user)
+        ->tool(ConfirmProposalTool::class, ['proposal_id' => McpProposal::query()->sole()->id])
+        ->assertOk();
+
+    expect(Category::query()->where('user_id', $user->id)->sole()->parent_id)->toBe($food->id);
+});

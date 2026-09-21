@@ -305,13 +305,16 @@ class ImportTransactions
             $errors[] = 'Description may not be greater than 5000 characters.';
         }
 
-        $categoryName = trim($values['category']);
-        $category = $type instanceof TransactionType
-            ? $this->normalizeCategory($values['category'], $type, $categories)
-            : null;
+        $resolved = $type instanceof TransactionType
+            ? $this->resolveCategory($values['category'], $type, $categories)
+            : ['category' => null, 'name' => trim($values['category']), 'parent' => null];
+        $category = $resolved['category'];
+        $categoryName = $resolved['name'];
 
         if ($categoryName === '') {
             $errors[] = 'Category is required.';
+        } elseif (! $category instanceof Category && $resolved['parent'] instanceof Category) {
+            $warnings[] = "A custom subcategory will be created under {$resolved['parent']->name}.";
         } elseif (! $category instanceof Category) {
             $warnings[] = 'A custom category will be created for this user.';
         }
@@ -341,6 +344,7 @@ class ImportTransactions
             'type' => $type->value,
             'category_id' => $category?->id,
             'category_name' => $category instanceof Category ? null : $categoryName,
+            'category_parent_id' => $category instanceof Category ? null : $resolved['parent']?->id,
             'amount' => number_format((float) $amount, 2, '.', ''),
             'currency' => $currency,
             'title' => $title,
@@ -354,7 +358,10 @@ class ImportTransactions
             'original' => $values,
             'data' => [
                 ...$data,
-                'category' => $category?->name ?? $categoryName,
+                'category' => $category?->pathName()
+                    ?? ($resolved['parent'] instanceof Category
+                        ? $resolved['parent']->name.Category::PATH_SEPARATOR.$categoryName
+                        : $categoryName),
                 'category_is_new' => ! $category instanceof Category,
             ],
             'errors' => [],
@@ -444,19 +451,61 @@ class ImportTransactions
     }
 
     /**
+     * A category cell, which may name a subcategory as "Parent › Child".
+     *
+     * The child's own name wins wherever it already exists, since names are
+     * unique within a type. Only a child that does not exist yet needs the
+     * parent, to know where to create it — and only a top-level parent can
+     * take one.
+     *
+     * @param  array<string, array<string, Category>>  $categories
+     * @return array{category: Category|null, name: string, parent: Category|null}
+     */
+    private function resolveCategory(string $value, TransactionType $type, array $categories): array
+    {
+        $parts = preg_split('/\s*[›>]\s*/u', trim($value), 2) ?: [trim($value)];
+
+        if (count($parts) === 2 && $parts[0] !== '' && $parts[1] !== '') {
+            [$parentName, $childName] = $parts;
+            $child = $this->normalizeCategory($childName, $type, $categories);
+
+            if ($child instanceof Category) {
+                return ['category' => $child, 'name' => $childName, 'parent' => null];
+            }
+
+            $parent = $this->normalizeCategory($parentName, $type, $categories);
+
+            return [
+                'category' => null,
+                'name' => $childName,
+                'parent' => $parent?->parent_id === null ? $parent : null,
+            ];
+        }
+
+        $name = trim($value);
+
+        return ['category' => $this->normalizeCategory($name, $type, $categories), 'name' => $name, 'parent' => null];
+    }
+
+    /**
+     * An exact name is checked before the aliases: the aliases file whole
+     * families under a default ("رستوران" → Food), which would otherwise send
+     * rows for the user's own Restaurant subcategory to its parent.
+     *
      * @param  array<string, array<string, Category>>  $categories
      */
     private function normalizeCategory(string $value, TransactionType $type, array $categories): ?Category
     {
         $normalized = $this->normalizeText($value);
         $typeCategories = $categories[$type->value] ?? [];
-        $slug = $this->categoryAliasSlug($normalized, $type);
 
-        if ($slug !== null && isset($typeCategories[$slug])) {
-            return $typeCategories[$slug];
+        if (isset($typeCategories[$normalized])) {
+            return $typeCategories[$normalized];
         }
 
-        return $typeCategories[$normalized] ?? null;
+        $slug = $this->categoryAliasSlug($normalized, $type);
+
+        return $slug !== null ? ($typeCategories[$slug] ?? null) : null;
     }
 
     private function categoryAliasSlug(string $value, TransactionType $type): ?string
@@ -562,6 +611,7 @@ class ImportTransactions
 
         Category::query()
             ->availableFor($user)
+            ->with('parent:id,name')
             ->get()
             ->each(function (Category $category) use (&$categories): void {
                 foreach ($category->allowedTypes() as $type) {
@@ -581,7 +631,7 @@ class ImportTransactions
     private function resolveImportCategory(User $user, array $row): array
     {
         if (isset($row['category_id']) && $row['category_id'] !== null) {
-            unset($row['category_name']);
+            unset($row['category_name'], $row['category_parent_id']);
 
             return $row;
         }
@@ -597,13 +647,33 @@ class ImportTransactions
             [
                 'name' => $categoryName,
                 'is_default' => false,
+                'parent_id' => $this->importParentId($user, $type, $row['category_parent_id'] ?? null),
             ],
         );
 
         $row['category_id'] = $category->id;
-        unset($row['category_name']);
+        unset($row['category_name'], $row['category_parent_id']);
 
         return $row;
+    }
+
+    /**
+     * The parent chosen at preview time, re-checked at import: the preview
+     * can sit a while, and in the meantime the parent may have gone or have
+     * become a subcategory itself. Anything no longer valid imports top-level.
+     */
+    private function importParentId(User $user, TransactionType $type, mixed $parentId): ?int
+    {
+        if ($parentId === null) {
+            return null;
+        }
+
+        $parent = Category::query()
+            ->availableFor($user)
+            ->whereNull('parent_id')
+            ->find((int) $parentId);
+
+        return $parent instanceof Category && $parent->allowsType($type) ? $parent->id : null;
     }
 
     private function categorySlug(string $value): string
@@ -695,6 +765,8 @@ class ImportTransactions
             'type' => $data['type'],
             'category_id' => $data['category_id'],
             'category_name' => $data['category_name'],
+            // Absent on previews saved before subcategories existed.
+            'category_parent_id' => $data['category_parent_id'] ?? null,
             'amount' => $data['amount'],
             'currency' => $data['currency'],
             'title' => $data['title'],

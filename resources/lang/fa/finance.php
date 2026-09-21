@@ -354,6 +354,7 @@ return [
         'top_spending' => 'بیشترین هزینه‌ها',
         'net_savings' => 'خالص پس‌انداز',
         'by_category' => 'به تفکیک دسته',
+        'break_down' => 'جزئیات:',
         'by_day' => 'روزانه',
         'by_month' => 'ماهانه',
         'read_eyebrow' => 'خلاصه',

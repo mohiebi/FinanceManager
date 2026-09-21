@@ -110,6 +110,8 @@ class ApplyFinanceChangesTool extends Tool
                     'description' => $schema->string()->description('Optional transaction description.'),
                     'occurred_at' => $schema->string()->description('Transaction or investment date (YYYY-MM-DD). Pass Gregorian or Jalali dates unchanged.'),
                     'name' => $schema->string()->description('New category or custom asset name.'),
+                    'parent_id' => $schema->integer()->description('New category only: optional parent category id to create it as a subcategory. One level only — the parent must be top-level and allow the category\'s type.'),
+                    'for_both_types' => $schema->boolean()->description('New category only: optional, make it usable for both costs and income.'),
                     'recurrence_type' => $schema->string()->enum(['one_time', 'monthly'])->description('Bill recurrence.'),
                     'due_day_of_month' => $schema->integer()->description('Monthly bill due day (1-31).'),
                     'due_date' => $schema->string()->description('One-time bill due date (Gregorian or Jalali YYYY-MM-DD).'),

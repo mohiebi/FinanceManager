@@ -7,6 +7,7 @@ use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -79,6 +80,56 @@ class Category extends Model
     public function allowsType(TransactionType $type): bool
     {
         return in_array($type, $this->allowedTypes(), true);
+    }
+
+    /**
+     * Separates a parent from its subcategory when a category is written as
+     * one string — in a flat list, or in an imported CSV row.
+     */
+    public const PATH_SEPARATOR = ' › ';
+
+    /**
+     * The name with its parent in front, e.g. "Food › Restaurant", for places
+     * that list categories flat: a Telegram keyboard, an MCP result, an import
+     * preview.
+     *
+     * The stored names, not translated ones — the MCP contract reproduces
+     * names exactly as stored. A subcategory needs `parent` eager-loaded.
+     */
+    public function pathName(): string
+    {
+        if ($this->parent_id === null) {
+            return $this->name;
+        }
+
+        return $this->parent->name.self::PATH_SEPARATOR.$this->name;
+    }
+
+    /**
+     * Parents each directly followed by their own subcategories, keeping the
+     * incoming order within each level. The server-side twin of the
+     * browser's orderByParent().
+     *
+     * @param  Collection<int, Category>  $categories
+     * @return Collection<int, Category>
+     */
+    public static function orderedByParent(Collection $categories): Collection
+    {
+        $present = $categories->pluck('id')->all();
+        $childrenOf = $categories
+            ->filter(fn (Category $category): bool => $category->parent_id !== null && in_array($category->parent_id, $present, true))
+            ->groupBy('parent_id');
+
+        // flatMap() hands back a base collection; rewrapped so callers keep
+        // the Eloquent one they passed in.
+        return new Collection($categories
+            ->filter(fn (Category $category): bool => $category->parent_id === null || ! in_array($category->parent_id, $present, true))
+            ->flatMap(fn (Category $parent): array => [
+                $parent,
+                ...($childrenOf->get($parent->id)?->all() ?? []),
+            ])
+            ->values()
+            ->all());
     }
 
     /**
@@ -186,6 +237,7 @@ class Category extends Model
     {
         return [
             'type' => TransactionType::class,
+            'parent_id' => 'integer',
             'for_both_types' => 'boolean',
             'is_default' => 'boolean',
             'sort_order' => 'integer',

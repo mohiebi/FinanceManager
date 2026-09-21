@@ -57,6 +57,20 @@ export function orderByParent<T extends HierarchicalCategory>(
 }
 
 /**
+ * The top-level category a spend rolls up to: its parent, or itself when it
+ * has none. A parent missing from the lookup leaves the category standing on
+ * its own rather than dropping its spending.
+ */
+export function topLevelOf<T extends HierarchicalCategory>(
+    category: T,
+    byId: ReadonlyMap<number, T>,
+): T {
+    return category.parent_id === null
+        ? category
+        : (byId.get(category.parent_id) ?? category);
+}
+
+/**
  * Four no-break spaces, written as an escape so they cannot be mistaken for
  * (and "tidied" into) ordinary ones, which collapse inside option text.
  */

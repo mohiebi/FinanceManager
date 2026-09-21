@@ -1082,19 +1082,22 @@ class TelegramHandler extends WebhookHandler
         $wizard['step'] = 'category';
         $this->chat->storage()->set('bill_wizard', $wizard);
 
-        $categories = Category::query()
-            ->availableFor($user)
-            ->forType(TransactionType::Cost)
-            ->orderByDesc('is_default')
-            ->orderBy('name')
-            ->get();
+        $categories = Category::orderedByParent(
+            Category::query()
+                ->availableFor($user)
+                ->forType(TransactionType::Cost)
+                ->with('parent:id,name')
+                ->orderByDesc('is_default')
+                ->orderBy('name')
+                ->get(),
+        );
 
         $keyboard = Keyboard::make()
             ->button(__('telegram.buttons.no_category'))->action('bill_pick_category')->param('cat_id', '0')->width(1);
 
         foreach ($categories as $category) {
             $keyboard = $keyboard
-                ->button($category->name)
+                ->button($category->pathName())
                 ->action('bill_pick_category')
                 ->param('cat_id', (string) $category->id)
                 ->width(0.5);
@@ -1364,17 +1367,22 @@ class TelegramHandler extends WebhookHandler
         $this->chat->storage()->set('wizard', $wizard);
 
         $type = TransactionType::from($wizard['type']);
-        $categories = Category::query()
-            ->availableFor($user)
-            ->forType($type)
-            ->orderBy('is_default', 'desc')
-            ->orderBy('name')
-            ->get();
+        // Parents first with their subcategories after them, each labelled
+        // with its parent: a flat keyboard has no indent to show nesting.
+        $categories = Category::orderedByParent(
+            Category::query()
+                ->availableFor($user)
+                ->forType($type)
+                ->with('parent:id,name')
+                ->orderBy('is_default', 'desc')
+                ->orderBy('name')
+                ->get(),
+        );
 
         $keyboard = Keyboard::make();
         foreach ($categories as $category) {
             $keyboard = $keyboard
-                ->button($category->name)
+                ->button($category->pathName())
                 ->action('pick_category')
                 ->param('cat_id', (string) $category->id)
                 ->width(0.5);

@@ -529,6 +529,7 @@ import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
 import { usePageSubtitle } from '@/composables/usePageSubtitle';
 import { useVaultPortfolio } from '@/composables/useVaultPortfolio';
 import type { VaultPortfolioPayload } from '@/composables/useVaultPortfolio';
+import { topLevelOf } from '@/lib/categories';
 import { dayOfMonthInCalendar, formatAppDate } from '@/lib/date';
 import { intlLocale, localizeDigits } from '@/lib/locale';
 import { formatCurrencyDisplay } from '@/lib/money';
@@ -552,6 +553,8 @@ type Category = {
     name: string;
     slug: string;
     type: TransactionType;
+    for_both_types: boolean;
+    parent_id: number | null;
     color: string | null;
     is_default: boolean;
 };
@@ -872,21 +875,34 @@ const chartPalette = [
     '#52525b',
 ];
 
-// This month's costs grouped by category — top 5 plus an "other" bucket.
-// Coloured by the category's own colour when it has one (matching the chip
-// on Transactions/Report), and only falling back to the palette rotation for
-// categories nobody has coloured, so the same category reads the same
-// colour everywhere in the app rather than shifting with sort order.
+const categoriesById = computed(
+    () =>
+        new Map(
+            [...props.categories.cost, ...props.categories.income].map(
+                (category) => [category.id, category],
+            ),
+        ),
+);
+
+// This month's costs grouped by top-level category — a subcategory counts
+// toward its parent, so Food is one slice rather than Food plus Restaurant —
+// top 5 plus an "other" bucket. Coloured by the category's own colour when
+// it has one (matching the chip on Transactions/Report), and only falling
+// back to the palette rotation for categories nobody has coloured, so the
+// same category reads the same colour everywhere in the app rather than
+// shifting with sort order.
 const categoryBreakdown = computed(() => {
     const totals = new Map<string, { value: number; color: string | null }>();
 
     for (const transaction of props.transactions.costs) {
-        const name = categoryName(transaction);
+        const own = findCategory(transaction);
+        const top = own === null ? null : topLevelOf(own, categoriesById.value);
+        const name = top?.name ?? t('finance.categories.uncategorized');
         const existing = totals.get(name);
 
         totals.set(name, {
             value: (existing?.value ?? 0) + amountOf(transaction),
-            color: existing?.color ?? categoryColor(transaction),
+            color: existing?.color ?? top?.color ?? null,
         });
     }
 
@@ -993,15 +1009,5 @@ function findCategory(transaction: Transaction): Category | null {
             (category) => category.id === transaction.category_id,
         ) ?? null
     );
-}
-
-function categoryName(transaction: Transaction): string {
-    return (
-        findCategory(transaction)?.name ?? t('finance.categories.uncategorized')
-    );
-}
-
-function categoryColor(transaction: Transaction): string | null {
-    return findCategory(transaction)?.color ?? null;
 }
 </script>

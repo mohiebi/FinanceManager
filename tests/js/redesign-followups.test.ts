@@ -257,9 +257,18 @@ test('transactions can be batch-selected for group edit and delete', () => {
     assert.match(transactions, /router\.patch\(\s*updateBulkCategory\.url\(\)/);
     assert.doesNotMatch(transactions, /'\/transactions\/bulk/);
 
-    // A mixed cost+income selection has no single type to send, so the
-    // category control is replaced by an explanation instead of submitting.
-    assert.match(transactions, /v-if="selectionType !== null"/);
+    // A mixed cost+income selection can only take a category shared across
+    // types, sent with no type at all; with none shared, the control gives
+    // way to an explanation instead of submitting.
+    assert.match(transactions, /v-if="bulkCategories\.length > 0"/);
+    assert.match(
+        transactions,
+        /\.filter\(\(category\) => category\.for_both_types\)/,
+    );
+    assert.match(
+        transactions,
+        /type === null\s*\?\s*\[\.\.\.selectedCostIds\.value, \.\.\.selectedIncomeIds\.value\]/,
+    );
     assert.match(transactions, /t\('finance\.transactions\.bulk_type_mixed'\)/);
 });
 

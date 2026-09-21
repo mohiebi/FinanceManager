@@ -291,3 +291,26 @@ test('the add-bill wizard accepts an amount typed in persian digits', function (
         // The title keeps its own script: only numeric fields are converted.
         ->and($bill->title)->toBe("\u{0642}\u{0628}\u{0636} \u{0628}\u{0631}\u{0642}");
 });
+
+test('the category keyboard lists subcategories after their parent, labelled with it', function () {
+    $user = User::factory()->withModules()->create(['telegram_chat_id' => '555333']);
+    $food = Category::factory()->cost()->create(['name' => 'Food']);
+    Category::factory()->cost()->create(['name' => 'Transport']);
+    Category::factory()->forUser($user)->childOf($food)->create(['name' => 'Restaurant']);
+
+    $handler = telegramHandlerFor($user);
+    $handler->add_bill();
+    sendBillWizardText($handler, 'Dinner out');
+    sendBillWizardText($handler, '500000');
+    $handler->bill_pick_currency('toman');
+
+    // The last message sent is the category keyboard.
+    $markup = Http::recorded()->last()[0]->data()['reply_markup'] ?? [];
+    $markup = is_string($markup) ? json_decode($markup, true) : $markup;
+    $labels = collect($markup['inline_keyboard'] ?? [])->flatten(1)->pluck('text')->values()->all();
+
+    // A flat keyboard has no indent, so the parent's name carries the nesting.
+    expect($labels)->toContain('Food › Restaurant')
+        ->and(array_search('Food › Restaurant', $labels, true))
+        ->toBe(array_search('Food', $labels, true) + 1);
+});

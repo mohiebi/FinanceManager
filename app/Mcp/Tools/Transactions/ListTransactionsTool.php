@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools\Transactions;
 
 use App\Enums\TransactionType;
+use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\CalendarDates;
@@ -43,11 +44,15 @@ class ListTransactionsTool extends Tool
         ]);
 
         $query = $user->transactions()
-            ->with('category')
+            ->with('category.parent:id,name')
             ->when($validated['from_date'] ?? null, fn ($query, $date) => $query->whereDate('occurred_at', '>=', $date))
             ->when($validated['to_date'] ?? null, fn ($query, $date) => $query->whereDate('occurred_at', '<=', $date))
             ->when($validated['type'] ?? null, fn ($query, $type) => $query->where('type', $type))
-            ->when($validated['category_id'] ?? null, fn ($query, $categoryId) => $query->where('category_id', $categoryId))
+            // A parent stands for its whole family, as the app's own filter does.
+            ->when($validated['category_id'] ?? null, fn ($query, $categoryId) => $query->whereIn(
+                'category_id',
+                Category::familiesFor($user, [(int) $categoryId])[(int) $categoryId],
+            ))
             ->orderByDesc('occurred_at')
             ->orderByDesc('id');
 
@@ -79,6 +84,7 @@ class ListTransactionsTool extends Tool
                 'type' => $transaction->type->value,
                 'category_id' => $transaction->category_id,
                 'category' => $transaction->category?->name,
+                'category_path' => $transaction->category?->pathName(),
                 'occurred_at' => $transaction->occurred_at->toDateString(),
                 'occurred_at_jalali' => $isJalali
                     ? CalendarDates::toJalali($transaction->occurred_at)
@@ -99,7 +105,7 @@ class ListTransactionsTool extends Tool
             'from_date' => $schema->string()->description('Only include transactions on or after this date (YYYY-MM-DD). Gregorian or Jalali — Jalali years (1100-1599) are auto-detected and converted server-side; pass the user\'s Jalali dates unchanged.'),
             'to_date' => $schema->string()->description('Only include transactions on or before this date (YYYY-MM-DD). Gregorian or Jalali, auto-detected.'),
             'type' => $schema->string()->enum(['cost', 'income'])->description('Filter by transaction type.'),
-            'category_id' => $schema->integer()->description('Filter by category id (see list-categories).'),
+            'category_id' => $schema->integer()->description('Filter by category id (see list-categories). A parent category includes its subcategories.'),
             'search' => $schema->string()->description('Free-text search over title and description.'),
             'page' => $schema->integer()->description('Page number, starting at 1.'),
             'per_page' => $schema->integer()->description('Results per page (max 50, default 25).'),

@@ -4,6 +4,7 @@ namespace App\Mcp\Support;
 
 use App\Actions\Bills\MarkBillOccurrencePaid;
 use App\Actions\Bills\SaveBill;
+use App\Actions\Categories\CreateCategory;
 use App\Actions\Investments\SaveInvestment;
 use App\Actions\Transactions\SaveTransaction;
 use App\Enums\AssetClass;
@@ -12,7 +13,6 @@ use App\Enums\InvestmentAssetPriceSource;
 use App\Enums\TransactionType;
 use App\Exceptions\FeatureDisabledException;
 use App\Models\Bill;
-use App\Models\Category;
 use App\Models\Investment;
 use App\Models\InvestmentAsset;
 use App\Models\Transaction;
@@ -32,6 +32,7 @@ class FinanceMutationApplier
         private readonly SaveBill $saveBill,
         private readonly SaveInvestment $saveInvestment,
         private readonly MarkBillOccurrencePaid $markBillOccurrencePaid,
+        private readonly CreateCategory $createCategory,
     ) {}
 
     /**
@@ -110,27 +111,11 @@ class FinanceMutationApplier
         $validated = $this->validate($operation, [
             'type' => ['required', Rule::enum(TransactionType::class)],
             'name' => ['required', 'string', 'max:100'],
+            'parent_id' => ['nullable', 'integer'],
+            'for_both_types' => ['nullable', 'boolean'],
         ]);
 
-        $name = trim($validated['name']);
-
-        $exists = Category::query()
-            ->availableFor($user)
-            ->forType(TransactionType::from($validated['type']))
-            ->where('slug', Category::slugForName($name))
-            ->exists();
-
-        if ($exists) {
-            throw new InvalidArgumentException('A category with this name already exists for this type.');
-        }
-
-        $category = Category::query()->create([
-            'user_id' => $user->id,
-            'type' => $validated['type'],
-            'name' => $name,
-        ]);
-
-        return ['category_id' => $category->id];
+        return ['category_id' => $this->createCategory->handle($user, $validated)->id];
     }
 
     /**

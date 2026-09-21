@@ -22,7 +22,7 @@ class TransactionController extends Controller
     {
         $transactions = $request->user()
             ->transactions()
-            ->with('category:id,name,slug,type,color,is_default')
+            ->with('category:id,parent_id,name,slug,type,for_both_types,color,is_default')
             ->when(
                 TransactionType::tryFrom((string) $request->query('type')),
                 fn ($query, TransactionType $type) => $query->where('type', $type->value),
@@ -41,7 +41,7 @@ class TransactionController extends Controller
     {
         $transaction = $saveTransaction->handle($request->user(), $request->transactionData());
 
-        return (new TransactionResource($transaction->load('category:id,name,slug,type,color,is_default')))
+        return (new TransactionResource($transaction->load('category:id,parent_id,name,slug,type,for_both_types,color,is_default')))
             ->additional(['message' => 'Transaction created.']);
     }
 
@@ -50,7 +50,7 @@ class TransactionController extends Controller
      */
     public function show(Request $request, Transaction $transaction): TransactionResource
     {
-        return new TransactionResource($transaction->load('category:id,name,slug,type,color,is_default'));
+        return new TransactionResource($transaction->load('category:id,parent_id,name,slug,type,for_both_types,color,is_default'));
     }
 
     /**
@@ -63,7 +63,7 @@ class TransactionController extends Controller
     ): TransactionResource {
         $transaction = $saveTransaction->handle($request->user(), $request->transactionData(), $transaction);
 
-        return (new TransactionResource($transaction->load('category:id,name,slug,type,color,is_default')))
+        return (new TransactionResource($transaction->load('category:id,parent_id,name,slug,type,for_both_types,color,is_default')))
             ->additional(['message' => 'Transaction updated.']);
     }
 

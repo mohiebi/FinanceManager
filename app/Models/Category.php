@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['user_id', 'type', 'name', 'slug', 'color', 'sort_order', 'is_default'])]
+#[Fillable(['user_id', 'parent_id', 'type', 'for_both_types', 'name', 'slug', 'color', 'sort_order', 'is_default'])]
 class Category extends Model
 {
     /** @use HasFactory<CategoryFactory> */
@@ -63,6 +63,57 @@ class Category extends Model
         return 'category-'.substr(sha1(mb_strtolower(trim($name))), 0, 16);
     }
 
+    /**
+     * The transaction types this category may be used for.
+     *
+     * `type` is the home type; a shared category is usable for both, while
+     * still listed and uniquely named under its home type.
+     *
+     * @return array<int, TransactionType>
+     */
+    public function allowedTypes(): array
+    {
+        return $this->for_both_types ? TransactionType::cases() : [$this->type];
+    }
+
+    public function allowsType(TransactionType $type): bool
+    {
+        return in_array($type, $this->allowedTypes(), true);
+    }
+
+    /**
+     * A category's ids plus its children's, for anything that treats a parent
+     * as the whole family — the transaction filter and a budget line on it.
+     *
+     * Children are scoped to the user: a shared default parent such as Food
+     * has other people's subcategories under it too.
+     *
+     * @param  array<int, int>  $categoryIds
+     * @return array<int, array<int, int>> parent id => [itself, ...its children]
+     */
+    public static function familiesFor(User $user, array $categoryIds): array
+    {
+        $families = [];
+
+        foreach ($categoryIds as $categoryId) {
+            $families[(int) $categoryId] = [(int) $categoryId];
+        }
+
+        if ($families === []) {
+            return [];
+        }
+
+        self::query()
+            ->availableFor($user)
+            ->whereIn('parent_id', array_keys($families))
+            ->get(['id', 'parent_id'])
+            ->each(function (Category $child) use (&$families): void {
+                $families[(int) $child->parent_id][] = (int) $child->id;
+            });
+
+        return $families;
+    }
+
     public function resolvedColor(): ?string
     {
         if ($this->color !== null) {
@@ -81,11 +132,40 @@ class Category extends Model
     }
 
     /**
+     * @return BelongsTo<Category, Category>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    /**
+     * @return HasMany<Category, Category>
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id');
+    }
+
+    /**
      * @return HasMany<Transaction, Category>
      */
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    /**
+     * Categories a transaction of this type may use: its own type's, plus
+     * every shared one whatever its home type.
+     */
+    #[Scope]
+    protected function forType(Builder $query, TransactionType $type): void
+    {
+        $query->where(function (Builder $query) use ($type): void {
+            $query->where('type', $type)
+                ->orWhere('for_both_types', true);
+        });
     }
 
     #[Scope]
@@ -106,6 +186,7 @@ class Category extends Model
     {
         return [
             'type' => TransactionType::class,
+            'for_both_types' => 'boolean',
             'is_default' => 'boolean',
             'sort_order' => 'integer',
         ];

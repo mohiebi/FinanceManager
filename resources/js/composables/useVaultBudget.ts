@@ -257,6 +257,8 @@ export function useVaultBudget(
 /**
  * Mirrors BuildBudgetProgress::spentOn.
  *
+ * A category line owns every id the server resolved for it — a parent's own
+ * plus its unclaimed children — so all of them are summed, not just the first.
  * A remainder line takes every cost no other line claimed, including rows with
  * no category at all — which is why the map is keyed by `number | null`.
  */
@@ -266,7 +268,11 @@ function spentOn(
     spentByCategory: Map<number | null, number>,
 ): number {
     if (line.rule_type !== 'remainder') {
-        return spentByCategory.get(line.category_ids[0] ?? null) ?? 0;
+        return line.category_ids.reduce(
+            (total, categoryId) =>
+                total + (spentByCategory.get(categoryId) ?? 0),
+            0,
+        );
     }
 
     let total = 0;

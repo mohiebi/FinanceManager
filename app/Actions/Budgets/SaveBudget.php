@@ -253,7 +253,7 @@ class SaveBudget
             ->availableFor($user)
             // Income categories are what fills a budget, not what a line can
             // spend against — a plan line pointed at one could never progress.
-            ->where('type', TransactionType::Cost)
+            ->forType(TransactionType::Cost)
             ->whereIn('id', $categoryIds)
             ->pluck('id')
             ->all();

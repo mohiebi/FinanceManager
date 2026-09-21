@@ -9,6 +9,7 @@ use App\Enums\BudgetRuleType;
 use App\Enums\TransactionType;
 use App\Models\Budget;
 use App\Models\BudgetLine;
+use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\AssetPriceService;
@@ -57,9 +58,10 @@ class BuildBudgetProgress
         );
 
         $income = $this->incomeFor($budget, $readable);
-        $claimedCategoryIds = $this->claimedCategoryIds($budget);
+        $ownedCategoryIds = $this->ownedCategoryIds($user, $budget);
+        $claimedCategoryIds = $this->claimedCategoryIds($ownedCategoryIds);
 
-        $lines = $budget->lines->map(fn (BudgetLine $line): array => [
+        $lines = $budget->lines->values()->map(fn (BudgetLine $line, int $index): array => [
             'rule' => $line->rule_type->value,
             'percent' => (float) ($line->percent ?? 0),
             // Converted into the budget's currency: a line written in dollars
@@ -72,7 +74,7 @@ class BuildBudgetProgress
                     $line->currencyWithin($budget),
                     $budget->currency,
                 ),
-            'actual' => $this->spentOn($budget, $line, $readable, $claimedCategoryIds),
+            'actual' => $this->spentOn($budget, $line, $readable, $claimedCategoryIds, $ownedCategoryIds[$index]),
         ])->values()->all();
 
         $allowances = BudgetMath::compute($income, $lines);
@@ -99,12 +101,13 @@ class BuildBudgetProgress
     {
         $period = $this->period($user, $today);
         $transactions = $this->transactionsFor($user, $period);
-        $claimedCategoryIds = $this->claimedCategoryIds($budget);
+        $ownedCategoryIds = $this->ownedCategoryIds($user, $budget);
+        $claimedCategoryIds = $this->claimedCategoryIds($ownedCategoryIds);
 
         return [
             ...$this->presentation($budget, $period),
             'expected_income' => $budget->expected_income,
-            'lines' => $budget->lines->map(fn (BudgetLine $line): array => [
+            'lines' => $budget->lines->values()->map(fn (BudgetLine $line, int $index): array => [
                 ...$this->linePresentation($line),
                 'fixed_amount' => $line->fixed_amount,
                 // The currency is not a secret, only the amount is — so the
@@ -113,7 +116,9 @@ class BuildBudgetProgress
                 // Which rows this line owns, resolved server-side: category
                 // assignment is not a secret, and working it out here keeps the
                 // "everything not claimed above" rule in one place.
-                'category_ids' => $this->categoryIdsFor($line, $claimedCategoryIds),
+                'category_ids' => $line->rule_type === BudgetRuleType::Remainder
+                    ? $claimedCategoryIds
+                    : $ownedCategoryIds[$index],
             ])->all(),
             'transactions' => $transactions->map(fn (Transaction $transaction): array => [
                 'id' => $transaction->id,
@@ -255,12 +260,14 @@ class BuildBudgetProgress
      *
      * @param  Collection<int, Transaction>  $transactions
      * @param  array<int, int>  $claimedCategoryIds
+     * @param  array<int, int>  $ownedCategoryIds  this line's own, see {@see self::ownedCategoryIds()}
      */
     private function spentOn(
         Budget $budget,
         BudgetLine $line,
         Collection $transactions,
         array $claimedCategoryIds,
+        array $ownedCategoryIds,
     ): float {
         $costs = $transactions->where('type', TransactionType::Cost);
 
@@ -280,38 +287,61 @@ class BuildBudgetProgress
                 $claimedCategoryIds,
                 true,
             ))
-            : $costs->where('category_id', $line->category_id);
+            : $costs->whereIn('category_id', $ownedCategoryIds);
 
         return $this->sum($budget, $matching);
     }
 
     /**
-     * Category ids a line owns, for the browser to filter on.
+     * The categories each line owns, keyed by the line's position.
      *
-     * A remainder line owns none of them and is instead identified by the
-     * `remainder` rule — the browser subtracts the claimed set, the same way
-     * {@see self::spentOn()} does.
+     * A line on a parent owns its children too, except a child another line
+     * is pointed at: the most specific line wins. So a Restaurant line inside
+     * a budget with a Food line takes restaurant spending and Food keeps the
+     * rest — every transaction lands in exactly one line, which is what the
+     * remainder line's "everything not claimed" depends on.
      *
-     * @param  array<int, int>  $claimedCategoryIds
-     * @return array<int, int>
+     * A remainder line owns nothing here; it is defined by the claimed set.
+     *
+     * @return array<int, array<int, int>> line index => category ids
      */
-    private function categoryIdsFor(BudgetLine $line, array $claimedCategoryIds): array
+    private function ownedCategoryIds(User $user, Budget $budget): array
     {
-        return $line->rule_type === BudgetRuleType::Remainder
-            ? $claimedCategoryIds
-            : [(int) $line->category_id];
-    }
+        $lines = $budget->lines->values();
 
-    /**
-     * @return array<int, int>
-     */
-    private function claimedCategoryIds(Budget $budget): array
-    {
-        return $budget->lines
+        $pointedAt = $lines
             ->reject(fn (BudgetLine $line): bool => $line->category_id === null)
             ->map(fn (BudgetLine $line): int => (int) $line->category_id)
             ->values()
             ->all();
+
+        $families = Category::familiesFor($user, $pointedAt);
+
+        return $lines
+            ->map(function (BudgetLine $line) use ($families, $pointedAt): array {
+                if ($line->category_id === null) {
+                    return [];
+                }
+
+                $categoryId = (int) $line->category_id;
+
+                return array_values(array_filter(
+                    $families[$categoryId] ?? [$categoryId],
+                    fn (int $id): bool => $id === $categoryId || ! in_array($id, $pointedAt, true),
+                ));
+            })
+            ->all();
+    }
+
+    /**
+     * Every category some line owns — what the remainder line leaves alone.
+     *
+     * @param  array<int, array<int, int>>  $ownedCategoryIds
+     * @return array<int, int>
+     */
+    private function claimedCategoryIds(array $ownedCategoryIds): array
+    {
+        return array_values(array_unique(array_merge([], ...array_values($ownedCategoryIds))));
     }
 
     /**

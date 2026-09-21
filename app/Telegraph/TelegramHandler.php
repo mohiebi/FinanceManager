@@ -1084,7 +1084,7 @@ class TelegramHandler extends WebhookHandler
 
         $categories = Category::query()
             ->availableFor($user)
-            ->where('type', TransactionType::Cost)
+            ->forType(TransactionType::Cost)
             ->orderByDesc('is_default')
             ->orderBy('name')
             ->get();
@@ -1366,7 +1366,7 @@ class TelegramHandler extends WebhookHandler
         $type = TransactionType::from($wizard['type']);
         $categories = Category::query()
             ->availableFor($user)
-            ->where('type', $type)
+            ->forType($type)
             ->orderBy('is_default', 'desc')
             ->orderBy('name')
             ->get();

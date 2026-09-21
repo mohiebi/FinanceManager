@@ -35,7 +35,7 @@ class ProposeCategoryTool extends Tool
 
         $exists = Category::query()
             ->availableFor($user)
-            ->where('type', $validated['type'])
+            ->forType(TransactionType::from($validated['type']))
             ->where('slug', Category::slugForName($name))
             ->exists();
 

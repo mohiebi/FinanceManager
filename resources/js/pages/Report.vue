@@ -71,6 +71,11 @@
                                 v-for="category in reportCategories"
                                 :key="category.id"
                                 :value="category.id.toString()"
+                                :class="
+                                    category.depth === 1
+                                        ? SUBCATEGORY_ITEM_CLASS
+                                        : ''
+                                "
                             >
                                 {{ category.name }}
                             </SelectItem>
@@ -670,6 +675,7 @@ import {
 } from '@/components/ui/select';
 import { useAmountMask } from '@/composables/useAmountMask';
 import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
+import { orderByParent, SUBCATEGORY_ITEM_CLASS } from '@/lib/categories';
 import {
     dayBucketsBetween,
     formatAppDate,
@@ -692,6 +698,8 @@ type Category = {
     name: string;
     slug: string;
     type: TransactionType;
+    for_both_types: boolean;
+    parent_id: number | null;
     color: string | null;
     is_default: boolean;
 };
@@ -1045,10 +1053,11 @@ const reportBody = computed(() => {
           });
 });
 
-const reportCategories = computed(() => [
-    ...props.categories.cost,
-    ...props.categories.income,
-]);
+// Merged from both types' lists, where a shared category appears twice —
+// orderByParent drops the repeat as well as grouping subcategories.
+const reportCategories = computed(() =>
+    orderByParent([...props.categories.cost, ...props.categories.income]),
+);
 
 watch(
     () => props.filters,

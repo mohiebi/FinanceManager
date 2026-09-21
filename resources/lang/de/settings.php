@@ -224,6 +224,12 @@ return [
         'delete_title' => '"{name}" löschen?',
         'delete_description' => 'Nur ungenutzte eigene Kategorien können gelöscht werden.',
         'delete_in_use' => 'Diese Kategorie wird von bestehenden Transaktionen verwendet und kann nicht gelöscht werden.',
+        'parent' => 'Übergeordnet',
+        'no_parent' => 'Keine (oberste Ebene)',
+        'for_both_types' => 'Für Ausgaben und Einnahmen verwenden',
+        'both_types_badge' => 'Ausgaben & Einnahmen',
+        'under_parent' => 'Unter {name}',
+        'has_children_hint' => 'Hat Unterkategorien und bleibt daher auf oberster Ebene.',
     ],
     'assets' => [
         'title' => 'Asset-Einstellungen',

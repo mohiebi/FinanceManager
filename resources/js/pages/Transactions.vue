@@ -67,6 +67,9 @@
                         v-for="category in filterCategories"
                         :key="category.id"
                         :value="category.id.toString()"
+                        :class="
+                            category.depth === 1 ? SUBCATEGORY_ITEM_CLASS : ''
+                        "
                     >
                         {{ category.name }}
                     </SelectItem>
@@ -595,6 +598,11 @@
                                     v-for="category in bulkCategories"
                                     :key="category.id"
                                     :value="category.id.toString()"
+                                    :class="
+                                        category.depth === 1
+                                            ? SUBCATEGORY_ITEM_CLASS
+                                            : ''
+                                    "
                                 >
                                     {{ category.name }}
                                 </SelectItem>
@@ -1045,6 +1053,7 @@ import { useAmountMask } from '@/composables/useAmountMask';
 import { useDisplayAmounts } from '@/composables/useDisplayAmounts';
 import { usePageSubtitle } from '@/composables/usePageSubtitle';
 import { useVault } from '@/composables/useVault';
+import { orderByParent, SUBCATEGORY_ITEM_CLASS } from '@/lib/categories';
 import { formatAppDate } from '@/lib/date';
 import {
     currencySymbol,
@@ -1074,6 +1083,8 @@ type Category = {
     name: string;
     slug: string;
     type: TransactionType;
+    for_both_types: boolean;
+    parent_id: number | null;
     color: string | null;
     is_default: boolean;
 };
@@ -1225,10 +1236,11 @@ const filterPerPage = ref(props.filters.per_page.toString());
 const filterFieldClass =
     'h-9 w-full rounded-[10px] !border-white/[0.08] !bg-[#252525] px-3 text-[13px] font-normal !text-[#e5e5e5] shadow-none [color-scheme:dark] placeholder:!text-[#686868] focus-visible:!border-[#947BFF] focus-visible:!ring-2 focus-visible:!ring-[#947BFF]/25 [&_svg]:!text-[#989898]';
 
-const filterCategories = computed(() => [
-    ...props.categories.cost,
-    ...props.categories.income,
-]);
+// Merged from both types' lists, where a shared category appears twice —
+// orderByParent drops the repeat as well as grouping subcategories.
+const filterCategories = computed(() =>
+    orderByParent([...props.categories.cost, ...props.categories.income]),
+);
 
 // The mock's per-row category tag colours text on a fixed dark chip using
 // each category's own colour — never a generic badge. Falls back to the
@@ -1397,7 +1409,9 @@ const selectionType = computed<TransactionType | null>(() => {
 });
 
 const bulkCategories = computed(() =>
-    selectionType.value === null ? [] : props.categories[selectionType.value],
+    selectionType.value === null
+        ? []
+        : orderByParent(props.categories[selectionType.value]),
 );
 
 const costsSelectionState = computed(() =>

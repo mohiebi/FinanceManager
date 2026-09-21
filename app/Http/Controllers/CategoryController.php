@@ -45,6 +45,17 @@ class CategoryController extends Controller
                         'transactions_count' => $category->transactions_count,
                     ]),
             ],
+            // Every category that could be a parent, defaults included: the
+            // list above only holds the user's own, but Food is the parent a
+            // Restaurant subcategory most often wants.
+            'parentCandidates' => Category::query()
+                ->availableFor($request->user())
+                ->whereNull('parent_id')
+                ->orderByDesc('is_default')
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Category $category) => (new CategoryResource($category))->resolve($request)),
         ]);
     }
 
@@ -64,7 +75,9 @@ class CategoryController extends Controller
 
         $category = Category::query()->create([
             'user_id' => $request->user()->id,
+            'parent_id' => $data['parent_id'],
             'type' => $data['type'],
+            'for_both_types' => $data['for_both_types'],
             'name' => $data['name'],
             'color' => $data['color'],
             'sort_order' => $nextSortOrder === null ? 0 : $nextSortOrder + 1,
@@ -87,6 +100,8 @@ class CategoryController extends Controller
             'name' => $data['name'],
             'slug' => Category::slugForName($data['name']),
             'color' => $data['color'],
+            'parent_id' => $data['parent_id'],
+            'for_both_types' => $data['for_both_types'],
         ]);
 
         return back();
@@ -134,6 +149,9 @@ class CategoryController extends Controller
             ]);
         }
 
+        // The foreign key does this too; stated here so it holds on a database
+        // that was never told to enforce it.
+        $category->children()->update(['parent_id' => null]);
         $category->delete();
 
         return back();

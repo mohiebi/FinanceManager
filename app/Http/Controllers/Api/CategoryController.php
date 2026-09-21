@@ -20,7 +20,7 @@ class CategoryController extends Controller
             ->availableFor($request->user())
             ->when(
                 TransactionType::tryFrom((string) $request->query('type')),
-                fn ($query, TransactionType $type) => $query->where('type', $type->value),
+                fn ($query, TransactionType $type) => $query->forType($type),
             )
             ->orderBy('is_default', 'desc')
             ->orderBy('name')

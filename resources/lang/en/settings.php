@@ -224,6 +224,12 @@ return [
         'delete_title' => 'Delete "{name}"?',
         'delete_description' => 'Only unused custom categories can be deleted.',
         'delete_in_use' => 'This category is used by existing transactions and cannot be deleted.',
+        'parent' => 'Parent',
+        'no_parent' => 'None (top level)',
+        'for_both_types' => 'Use for costs and income',
+        'both_types_badge' => 'Costs & income',
+        'under_parent' => 'Under {name}',
+        'has_children_hint' => 'Has subcategories, so it stays top level.',
     ],
     'assets' => [
         'title' => 'Asset settings',

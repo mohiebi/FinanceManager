@@ -9,12 +9,13 @@ import {
     Trash2,
     X,
 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
 import InputError from '@/components/InputError.vue';
 import SettingsSection from '@/components/settings/SettingsSection.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -25,6 +26,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { orderByParent } from '@/lib/categories';
 import {
     destroy as destroyCategory,
     reorder as reorderCategories,
@@ -34,18 +36,34 @@ import {
 
 type TransactionType = 'cost' | 'income';
 
-type Category = {
+type ParentCandidate = {
     id: number;
     name: string;
     slug: string;
     type: TransactionType;
+    for_both_types: boolean;
+    parent_id: number | null;
     color: string | null;
     is_default: boolean;
+};
+
+type Category = ParentCandidate & {
     transactions_count: number;
 };
 
+/** A row of a type's list: a category, or the heading over subcategories
+ *  whose parent is not in that list (a default, or a shared category that
+ *  lives under the other type). */
+type ListRow =
+    | (Category & { kind: 'category'; depth: 0 | 1 })
+    | { kind: 'heading'; id: string; parentName: string };
+
+/** reka's Select cannot hold an empty-string value, so "top level" needs one. */
+const NO_PARENT = 'none';
+
 const props = defineProps<{
     categories: Record<TransactionType, Category[]>;
+    parentCandidates: ParentCandidate[];
 }>();
 
 const { t } = useI18n();
@@ -69,11 +87,131 @@ const createForm = useForm({
     type: 'cost' as TransactionType,
     name: '',
     color: defaultColor,
+    parent_id: NO_PARENT,
+    for_both_types: false,
 });
 
 const editForm = useForm({
     name: '',
+    parent_id: NO_PARENT,
+    for_both_types: false,
 });
+
+const allCategories = computed(() => [
+    ...(props.categories.cost ?? []),
+    ...(props.categories.income ?? []),
+]);
+
+const editingCategory = computed(
+    () =>
+        allCategories.value.find(
+            (category) => category.id === editingId.value,
+        ) ?? null,
+);
+
+/**
+ * Mirrors CategoryRules on the server: a parent is top-level, never the
+ * category itself, and covers every type the category will be used for.
+ */
+function eligibleParents(
+    type: TransactionType,
+    forBothTypes: boolean,
+    selfId: number | null = null,
+): ParentCandidate[] {
+    return props.parentCandidates.filter(
+        (parent) =>
+            parent.id !== selfId &&
+            parent.parent_id === null &&
+            (forBothTypes
+                ? parent.for_both_types
+                : parent.type === type || parent.for_both_types),
+    );
+}
+
+const createParentOptions = computed(() =>
+    eligibleParents(createForm.type, createForm.for_both_types),
+);
+
+const editParentOptions = computed(() =>
+    editingCategory.value === null
+        ? []
+        : eligibleParents(
+              editingCategory.value.type,
+              editForm.for_both_types,
+              editingCategory.value.id,
+          ),
+);
+
+function hasChildren(category: Category): boolean {
+    return allCategories.value.some((other) => other.parent_id === category.id);
+}
+
+// Changing the type or the sharing can rule the chosen parent out; falling
+// back to top level beats submitting a pairing the server will refuse.
+watch(createParentOptions, (options) => {
+    if (!options.some((parent) => String(parent.id) === createForm.parent_id)) {
+        createForm.parent_id = NO_PARENT;
+    }
+});
+
+watch(editParentOptions, (options) => {
+    if (!options.some((parent) => String(parent.id) === editForm.parent_id)) {
+        editForm.parent_id = NO_PARENT;
+    }
+});
+
+function parentPayload(value: string): number | null {
+    return value === NO_PARENT ? null : Number(value);
+}
+
+function parentName(parentId: number): string {
+    return (
+        props.parentCandidates.find((parent) => parent.id === parentId)?.name ??
+        ''
+    );
+}
+
+/**
+ * Parents with their subcategories beneath. A subcategory whose parent is not
+ * in this list is gathered under a read-only heading naming that parent,
+ * rather than shown as though it were top-level.
+ */
+function rowsFor(list: Category[]): ListRow[] {
+    const ordered = orderByParent(list);
+    const underOutsideParent = ordered.filter(
+        (category) => category.depth === 0 && category.parent_id !== null,
+    );
+
+    const rows: ListRow[] = ordered
+        .filter(
+            (category) => category.depth === 1 || category.parent_id === null,
+        )
+        .map((category) => ({ ...category, kind: 'category' }));
+
+    const outsideParentIds = [
+        ...new Set(
+            underOutsideParent.flatMap((category) =>
+                category.parent_id === null ? [] : [category.parent_id],
+            ),
+        ),
+    ];
+
+    for (const parentId of outsideParentIds) {
+        rows.push({
+            kind: 'heading',
+            id: `under-${parentId}`,
+            parentName: parentName(parentId),
+        });
+
+        for (const category of underOutsideParent) {
+            if (category.parent_id === parentId) {
+                rows.push({ ...category, kind: 'category', depth: 1 });
+            }
+        }
+    }
+
+    return rows;
+}
 
 const deleteError = computed(() => {
     const errors = page.props.errors as
@@ -88,25 +226,37 @@ const groups = computed(() => [
         type: 'cost' as TransactionType,
         title: t('finance.filters.costs'),
         categories: props.categories.cost ?? [],
+        rows: rowsFor(props.categories.cost ?? []),
     },
     {
         type: 'income' as TransactionType,
         title: t('finance.filters.incomes'),
         categories: props.categories.income ?? [],
+        rows: rowsFor(props.categories.income ?? []),
     },
 ]);
 
 function createCategory(): void {
-    createForm.post(storeCategory.url(), {
-        preserveScroll: true,
-        onSuccess: () => createForm.reset('name', 'color'),
-    });
+    // The parent and sharing are kept after a save, so a run of subcategories
+    // can go under the same parent without re-picking it each time.
+    createForm
+        .transform((data) => ({
+            ...data,
+            parent_id: parentPayload(data.parent_id),
+        }))
+        .post(storeCategory.url(), {
+            preserveScroll: true,
+            onSuccess: () => createForm.reset('name', 'color'),
+        });
 }
 
 function startEdit(category: Category): void {
     editingId.value = category.id;
     editForm.clearErrors();
     editForm.name = category.name;
+    editForm.parent_id =
+        category.parent_id === null ? NO_PARENT : String(category.parent_id);
+    editForm.for_both_types = category.for_both_types;
 }
 
 function cancelEdit(): void {
@@ -117,7 +267,11 @@ function cancelEdit(): void {
 
 function updateCategory(category: Category): void {
     editForm
-        .transform((data) => ({ ...data, color: category.color }))
+        .transform((data) => ({
+            ...data,
+            color: category.color,
+            parent_id: parentPayload(data.parent_id),
+        }))
         .patch(updateCategoryRoute.url(category.id), {
             preserveScroll: true,
             onSuccess: cancelEdit,
@@ -175,7 +329,19 @@ function handleDrop(type: TransactionType, targetCategory: Category): void {
     }
 
     const list = props.categories[type] ?? [];
-    const ids = list.map((category) => category.id);
+    const source = list.find((category) => category.id === sourceId);
+
+    // Reordering only ever happens among siblings: dragging a subcategory onto
+    // another parent's row would read as moving it there, which it does not do.
+    if (source === undefined || source.parent_id !== targetCategory.parent_id) {
+        return;
+    }
+
+    // The whole list goes back in display order, so sort_order follows what
+    // the user sees; siblings stay contiguous, so moving within them is safe.
+    const ids = rowsFor(list).flatMap((row) =>
+        row.kind === 'category' ? [row.id] : [],
+    );
     const fromIndex = ids.indexOf(sourceId);
     const toIndex = ids.indexOf(targetCategory.id);
 
@@ -298,12 +464,63 @@ defineOptions({
                         {{ t('settings.categories.add') }}
                     </Button>
                 </div>
+                <div
+                    class="grid gap-3 sm:grid-cols-[minmax(0,260px)_auto] sm:items-end"
+                >
+                    <div class="grid gap-2">
+                        <Label
+                            class="finance-dialog-label"
+                            for="category_parent"
+                        >
+                            {{ t('settings.categories.parent') }}
+                        </Label>
+                        <Select v-model="createForm.parent_id">
+                            <SelectTrigger
+                                id="category_parent"
+                                class="finance-dialog-field finance-dialog-field-income"
+                            >
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent
+                                class="finance-dialog-select-content"
+                            >
+                                <SelectItem :value="NO_PARENT">
+                                    {{ t('settings.categories.no_parent') }}
+                                </SelectItem>
+                                <SelectItem
+                                    v-for="parent in createParentOptions"
+                                    :key="parent.id"
+                                    :value="String(parent.id)"
+                                >
+                                    {{ parent.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <label
+                        for="category_for_both_types"
+                        class="inline-flex h-9 cursor-pointer items-center gap-3 rounded-xl bg-white/[0.035] px-4 ring-1 ring-white/10 transition-colors hover:bg-white/[0.06]"
+                    >
+                        <Checkbox
+                            id="category_for_both_types"
+                            :checked="createForm.for_both_types"
+                            @update:checked="
+                                createForm.for_both_types = $event === true
+                            "
+                        />
+                        <span class="text-sm text-white">
+                            {{ t('settings.categories.for_both_types') }}
+                        </span>
+                    </label>
+                </div>
                 <div class="flex items-center gap-3">
                     <InputError
                         :message="
                             createForm.errors.type ||
                             createForm.errors.name ||
-                            createForm.errors.color
+                            createForm.errors.color ||
+                            createForm.errors.parent_id ||
+                            createForm.errors.for_both_types
                         "
                     />
                     <Transition
@@ -345,117 +562,222 @@ defineOptions({
                     </div>
 
                     <div v-if="group.categories.length > 0" class="space-y-2">
-                        <div
-                            v-for="category in group.categories"
-                            :key="category.id"
-                            draggable="true"
-                            class="flex items-center gap-2 rounded-xl bg-[#252525] px-3 py-3 ring-1 ring-white/10 transition"
-                            :class="[
-                                draggingId === category.id ? 'opacity-40' : '',
-                                dragOverId === category.id
-                                    ? 'ring-2 ring-[#02CD86]'
-                                    : '',
-                            ]"
-                            @dragstart="handleDragStart($event, category)"
-                            @dragenter.prevent="handleDragEnter(category)"
-                            @dragover.prevent
-                            @dragend="handleDragEnd"
-                            @drop.prevent="handleDrop(group.type, category)"
+                        <template
+                            v-for="category in group.rows"
+                            :key="`${category.kind}-${category.id}`"
                         >
-                            <span
-                                class="shrink-0 cursor-grab touch-none text-[#6b6b6b] active:cursor-grabbing"
-                                :title="
-                                    t('settings.categories.drag_to_reorder')
-                                "
+                            <p
+                                v-if="category.kind === 'heading'"
+                                class="px-1 pt-2 text-xs font-medium text-[#989898]"
                             >
-                                <GripVertical class="size-4" />
-                            </span>
-
-                            <label
-                                class="relative size-6 shrink-0 cursor-pointer overflow-hidden rounded-full ring-1 ring-white/20"
-                                :style="{
-                                    backgroundColor:
-                                        category.color ?? defaultColor,
-                                }"
-                                :title="t('settings.categories.color')"
+                                {{
+                                    t('settings.categories.under_parent', {
+                                        name: category.parentName,
+                                    })
+                                }}
+                            </p>
+                            <div
+                                v-else
+                                draggable="true"
+                                class="flex items-center gap-2 rounded-xl bg-[#252525] px-3 py-3 ring-1 ring-white/10 transition"
+                                :class="[
+                                    category.depth === 1 ? 'ms-6' : '',
+                                    draggingId === category.id
+                                        ? 'opacity-40'
+                                        : '',
+                                    dragOverId === category.id
+                                        ? 'ring-2 ring-[#02CD86]'
+                                        : '',
+                                ]"
+                                @dragstart="handleDragStart($event, category)"
+                                @dragenter.prevent="handleDragEnter(category)"
+                                @dragover.prevent
+                                @dragend="handleDragEnd"
+                                @drop.prevent="handleDrop(group.type, category)"
                             >
-                                <input
-                                    :value="category.color ?? defaultColor"
-                                    type="color"
-                                    class="absolute inset-0 cursor-pointer opacity-0"
-                                    @change="
-                                        updateColor(
-                                            category,
-                                            ($event.target as HTMLInputElement)
-                                                .value,
-                                        )
+                                <span
+                                    class="shrink-0 cursor-grab touch-none text-[#6b6b6b] active:cursor-grabbing"
+                                    :title="
+                                        t('settings.categories.drag_to_reorder')
                                     "
-                                />
-                            </label>
+                                >
+                                    <GripVertical class="size-4" />
+                                </span>
 
-                            <form
-                                v-if="editingId === category.id"
-                                class="min-w-0 flex-1 space-y-2"
-                                @submit.prevent="updateCategory(category)"
-                            >
-                                <Input
-                                    v-model="editForm.name"
-                                    class="finance-dialog-field finance-dialog-field-income"
-                                />
-                                <InputError :message="editForm.errors.name" />
-                                <div class="flex gap-2">
-                                    <Button
-                                        type="button"
-                                        class="h-9 flex-1 bg-white/5 text-white/70 shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
-                                        @click="cancelEdit"
-                                    >
-                                        <X class="size-4" />
-                                        {{ t('common.cancel') }}
-                                    </Button>
-                                    <Button
-                                        class="h-9 flex-1 bg-[#02CD86] text-[#101010] hover:bg-[#08dd93]"
-                                        :disabled="editForm.processing"
-                                    >
-                                        <Spinner v-if="editForm.processing" />
-                                        <Check v-else class="size-4" />
-                                        {{ t('common.save') }}
-                                    </Button>
-                                </div>
-                            </form>
+                                <label
+                                    class="relative size-6 shrink-0 cursor-pointer overflow-hidden rounded-full ring-1 ring-white/20"
+                                    :style="{
+                                        backgroundColor:
+                                            category.color ?? defaultColor,
+                                    }"
+                                    :title="t('settings.categories.color')"
+                                >
+                                    <input
+                                        :value="category.color ?? defaultColor"
+                                        type="color"
+                                        class="absolute inset-0 cursor-pointer opacity-0"
+                                        @change="
+                                            updateColor(
+                                                category,
+                                                (
+                                                    $event.target as HTMLInputElement
+                                                ).value,
+                                            )
+                                        "
+                                    />
+                                </label>
 
-                            <template v-else>
-                                <div class="min-w-0 flex-1">
+                                <form
+                                    v-if="editingId === category.id"
+                                    class="min-w-0 flex-1 space-y-2"
+                                    @submit.prevent="updateCategory(category)"
+                                >
+                                    <Input
+                                        v-model="editForm.name"
+                                        class="finance-dialog-field finance-dialog-field-income"
+                                    />
+                                    <div class="grid gap-2 sm:grid-cols-2">
+                                        <Select
+                                            v-model="editForm.parent_id"
+                                            :disabled="hasChildren(category)"
+                                        >
+                                            <SelectTrigger
+                                                class="finance-dialog-field finance-dialog-field-income"
+                                                :aria-label="
+                                                    t(
+                                                        'settings.categories.parent',
+                                                    )
+                                                "
+                                            >
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent
+                                                class="finance-dialog-select-content"
+                                            >
+                                                <SelectItem :value="NO_PARENT">
+                                                    {{
+                                                        t(
+                                                            'settings.categories.no_parent',
+                                                        )
+                                                    }}
+                                                </SelectItem>
+                                                <SelectItem
+                                                    v-for="parent in editParentOptions"
+                                                    :key="parent.id"
+                                                    :value="String(parent.id)"
+                                                >
+                                                    {{ parent.name }}
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <label
+                                            for="edit_category_for_both_types"
+                                            class="inline-flex h-9 cursor-pointer items-center gap-3 rounded-xl bg-white/[0.035] px-4 ring-1 ring-white/10 transition-colors hover:bg-white/[0.06]"
+                                        >
+                                            <Checkbox
+                                                id="edit_category_for_both_types"
+                                                :checked="
+                                                    editForm.for_both_types
+                                                "
+                                                @update:checked="
+                                                    editForm.for_both_types =
+                                                        $event === true
+                                                "
+                                            />
+                                            <span class="text-sm text-white">
+                                                {{
+                                                    t(
+                                                        'settings.categories.for_both_types',
+                                                    )
+                                                }}
+                                            </span>
+                                        </label>
+                                    </div>
                                     <p
-                                        class="truncate text-sm font-medium text-white"
+                                        v-if="hasChildren(category)"
+                                        class="text-xs text-[#989898]"
                                     >
-                                        {{ category.name }}
-                                    </p>
-                                    <p class="text-xs text-[#989898]">
                                         {{
-                                            t('settings.categories.usage', {
-                                                count: category.transactions_count,
-                                            })
+                                            t(
+                                                'settings.categories.has_children_hint',
+                                            )
                                         }}
                                     </p>
-                                </div>
-                                <Button
-                                    type="button"
-                                    class="h-9 w-9 shrink-0 bg-white/5 p-0 text-white/70 shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
-                                    :title="t('common.edit')"
-                                    @click="startEdit(category)"
-                                >
-                                    <Pencil class="size-4" />
-                                </Button>
-                                <Button
-                                    type="button"
-                                    class="h-9 w-9 shrink-0 bg-[#E94E50]/10 p-0 text-[#E94E50] shadow-none ring-1 ring-[#E94E50]/20 hover:bg-[#E94E50]/20"
-                                    :title="t('common.delete')"
-                                    @click="deleteTarget = category"
-                                >
-                                    <Trash2 class="size-4" />
-                                </Button>
-                            </template>
-                        </div>
+                                    <InputError
+                                        :message="
+                                            editForm.errors.name ||
+                                            editForm.errors.parent_id ||
+                                            editForm.errors.for_both_types
+                                        "
+                                    />
+                                    <div class="flex gap-2">
+                                        <Button
+                                            type="button"
+                                            class="h-9 flex-1 bg-white/5 text-white/70 shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
+                                            @click="cancelEdit"
+                                        >
+                                            <X class="size-4" />
+                                            {{ t('common.cancel') }}
+                                        </Button>
+                                        <Button
+                                            class="h-9 flex-1 bg-[#02CD86] text-[#101010] hover:bg-[#08dd93]"
+                                            :disabled="editForm.processing"
+                                        >
+                                            <Spinner
+                                                v-if="editForm.processing"
+                                            />
+                                            <Check v-else class="size-4" />
+                                            {{ t('common.save') }}
+                                        </Button>
+                                    </div>
+                                </form>
+
+                                <template v-else>
+                                    <div class="min-w-0 flex-1">
+                                        <p
+                                            class="truncate text-sm font-medium text-white"
+                                        >
+                                            {{ category.name }}
+                                        </p>
+                                        <p
+                                            class="flex flex-wrap items-center gap-2 text-xs text-[#989898]"
+                                        >
+                                            {{
+                                                t('settings.categories.usage', {
+                                                    count: category.transactions_count,
+                                                })
+                                            }}
+                                            <span
+                                                v-if="category.for_both_types"
+                                                class="rounded-full bg-[#02CD86]/10 px-2 py-0.5 text-[10px] font-medium text-[#02CD86]"
+                                            >
+                                                {{
+                                                    t(
+                                                        'settings.categories.both_types_badge',
+                                                    )
+                                                }}
+                                            </span>
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        class="h-9 w-9 shrink-0 bg-white/5 p-0 text-white/70 shadow-none ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
+                                        :title="t('common.edit')"
+                                        @click="startEdit(category)"
+                                    >
+                                        <Pencil class="size-4" />
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        class="h-9 w-9 shrink-0 bg-[#E94E50]/10 p-0 text-[#E94E50] shadow-none ring-1 ring-[#E94E50]/20 hover:bg-[#E94E50]/20"
+                                        :title="t('common.delete')"
+                                        @click="deleteTarget = category"
+                                    >
+                                        <Trash2 class="size-4" />
+                                    </Button>
+                                </template>
+                            </div>
+                        </template>
                     </div>
 
                     <p

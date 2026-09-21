@@ -56,7 +56,7 @@ class ReportController extends Controller
 
         $query = $request->user()
             ->transactions()
-            ->with('category:id,name,slug,type,color,is_default')
+            ->with('category:id,parent_id,name,slug,type,for_both_types,color,is_default')
             ->whereDate('occurred_at', '>=', $fromDate->toDateString())
             ->whereDate('occurred_at', '<=', $toDate->toDateString())
             ->when(
@@ -65,7 +65,12 @@ class ReportController extends Controller
             )
             ->when(
                 $selectedCategoryId !== null,
-                fn (Builder $query) => $query->where('category_id', $selectedCategoryId),
+                // A parent stands for its whole family: filtering by Food that
+                // hid every Restaurant row would read as missing spending.
+                fn (Builder $query) => $query->whereIn(
+                    'category_id',
+                    Category::familiesFor($request->user(), [$selectedCategoryId])[$selectedCategoryId],
+                ),
             )
             // Money moved into assets is not spending. Excluded from the query
             // rather than subtracted from the total, so the tables, the charts and
@@ -157,16 +162,7 @@ class ReportController extends Controller
                     $vaultArmed,
                 ),
             ],
-            'categories' => [
-                'cost' => $categories
-                    ->where('type', TransactionType::Cost)
-                    ->values()
-                    ->map(fn (Category $category) => (new CategoryResource($category))->resolve($request)),
-                'income' => $categories
-                    ->where('type', TransactionType::Income)
-                    ->values()
-                    ->map(fn (Category $category) => (new CategoryResource($category))->resolve($request)),
-            ],
+            'categories' => CategoryResource::groupedByType($categories, $request),
             'currencies' => collect(Currency::cases())
                 ->map(fn (Currency $currency) => [
                     'label' => $currency->label(),

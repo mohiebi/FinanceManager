@@ -564,10 +564,10 @@ class ImportTransactions
             ->availableFor($user)
             ->get()
             ->each(function (Category $category) use (&$categories): void {
-                $type = $category->type->value;
-
-                foreach ([$category->slug, $category->name] as $value) {
-                    $categories[$type][$this->normalizeText((string) $value)] = $category;
+                foreach ($category->allowedTypes() as $type) {
+                    foreach ([$category->slug, $category->name] as $value) {
+                        $categories[$type->value][$this->normalizeText((string) $value)] = $category;
+                    }
                 }
             });
 

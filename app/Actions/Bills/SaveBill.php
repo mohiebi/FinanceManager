@@ -176,7 +176,7 @@ class SaveBill
 
         $usable = Category::query()
             ->availableFor($user)
-            ->where('type', TransactionType::Cost)
+            ->forType(TransactionType::Cost)
             ->whereKey($categoryId)
             ->exists();
 

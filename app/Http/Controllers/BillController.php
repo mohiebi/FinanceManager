@@ -130,7 +130,7 @@ class BillController extends Controller
 
         $categories = Category::query()
             ->availableFor($user)
-            ->where('type', TransactionType::Cost)
+            ->forType(TransactionType::Cost)
             ->orderByDesc('is_default')
             ->orderBy('name')
             ->get()

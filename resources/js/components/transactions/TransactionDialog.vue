@@ -68,7 +68,7 @@
                                         :key="category.id"
                                         :value="category.id.toString()"
                                     >
-                                        {{ category.name }}
+                                        {{ optionLabel(category) }}
                                     </option>
                                 </select>
                                 <InputError
@@ -244,6 +244,7 @@ import {
     useMoneyInput,
 } from '@/composables/useMoneyInput';
 import { useVault } from '@/composables/useVault';
+import { optionLabel, orderByParent } from '@/lib/categories';
 import type { Encrypted } from '@/types/vault';
 
 type TransactionType = 'cost' | 'income';
@@ -254,6 +255,8 @@ type Category = {
     name: string;
     slug: string;
     type: TransactionType;
+    for_both_types: boolean;
+    parent_id: number | null;
     is_default: boolean;
 };
 
@@ -304,7 +307,9 @@ const form = useForm({
     occurred_at: today(),
 });
 
-const selectedCategories = computed(() => props.categories[form.type] ?? []);
+const selectedCategories = computed(() =>
+    orderByParent(props.categories[form.type] ?? []),
+);
 const isEditing = computed(() => props.transaction !== null);
 const dialogTitle = computed(() =>
     isEditing.value

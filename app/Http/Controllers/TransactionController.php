@@ -208,14 +208,19 @@ class TransactionController extends Controller
         }
 
         $query = $user->transactions()
-            ->with('category:id,name,slug,type,color,is_default')
+            ->with('category:id,parent_id,name,slug,type,for_both_types,color,is_default')
             ->when(
                 $selectedType instanceof TransactionType,
                 fn (Builder $query) => $query->where('type', $selectedType),
             )
             ->when(
                 $selectedCategoryId !== null,
-                fn (Builder $query) => $query->where('category_id', $selectedCategoryId),
+                // A parent stands for its whole family: filtering by Food that
+                // hid every Restaurant row would read as missing spending.
+                fn (Builder $query) => $query->whereIn(
+                    'category_id',
+                    Category::familiesFor($user, [$selectedCategoryId])[$selectedCategoryId],
+                ),
             )
             ->when(
                 $uncategorisedOnly,
@@ -301,16 +306,7 @@ class TransactionController extends Controller
                 ),
                 'meta' => $paginationMeta,
             ],
-            'categories' => [
-                'cost' => $categories
-                    ->where('type', TransactionType::Cost)
-                    ->values()
-                    ->map(fn (Category $category) => (new CategoryResource($category))->resolve($request)),
-                'income' => $categories
-                    ->where('type', TransactionType::Income)
-                    ->values()
-                    ->map(fn (Category $category) => (new CategoryResource($category))->resolve($request)),
-            ],
+            'categories' => CategoryResource::groupedByType($categories, $request),
             'currencies' => collect(Currency::cases())
                 ->map(fn (Currency $currency) => [
                     'label' => $currency->label(),
@@ -692,7 +688,7 @@ class TransactionController extends Controller
             $type = TransactionType::tryFrom($validated['type']);
             $exists = Category::query()
                 ->availableFor($request->user())
-                ->when($type !== null, fn (Builder $q) => $q->where('type', $type))
+                ->when($type !== null, fn (Builder $q) => $q->forType($type))
                 ->whereKey($categoryId)
                 ->exists();
 

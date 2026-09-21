@@ -520,9 +520,14 @@
                                         class="finance-dialog-select-content"
                                     >
                                         <SelectItem
-                                            v-for="c in props.categories"
+                                            v-for="c in categoryOptions"
                                             :key="c.id"
                                             :value="String(c.id)"
+                                            :class="
+                                                c.depth === 1
+                                                    ? SUBCATEGORY_ITEM_CLASS
+                                                    : ''
+                                            "
                                         >
                                             {{ c.name }}
                                         </SelectItem>
@@ -909,6 +914,7 @@ import {
     countMonthlyPaymentsThrough,
     nextMonthlyDueDate,
 } from '@/lib/bill-recurrence';
+import { orderByParent, SUBCATEGORY_ITEM_CLASS } from '@/lib/categories';
 import { buildCalendarMonth, formatAppDate } from '@/lib/date';
 import {
     convert as convertMoney,
@@ -1003,7 +1009,7 @@ type UpcomingOccurrence = {
 
 const props = defineProps<{
     bills: Bill[];
-    categories: { id: number; name: string }[];
+    categories: { id: number; name: string; parent_id: number | null }[];
     currencies: { label: string; value: string }[];
     timezones: { value: string; label: string }[];
     selectedCurrency: string;
@@ -1019,6 +1025,7 @@ const props = defineProps<{
 
 const dueSoonWindowDays = 30;
 const viewMode = ref<'list' | 'calendar'>('list');
+const categoryOptions = computed(() => orderByParent(props.categories));
 
 const { t } = useI18n();
 const { revealAsync, sealForSubmit, isArmed, trackKey } = useVault();

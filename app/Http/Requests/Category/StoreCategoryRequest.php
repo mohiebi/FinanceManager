@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Category;
 
 use App\Enums\TransactionType;
-use App\Models\Category;
+use App\Support\CategoryRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -29,6 +29,8 @@ class StoreCategoryRequest extends FormRequest
             'type' => ['required', Rule::enum(TransactionType::class)],
             'name' => ['required', 'string', 'max:100'],
             'color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'parent_id' => ['nullable', 'integer'],
+            'for_both_types' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -44,27 +46,28 @@ class StoreCategoryRequest extends FormRequest
         return [
             function (Validator $validator): void {
                 $type = TransactionType::tryFrom((string) $this->input('type'));
-                $name = (string) $this->input('name');
 
-                if (! $type || $name === '') {
+                if (! $type || $validator->errors()->isNotEmpty()) {
                     return;
                 }
 
-                $exists = Category::query()
-                    ->availableFor($this->user())
-                    ->where('type', $type)
-                    ->where('slug', Category::slugForName($name))
-                    ->exists();
+                $errors = CategoryRules::errors(
+                    $this->user(),
+                    $type,
+                    $this->boolean('for_both_types'),
+                    $this->filled('parent_id') ? (int) $this->input('parent_id') : null,
+                    (string) $this->input('name'),
+                );
 
-                if ($exists) {
-                    $validator->errors()->add('name', __('finance.categories.already_exists'));
+                foreach ($errors as $field => $message) {
+                    $validator->errors()->add($field, $message);
                 }
             },
         ];
     }
 
     /**
-     * @return array{type: TransactionType, name: string, color: string|null}
+     * @return array{type: TransactionType, name: string, color: string|null, parent_id: int|null, for_both_types: bool}
      */
     public function categoryData(): array
     {
@@ -72,6 +75,8 @@ class StoreCategoryRequest extends FormRequest
             'type' => TransactionType::from($this->validated('type')),
             'name' => (string) $this->validated('name'),
             'color' => $this->validated('color') ?: null,
+            'parent_id' => $this->filled('parent_id') ? (int) $this->validated('parent_id') : null,
+            'for_both_types' => $this->boolean('for_both_types'),
         ];
     }
 }

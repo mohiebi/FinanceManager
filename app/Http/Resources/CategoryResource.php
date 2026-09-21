@@ -2,15 +2,38 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\TransactionType;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Collection;
 
 /**
  * @mixin Category
  */
 class CategoryResource extends JsonResource
 {
+    /**
+     * Categories split into the list each transaction type's picker offers.
+     *
+     * A shared category is listed under both, so a picker keyed by type works
+     * without knowing sharing exists.
+     *
+     * @param  Collection<int, Category>  $categories
+     * @return array<string, Collection<int, array<string, mixed>>>
+     */
+    public static function groupedByType(Collection $categories, Request $request): array
+    {
+        return collect(TransactionType::cases())
+            ->mapWithKeys(fn (TransactionType $type): array => [
+                $type->value => $categories
+                    ->filter(fn (Category $category): bool => $category->allowsType($type))
+                    ->values()
+                    ->map(fn (Category $category): array => (new self($category))->resolve($request)),
+            ])
+            ->all();
+    }
+
     /**
      * Transform the resource into an array.
      *
@@ -30,6 +53,8 @@ class CategoryResource extends JsonResource
             'name' => $name,
             'slug' => $this->slug,
             'type' => $this->type->value,
+            'for_both_types' => $this->for_both_types,
+            'parent_id' => $this->parent_id,
             'color' => $this->resolvedColor(),
             'is_default' => $this->is_default,
         ];

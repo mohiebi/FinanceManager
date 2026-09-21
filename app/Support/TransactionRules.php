@@ -54,7 +54,7 @@ class TransactionRules
             return [];
         }
 
-        if ($category->type !== $transactionType) {
+        if (! $category->allowsType($transactionType)) {
             return ['category_id' => 'Choose a category for the selected transaction type.'];
         }
 

@@ -352,11 +352,11 @@
                                     >
                                         <option :value="null">—</option>
                                         <option
-                                            v-for="category in props.categories"
+                                            v-for="category in categoryOptions"
                                             :key="category.id"
                                             :value="category.id"
                                         >
-                                            {{ category.name }}
+                                            {{ optionLabel(category) }}
                                         </option>
                                     </select>
                                 </div>
@@ -490,6 +490,7 @@ import { useVault } from '@/composables/useVault';
 import { useVaultBudget } from '@/composables/useVaultBudget';
 import type { VaultBudgetPayload } from '@/composables/useVaultBudget';
 import type { BudgetRule } from '@/lib/budget';
+import { optionLabel, orderByParent } from '@/lib/categories';
 import { formatCurrencyDisplay, formatCurrencyNumber } from '@/lib/money';
 import type { CurrencyCode } from '@/lib/money';
 import { dashboard } from '@/routes';
@@ -506,7 +507,7 @@ import type {
     BudgetProgress,
 } from '@/types/budgets';
 
-type CategoryOption = { id: number; name: string };
+type CategoryOption = { id: number; name: string; parent_id: number | null };
 
 const props = defineProps<{
     budget: BudgetForm | null;
@@ -529,6 +530,10 @@ const maskClass = computed(() =>
 );
 
 const { progress: vaultProgress } = useVaultBudget(() => props.vaultBudget);
+
+// Parents first with their subcategories beneath, since a line on a parent
+// now covers the subcategories no other line claims.
+const categoryOptions = computed(() => orderByParent(props.categories));
 
 /**
  * One plan, whichever side resolved it.

@@ -51,4 +51,19 @@ class CategoryFactory extends Factory
             'is_default' => false,
         ]);
     }
+
+    public function childOf(Category $parent): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'parent_id' => $parent->id,
+            'type' => $parent->type,
+        ]);
+    }
+
+    public function forBothTypes(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'for_both_types' => true,
+        ]);
+    }
 }

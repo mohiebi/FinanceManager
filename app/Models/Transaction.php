@@ -42,7 +42,7 @@ class Transaction extends Model implements HasEncryptionOwner
                 return;
             }
 
-            if ($category->type !== $transaction->type) {
+            if (! $category->allowsType($transaction->type)) {
                 throw new InvalidArgumentException('Transaction category type must match the transaction type.');
             }
 

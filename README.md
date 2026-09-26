@@ -2,7 +2,7 @@
 
 CashPilot is a Laravel and Inertia Vue personal finance app for tracking daily cash flow, categories, bills, budgets, investments, savings goals, and portfolio value. It supports English, Persian, and German locales with Jalali/Gregorian calendar preferences, multi-currency display (toman/USD/EUR), a Telegram bot for reports and reminders, an MCP server so AI assistants (Claude, Codex/ChatGPT) can read and — with explicit approval — write finance data, an AI portfolio advisor, and an optional client-side encryption vault for people who want the server to never see their real numbers.
 
-Two currencies run alongside the money being tracked. **Miles** are earned by using the app — never by how much money moves — and are spent on unlocking optional modules, protecting a streak, and paying for advisor work. **Pro** is a prepaid span of access bought with crypto; the same checkout sells Miles packs outright.
+Two currencies run alongside the money being tracked. **Miles** are earned by using the app — never by how much money moves — and are spent on unlocking optional modules, protecting a streak, and paying for advisor work. There is no paid plan: the economy is meant to pay for itself, and the only thing for sale is Miles, in packs paid for in crypto. See [The Miles economy](#the-miles-economy) for why most users never need one.
 
 The app has an aviation streak running through it: the currency is Miles and ranks go Cadet → Pilot → Captain. The heavier flight naming — a budget as the "Flight plan", the streak as the "Flight log" — is a per-user preference that ships **off**, switched on from Settings → Preferences. Plain names are what a new account sees.
 
@@ -32,7 +32,7 @@ Switching a module on for the **first** time costs a one-time 25 Miles (`miles.u
 |---|---|---|
 | Transactions, Reports | Always on | Core — never rendered as a toggle, never costs Miles |
 | Flight log (Gamification) | On | Free. Owns `/flight-log`, which redirects into the Miles hub while the Miles UI is on |
-| AI Portfolio Advisor | On | Free today, and the module Pro is designed to buy. On by default so a future purchase lands on a working page rather than a settings switch; a user without the entitlement gets the paywall instead of a locked row |
+| AI Portfolio Advisor | On | Free to switch on; the work itself is priced in Miles (see below) |
 | Bills | Off | 25 Miles. Requires Transactions |
 | Flight plan (Budgets) | Off | 25 Miles. Requires Transactions |
 | Investments | Off | 25 Miles |
@@ -63,7 +63,7 @@ Bills and Portfolio used to conflict with the vault as well. Both now seal and c
 - **Telegram Bot** — account linking plus daily/weekly/monthly report delivery, bill reminders, and an evening streak nudge.
 - **AI Assistant (MCP)** — a Laravel MCP server (`/mcp/finance`) exposing read tools (list transactions, categories, bills, investments, savings goals; portfolio and spending summaries; budget progress) and a propose-then-approve write flow: an AI client proposes a change, the user reviews a diff in chat, and only an explicit confirmation calls `apply-finance-changes` to commit it. Settings → AI connections lists connected assistants (with per-token revoke) and a full change history of every proposal and its confirmed/rejected/expired outcome.
 - **Admin analytics** — a customer-growth and product-adoption dashboard for admin accounts, with CSV export, a per-customer drawer, and Miles-economy figures (claims, spend, completed cycles) alongside the finance ones.
-- **Subscriptions & Miles packs** — Pro is a prepaid span (monthly $5, quarterly $13, yearly $45) paid in crypto and verified on-chain; the same checkout sells Miles outright (500/$5, 1,200/$10, 2,600/$20, 7,000/$50). Coupons can discount or fully cover either. Settings → Billing holds the plans, the packs, payment state, and proof submission; `/admin/billing` is the operator side — approve, re-check or reject a payment, mint and disable coupons, grant or revoke Pro by hand. See [Subscriptions](#subscriptions) for the rules that make on-chain verification safe.
+- **Miles packs** — the only thing the app sells: Miles outright (500/$5, 1,200/$10, 2,600/$20, 7,000/$50), paid in crypto and verified on-chain, with coupons that can discount or fully cover a pack. Settings → Billing holds the packs, payment state, and proof submission; `/admin/billing` is the operator side — approve, re-check or reject a payment, mint and disable coupons. The whole page is behind `BILLING_ENABLED` and 404s while it is off. See [Billing](#billing) for the rules that make on-chain verification safe.
 - **Localization & appearance** — English, Persian, and German UI copy; Gregorian and Jalali calendars; toman/USD/EUR currency display switchable from the header on any page; light/dark/system theme; an amount mask that blurs figures on screen for shoulder-surfing (independent of the vault, which decides whether a value is readable at all); compact figures for large totals; and the opt-in flight terminology.
 
 ## Application Routes
@@ -119,7 +119,7 @@ Important backend files:
 - `app/Jobs/BillReminderJob.php`, `app/Jobs/StreakReminderJob.php`, `app/Jobs/RefreshAssetPricesJob.php`
 - `app/Jobs/VerifySubscriptionPaymentJob.php`, `app/Jobs/ReconcileSubscriptionsJob.php`, `app/Jobs/ReconcileMileWalletsJob.php`, `app/Jobs/GenerateAdvisorRecommendationJob.php`
 - `app/Actions/Miles/*` — the whole Miles economy: `AdjustMiles` is the only writer of a balance, `ClaimDailyMiles` the ladder, `ActivateUserFeature` the unlock, `EvaluateReferralRewards` the staged payout
-- `app/Actions/Billing/*` — `StartSubscriptionPayment`, `VerifyPaymentOnChain`, `GrantProAccess` / `RevokeProAccess`, `CreditPurchasedMiles`, and the coupon flow
+- `app/Actions/Billing/*` — `StartSubscriptionPayment`, `VerifyPaymentOnChain`, `CreditPurchasedMiles`, and the coupon flow (plus the legacy `GrantProAccess` / `RevokeProAccess`)
 - `app/Services/Advisor/*` — assessment scoring, profile building, AI context, proposal validation, and rebalancing maths
 - `app/Enums/Feature.php` — the module toggle system
 - `config/miles.php` — every Miles price, reward, and cap in one file; `config/billing.php` and `config/advisor.php` do the same for their areas
@@ -249,26 +249,34 @@ php artisan test --compact
 - Anything that must still work with the vault armed (Portfolio, Budgets, Savings goals, Bills) resolves its numbers client-side from decrypted values rather than assuming the server can read them; routes that genuinely require server-side plaintext sit behind `RejectWhenVaultArmed`.
 - **Miles recognise actions and consistency, never amounts.** No reward may be a function of a balance, a transaction's size, or net worth — `config('miles.never_reward_financial_amounts')` states the rule and the ranks/moments copy repeats it to the user. A leaderboard of who has more money is the thing this design exists to avoid.
 - Every balance change goes through `AdjustMiles` with an idempotency key, inside a transaction that locks the wallet row. Nothing else writes `mile_wallets`, and `ReconcileMileWalletsJob` re-derives each balance from the ledger to prove it.
-- Keep entitlement (`mayUse`, Pro) separate from enablement (the user's own switch) and from ownership (`user_feature_unlocks`). The three answer different questions, and collapsing any two of them is how a paid feature ends up free or a bought unlock ends up re-charged.
+- Keep entitlement (`mayUse`) separate from enablement (the user's own switch) and from ownership (`user_feature_unlocks`). The three answer different questions, and collapsing any two of them is how a paid feature ends up free or a bought unlock ends up re-charged.
 
-### Subscriptions
+### The Miles economy
 
-Pro accounts are prepaid spans of access bought with crypto. Nothing renews itself — a crypto
-payment cannot be taken a second time — so every plan extends the buyer's current expiry and the
-expiry reminder is load-bearing rather than decorative. The same checkout also sells Miles packs,
-which are not access at all: they credit the wallet through `CreditPurchasedMiles` and expire never.
+The economy is tuned so that nobody needs to buy Miles. A consistent user — claiming every day and
+logging something every day — earns about 44 Miles a week (30 from the claim ladder, 14 from the
+daily activity reward), roughly 190 a month, before milestones and referrals.
 
-- **No module is Pro yet.** `Feature::tier()` returns `Free` for every case, and `ProEntitlementTest`
-  asserts it, so making a feature paid is a deliberate one-line change rather than an accident. The
-  Advisor is the one it is written for.
-- **A Miles pack is a purchase, not an entitlement.** It grants no access and touches no
-  `pro_until`; it credits the ledger like any other award, so a refund, a re-check, or a coupon
-  settling late all reconcile through the same wallet.
-- `users.pro_until` is the entitlement, and it is written **only** by `GrantProAccess` /
-  `RevokeProAccess`, always inside a transaction that locks the user row and always alongside a
-  `subscription_grants` row. It is kept out of the model's `#[Fillable]` list on purpose: a
-  mass-assignment path into it would be free Pro. Expiry needs no job — `isPro()` compares against
-  the clock on every read.
+- The 150-Mile welcome grant plus one day's earnings covers the first advisor recommendation (175).
+- Unlocking all seven paid modules costs 175 Miles, which the welcome grant nearly covers on its own.
+- The only real pressure to buy is heavy advisor use: repeated 250-Mile recommendations, guidance,
+  and long consultation threads. That is what the packs are priced against.
+
+Tune it in `config/miles.php`; if a change makes ordinary use depend on buying, it is the wrong change.
+
+### Billing
+
+There is no Pro plan any more — Miles replaced it. The checkout sells Miles packs and nothing else;
+a pack is paid in crypto, verified on-chain, and credits the wallet through `CreditPurchasedMiles`.
+Nothing renews and nothing expires.
+
+- **A Miles pack is a purchase, not an entitlement.** It grants no access; it credits the ledger like
+  any other award, so a refund, a re-check, or a coupon settling late all reconcile through the same wallet.
+- **Pro is legacy code, not a product.** `config('billing.plans')`, `BillingPlan`, `users.pro_until`,
+  `GrantProAccess` / `RevokeProAccess` and the admin grant/revoke routes are still in the codebase, and
+  the admin dashboard still reports historical Pro accounts, but nothing sells a plan and
+  `Feature::tier()` returns `Free` for every module (`ProEntitlementTest` asserts it). Don't document
+  or surface any of it as something a user can buy.
 - **Billing tables are plaintext by design**, against the convention everywhere else. The worker
   that settles a payment has no browser and no per-user data key, so encrypting them would make a
   real payment permanently unverifiable the moment its buyer armed their vault. Never put
